@@ -1,5 +1,6 @@
 package com.ekoehler.expressivecutout.overlay
 
+import android.accessibilityservice.AccessibilityService
 import android.app.ActivityOptions
 import android.app.KeyguardManager
 import android.app.PendingIntent
@@ -16,6 +17,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.Surface
 import android.view.View
 import android.view.ViewTreeObserver
@@ -221,6 +223,12 @@ class IslandOverlayController(private val context: Context) {
     private var layoutParams: WindowManager.LayoutParams? = null
     private var dismissJob: Job? = null
     private var windowResizeJob: Job? = null
+    // Tracks a downward swipe that starts on the visible overlay. On some OEM builds a
+    // touchable TYPE_ACCESSIBILITY_OVERLAY can prevent SystemUI from receiving the top-edge
+    // notification-shade gesture. In that case we invoke the accessibility global action instead.
+    private var touchDownY = 0f
+    private var touchDownTime = 0L
+    private var shadeSwipeTriggered = false
 
     // The installed OnComputeInternalInsetsListener (a reflection Proxy), kept so it can be removed.
     private var insetsListener: Any? = null
@@ -295,11 +303,11 @@ class IslandOverlayController(private val context: Context) {
      */
     private fun applyLockVisibility() {
         val shouldHideLock = behaviourState.value.hideOnLockscreen &&
-            keyguardManager?.isKeyguardLocked == true
+                keyguardManager?.isKeyguardLocked == true
         val isLandscapeHidden = behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.HIDDEN ||
-            behaviourState.value.hideInLandscape
+                behaviourState.value.hideInLandscape
         val shouldHideLandscape = isLandscapeHidden &&
-            currentOrientation == Configuration.ORIENTATION_LANDSCAPE
+                currentOrientation == Configuration.ORIENTATION_LANDSCAPE
         val shouldHide = shouldHideLock || shouldHideLandscape
 
         when {
@@ -400,6 +408,32 @@ class IslandOverlayController(private val context: Context) {
             setViewTreeLifecycleOwner(lifecycleOwner)
             setViewTreeViewModelStoreOwner(lifecycleOwner)
             setViewTreeSavedStateRegistryOwner(lifecycleOwner)
+            setOnTouchListener { _, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        touchDownY = event.rawY
+                        touchDownTime = android.os.SystemClock.uptimeMillis()
+                        shadeSwipeTriggered = false
+                        false
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val dy = event.rawY - touchDownY
+                        val elapsed = android.os.SystemClock.uptimeMillis() - touchDownTime
+                        if (!shadeSwipeTriggered && dy >= SHADE_SWIPE_DISTANCE_DP * density && elapsed <= SHADE_SWIPE_MAX_TIME_MS) {
+                            shadeSwipeTriggered = openNotificationShade()
+                            if (shadeSwipeTriggered) true else false
+                        } else {
+                            shadeSwipeTriggered
+                        }
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        val handled = shadeSwipeTriggered
+                        shadeSwipeTriggered = false
+                        handled
+                    }
+                    else -> shadeSwipeTriggered
+                }
+            }
             setContent {
                 val event by currentEvent.collectAsStateWithLifecycle()
                 val layout by layoutState.collectAsStateWithLifecycle()
@@ -409,11 +443,11 @@ class IslandOverlayController(private val context: Context) {
                 val widthDp by displayWidthDp.collectAsStateWithLifecycle()
                 val orientation by orientationState.collectAsStateWithLifecycle()
                 val isNoExpandLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE &&
-                    (behaviour.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
-                     behaviour.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
+                        (behaviour.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
+                                behaviour.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
                 val effectiveForced = if (isNoExpandLandscape) false else forced
                 val isStickToCamera = orientation == Configuration.ORIENTATION_LANDSCAPE &&
-                    behaviour.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA
+                        behaviour.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA
                 val rot270 = isRotation270()
 
                 ExpressiveCutoutTheme {
@@ -465,6 +499,20 @@ class IslandOverlayController(private val context: Context) {
         composeView = view
         layoutParams = params
         installTouchableRegion(view)
+    }
+
+    /**
+     * Opens the real Android notification shade through the accessibility service. This is a
+     * fallback for devices where a touchable accessibility overlay prevents SystemUI from owning
+     * the initial top-edge drag.
+     */
+    private fun openNotificationShade(): Boolean {
+        val service = context as? AccessibilityService ?: return false
+        return runCatching {
+            service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)
+        }.onFailure {
+            Log.w(TAG, "Failed to open notification shade", it)
+        }.getOrDefault(false)
     }
 
     private fun removeOverlay() {
@@ -866,7 +914,7 @@ class IslandOverlayController(private val context: Context) {
      */
     private fun pillTouchRect(viewWidth: Int, viewHeight: Int): Rect {
         val isStickToCamera = orientationState.value == Configuration.ORIENTATION_LANDSCAPE &&
-            behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA
+                behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA
         if (isStickToCamera) {
             return Rect(0, 0, viewWidth, viewHeight)
         }
@@ -888,7 +936,7 @@ class IslandOverlayController(private val context: Context) {
     /** Tall enough for whichever state extends lowest — used for the initial, safe window size. */
     private fun windowHeightPx(layout: IslandLayout): Int {
         val isStickToCamera = orientationState.value == Configuration.ORIENTATION_LANDSCAPE &&
-            behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA
+                behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA
         if (isStickToCamera) {
             val islandLengthDp = displayWidthDp.value * (layout.collapsed.widthPercent / 100f)
             return ((islandLengthDp + TOUCH_MARGIN_DP * 2) * density).toInt()
@@ -905,7 +953,7 @@ class IslandOverlayController(private val context: Context) {
     /** Height needed to contain just one state's pill (plus room for action chips when expanded). */
     private fun windowHeightPx(layout: IslandLayout, expanded: Boolean): Int {
         val isStickToCamera = orientationState.value == Configuration.ORIENTATION_LANDSCAPE &&
-            behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA
+                behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA
         val dims = effectiveDims(layout, expanded)
         if (isStickToCamera) {
             val islandLengthDp = displayWidthDp.value * (dims.widthPercent / 100f)
@@ -927,7 +975,7 @@ class IslandOverlayController(private val context: Context) {
      */
     private fun windowWidthPx(layout: IslandLayout, expanded: Boolean): Int {
         val isStickToCamera = orientationState.value == Configuration.ORIENTATION_LANDSCAPE &&
-            behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA
+                behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA
         val dims = effectiveDims(layout, expanded)
         if (isStickToCamera) {
             val totalDp = dims.offsetYDp + dims.heightDp + TOUCH_MARGIN_DP * 2
@@ -984,7 +1032,7 @@ class IslandOverlayController(private val context: Context) {
         return when {
             // The empty pill's expanded "center" (no event) claims room for its shortcut row.
             expanded && event == null &&
-                behaviourState.value.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER ->
+                    behaviourState.value.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER ->
                 CENTER_SHORTCUTS_EXTRA_DP
             expanded -> expandedActionsBonusDp()
             isTwoRowCall() -> callIncomingExtraDp()
@@ -1022,8 +1070,8 @@ class IslandOverlayController(private val context: Context) {
                 previewPinned = pinned
                 previewExpanded = expandedTab
                 val isNoExpandLandscape = currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
-                    (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
-                     behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
+                        (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
+                                behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
                 val targetExpanded = if (isNoExpandLandscape) false else expandedTab
                 if (pinned) {
                     dismissJob?.cancel()
@@ -1064,8 +1112,8 @@ class IslandOverlayController(private val context: Context) {
             }
 
             val isNoExpandLandscape = currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
-                (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
-                 behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
+                    (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
+                            behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
 
             val rawAutoExpand = when (signal) {
                 is CutoutSignal.Notification -> behaviourState.value.notificationsAutoExpand
@@ -1187,8 +1235,8 @@ class IslandOverlayController(private val context: Context) {
     /** Pause auto-dismiss while expanded; on collapse either hide or return to the normal cutout. */
     private fun onExpandedChanged(isExpanded: Boolean) {
         val isNoExpandLandscape = currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
-            (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
-             behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
+                (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
+                        behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
         val targetExpanded = if (isNoExpandLandscape) false else isExpanded
         // The resting empty pill's "center" has no event to dismiss — just keep the window and
         // touchable region sized to whatever it's showing (collapsed pill vs. expanded grid).
@@ -1246,7 +1294,7 @@ class IslandOverlayController(private val context: Context) {
      */
     private fun onCenterShortcut(shortcut: CenterShortcut) {
         val settleFirst = shortcut is CenterShortcut.Global &&
-            (shortcut.action == GlobalAction.SCREENSHOT || shortcut.action == GlobalAction.POWER_DIALOG)
+                (shortcut.action == GlobalAction.SCREENSHOT || shortcut.action == GlobalAction.POWER_DIALOG)
         if (settleFirst) {
             scope.launch {
                 delay(CENTER_ACTION_SETTLE_MS)
@@ -1510,9 +1558,10 @@ class IslandOverlayController(private val context: Context) {
             windowHeightPx(IslandLayout.DEFAULT),
             overlayType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = computeWindowGravity()
@@ -1530,6 +1579,11 @@ class IslandOverlayController(private val context: Context) {
         // Slack around the pill's touchable rectangle so its rounded edges, shadow and tap "boop"
         // scale stay tappable — kept small so the shade-pull area beside the pill stays free.
         const val TOUCH_MARGIN_DP = 12
+
+        // A normal top-edge shade pull is much larger than this; this threshold prevents ordinary
+        // pill taps from being interpreted as a shade gesture.
+        const val SHADE_SWIPE_DISTANCE_DP = 48f
+        const val SHADE_SWIPE_MAX_TIME_MS = 900L
 
         // Hold the (larger) expanded window size until the pill has finished its ~220ms collapse
         // animation, then shrink — so the collapse never clips and the freed area becomes tappable.
