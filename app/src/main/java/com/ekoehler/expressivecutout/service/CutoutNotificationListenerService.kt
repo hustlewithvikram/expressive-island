@@ -125,6 +125,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         if (!notification.shouldSurface()) return
 
         val extras = notification.notification.extras
+
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString()
         val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString()
         val progress = getProgressDataOrNull(sbn)

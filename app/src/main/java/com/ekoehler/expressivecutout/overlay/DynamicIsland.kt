@@ -122,6 +122,7 @@ import android.net.Uri
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ProgressIndicatorDefaults
@@ -294,7 +295,18 @@ fun DynamicIsland(
     val emptyPill = event == null && showsWhenEmpty
 
     val initialExpandedState = if (forcedExpanded == false) false else (shownEvent?.initiallyExpanded ?: false)
-    var tapExpanded by remember(shownEvent?.id, forcedExpanded) { mutableStateOf(initialExpandedState) }
+    //var tapExpanded by remember(shownEvent?.id, forcedExpanded) { mutableStateOf(initialExpandedState) }
+        
+    val expansionKey = if (shownEvent?.media != null) {
+        "media"
+    } else {
+        shownEvent?.id
+    }
+
+    var tapExpanded by remember(expansionKey, forcedExpanded) {
+        mutableStateOf(initialExpandedState)
+    }
+
     var centerInteraction by remember { mutableStateOf(0) }
     var replyingTo by remember(shownEvent?.id) { mutableStateOf<IslandAction?>(null) }
     val replying = replyingTo != null
@@ -2006,6 +2018,7 @@ private fun MediaControls(
             fill = skipStyle.resolveFill(fallback = null),
             cornerPercent = skipStyle.cornerPercent,
             onClick = onPrevious,
+            maxWidth = true,
         )
         MediaButton(
             icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -2028,6 +2041,7 @@ private fun MediaControls(
             fill = skipStyle.resolveFill(fallback = null),
             cornerPercent = skipStyle.cornerPercent,
             onClick = onNext,
+            maxWidth = true,
         )
     }
 }
@@ -2049,7 +2063,7 @@ private fun MusicButtonStyle.resolveFill(fallback: Color?): Color? {
  * rectangle — e.g. the 16:9 play/pause button.
  */
 @Composable
-private fun MediaButton(
+private fun RowScope.MediaButton(
     icon: ImageVector,
     contentDescription: String,
     enabled: Boolean,
@@ -2059,11 +2073,25 @@ private fun MediaButton(
     cornerPercent: Int,
     onClick: () -> Unit,
     widthDp: Int = heightDp,
+    maxWidth: Boolean = false,
 ) {
     val interaction = remember { MutableInteractionSource() }
+
     val modifier = Modifier
-        .size(width = widthDp.dp, height = heightDp.dp)
+        .then(
+            if (maxWidth) {
+                Modifier
+                    .weight(1f)
+                    .height(heightDp.dp)
+            } else {
+                Modifier.size(
+                    width = widthDp.dp,
+                    height = heightDp.dp,
+                )
+            }
+        )
         .pressScale(interaction)
+
     if (fill == null) {
         IconButton(
             onClick = onClick,
@@ -2083,12 +2111,16 @@ private fun MediaButton(
             onClick = onClick,
             enabled = enabled,
             interactionSource = interaction,
-            // Corner radius keyed to height (not width) so a wide button still reads as a clean
-            // pill at 50% rather than an ellipse: 50 → height/2 (stadium), 0 → square.
-            shape = RoundedCornerShape((heightDp * cornerPercent / 100f).dp),
+            shape = RoundedCornerShape(
+                (heightDp * cornerPercent / 100f).dp
+            ),
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = fill,
-                contentColor = if (fill.luminance() > 0.5f) PillTextColorDark else PillTextColor,
+                contentColor = if (fill.luminance() > 0.5f) {
+                    PillTextColorDark
+                } else {
+                    PillTextColor
+                },
                 disabledContainerColor = LocalContentColor.current.copy(alpha = 0.12f),
                 disabledContentColor = LocalContentColor.current.copy(alpha = 0.4f),
             ),
@@ -2665,6 +2697,7 @@ private fun AlbumArt(
     playing: Boolean = false,
     /** Colour of the ring drawn around the cover, or null to leave it bare. */
     strokeColor: Color? = null,
+    roundness: Int = 6,
 ) {
     val angle = remember { Animatable(0f) }
     // Spin only while enabled and playing; on pause the effect cancels and the angle holds. Restart
@@ -2711,7 +2744,8 @@ private fun AlbumArt(
 
 /** Circle for a spinning cover, else a rounded square whose radius scales with [size]. */
 private fun albumArtShape(rotate: Boolean, size: Dp) =
-    if (rotate) CircleShape else RoundedCornerShape(size * 0.24f)
+//    if (rotate) CircleShape else RoundedCornerShape(size * 0.24f)
+    if (rotate) CircleShape else RoundedCornerShape(100.dp)
 
 @Composable
 private fun IconBadge(
