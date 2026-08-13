@@ -285,6 +285,7 @@ fun DynamicIsland(
     onReply: (IslandAction, String) -> Unit,
     onReplyActiveChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
+    collapseRequest: Int = 0,
 ) {
     var lastEvent by remember { mutableStateOf<IslandEvent?>(null) }
     if (event != null) {
@@ -339,6 +340,12 @@ fun DynamicIsland(
     LaunchedEffect(replying) { onReplyActiveChange(replying) }
     LaunchedEffect(isExpanded, event != null, emptyPill, emptyOpensCenter) {
         if (event != null || (emptyPill && emptyOpensCenter)) onExpandedChange(isExpanded)
+    }
+
+    LaunchedEffect(collapseRequest) {
+        if (collapseRequest > 0 && forcedExpanded == null && !replying) {
+            tapExpanded = false
+        }
     }
 
     LaunchedEffect(tapExpanded, forcedExpanded, autoCollapse, autoCollapseMs, replying, confirmingSent, centerInteraction) {

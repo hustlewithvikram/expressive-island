@@ -236,6 +236,8 @@ class IslandOverlayController(private val context: Context) {
         override fun onReceive(context: Context, intent: Intent) = applyLockVisibility()
     }
 
+    private val collapseRequest = MutableStateFlow(0)
+
     fun start() {
         lifecycleOwner.onCreate()
         addOverlay()
@@ -423,6 +425,15 @@ class IslandOverlayController(private val context: Context) {
                         shadeSwipeTriggered = false
                         handled
                     }
+                    MotionEvent.ACTION_OUTSIDE -> {
+                        if (expanded && !previewPinned) {
+                            collapseRequest.value++
+//                            onExpandedChanged(false)
+                            true
+                        } else {
+                            false
+                        }
+                    }
                     else -> shadeSwipeTriggered
                 }
             }
@@ -434,6 +445,7 @@ class IslandOverlayController(private val context: Context) {
                 val appearance by appearanceState.collectAsStateWithLifecycle()
                 val widthDp by displayWidthDp.collectAsStateWithLifecycle()
                 val orientation by orientationState.collectAsStateWithLifecycle()
+                val collapseRequestValue by collapseRequest.collectAsStateWithLifecycle()
                 val isNoExpandLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE &&
                         (behaviour.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
                                 behaviour.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
@@ -476,6 +488,7 @@ class IslandOverlayController(private val context: Context) {
                         vibrateOnTap = behaviour.vibrateOnTap,
                         onEmptyClick = ::onEmptyClick,
                         onCenterShortcut = ::onCenterShortcut,
+                        collapseRequest = collapseRequestValue,
                         onExpandedChange = ::onExpandedChanged,
                         onActivate = ::onActivate,
                         onAction = ::onAction,
@@ -1241,19 +1254,43 @@ class IslandOverlayController(private val context: Context) {
         }
         val wasExpanded = expanded
         expanded = targetExpanded
-        syncWindowSize()
+
         when {
-            targetExpanded -> dismissJob?.cancel()
-            previewPinned -> Unit
-            // While music plays or a call is live, keep the collapsed pill up instead of dismissing.
-            isPinnedLiveTile() -> dismissJob?.cancel()
-            // Shrinking back from expanded and configured to vanish rather than stay.
-            wasExpanded && behaviourState.value.expandedDisappearOnShrink -> {
+            targetExpanded -> {
+                // Grow immediately.
+                syncWindowSize()
                 dismissJob?.cancel()
-                currentEvent.value = null
             }
 
-            else -> scheduleDismiss()
+            wasExpanded -> {
+                // Do NOT immediately sync the collapsed dimensions.
+                // Keep the expanded window alive until Compose finishes.
+                windowResizeJob?.cancel()
+                windowResizeJob = scope.launch {
+                    delay(WINDOW_SHRINK_DELAY_MS)
+
+                    if (!expanded && !overlayHidden) {
+                        syncWindowSize()
+                    }
+                }
+
+                when {
+                    previewPinned -> Unit
+                    isPinnedLiveTile() -> dismissJob?.cancel()
+
+                    behaviourState.value.expandedDisappearOnShrink -> {
+                        dismissJob?.cancel()
+                        currentEvent.value = null
+                    }
+
+                    else -> scheduleDismiss()
+                }
+            }
+
+            else -> {
+                syncWindowSize()
+                scheduleDismiss()
+            }
         }
     }
 
@@ -1553,8 +1590,10 @@ class IslandOverlayController(private val context: Context) {
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
             PixelFormat.TRANSLUCENT,
+
         ).apply {
             gravity = computeWindowGravity()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

@@ -20,6 +20,7 @@ import com.ekoehler.expressivecutout.core.RunningTimerBus
 import com.ekoehler.expressivecutout.events.CallNotificationParser
 import com.ekoehler.expressivecutout.events.TimerNotificationParser
 import com.ekoehler.expressivecutout.overlay.loadImageBitmapOrNull
+import kotlinx.coroutines.Job
 
 
 /**
@@ -56,6 +57,8 @@ class CutoutNotificationListenerService : NotificationListenerService() {
 
     // Key of the assistant notification currently driving the assistant tile.
     private var currentAssistantKey: String? = null
+
+    private var timerRemovalJob: Job? = null
 
     override fun onListenerConnected() {
         instance = this
@@ -121,6 +124,66 @@ class CutoutNotificationListenerService : NotificationListenerService() {
 
         // Music
         notification.publishMediaArt()
+
+        Log.d(
+            TAG,
+            """
+    ===== NAVIGATION DEBUG =====
+    package=${notification.packageName}
+    key=${notification.key}
+
+    title=${notification.notification.extras?.getCharSequence(Notification.EXTRA_TITLE)}
+    text=${notification.notification.extras?.getCharSequence(Notification.EXTRA_TEXT)}
+    subText=${notification.notification.extras?.getCharSequence(Notification.EXTRA_SUB_TEXT)}
+    infoText=${notification.notification.extras?.getCharSequence(Notification.EXTRA_INFO_TEXT)}
+
+    flags=${notification.notification.flags}
+    ongoing=${notification.notification.flags and Notification.FLAG_ONGOING_EVENT != 0}
+    clearable=${notification.isClearable}
+
+    category=${notification.notification.category}
+
+    showChronometer=${notification.notification.extras
+                ?.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER, false)}
+
+    chronometerCountDown=${notification.notification.extras
+                ?.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN, false)}
+
+    when=${notification.notification.`when`}
+
+    progress=${getProgressDataOrNull(notification)}
+
+    actions=${
+                notification.notification.actions?.map { action ->
+                    mapOf(
+                        "title" to action.title?.toString(),
+                        "hasIntent" to (action.actionIntent != null),
+                        "remoteInputs" to (
+                                action.remoteInputs?.map { input ->
+                                    input.resultKey
+                                }
+                                )
+                    )
+                }
+            }
+
+    largeIcon=${notification.notification.getLargeIcon() != null}
+
+    extrasKeys=${notification.notification.extras?.keySet()?.toList()}
+
+    extrasValues=${
+                notification.notification.extras?.keySet()?.associateWith { key ->
+                    try {
+                        notification.notification.extras?.get(key)?.toString()
+                    } catch (_: Exception) {
+                        "<unreadable>"
+                    }
+                }
+            }
+
+    ==============================
+    """.trimIndent()
+        )
 
         if (!notification.shouldSurface()) return
 
@@ -268,11 +331,37 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     }
 
     private fun StatusBarNotification.shouldSurface(): Boolean {
-        if (packageName == this@CutoutNotificationListenerService.packageName) return false
+        if (packageName == this@CutoutNotificationListenerService.packageName) {
+            return false
+        }
+
         val flags = notification.flags
-        val isSummary = flags and Notification.FLAG_GROUP_SUMMARY != 0
-        val isOngoing = flags and Notification.FLAG_ONGOING_EVENT != 0
-        return isClearable && !isSummary && !isOngoing
+
+        val isSummary =
+            flags and Notification.FLAG_GROUP_SUMMARY != 0
+
+        val isOngoing =
+            flags and Notification.FLAG_ONGOING_EVENT != 0
+
+        // Media notifications are handled by the media/session pipeline.
+        // Do not also surface them as generic notification tiles.
+        val isMedia =
+            notification.extras?.containsKey(Notification.EXTRA_MEDIA_SESSION) == true
+
+        if (isMedia) {
+            return false
+        }
+
+        val hasProgress =
+            getProgressDataOrNull(this) != null
+
+        val hasActions =
+            notification.actions?.any {
+                it.title != null && it.actionIntent != null
+            } == true
+
+        return !isSummary &&
+                (!isOngoing || hasProgress || hasActions)
     }
 
     companion object {
