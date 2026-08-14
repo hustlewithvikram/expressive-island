@@ -1,6 +1,11 @@
 package com.vikram.expressiveisland.ui.screen.tiles
 
+import android.R.attr.scaleX
+import android.R.attr.scaleY
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,8 +16,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -26,14 +33,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -46,6 +56,8 @@ import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.screen.ColorPickerCard
 import com.vikram.expressiveisland.ui.screen.SettingsToggleCard
 import com.vikram.expressiveisland.ui.screen.AdjustableSlider
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 /** The pink tile accent, used as the play/pause default and the preview backdrop's default fill. */
@@ -351,26 +363,29 @@ private fun MusicButtonsPreview(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+                .padding(horizontal = 16.dp, vertical = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             PreviewButton(
-                Icons.Rounded.SkipPrevious,
-                skipStyle.previewFill(fallback = null),
-                skipStyle.cornerPercent
+                icon = Icons.Rounded.SkipPrevious,
+                fill = skipStyle.previewFill(fallback = null),
+                cornerPercent = skipStyle.cornerPercent,
+                modifier = Modifier.weight(1f),
             )
-            // The play/pause button is a 16:9 rectangle, matching the live overlay.
+
             PreviewButton(
-                Icons.Rounded.PlayArrow,
-                playPauseStyle.previewFill(fallback = MusicAccent),
-                playPauseStyle.cornerPercent,
+                icon = Icons.Rounded.PlayArrow,
+                fill = playPauseStyle.previewFill(fallback = MusicAccent),
+                cornerPercent = playPauseStyle.cornerPercent,
                 widthDp = PREVIEW_BUTTON_HEIGHT_DP * 16 / 9,
             )
+
             PreviewButton(
-                Icons.Rounded.SkipNext,
-                skipStyle.previewFill(fallback = null),
-                skipStyle.cornerPercent
+                icon = Icons.Rounded.SkipNext,
+                fill = skipStyle.previewFill(fallback = null),
+                cornerPercent = skipStyle.cornerPercent,
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -389,34 +404,68 @@ private fun PreviewButton(
     icon: ImageVector,
     fill: Color?,
     cornerPercent: Int,
+    modifier: Modifier = Modifier,
     widthDp: Int = PREVIEW_BUTTON_HEIGHT_DP,
 ) {
+    var pressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.90f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "previewButtonBounce",
+    )
+
     Box(
-        modifier = Modifier
-            .size(width = widthDp.dp, height = PREVIEW_BUTTON_HEIGHT_DP.dp)
+        modifier = modifier
             .then(
-                if (fill != null) {
-                    Modifier
-                        // Corner radius keyed to height so a wide button reads as a clean pill at
-                        // 50% rather than an ellipse, matching the live overlay.
-                        .clip(RoundedCornerShape((PREVIEW_BUTTON_HEIGHT_DP * cornerPercent / 100f).dp))
-                        .background(fill)
+                if (modifier == Modifier) {
+                    Modifier.width(widthDp.dp)
                 } else {
                     Modifier
                 }
-            ),
+            )
+            .height(PREVIEW_BUTTON_HEIGHT_DP.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(
+                RoundedCornerShape(
+                    (PREVIEW_BUTTON_HEIGHT_DP * cornerPercent / 100f).dp
+                )
+            )
+            .background(
+                fill ?: Color.Transparent
+            )
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+            ) {
+                pressed = true
+            },
         contentAlignment = Alignment.Center,
     ) {
-        val tint = when {
-            fill == null -> Color(0xFFF5F5F5)
-            fill.luminance() > 0.5f -> Color(0xFF0A0A0A)
-            else -> Color(0xFFF5F5F5)
-        }
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = tint,
+            tint = if (fill == null) {
+                Color.White
+            } else if (fill.luminance() > 0.5f) {
+                Color.Black
+            } else {
+                Color.White
+            },
             modifier = Modifier.size(26.dp),
         )
+    }
+
+    LaunchedEffect(pressed) {
+        if (pressed) {
+            delay(120)
+            pressed = false
+        }
     }
 }

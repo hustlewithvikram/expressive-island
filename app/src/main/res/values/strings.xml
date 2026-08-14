@@ -1,8 +1,8 @@
 <resources>
-    <string name="app_name">Expressive Cutout</string>
-    <string name="accessibility_service_label">Expressive Cutout overlay</string>
+    <string name="app_name">Expressive Island</string>
+    <string name="accessibility_service_label">Expressive Island overlay</string>
     <string name="accessibility_service_description">Draws a small dynamic island over the camera cutout to surface notifications and system events. No screen content is read or stored.</string>
-    <string name="notification_service_label">Expressive Cutout notifications</string>
+    <string name="notification_service_label">Expressive Island notifications</string>
 
     <!-- System event labels shown inside the island -->
     <string name="event_charging_started">Charging</string>
@@ -18,16 +18,16 @@
 
     <!-- Dynamic tile labels shown inside the island -->
     <string name="tile_music">Music</string>
-    <string name="tile_music_desc">Show what\'s playing on the cutout</string>
+    <string name="tile_music_desc">Show what\'s playing on the Island</string>
     <string name="tile_phone">Phone</string>
     <string name="tile_phone_desc">Show the current call, caller and controls</string>
     <string name="tile_timer">Timer</string>
-    <string name="tile_timer_desc">Show a running countdown timer on the cutout</string>
+    <string name="tile_timer_desc">Show a running countdown timer on the Island</string>
     <string name="tile_assistant">Assistant</string>
-    <string name="tile_assistant_desc">Show voice assistant speech and responses on the cutout</string>
-    <string name="assistant_display_answer_title">Display assistant answer in cutout</string>
-    <string name="assistant_display_answer_desc">Show the text response of the voice assistant in the cutout</string>
-    <string name="assistant_max_height_title">Max cutout height</string>
+    <string name="tile_assistant_desc">Show voice assistant speech and responses on the Island</string>
+    <string name="assistant_display_answer_title">Display assistant answer in Island</string>
+    <string name="assistant_display_answer_desc">Show the text response of the voice assistant in the Island</string>
+    <string name="assistant_max_height_title">Max Island height</string>
     <string name="assistant_max_height_desc">Share of the screen height the answer can fill</string>
     <string name="assistant_max_height_value">%1$d%%</string>
     <string name="assistant_tile_note">When enabled, voice assistant responses are surfaced on this dynamic tile instead of falling into the music tile.</string>
@@ -35,7 +35,7 @@
     <string name="assistant_animated_icon_desc">Show an animated sparkles icon instead of the static assistant glyph</string>
 
     <!-- Setup screen -->
-    <string name="setup_title">Expressive Cutout</string>
+    <string name="setup_title">Expressive Island</string>
     <string name="perm_notifications_title">Notification access</string>
     <string name="perm_notifications_desc">Lets the island mirror incoming app notifications.</string>
     <string name="perm_accessibility_title">Overlay access</string>
@@ -422,18 +422,18 @@
     <string name="permission_details_footer">The app is fully open source. Every permission above is declared in the manifest, and you can read the code that uses it on GitHub — including the fact that no network calls are ever made.</string>
     <string name="profile_github_title">Open GitHub repository</string>
     <string name="profile_github_subtitle">View the source code and releases</string>
-    <string name="profile_github_project_url">https://github.com/EvanKoe/expressive-cutout</string>
-    <string name="profile_github_url">https://github.com/EvanKoe</string>
-    <string name="profile_linkedin_url">https://www.linkedin.com/in/evan-koehler-it/</string>
+    <string name="profile_github_project_url">https://github.com/hustlewithvikram/expressive-island</string>
+    <string name="profile_github_url">https://github.com/hustlewithvikram</string>
+    <string name="profile_linkedin_url">https://www.linkedin.com/in/hustlewithvikram/</string>
     <string name="app_tagline">An offline dynamic island that follows Google\'s Material Expressive design</string>
-    <string name="app_icon_description">Expressive Cutout icon</string>
-    <string name="dev_card_author">Made by Evan Koehler</string>
+    <string name="app_icon_description">Expressive Island icon</string>
+    <string name="dev_card_author">Made by Vikram Vishwakarma</string>
     <string name="dev_card_github">View on GitHub</string>
     <string name="dev_card_linkedin">LinkedIn</string>
     <string name="dev_card_avatar">Photo of the developer</string>
     <string name="profile_coffee_title">Buy me a coffee</string>
     <string name="profile_coffee_subtitle">Support the developer</string>
-    <string name="profile_coffee_url">https://buymeacoffee.com/evankoe</string>
+    <string name="profile_coffee_url">https://buymeacoffee.com/hustlewithvikram</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>

@@ -1095,6 +1095,17 @@ class IslandOverlayController(private val context: Context) {
 
     private fun observeSignals() = scope.launch {
         IslandEventBus.signals.collect { signal ->
+            if (signal is CutoutSignal.System) {
+                Log.d(
+                    "SystemEventDebug",
+                    """
+        ===== SYSTEM EVENT =====
+        type = ${signal.type}
+        signal = $signal
+        ========================
+        """.trimIndent()
+                )
+            }
             // Skip system events the user disabled for the pill.
             if (signal is CutoutSignal.System && eventEnabled[signal.type] == false) return@collect
             // Skip now-playing media when the music tile is turned off.

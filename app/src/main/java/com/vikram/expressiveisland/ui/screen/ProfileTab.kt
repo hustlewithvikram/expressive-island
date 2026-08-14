@@ -235,54 +235,96 @@ private fun DevCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .padding(20.dp),
+            verticalAlignment = Alignment.Top,
         ) {
+            // Left: developer avatar
             DevAvatar()
 
-            Text(
-                text = stringResource(R.string.dev_card_author),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(vertical = 20.dp),
-            )
+            Spacer(Modifier.width(20.dp))
 
-            // Wraps to a second line on narrow screens rather than squeezing either label.
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            // Right: developer info + links
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Button(onClick = onOpenGitHub) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_github),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.dev_card_github))
-                }
-                Button(onClick = onOpenCoffee) {
-                    Icon(
-                        imageVector = Icons.Rounded.Coffee,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.profile_coffee_title))
-                }
-                Button(onClick = onOpenLinkedIn) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_linkedin),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.dev_card_linkedin))
+                Text(
+                    text = stringResource(R.string.dev_card_author),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Button(
+                        onClick = onOpenGitHub,
+                        contentPadding = PaddingValues(
+                            horizontal = 14.dp,
+                            vertical = 8.dp,
+                        ),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_github),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+
+                        Spacer(Modifier.width(6.dp))
+
+                        Text(
+                            text = stringResource(R.string.dev_card_github),
+                        )
+                    }
+
+                    Button(
+                        onClick = onOpenCoffee,
+                        contentPadding = PaddingValues(
+                            horizontal = 14.dp,
+                            vertical = 8.dp,
+                        ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Coffee,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+
+                        Spacer(Modifier.width(6.dp))
+
+                        Text(
+                            text = stringResource(R.string.profile_coffee_title),
+                        )
+                    }
+
+                    Button(
+                        onClick = onOpenLinkedIn,
+                        contentPadding = PaddingValues(
+                            horizontal = 14.dp,
+                            vertical = 8.dp,
+                        ),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_linkedin),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+
+                        Spacer(Modifier.width(6.dp))
+
+                        Text(
+                            text = stringResource(R.string.dev_card_linkedin),
+                        )
+                    }
                 }
             }
         }

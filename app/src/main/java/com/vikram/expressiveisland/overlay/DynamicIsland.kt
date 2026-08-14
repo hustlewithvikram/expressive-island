@@ -125,6 +125,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ProgressIndicatorDefaults
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import kotlinx.coroutines.Dispatchers
@@ -162,6 +163,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import kotlin.math.PI
+import kotlin.math.sin
 
 // Text colours for a dark fill; on a light fill we swap in a dark text colour (see contentColorFor).
 private val PillTextColor = Color(0xFFF5F5F5)
@@ -1959,38 +1966,99 @@ private fun MediaExpandedContent(event: IslandEvent, buttonHeightDp: Int) {
  */
 @Composable
 private fun MediaProgressBar(progress: MediaProgress?) {
-    val color = MaterialTheme.colorScheme.primary
-    val trackColor = MaterialTheme.colorScheme.primaryContainer
+    val duration = progress?.durationMs ?: return
 
-    if (progress?.durationMs == null) {
-        LinearProgressIndicator(
-            modifier = Modifier.fillMaxWidth(),
-            color = color,
-            trackColor = trackColor,
-            strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
-        )
-        return
-    }
-
-    // Re-anchored on every new snapshot, so a seek or a track change lands immediately rather than
-    // being animated across from the stale position.
     var fraction by remember(progress) {
-        mutableFloatStateOf(progress.fractionAt(SystemClock.elapsedRealtime()) ?: 0f)
+        mutableFloatStateOf(
+            progress.fractionAt(SystemClock.elapsedRealtime())
+                ?.coerceIn(0f, 1f)
+                ?: 0f
+        )
     }
+
     LaunchedEffect(progress) {
         while (progress.speed > 0f) {
             delay(PROGRESS_TICK_MS)
-            fraction = progress.fractionAt(SystemClock.elapsedRealtime()) ?: 0f
+
+            fraction = progress
+                .fractionAt(SystemClock.elapsedRealtime())
+                ?.coerceIn(0f, 1f)
+                ?: fraction
         }
     }
 
-    LinearProgressIndicator(
-        progress = { fraction },
-        modifier = Modifier.fillMaxWidth(),
-        color = color,
-        trackColor = trackColor,
-        strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
+    WavyProgressIndicator(
+        progress = fraction,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(12.dp),
+        color = MaterialTheme.colorScheme.primary,
+        trackColor = MaterialTheme.colorScheme.primaryContainer.copy(
+            alpha = 0.35f
+        ),
     )
+}
+
+@Composable
+private fun WavyProgressIndicator(
+    progress: Float,
+    modifier: Modifier = Modifier,
+    color: Color,
+    trackColor: Color,
+) {
+    Canvas(modifier = modifier) {
+        val width = size.width
+        val height = size.height
+
+        val amplitude = height * 0.28f
+        val wavelength = 32.dp.toPx()
+        val centerY = height / 2f
+
+        fun wavePath(endX: Float): Path {
+            val path = Path()
+            val steps = 120
+
+            for (i in 0..steps) {
+                val x = endX * i / steps
+                val y = centerY +
+                        amplitude * sin(
+                    (x / wavelength) * (2f * PI).toFloat()
+                )
+
+                if (i == 0) {
+                    path.moveTo(x, y)
+                } else {
+                    path.lineTo(x, y)
+                }
+            }
+
+            return path
+        }
+
+        // Track
+        drawPath(
+            path = wavePath(width),
+            color = trackColor,
+            style = Stroke(
+                width = 3.dp.toPx(),
+                cap = StrokeCap.Round,
+            ),
+        )
+
+        // Active progress
+        val progressWidth = width * progress.coerceIn(0f, 1f)
+
+        if (progressWidth > 0f) {
+            drawPath(
+                path = wavePath(progressWidth),
+                color = color,
+                style = Stroke(
+                    width = 4.dp.toPx(),
+                    cap = StrokeCap.Round,
+                ),
+            )
+        }
+    }
 }
 
 /**
