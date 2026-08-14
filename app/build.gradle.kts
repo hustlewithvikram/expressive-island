@@ -5,15 +5,24 @@ plugins {
 }
 
 android {
-    namespace = "com.ekoehler.expressivecutout"
+    namespace = "com.vikram.expressiveisland"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.ekoehler.expressivecutout"
+        applicationId = "com.vikram.expressiveisland"
         minSdk = 29
         targetSdk = 35
         versionCode = 3
         versionName = "0.1.3-beta"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("../expressive-island-release.jks")
+            storePassword = "vikram"
+            keyAlias = "vikram"
+            keyPassword = "vikram"
+        }
     }
 
     buildTypes {

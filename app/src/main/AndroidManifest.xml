@@ -18,7 +18,7 @@
     </queries>
 
     <application
-        android:name=".ExpressiveCutoutApp"
+        android:name=".ExpressiveIslandApp"
         android:allowBackup="true"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"

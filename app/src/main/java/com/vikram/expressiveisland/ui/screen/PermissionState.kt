@@ -1,0 +1,89 @@
+package com.vikram.expressiveisland.ui.screen
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vikram.expressiveisland.permissions.Permissions
+import com.vikram.expressiveisland.service.CutoutAccessibilityService
+import com.vikram.expressiveisland.service.CutoutNotificationListenerService
+
+/**
+ * Live accessibility-grant state that re-reads on every [Lifecycle.Event.ON_RESUME], so returning
+ * from the system Accessibility settings instantly reflects the change instead of waiting for the
+ * next unrelated recomposition (which previously only happened when navigating between screens).
+ */
+@Composable
+fun rememberAccessibilityGranted(): Boolean {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    var granted by remember { mutableStateOf(Permissions.isAccessibilityGranted(context)) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                granted = Permissions.isAccessibilityGranted(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    return granted
+}
+
+/**
+ * Live notification-access grant state that re-reads on every [Lifecycle.Event.ON_RESUME], so
+ * returning from the system Notification-access settings instantly reflects the change. Mirrors
+ * [rememberAccessibilityGranted].
+ */
+@Composable
+fun rememberNotificationAccessGranted(): Boolean {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    var granted by remember { mutableStateOf(Permissions.isNotificationAccessGranted(context)) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                granted = Permissions.isNotificationAccessGranted(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    return granted
+}
+
+/**
+ * True while the accessibility service is actually bound, as opposed to merely granted. Android
+ * keeps the grant in Settings.Secure across a reinstall or an app update but does not always
+ * rebind the service, leaving the island silently dead while every permission check still reads
+ * green. Collected from a [kotlinx.coroutines.flow.StateFlow] rather than re-read on resume so the
+ * warning clears the instant the service binds, instead of lingering until the next resume.
+ */
+@Composable
+fun rememberAccessibilityRunning(): Boolean {
+    val bound by CutoutAccessibilityService.Companion.bound.collectAsStateWithLifecycle()
+    return bound
+}
+
+/**
+ * True while the notification listener is actually bound, as opposed to merely granted. Like the
+ * accessibility grant, Android keeps notification access in Settings.Secure across a reinstall or
+ * an app update but often fails to rebind the listener, silently starving every dynamic tile
+ * (music, phone, timer) while the permission check still reads green. Mirrors
+ * [rememberAccessibilityRunning]; the app also asks the framework to rebind on resume in that case
+ * (see [MainActivity][com.vikram.expressiveisland.MainActivity]).
+ */
+@Composable
+fun rememberNotificationListenerRunning(): Boolean {
+    val bound by CutoutNotificationListenerService.Companion.bound.collectAsStateWithLifecycle()
+    return bound
+}
