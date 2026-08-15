@@ -19,6 +19,8 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -30,6 +32,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,11 +44,13 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Call
@@ -56,25 +61,30 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,23 +94,25 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -108,29 +120,22 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp as lerpDp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.drawable.toBitmap
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.airbnb.lottie.LottieProperty
 import com.airbnb.lottie.SimpleColorFilter
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieClipSpec
 import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.rememberLottieDynamicProperties
 import com.airbnb.lottie.compose.rememberLottieDynamicProperty
-import android.net.Uri
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ProgressIndicatorDefaults
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import com.vikram.expressiveisland.R
+import com.vikram.expressiveisland.core.ChargingBus
+import com.vikram.expressiveisland.core.ChargingState
 import com.vikram.expressiveisland.core.MediaArtBus
 import com.vikram.expressiveisland.core.MediaProgress
 import com.vikram.expressiveisland.core.NowPlaying
@@ -138,37 +143,38 @@ import com.vikram.expressiveisland.core.NowPlayingBus
 import com.vikram.expressiveisland.core.OnCall
 import com.vikram.expressiveisland.core.OnCallBus
 import com.vikram.expressiveisland.core.RunningTimerBus
+import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.core.TorchStateBus
 import com.vikram.expressiveisland.data.ActionButtonAlignment
 import com.vikram.expressiveisland.data.ActionButtonAnimation
 import com.vikram.expressiveisland.data.ActionButtonStyle
-import com.vikram.expressiveisland.data.SentAlignment
 import com.vikram.expressiveisland.data.AnimationBounce
 import com.vikram.expressiveisland.data.AnimationSpeed
 import com.vikram.expressiveisland.data.AnimationStyle
 import com.vikram.expressiveisland.data.AppearanceSettings
+import com.vikram.expressiveisland.data.CALL_MAX_WIDTH_PERCENT
+import com.vikram.expressiveisland.data.CALL_MIN_WIDTH_PERCENT
 import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.IconSource
-import com.vikram.expressiveisland.data.CALL_MAX_WIDTH_PERCENT
-import com.vikram.expressiveisland.data.CALL_MIN_WIDTH_PERCENT
 import com.vikram.expressiveisland.data.IslandDimensions
-import com.vikram.expressiveisland.data.asCallCutout
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.ReplyInputStyle
+import com.vikram.expressiveisland.data.SentAlignment
 import com.vikram.expressiveisland.data.SwipeDismissDirection
 import com.vikram.expressiveisland.data.SwipeDismissTarget
+import com.vikram.expressiveisland.data.asCallCutout
 import com.vikram.expressiveisland.service.ProgressData
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
-import kotlin.math.PI
 import kotlin.math.sin
+import kotlin.time.Duration.Companion.milliseconds
+import androidx.compose.ui.unit.lerp as lerpDp
 
 // Text colours for a dark fill; on a light fill we swap in a dark text colour (see contentColorFor).
 private val PillTextColor = Color(0xFFF5F5F5)
@@ -254,6 +260,7 @@ internal fun SentAlignment.toHorizontal(): Alignment.Horizontal = when (this) {
 @Composable
 fun DynamicIsland(
     event: IslandEvent?,
+    systemEventType: SystemEventType? = null,
     collapsed: IslandDimensions,
     expanded: IslandDimensions,
     displayWidthDp: Int,
@@ -299,6 +306,7 @@ fun DynamicIsland(
     }
 
     val shownEvent = lastEvent
+    val chargingState by ChargingBus.state.collectAsStateWithLifecycle()
     val emptyPill = event == null && showsWhenEmpty
 
     val initialExpandedState = if (forcedExpanded == false) false else (shownEvent?.initiallyExpanded ?: false)
@@ -314,7 +322,8 @@ fun DynamicIsland(
         mutableStateOf(initialExpandedState)
     }
 
-    var centerInteraction by remember { mutableStateOf(0) }
+    var centerInteraction by remember { mutableIntStateOf(0) }
+    var mediaInteraction by remember { mutableIntStateOf(0) }
     var replyingTo by remember(shownEvent?.id) { mutableStateOf<IslandAction?>(null) }
     val replying = replyingTo != null
     var sentReply by remember(shownEvent?.id) { mutableStateOf<Pair<IslandAction, String>?>(null) }
@@ -354,20 +363,29 @@ fun DynamicIsland(
         }
     }
 
-    LaunchedEffect(tapExpanded, forcedExpanded, autoCollapse, autoCollapseMs, replying, confirmingSent, centerInteraction) {
+    LaunchedEffect(
+        tapExpanded,
+        forcedExpanded,
+        autoCollapse,
+        autoCollapseMs,
+        replying,
+        confirmingSent,
+        centerInteraction,
+        mediaInteraction,
+    ) {
         if (forcedExpanded == null && tapExpanded && autoCollapse && !replying && !confirmingSent) {
-            delay(autoCollapseMs)
+            delay(autoCollapseMs.milliseconds)
             tapExpanded = false
         }
     }
 
     val hasActions = showActions && (shownEvent?.actions?.isNotEmpty() == true)
     val hasMediaControls = shownEvent?.media?.showControls == true
-    val hasCallActions = shownEvent?.call?.showActions == true && (shownEvent?.actions?.isNotEmpty() == true)
-    val hasTimerActions = shownEvent?.timer?.showActions == true && (shownEvent?.actions?.isNotEmpty() == true)
+    val hasCallActions = shownEvent?.call?.showActions == true && shownEvent.actions.isNotEmpty()
+    val hasTimerActions = shownEvent?.timer?.showActions == true && shownEvent.actions.isNotEmpty()
     val liveCall by OnCallBus.state.collectAsStateWithLifecycle()
     val callIncoming = isCall && liveCall?.ongoing == false
-    val callTwoRow = callIncoming && shownEvent?.call?.incomingExpandedLayout == true && hasCallActions
+    val callTwoRow = callIncoming && shownEvent.call.incomingExpandedLayout && hasCallActions
     val callTrailingButtons = when {
         !isCall || !hasCallActions -> 0
         callTwoRow -> 0
@@ -392,8 +410,8 @@ fun DynamicIsland(
         else -> collapsed
     }
 
-    var assistantContentHeightDp by remember(shownEvent?.assistant != null) { mutableStateOf(0) }
-    var centerContentHeightDp by remember { mutableStateOf(0) }
+    var assistantContentHeightDp by remember(shownEvent?.assistant != null) { mutableIntStateOf(0) }
+    var centerContentHeightDp by remember { mutableIntStateOf(0) }
     val screenHeightDp = LocalConfiguration.current.screenHeightDp
 
     val heightBonus = when {
@@ -608,7 +626,7 @@ fun DynamicIsland(
                             }
                         }
                         // Swipe sideways to dismiss the cutout (and, for a notification, clear it from
-                        // the system). Only the direction(s) and cutout state(s) the user allows let go.
+                        // the system). Only the direction(s) and cutout state(s) the user allows lets go.
                         .pointerInput(forcedExpanded, swipeToDismiss, swipeDismissDirection, swipeDismissTarget, isExpanded, replying, emptyPill, shownEvent?.id) {
                             val targetAllows = when (swipeDismissTarget) {
                                 SwipeDismissTarget.BOTH -> true
@@ -689,6 +707,8 @@ fun DynamicIsland(
                                 } else if (showExpanded) {
                                     ExpandedContent(
                                         event = e,
+                                        systemEventType = systemEventType,
+                                        chargingState = chargingState,
                                         showActions = showActions,
                                         appearance = appearance,
                                         replyingTo = replyingTo,
@@ -701,7 +721,7 @@ fun DynamicIsland(
                                             replyingTo?.let { action ->
                                                 sentReply = action to text
                                                 scope.launch {
-                                                    delay(REPLY_SENT_FEEDBACK_MS)
+                                                    delay(REPLY_SENT_FEEDBACK_MS.milliseconds)
                                                     onReply(action, text)
                                                 }
                                             }
@@ -720,6 +740,167 @@ fun DynamicIsland(
             }
         }
     }
+    }
+}
+
+@Composable
+private fun ChargingExpandedContent(
+    charging: ChargingState,
+    appearance: AppearanceSettings,
+) {
+    val contentColor = LocalContentColor.current
+    val secondaryColor = contentColor.copy(alpha = 0.68f)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 18.dp,
+                vertical = 14.dp,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+
+        // Charging icon
+        Box(
+            modifier = Modifier
+                .size(74.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            LottieAnimation(
+                composition = rememberLottieComposition(
+                    LottieCompositionSpec.RawRes(R.raw.charging)
+                ).value,
+                iterations = LottieConstants.IterateForever,
+                modifier = Modifier.size(70.dp),
+            )
+        }
+
+        Spacer(
+            modifier = Modifier.width(12.dp)
+        )
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        text = "Charging",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = contentColor,
+                    )
+
+                    Text(
+                        text = "${charging.batteryPercent}%",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor,
+                    )
+                }
+
+                val power = charging.powerWatts
+
+                if (power != null && power > 0f) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                    ) {
+                        Text(
+                            text = "${"%.1f".format(power)} W",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = contentColor,
+                        )
+
+                        Text(
+                            text = "Charging power",
+                            fontSize = 10.sp,
+                            color = secondaryColor,
+                        )
+                    }
+                }
+            }
+
+            // Battery progress
+            LinearProgressIndicator(
+                progress = {
+                    (charging.batteryPercent / 100f)
+                        .coerceIn(0f, 1f)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(50)),
+            )
+
+            // Bottom information
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+
+                val timeToFull = charging.timeToFullMinutes
+
+                if (timeToFull != null) {
+                    Text(
+                        text = formatChargingTime(timeToFull),
+                        fontSize = 11.sp,
+                        color = secondaryColor,
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+
+                    val voltage = charging.voltageVolts
+
+                    if (voltage != null) {
+                        Text(
+                            text = "${"%.2f".format(voltage)} V",
+                            fontSize = 11.sp,
+                            color = secondaryColor,
+                        )
+                    }
+
+                    val temperature = charging.temperatureCelsius
+
+                    if (temperature != null) {
+                        Text(
+                            text = "${"%.1f".format(temperature)} °C",
+                            fontSize = 11.sp,
+                            color = secondaryColor,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatChargingTime(minutes: Long): String {
+    if (minutes <= 0L) return ""
+
+    val hours = minutes / 60
+    val remainingMinutes = minutes % 60
+
+    return when {
+        hours > 0L ->
+            "${hours}h ${remainingMinutes}m to full"
+
+        else ->
+            "${remainingMinutes}m to full"
     }
 }
 
@@ -760,6 +941,11 @@ fun IslandPreview(
                 onStartReply = {},
                 onCancelReply = {},
                 onSendReply = {},
+                systemEventType = TODO(),
+                chargingState = TODO(),
+                progressData = TODO(),
+                onDismiss = TODO(),
+                onHeightMeasured = TODO(),
             )
         } else {
             CollapsedContent(event, heightDp)
@@ -965,7 +1151,7 @@ private fun EmptyPillContent(
     val bitmap by produceState<ImageBitmap?>(initialValue = null, key1 = icon) {
         value = when (icon) {
             is IconSource.Image -> withContext(Dispatchers.IO) {
-                Uri.parse(icon.uri).loadImageBitmapOrNull(context)
+                icon.uri.toUri().loadImageBitmapOrNull(context)
             }
             is IconSource.Material -> null
         }
@@ -1234,11 +1420,11 @@ private fun timerRemainingText(): String? {
     val t = timer ?: return null
     val end = t.endElapsedRealtimeMs
     val remainingMs = if (end != null) {
-        var nowElapsed by remember(end) { mutableStateOf(SystemClock.elapsedRealtime()) }
+        var nowElapsed by remember(end) { mutableLongStateOf(SystemClock.elapsedRealtime()) }
         LaunchedEffect(end) {
             while (true) {
                 nowElapsed = SystemClock.elapsedRealtime()
-                delay(250L)
+                delay(250L.milliseconds)
             }
         }
         (end - nowElapsed).coerceAtLeast(0L)
@@ -1251,6 +1437,8 @@ private fun timerRemainingText(): String? {
 @Composable
 private fun ExpandedContent(
     event: IslandEvent,
+    systemEventType: SystemEventType?,
+    chargingState: ChargingState?,
     showActions: Boolean,
     appearance: AppearanceSettings,
     replyingTo: IslandAction?,
@@ -1268,11 +1456,23 @@ private fun ExpandedContent(
         MediaExpandedContent(event = event, buttonHeightDp = appearance.actionButtonHeightDp)
         return
     }
-    // The timer tile: icon + ticking remaining time, and its Reset / Add 1 min chips.
+    // The timer tile: icon + ticking remaining time, and its Reset / Add 1-min chips.
     if (event.timer != null) {
         TimerExpandedContent(event = event, appearance = appearance, onAction = onAction)
         return
     }
+
+    if (
+        systemEventType == SystemEventType.CHARGING_STARTED &&
+        chargingState != null
+    ) {
+        ChargingExpandedContent(
+            charging = chargingState,
+            appearance = appearance,
+        )
+        return
+    }
+
     // The assistant tile: icon + text response with vertical scrolling.
     if (event.assistant != null) {
         AssistantExpandedContent(
@@ -1385,7 +1585,7 @@ private fun ExpandedContent(
 }
 
 /**
- * A single action chip. [style] selects between the Material 3 Expressive and Material You looks;
+ * A single action chip. [style] selects between the Material 3 Expressive and Material You look;
  * [fill] is the base colour those looks derive their container/outline from.
  */
 @Composable
@@ -1462,7 +1662,7 @@ private const val FULL_EXPAND_DELTA = 0.15f
 /**
  * The expanded action chips row. In [ActionButtonAlignment.FULL] the chips share the width equally;
  * every other alignment sizes them to content and positions the row as a group. When the button
- * animation is [ActionButtonAnimation.EXPAND] *and* the row is full with more than one chip, a
+ * animation is [ActionButtonAnimation.EXPAND] *and* the row is full of more than one chip, a
  * pressed chip borrows width from its siblings ([FULL_EXPAND_DELTA]) — its weight springs up while
  * theirs spring down by the same total — an expressive give-and-take that keeps the row at 100%.
  * In every other case each chip animates itself in place via [ActionChip]'s own [pressScale].
@@ -1976,27 +2176,74 @@ private fun MediaProgressBar(progress: MediaProgress?) {
         )
     }
 
+    var positionMs by remember(progress) {
+        mutableLongStateOf(
+            progress.positionAt(SystemClock.elapsedRealtime())
+                .coerceIn(0L, duration)
+        )
+    }
+
     LaunchedEffect(progress) {
-        while (progress.speed > 0f) {
-            delay(PROGRESS_TICK_MS)
+        while (progress.speed > 0f && positionMs < duration) {
+            delay(PROGRESS_TICK_MS.milliseconds)
+
+            val now = SystemClock.elapsedRealtime()
+
+            positionMs = progress
+                .positionAt(now)
+                .coerceIn(0L, duration)
 
             fraction = progress
-                .fractionAt(SystemClock.elapsedRealtime())
+                .fractionAt(now)
                 ?.coerceIn(0f, 1f)
                 ?: fraction
         }
     }
 
-    WavyProgressIndicator(
-        progress = fraction,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(12.dp),
-        color = MaterialTheme.colorScheme.primary,
-        trackColor = MaterialTheme.colorScheme.primaryContainer.copy(
-            alpha = 0.35f
-        ),
-    )
+    // Keep the displayed position correct even while paused.
+    LaunchedEffect(progress.positionMs, progress.speed) {
+        val now = SystemClock.elapsedRealtime()
+
+        positionMs = progress
+            .positionAt(now)
+            .coerceIn(0L, duration)
+
+        fraction = progress
+            .fractionAt(now)
+            ?.coerceIn(0f, 1f)
+            ?: fraction
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = formatMediaTime(positionMs),
+            color = LocalContentColor.current.copy(alpha = 0.65f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+        )
+
+        WavyProgressIndicator(
+            progress = fraction,
+            modifier = Modifier
+                .weight(1f)
+                .height(12.dp),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.primaryContainer.copy(
+                alpha = 0.35f
+            ),
+        )
+
+        Text(
+            text = formatMediaTime(duration),
+            color = LocalContentColor.current.copy(alpha = 0.65f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+        )
+    }
 }
 
 @Composable
@@ -2121,7 +2368,7 @@ private fun MediaControls(
 }
 
 /** The concrete fill for a transport button, or null (a plain, unfilled button) when neither the
- *  style nor the [fallback] supplies a colour and the style isn't [MusicButtonStyle.filled].
+ *  style nor the [fallback] supplies a colour and the style isn't [filled].
  *  A filled style with no colour falls back to [MusicButtonFilledDefault]. Opacity folds into alpha. */
 @Composable
 private fun MusicButtonStyle.resolveFill(fallback: Color?): Color? {
@@ -2246,7 +2493,7 @@ internal fun callIncomingExtraDp(): Int = CALL_INCOMING_BUTTON_DP + CALL_INCOMIN
  * hang-up, two for an incoming call's decline + answer, zero when actions are hidden). An [incoming]
  * call always spans the full [CALL_MAX_WIDTH_PERCENT] (never narrower) so its two buttons and the
  * number/name always have room. The pill is sized to this width and its content laid out within it —
- * a name too long for even the max width ellipsizes — so measuring the name here (rather than letting
+ * a name too long for even the max width ellipsis — so measuring the name here (rather than letting
  * content drive the size) lets the overlay's rendering and its touchable region agree exactly on the
  * pill's width. [density] converts the measured text to dp.
  */
@@ -2549,11 +2796,11 @@ private fun CallCircleButton(
 private fun CallStatus(onCall: OnCall?) {
     val start = onCall?.startTimeMs
     val text = if (start != null) {
-        var now by remember(start) { mutableStateOf(System.currentTimeMillis()) }
+        var now by remember(start) { mutableLongStateOf(System.currentTimeMillis()) }
         LaunchedEffect(start) {
             while (true) {
                 now = System.currentTimeMillis()
-                delay(1_000L)
+                delay(1_000L.milliseconds)
             }
         }
         formatCallDuration(((now - start) / 1_000L).coerceAtLeast(0L))
@@ -2573,7 +2820,7 @@ private fun CallStatus(onCall: OnCall?) {
 
 /**
  * The timer tile's expanded layout: a timer icon + the ticking remaining time, and (when enabled)
- * the Reset / Add 1 min chips. The countdown is read live from [RunningTimerBus]; the chips fire the
+ * the Reset / Add 1-min chips. The countdown is read live from [RunningTimerBus]; the chips fire the
  * clock app's own notification actions, coloured by [TimerTileOptions] (Reset apart from Add 1 min).
  */
 @Composable
@@ -2744,6 +2991,19 @@ private fun formatCallDuration(totalSeconds: Long): String {
     }
 }
 
+private fun formatMediaTime(milliseconds: Long): String {
+    val totalSeconds = (milliseconds.coerceAtLeast(0L) / 1_000L)
+    val hours = totalSeconds / 3_600
+    val minutes = (totalSeconds % 3_600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        "%d:%02d:%02d".format(hours, minutes, seconds)
+    } else {
+        "%d:%02d".format(minutes, seconds)
+    }
+}
+
 /** The caller's contact photo, cropped to a circle. Mirrors [AlbumArt] without the spin. */
 @Composable
 private fun ContactPhoto(bitmap: ImageBitmap, size: Dp, modifier: Modifier = Modifier) {
@@ -2771,7 +3031,6 @@ private fun AlbumArt(
     playing: Boolean = false,
     /** Colour of the ring drawn around the cover, or null to leave it bare. */
     strokeColor: Color? = null,
-    roundness: Int = 6,
 ) {
     val angle = remember { Animatable(0f) }
     // Spin only while enabled and playing; on pause the effect cancels and the angle holds. Restart
@@ -2829,7 +3088,7 @@ private fun IconBadge(
     modifier: Modifier = Modifier,
 ) {
     // A tile's chosen container colour wins: a filled disc with contrasting ink. A per-event colour
-    // override then recolours the default look (a faint tinted disc + full-colour glyph). Otherwise
+    // override then recolours the default look (a faint tinted disc + full-colour glyph). Otherwise,
     // "Dynamic color for all events" gives a role-coloured badge with its matching "on" ink, and the
     // plain default is a faint accent-tinted disc behind a full-accent glyph.
     val container = event.iconContainerColor

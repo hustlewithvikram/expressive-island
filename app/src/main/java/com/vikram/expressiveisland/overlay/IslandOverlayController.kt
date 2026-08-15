@@ -458,6 +458,7 @@ class IslandOverlayController(private val context: Context) {
                 ExpressiveIslandTheme {
                     DynamicIsland(
                         event = event,
+                        systemEventType = currentSystemEventType,
                         collapsed = layout.collapsed,
                         expanded = layout.expanded,
                         displayWidthDp = widthDp,

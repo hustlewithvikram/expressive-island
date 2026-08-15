@@ -1,6 +1,6 @@
 <div align="center">
 
-<img width="1280" height="640" alt="Expressive Island" src="https://github.com/user-attachments/assets/d801de28-eac6-4ffd-8474-55d9a8af4dc3" />
+<img width="1280" height="640" alt="Expressive Island" src="./app/src/main/assets/expressive-island-banner.png" />
 
 # Expressive Island
 
