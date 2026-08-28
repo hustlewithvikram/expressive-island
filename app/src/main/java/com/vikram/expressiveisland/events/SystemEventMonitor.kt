@@ -12,6 +12,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
@@ -20,7 +21,12 @@ import com.vikram.expressiveisland.core.ChargingState
 import com.vikram.expressiveisland.core.CutoutSignal
 import com.vikram.expressiveisland.core.IslandEventBus
 import com.vikram.expressiveisland.core.SystemEventType
+import com.vikram.expressiveisland.core.WifiBus
+import com.vikram.expressiveisland.core.WifiState
 import kotlin.math.abs
+import android.net.LinkProperties
+import android.net.wifi.WifiInfo
+import android.util.Log
 
 /**
  * Listens for device-level events and republishes them on [IslandEventBus].
@@ -31,14 +37,17 @@ import kotlin.math.abs
  */
 class SystemEventMonitor(private val context: Context) {
 
-    private val connectivityManager =
-        context.getSystemService<ConnectivityManager>()
+    private val wifiManager =
+        context.applicationContext.getSystemService<WifiManager>()
 
     private val audioManager =
         context.getSystemService<AudioManager>()
 
     private val batteryManager =
         context.getSystemService<BatteryManager>()
+
+    private val connectivityManager =
+        context.getSystemService<ConnectivityManager>()
 
     @Volatile
     private var isLowBatteryState = false
@@ -109,14 +118,249 @@ class SystemEventMonitor(private val context: Context) {
         }
     }
 
-    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+    private val networkCallback =
+        object : ConnectivityManager.NetworkCallback() {
 
-        override fun onAvailable(network: Network) {
-            emit(SystemEventType.WIFI_CONNECTED)
+            override fun onAvailable(network: Network) {
+                Log.d(
+                    "WifiDebug",
+                    "onAvailable() network=$network"
+                )
+
+                emit(SystemEventType.WIFI_CONNECTED)
+            }
+
+            override fun onCapabilitiesChanged(
+                network: Network,
+                capabilities: NetworkCapabilities,
+            ) {
+                Log.d(
+                    "WifiDebug",
+                    "onCapabilitiesChanged() network=$network"
+                )
+
+                updateWifiState(
+                    network,
+                    capabilities,
+                )
+            }
+
+            override fun onLinkPropertiesChanged(
+                network: Network,
+                linkProperties: LinkProperties,
+            ) {
+                Log.d(
+                    "WifiDebug",
+                    "onLinkPropertiesChanged() network=$network"
+                )
+
+                updateWifiState(
+                    network,
+                    connectivityManager
+                        ?.getNetworkCapabilities(network),
+                )
+            }
+
+            override fun onLost(network: Network) {
+                Log.d(
+                    "WifiDebug",
+                    "onLost() network=$network"
+                )
+
+                WifiBus.update(null)
+
+                emit(SystemEventType.WIFI_DISCONNECTED)
+            }
         }
 
-        override fun onLost(network: Network) {
-            emit(SystemEventType.WIFI_DISCONNECTED)
+    private fun updateWifiState(
+        network: Network,
+        capabilities: NetworkCapabilities?,
+    ) {
+        Log.d(
+            "WifiDebug",
+            "========== updateWifiState START =========="
+        )
+
+        try {
+            val connectivity = connectivityManager
+
+            if (connectivity == null) {
+                Log.e("WifiDebug", "FAIL: connectivityManager == null")
+                return
+            }
+
+            Log.d(
+                "WifiDebug",
+                "capabilities=$capabilities"
+            )
+
+            if (capabilities == null) {
+                Log.e(
+                    "WifiDebug",
+                    "FAIL: capabilities == null"
+                )
+                return
+            }
+
+            val isWifi =
+                capabilities.hasTransport(
+                    NetworkCapabilities.TRANSPORT_WIFI
+                )
+
+            Log.d(
+                "WifiDebug",
+                "isWifi=$isWifi"
+            )
+
+            if (!isWifi) {
+                Log.e(
+                    "WifiDebug",
+                    "FAIL: network is not WIFI"
+                )
+                return
+            }
+
+            val transportInfo =
+                capabilities.transportInfo
+
+            Log.d(
+                "WifiDebug",
+                "transportInfo=$transportInfo"
+            )
+
+            val wifiInfo =
+                transportInfo as? WifiInfo
+
+            Log.d(
+                "WifiDebug",
+                "wifiInfo=$wifiInfo"
+            )
+
+            if (wifiInfo == null) {
+                Log.e(
+                    "WifiDebug",
+                    "FAIL: transportInfo is not WifiInfo"
+                )
+                return
+            }
+
+            Log.d(
+                "WifiDebug",
+                "SSID=${wifiInfo.ssid}"
+            )
+
+            Log.d(
+                "WifiDebug",
+                "RSSI=${wifiInfo.rssi}"
+            )
+
+            Log.d(
+                "WifiDebug",
+                "linkSpeed=${wifiInfo.linkSpeed}"
+            )
+
+            Log.d(
+                "WifiDebug",
+                "frequency=${wifiInfo.frequency}"
+            )
+
+            val linkProperties =
+                connectivity.getLinkProperties(network)
+
+            Log.d(
+                "WifiDebug",
+                "linkProperties=$linkProperties"
+            )
+
+            val ipAddress = linkProperties
+                ?.linkAddresses
+                ?.firstOrNull { linkAddress ->
+                    linkAddress.address.hostAddress
+                        ?.contains(":") == false
+                }
+                ?.address
+                ?.hostAddress
+
+            Log.d(
+                "WifiDebug",
+                "ipAddress=$ipAddress"
+            )
+
+            val signalLevel =
+                WifiManager.calculateSignalLevel(
+                    wifiInfo.rssi,
+                    5,
+                )
+
+            val ssid = wifiInfo.ssid
+                ?.removePrefix("\"")
+                ?.removeSuffix("\"")
+                ?.takeUnless {
+                    it.isBlank() ||
+                            it == "<unknown ssid>"
+                }
+
+            val state = WifiState(
+                ssid = ssid,
+                signalLevel = signalLevel,
+                rssi = wifiInfo.rssi.takeIf {
+                    it != -127
+                },
+                linkSpeedMbps =
+                    wifiInfo.linkSpeed.takeIf {
+                        it > 0
+                    },
+                frequencyMhz =
+                    wifiInfo.frequency.takeIf {
+                        it > 0
+                    },
+                ipAddress = ipAddress,
+                isMetered =
+                    capabilities
+                        .hasCapability(
+                            NetworkCapabilities
+                                .NET_CAPABILITY_NOT_METERED
+                        )
+                        .not(),
+            )
+
+            Log.d(
+                "WifiDebug",
+                "CREATED STATE=$state"
+            )
+
+            WifiBus.update(state)
+
+            Log.d(
+                "WifiDebug",
+                "WifiBus AFTER UPDATE=${WifiBus.state.value}"
+            )
+
+            Log.d(
+                "WifiDebug",
+                "========== updateWifiState SUCCESS =========="
+            )
+
+        } catch (e: SecurityException) {
+
+            Log.e(
+                "WifiDebug",
+                "SECURITY EXCEPTION",
+                e,
+            )
+
+            WifiBus.update(null)
+
+        } catch (e: Exception) {
+
+            Log.e(
+                "WifiDebug",
+                "GENERAL EXCEPTION",
+                e,
+            )
+
+            WifiBus.update(null)
         }
     }
 
@@ -164,6 +408,7 @@ class SystemEventMonitor(private val context: Context) {
         )
 
         ChargingBus.update(null)
+        WifiBus.update(null)
     }
 
     private fun updateChargingState(intent: Intent) {

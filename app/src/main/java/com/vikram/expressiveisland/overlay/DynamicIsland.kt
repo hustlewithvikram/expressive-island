@@ -423,6 +423,9 @@ fun DynamicIsland(
             }
         }
         emptyPill -> 0
+
+        isExpanded && systemEventType == SystemEventType.CHARGING_STARTED -> 20
+
         isExpanded && shownEvent?.assistant != null && shownEvent.assistant.displayAnswerInCutout -> {
             val maxCutoutHeightDp = (screenHeightDp * shownEvent.assistant.maxCutoutHeightPercent / 100)
             val fitHeightDp = if (assistantContentHeightDp > 0) assistantContentHeightDp else 110
@@ -755,8 +758,9 @@ private fun ChargingExpandedContent(
         modifier = Modifier
             .fillMaxWidth()
             .padding(
-                horizontal = 18.dp,
-                vertical = 14.dp,
+                start = 18.dp,
+                end = 18.dp,
+                top = 18.dp,
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
