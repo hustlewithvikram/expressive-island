@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui
 
+import android.annotation.SuppressLint
 import android.widget.Toast.*
 import androidx.activity.BackEventCompat
 import androidx.activity.compose.PredictiveBackHandler
@@ -79,6 +80,7 @@ private enum class HomeTab(
  * navigation bar. Content padding is computed once here so every tab clears both the top scrim and
  * the floating nav bar without each having to know about them.
  */
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun MainScreen(viewModel: AppViewModel = viewModel()) {
     var selectedIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -223,6 +225,8 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                             onOpenAppearance = { settingsRoute = SettingsRoute.Appearance },
                             onOpenBackground = { settingsRoute = SettingsRoute.Background },
                             onOpenActionButtons = { settingsRoute = SettingsRoute.ActionButtons },
+                            onOpenShizuku = { settingsRoute = SettingsRoute.Shizuku },
+                            onOpenPermissionDot = { settingsRoute = SettingsRoute.PermissionDot },
                         )
 
                         HomeTab.Permissions -> PermissionsTab(contentPadding)

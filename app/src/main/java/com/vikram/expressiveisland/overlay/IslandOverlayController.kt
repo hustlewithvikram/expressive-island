@@ -84,6 +84,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.lang.reflect.Proxy
+import kotlin.math.roundToInt
+
+/** Secondary bubble side. Kept internal for now; the visual feature is enabled by default. */
+const val SATELLITE_GAP_DP = 8
+val DEFAULT_SATELLITE_POSITION = SatellitePosition.RIGHT
 
 /**
  * Owns the single overlay window and drives it from the [IslandEventBus]. Created and
@@ -122,6 +127,8 @@ class IslandOverlayController(private val context: Context) {
     private val appPreferences = AppPreferences(context)
     private val density = context.resources.displayMetrics.density
 
+
+
     // Full display width, used by the island to size itself as a percentage of the screen. Read from
     // the *current* window metrics so it follows the device between portrait and landscape — recomputed
     // on rotation by [onOrientationChanged]. (maximumWindowMetrics would stay pinned to the natural
@@ -147,6 +154,14 @@ class IslandOverlayController(private val context: Context) {
     private val displayHeightDp: Int = (displayHeightPx / density).toInt()
 
     private val currentEvent = MutableStateFlow<IslandEvent?>(null)
+
+    // Secondary event shown as the small bubble beside the main pill. Capacity is one.
+    private val satelliteEvent = MutableStateFlow<IslandEvent?>(null)
+    private var satelliteDismissJob: Job? = null
+    private var currentDeadlineMs: Long? = null
+    private var satelliteDeadlineMs: Long? = null
+    private var restoreSlotsOnCollapse = false
+
     private val layoutState = MutableStateFlow(IslandLayout.Companion.DEFAULT)
     private val forcedExpanded = MutableStateFlow<Boolean?>(null)
     private val behaviourState = MutableStateFlow(BehaviourSettings())
@@ -270,6 +285,7 @@ class IslandOverlayController(private val context: Context) {
     }
 
     fun stop() {
+        satelliteDismissJob?.cancel()
         dismissJob?.cancel()
         windowResizeJob?.cancel()
         runCatching { context.unregisterReceiver(lockReceiver) }
@@ -389,6 +405,7 @@ class IslandOverlayController(private val context: Context) {
      */
     fun onOrientationChanged(orientation: Int) {
         if (orientation == currentOrientation) return
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) clearSatellite()
         currentOrientation = orientation
         orientationState.value = orientation
         displayWidthPx = computeDisplayWidthPx()
@@ -440,6 +457,7 @@ class IslandOverlayController(private val context: Context) {
             }
             setContent {
                 val event by currentEvent.collectAsStateWithLifecycle()
+                val satellite by satelliteEvent.collectAsStateWithLifecycle()
                 val layout by layoutState.collectAsStateWithLifecycle()
                 val forced by forcedExpanded.collectAsStateWithLifecycle()
                 val behaviour by behaviourState.collectAsStateWithLifecycle()
@@ -488,6 +506,9 @@ class IslandOverlayController(private val context: Context) {
                         centerThemedIcons = behaviour.centerThemedIcons,
                         actionButtonAnimation = behaviour.actionButtonAnimation,
                         vibrateOnTap = behaviour.vibrateOnTap,
+                        satellite = satellite,
+                        satellitePosition = DEFAULT_SATELLITE_POSITION,
+                        onSatelliteClick = ::onSatellitePromote,
                         onEmptyClick = ::onEmptyClick,
                         onCenterShortcut = ::onCenterShortcut,
                         collapseRequest = collapseRequestValue,
@@ -614,6 +635,7 @@ class IslandOverlayController(private val context: Context) {
     private fun observeNowPlaying() = scope.launch {
         NowPlayingBus.state.collect { now ->
             musicPlaying = now?.isPlaying == true
+            pruneSatellite()
             // Once the session ends there's nothing to return to.
             if (now == null) lastMusicEvent = null
             // Playback starting/stopping (or switching apps) can change whether the player is the
@@ -738,6 +760,7 @@ class IslandOverlayController(private val context: Context) {
     private fun observeOnCall() = scope.launch {
         OnCallBus.state.collect { call ->
             callActive = call != null
+            pruneSatellite()
             if (call == null) {
                 lastCallEvent = null
                 phoneAppHidden = false
@@ -761,6 +784,7 @@ class IslandOverlayController(private val context: Context) {
     private fun observeRunningTimer() = scope.launch {
         RunningTimerBus.state.collect { timer ->
             timerActive = timer != null
+            pruneSatellite()
             if (timer == null) lastTimerEvent = null
             // Only steer the timer pill; leave notifications/system events to their own timers.
             if (previewPinned || currentEvent.value?.timer == null) return@collect
@@ -792,6 +816,7 @@ class IslandOverlayController(private val context: Context) {
     private fun observeLayout() = scope.launch {
         layoutPreferences.layout.collect { layout ->
             layoutState.value = layout
+            if (satelliteEvent.value != null && satelliteSplitDp() == 0) clearSatellite()
             syncWindowSize()
         }
     }
@@ -804,7 +829,10 @@ class IslandOverlayController(private val context: Context) {
      */
     private fun observeVisibility() = scope.launch {
         combine(currentEvent, behaviourState, ::Pair).collect { (event, behaviour) ->
-            setTouchable(event != null || (behaviour.showsWhenEmpty && behaviour.cutoutEnabled))
+            setTouchable(
+                event != null || satelliteEvent.value != null ||
+                        (behaviour.showsWhenEmpty && behaviour.cutoutEnabled),
+            )
         }
     }
 
@@ -899,7 +927,9 @@ class IslandOverlayController(private val context: Context) {
                         val info = args?.getOrNull(0)
                         if (info != null) {
                             setTouchableInsets.invoke(info, touchableInsetsRegion)
-                            (touchableRegionField.get(info) as Region).set(pillTouchRect(view.width, view.height))
+                            val region = touchableRegionField.get(info) as Region
+                            region.setEmpty()
+                            touchRects(view.width, view.height).forEach { region.op(it, Region.Op.UNION) }
                         }
                         null
                     }
@@ -919,6 +949,34 @@ class IslandOverlayController(private val context: Context) {
      * state's offset, tall enough to include the expanded action chips, and grown by a small margin
      * so the rounded edges, drop shadow and tap "boop" scale all stay comfortably tappable.
      */
+    private fun touchRects(viewWidth: Int, viewHeight: Int): List<Rect> {
+        val pill = pillTouchRect(viewWidth, viewHeight)
+        val satellite = satelliteTouchRect(viewWidth, viewHeight)
+        return if (satellite == null) listOf(pill) else listOf(pill, satellite)
+    }
+
+    private fun satelliteTouchRect(viewWidth: Int, viewHeight: Int): Rect? {
+        if (satelliteEvent.value == null || expanded) return null
+        if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) return null
+        val collapsed = layoutState.value.collapsed
+        val splitDp = satelliteSplitDp()
+        val diameterPx = (collapsed.heightDp * density).toInt()
+        val gapPx = (SATELLITE_GAP_DP * density).toInt()
+        val pillWidthPx = (displayWidthPx * collapsed.widthPercent / 100f).toInt() -
+                (splitDp * density).toInt()
+        val margin = (TOUCH_MARGIN_DP * density).toInt()
+        val centerX = viewWidth / 2 + (collapsed.offsetXDp * density).toInt() + satelliteShiftPx(splitDp)
+        val step = pillWidthPx / 2 + gapPx + diameterPx / 2
+        val satelliteCenterX = centerX + step // bubble is on the right
+        val topPx = (collapsed.offsetYDp * density).toInt()
+        return Rect(
+            (satelliteCenterX - diameterPx / 2 - margin).coerceAtLeast(0),
+            (topPx - margin).coerceAtLeast(0),
+            (satelliteCenterX + diameterPx / 2 + margin).coerceAtMost(viewWidth),
+            (topPx + diameterPx + margin).coerceAtMost(if (viewHeight > 0) viewHeight else topPx + diameterPx + margin),
+        )
+    }
+
     private fun pillTouchRect(viewWidth: Int, viewHeight: Int): Rect {
         val isStickToCamera = orientationState.value == Configuration.ORIENTATION_LANDSCAPE &&
                 behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA
@@ -927,9 +985,10 @@ class IslandOverlayController(private val context: Context) {
         }
         val dims = effectiveDims(layoutState.value, expanded)
         val bonusDp = currentHeightBonusDp(expanded)
-        val pillWidthPx = displayWidthPx * dims.widthPercent / 100
+        val splitPx = (satelliteSplitDp() * density).toInt()
+        val pillWidthPx = displayWidthPx * dims.widthPercent / 100 - splitPx
         val margin = (TOUCH_MARGIN_DP * density).toInt()
-        val centerX = viewWidth / 2 + (dims.offsetXDp * density).toInt()
+        val centerX = viewWidth / 2 + (dims.offsetXDp * density).toInt() + satelliteShiftPx(satelliteSplitDp())
         val topPx = (dims.offsetYDp * density).toInt()
         val bottomPx = ((dims.offsetYDp + dims.heightDp + bonusDp) * density).toInt()
         return Rect(
@@ -998,6 +1057,153 @@ class IslandOverlayController(private val context: Context) {
      * the normal collapsed pill. Keeps the window height and touchable region in step with what
      * [DynamicIsland] renders.
      */
+    private fun satelliteSplitDp(): Int {
+        if (!behaviourState.value.splitIslandEnabled || satelliteEvent.value == null || expanded) return 0
+        if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) return 0
+        if (currentEvent.value?.call != null) return 0
+        val collapsed = layoutState.value.collapsed
+        val splitDp = collapsed.heightDp + SATELLITE_GAP_DP
+        val remaining = displayWidthDp.value * (collapsed.widthPercent / 100f) - splitDp
+        return if (remaining >= splitDp && remaining >= collapsed.heightDp * 2) splitDp else 0
+    }
+
+    private fun satelliteShiftPx(splitDp: Int): Int = -(splitDp * density / 2f).roundToInt()
+
+    private fun satelliteAllowed(displaced: IslandEvent, incoming: IslandEvent): Boolean {
+        if (!behaviourState.value.splitIslandEnabled) return false
+        if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) return false
+        if (displaced.call != null || incoming.call != null) return false
+        if (displaced.assistant != null || incoming.assistant != null) return false
+        if (isTwoRowCall()) return false
+        if (displaced.notificationKey != null && displaced.notificationKey == incoming.notificationKey) return false
+        if (displaced.id == incoming.id) return false
+        return satelliteFitsWidth()
+    }
+
+    private fun satelliteFitsWidth(): Boolean {
+        if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) return false
+        val collapsed = layoutState.value.collapsed
+        val splitDp = collapsed.heightDp + SATELLITE_GAP_DP
+        val pillDp = displayWidthDp.value * (collapsed.widthPercent / 100f) - splitDp
+        return pillDp >= splitDp && pillDp >= collapsed.heightDp * 2
+    }
+
+    private fun parkInSatellite(event: IslandEvent, deadlineMs: Long?) {
+        satelliteDismissJob?.cancel()
+        satelliteEvent.value = event
+        satelliteDeadlineMs = deadlineMs
+        if (deadlineMs != null) {
+            satelliteDismissJob = scope.launch {
+                val remaining = deadlineMs - System.currentTimeMillis()
+                if (remaining > 0) delay(remaining)
+                if (satelliteEvent.value?.id == event.id) clearSatellite()
+            }
+        }
+    }
+
+    private fun demoteToSatellite(displaced: IslandEvent?, incoming: IslandEvent, deadlineMs: Long?) {
+        if (displaced == null || !satelliteAllowed(displaced, incoming)) {
+            clearSatellite()
+            return
+        }
+        parkInSatellite(displaced, deadlineMs)
+    }
+
+    private fun clearSatellite() {
+        satelliteDismissJob?.cancel()
+        satelliteDismissJob = null
+        satelliteDeadlineMs = null
+        if (satelliteEvent.value != null) {
+            satelliteEvent.value = null
+            syncWindowSize()
+        }
+    }
+
+    private fun pruneSatellite() {
+        val bubble = satelliteEvent.value ?: return
+        val stale = when {
+            bubble.media != null -> !musicPlaying
+            bubble.call != null -> !callActive
+            bubble.timer != null -> !timerActive
+            bubble.assistant != null -> !assistantActive
+            else -> false
+        }
+        if (stale) clearSatellite()
+    }
+
+    private fun armPillDismiss(deadlineMs: Long?) {
+        dismissJob?.cancel()
+        currentDeadlineMs = deadlineMs
+        if (deadlineMs == null) return
+        dismissJob = scope.launch {
+            val remaining = deadlineMs - System.currentTimeMillis()
+            if (remaining > 0) delay(remaining)
+            dismissIsland()
+        }
+    }
+
+    private fun promoteSatelliteCollapsed(): Boolean {
+        restoreSlotsOnCollapse = false
+        val bubble = satelliteEvent.value ?: return false
+        val deadline = satelliteDeadlineMs
+        if (deadline != null && deadline <= System.currentTimeMillis()) {
+            clearSatellite()
+            return false
+        }
+        clearSatellite()
+        forcedExpanded.value = null
+        expanded = false
+        currentSystemEventType = null
+        currentEvent.value = bubble.copy(initiallyExpanded = false)
+        currentDeadlineMs = deadline
+        collapseRequest.value++
+        armPillDismiss(deadline)
+        syncWindowSize()
+        return true
+    }
+
+    private fun onSatellitePromote() {
+        val bubble = satelliteEvent.value ?: return
+        if (bubble.normalOnly) {
+            bubble.contentIntent?.let(::sendPendingIntent)
+            return
+        }
+        val bubbleDeadline = satelliteDeadlineMs
+        val pill = currentEvent.value
+        val pillDeadline = currentDeadlineMs
+        satelliteDismissJob?.cancel()
+        satelliteEvent.value = null
+        satelliteDeadlineMs = null
+        forcedExpanded.value = null
+        currentSystemEventType = null
+        expanded = true
+        currentEvent.value = bubble.copy(initiallyExpanded = true)
+        armPillDismiss(bubbleDeadline)
+        if (pill != null && satelliteAllowed(pill, bubble)) {
+            parkInSatellite(pill.copy(initiallyExpanded = false), pillDeadline)
+            restoreSlotsOnCollapse = true
+        }
+        syncWindowSize()
+    }
+
+    private fun restoreSlots() {
+        val opened = currentEvent.value ?: return
+        val parked = satelliteEvent.value ?: return
+        val openedDeadline = currentDeadlineMs
+        val parkedDeadline = satelliteDeadlineMs
+        satelliteDismissJob?.cancel()
+        satelliteEvent.value = null
+        satelliteDeadlineMs = null
+        forcedExpanded.value = null
+        expanded = false
+        currentSystemEventType = null
+        currentEvent.value = parked.copy(initiallyExpanded = false)
+        armPillDismiss(parkedDeadline)
+        parkInSatellite(opened.copy(initiallyExpanded = false), openedDeadline)
+        collapseRequest.value++
+        syncWindowSize()
+    }
+
     private fun effectiveDims(layout: IslandLayout, expanded: Boolean): IslandDimensions {
         val event = currentEvent.value
         return when {
@@ -1197,6 +1403,9 @@ class IslandOverlayController(private val context: Context) {
                 return@collect
             }
 
+            restoreSlotsOnCollapse = false
+            demoteToSatellite(existing, resolvedEvent, currentDeadlineMs)
+            currentDeadlineMs = null
             // Remember the system event (if any) so its auto-dismiss honours its per-event duration.
             currentSystemEventType = (signal as? CutoutSignal.System)?.type
             forcedExpanded.value = if (isNoExpandLandscape) false else null
@@ -1267,6 +1476,17 @@ class IslandOverlayController(private val context: Context) {
         }
         val wasExpanded = expanded
         expanded = targetExpanded
+
+        if (!targetExpanded && restoreSlotsOnCollapse) {
+            restoreSlotsOnCollapse = false
+            if (behaviourState.value.expandedDisappearOnShrink) {
+                dismissJob?.cancel()
+                promoteSatelliteCollapsed()
+            } else {
+                restoreSlots()
+            }
+            return
+        }
 
         when {
             targetExpanded -> {
@@ -1425,8 +1645,10 @@ class IslandOverlayController(private val context: Context) {
      */
     private fun dismissIsland() {
         dismissJob?.cancel()
+        restoreSlotsOnCollapse = false
         forcedExpanded.value = null
         expanded = false
+        if (promoteSatelliteCollapsed()) return
         val returnToLive = livePillToReturnTo() != null
         currentEvent.value = null
         syncWindowSize()
@@ -1452,7 +1674,10 @@ class IslandOverlayController(private val context: Context) {
         callPillToReturnTo() ?: musicPillToReturnTo() ?: timerPillToReturnTo()
 
     /** True while the shown event is itself a live tile (so we never "return" on top of one). */
-    private fun showingLiveTile(): Boolean = currentEvent.value?.let {
+    private fun showingLiveTile(): Boolean =
+        isLiveTileEvent(currentEvent.value) || isLiveTileEvent(satelliteEvent.value)
+
+    private fun isLiveTileEvent(event: IslandEvent?): Boolean = event?.let {
         it.media != null || it.call != null || it.timer != null
     } == true
 
@@ -1517,13 +1742,16 @@ class IslandOverlayController(private val context: Context) {
 
     private fun scheduleDismiss() {
         dismissJob?.cancel()
+        currentDeadlineMs = null
         // Never time out a live cutout while it's active — it stays until playback / the call stops.
         if (isPinnedLiveTile()) return
         // A system event with its own duration override wins; everything else uses the global normal.
         val seconds = currentSystemEventType?.let { eventDurations[it] }
             ?: behaviourState.value.normalDurationSeconds
+        currentDeadlineMs = System.currentTimeMillis() + seconds * 1_000L
         dismissJob = scope.launch {
             delay(seconds * 1_000L)
+            if (promoteSatelliteCollapsed()) return@launch
             val livePill = livePillToReturnTo()
             when {
                 // Return to the pinned preview if settings is still open.
@@ -1607,7 +1835,7 @@ class IslandOverlayController(private val context: Context) {
                     WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
             PixelFormat.TRANSLUCENT,
 
-        ).apply {
+            ).apply {
             gravity = computeWindowGravity()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 layoutInDisplayCutoutMode =

@@ -54,9 +54,16 @@
     <string name="status_granted">Enabled</string>
     <string name="status_needed">Tap to enable</string>
     <string name="action_send_test">Send a test notification</string>
+    <string name="action_send_test_double">Send two test notifications</string>
+    <string name="test_second_notification_title">Second test notification</string>
+    <string name="profile_testing_subtitle">Try your dynamic island</string>
+    <string name="action_send_test_plain">Send a test notification without buttons</string>
+    <string name="test_second_notification_text">Arrived while the first was still showing — the first should move to the bubble.</string>
     <string name="action_send_test_progress">Send a test progress notification</string>
     <string name="test_notification_title">Test notification</string>
     <string name="test_notification_text">Expand the island and try the buttons below.</string>
+    <string name="test_plain_notification_title">Plain test notification</string>
+    <string name="test_plain_notification_text">No action buttons, so the island shows only the header. Check the title clears the camera.</string>
     <string name="test_progress_notification_title">Downloading file</string>
     <string name="test_progress_notification_text">Watch the island track the progress.</string>
     <string name="test_notification_action_reply">Reply</string>
@@ -196,6 +203,58 @@
     <string name="cd_color_secondary">Secondary colour</string>
     <string name="cd_color_tertiary">Tertiary colour</string>
     <string name="cd_color_error">Error colour</string>
+
+    <!-- Shizuku options screen -->
+    <string name="shizuku_options_title">Shizuku options</string>
+    <string name="settings_shizuku_subtitle">Hide status bar icons and silence system alerts</string>
+    <string name="status_bar_hide_icons_title">Hide notification icons</string>
+    <string name="status_bar_hide_icons_desc">Clears notification icons from the system status bar, so only the island reports them.</string>
+    <string name="status_bar_hide_icons_note">Android forgets this on reboot. Restart Shizuku and open this app once to put it back.</string>
+    <string name="status_bar_hide_system_info_title">Hide system icons</string>
+    <string name="status_bar_hide_system_info_desc">Clears the battery, Wi-Fi and signal icons from the system status bar, leaving it empty behind the island.</string>
+    <string name="status_bar_hide_clock_title">Hide clock</string>
+    <string name="status_bar_hide_clock_desc">Clears the clock from the system status bar.</string>
+    <string name="status_bar_silence_alerts_title">Silence system alerts</string>
+    <string name="status_bar_silence_alerts_desc">Same idea as “Automatically dismiss notifications,” but more reliable: the system itself mutes sounds, vibration and heads-up pop-ups, so only the island alerts you.</string>
+    <string name="permission_dot_title">Display permission dot</string>
+    <string name="permission_dot_desc">Marks the cutout while an app is using the camera (green), the microphone (red) or your location (blue).</string>
+    <string name="permission_dot_position_title">Position</string>
+    <string name="permission_dot_position_left">Left</string>
+    <string name="permission_dot_position_right">Right</string>
+    <string name="permission_dot_vertical_title">Vertical dot alignment</string>
+    <string name="permission_dot_vertical_desc">Stack the dots in a column instead of a row, so they take up less of the cutout\'s width.</string>
+    <string name="permission_dot_location_title">Location</string>
+    <string name="permission_dot_location_desc">Show a blue dot while an app is reading your location.</string>
+    <string name="permission_dot_camera_title">Camera</string>
+    <string name="permission_dot_camera_desc">Show a green dot while an app is using the camera.</string>
+    <string name="permission_dot_microphone_title">Microphone</string>
+    <string name="permission_dot_microphone_desc">Show a red dot while an app is using the microphone.</string>
+    <string name="permission_dot_location_color">Location dot colour</string>
+    <string name="permission_dot_camera_color">Camera dot colour</string>
+    <string name="permission_dot_microphone_color">Microphone dot colour</string>
+    <string name="shizuku_not_installed_title">Shizuku required</string>
+    <string name="shizuku_not_installed_desc">Changing the status bar needs shell access. Tap to install Shizuku.</string>
+    <string name="shizuku_not_running_title">Shizuku isn\'t running</string>
+    <string name="shizuku_not_running_desc">Start it from the Shizuku app, then come back. It stops on every reboot.</string>
+    <string name="shizuku_permission_title">Grant Shizuku access</string>
+    <string name="shizuku_permission_desc">Tap to let Expressive Cutout use Shizuku.</string>
+    <string name="perm_shizuku_title">Shizuku</string>
+    <string name="perm_shizuku_desc">Optional. Only needed to hide the status bar notification icons.</string>
+
+    <string name="app_color_fallback_title">Fallback colour</string>
+    <string name="app_color_fallback_desc">Used when no app icon is available (such as system events or an idle island)</string>
+    <string name="app_color_fallback_dynamic">Material You</string>
+    <string name="app_color_fallback_oled">OLED Black</string>
+    <string name="app_color_fallback_adaptive">Adaptive</string>
+
+    <string name="tooltip_dynamic_primary">Material You (Primary) — Dynamic accent adapting to your wallpaper and Android theme.</string>
+    <string name="tooltip_dynamic_secondary">Material You (Secondary) — Subtle tonal dynamic accent matching your wallpaper.</string>
+    <string name="tooltip_dynamic_tertiary">Material You (Tertiary) — Playful dynamic accent color derived from your theme.</string>
+    <string name="tooltip_app_icon">App Icon Adaptive Colour — Dynamically extracts the primary branding colour from the notifying app\'s default launcher icon.</string>
+    <string name="tooltip_oled_black">Pure Black (#000000) — Turns off pixels on OLED displays for maximum battery efficiency and stealth.</string>
+    <string name="tooltip_custom_color">Custom Colour — Uses your chosen color across all events.</string>
+    <string name="tooltip_preset_color">Preset Colour — Uses this fixed accent across all events.</string>
+    <string name="tooltip_default_reset">Default Island Accent — Restores the built-in default theme colour.</string>
 
     <!-- Background screen -->
     <string name="settings_background_subtitle">Separate colours or gradients for the normal and expanded cutout</string>
@@ -446,4 +505,11 @@
     <string name="bgColor_oled_desc">Use pure black for lower consuption on OLED screens</string>
     <string name="music_progress_title">Show progress</string>
     <string name="music_progress_description">Display a playback progress bar under the controls</string>
+    <string name="behaviour_dismissNotifs_title">Automatically dismiss notifications</string>
+    <string name="behaviour_dismissNotifs_desc">Keep notifications out of the shade while the island shows them. Ignore one and it comes back a minute later, so nothing is lost</string>
+    <string name="behaviour_displayWhileDnd_title">Display while Do not disturb</string>
+    <string name="behaviour_displayWhileDnd_desc">Display notifications even when do not disturb is enabled</string>
+    <string name="behaviour_alertOnNotif_title">Vibrate/rings on notification</string>
+    <string name="behaviour_alertOnNotif_desc">Vibrates or rings when a notification arrives, based on the device ringing mode. This is useful if you disabled Android heads-up notifications</string>
+    <string name="statusbar_preview_time">2:34</string>
 </resources>

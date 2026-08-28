@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Card
@@ -89,6 +90,8 @@ fun SettingsTab(
     onOpenAppearance: () -> Unit,
     onOpenBackground: () -> Unit,
     onOpenActionButtons: () -> Unit,
+    onOpenShizuku: () -> Unit,
+    onOpenPermissionDot: () -> Unit,
 ) {
     // Routing (and back navigation, via the bottom bar) is owned by MainScreen.
     // Deeper routes slide in from the right; stepping back slides in from the left, so the
@@ -117,6 +120,7 @@ fun SettingsTab(
                     onOpenBehaviour = onOpenBehaviour,
                     onOpenAnimation = onOpenAnimation,
                     onOpenAppearance = onOpenAppearance,
+                    onOpenShizuku = onOpenShizuku
                 )
             }
 
@@ -143,13 +147,15 @@ fun SettingsTab(
             )
             SettingsRoute.Background -> BackgroundScreen(viewModel, contentPadding)
             SettingsRoute.ActionButtons -> ButtonScreen(viewModel, contentPadding)
+            SettingsRoute.Shizuku -> ShizukuScreen(viewModel, contentPadding, onOpenPermissionDot)
+            SettingsRoute.PermissionDot -> PermissionDotScreen(viewModel, contentPadding)
         }
     }
 }
 
 /** The screens reachable from the Settings tab. Hoisted to MainScreen so the bottom bar can
  *  switch to a back pill on the detail screens. */
-enum class SettingsRoute { List, SizePosition, EventIcons, EventDetail, DynamicTiles, DynamicTileDetail, Apps, Behaviour, ShowsWhenEmpty, Animation, Appearance, Background, ActionButtons }
+enum class SettingsRoute { List, SizePosition, EventIcons, EventDetail, DynamicTiles, DynamicTileDetail, Apps, Behaviour, ShowsWhenEmpty, Animation, Appearance, Background, ActionButtons, Shizuku, PermissionDot }
 
 /**
  * The screen that back navigation returns to. Most detail screens go straight back to the list,
@@ -184,6 +190,7 @@ private fun SettingsList(
     onOpenApps: () -> Unit,
     onOpenBehaviour: () -> Unit,
     onOpenAnimation: () -> Unit,
+    onOpenShizuku: () -> Unit,
     onOpenAppearance: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -288,6 +295,12 @@ private fun SettingsList(
                 subtitle = stringResource(R.string.settings_animation_subtitle),
                 onClick = onOpenAnimation,
             )
+            SettingsListItem(
+                icon = Icons.Rounded.Terminal,
+                title = stringResource(R.string.shizuku_options_title),
+                subtitle = stringResource(R.string.settings_shizuku_subtitle),
+                onClick = onOpenShizuku,
+            )
         }
 
         // Events and tiles that trigger the cutout
@@ -352,7 +365,7 @@ private fun CutoutEnableCard(
 }
 
 @Composable
-private fun SettingsListItem(
+fun SettingsListItem(
     icon: ImageVector,
     title: String,
     subtitle: String,

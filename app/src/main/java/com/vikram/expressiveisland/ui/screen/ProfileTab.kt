@@ -66,7 +66,7 @@ import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 import com.vikram.expressiveisland.ui.theme.AppTheme
 
 /** The screens reachable from the Profile tab. Hoisted to MainScreen, like [SettingsRoute]. */
-enum class ProfileRoute { List, Changelog, PermissionDetails }
+enum class ProfileRoute { List, Changelog, PermissionDetails, Testing }
 
 /**
  * "Profile" destination: the app-wide theme choice, the version (which opens the changelog) and
@@ -103,6 +103,7 @@ fun ProfileTab(
             )
             ProfileRoute.Changelog -> ChangelogScreen(contentPadding)
             ProfileRoute.PermissionDetails -> PermissionDetailsScreen(contentPadding)
+            ProfileRoute.Testing -> TestingScreen(contentPadding)
         }
     }
 }

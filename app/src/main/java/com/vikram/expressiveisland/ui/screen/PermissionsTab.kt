@@ -159,6 +159,16 @@ fun PermissionsTab(contentPadding: PaddingValues) {
                 title = stringResource(R.string.action_send_test_incoming_call),
                 onClick = { TestCaller.toggle(context, TestCaller.Kind.INCOMING) },
             )
+
+            TestCard(
+                icon = Icons.Rounded.Layers,
+                title = stringResource(R.string.action_send_test_double),
+                onClick = {
+                    postWithPermission {
+                        TestNotifier.sendPair(context)
+                    }
+                },
+            )
         }
     }
 }

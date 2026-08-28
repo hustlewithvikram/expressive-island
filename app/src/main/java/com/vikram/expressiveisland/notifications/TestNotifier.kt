@@ -35,7 +35,9 @@ object TestNotifier {
 
     private const val CHANNEL_ID = "test"
     const val NOTIFICATION_ID = 4711
+    const val SECOND_NOTIFICATION_ID = 4714
     const val PROGRESS_NOTIFICATION_ID = 4712
+    const val PLAIN_NOTIFICATION_ID = 4713
 
     /** The notification auto-dismisses after this long so the test never lingers. */
     private const val TIMEOUT_MS = 15_000L
@@ -47,6 +49,10 @@ object TestNotifier {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var progressJob: Job? = null
+
+    private const val PAIR_GAP_MS = 2_000L
+
+    private var pairJob: Job? = null
 
     /** True once a notification can actually be posted (Android 13+ gates this at runtime). */
     fun canPost(context: Context): Boolean =
@@ -118,6 +124,43 @@ object TestNotifier {
                 ),
                 // The same glyph the posted notification carries, so the preview goes through the
                 // real "icon from the notification" path rather than the launcher-icon fallback.
+                smallIcon = Icon.createWithResource(context, R.drawable.ic_stat_island),
+            ),
+        )
+    }
+
+    /**
+     * Posts a test notification carrying no actions at all, and mirrors it onto the island. The
+     * counterpart to [send]: the expanded cutout then renders only the header row, which is the
+     * layout where the title has the least room and can ride up under the camera hole. Its text is
+     * deliberately long enough to wrap onto a second line, the case that pushes the header highest.
+     */
+    @SuppressLint("MissingPermission")
+    fun sendPlain(context: Context) {
+        ensureChannel(context)
+
+        val title = context.getString(R.string.test_plain_notification_title)
+        val text = context.getString(R.string.test_plain_notification_text)
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_island)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setTimeoutAfter(TIMEOUT_MS)
+            .build()
+
+        if (canPost(context)) {
+            NotificationManagerCompat.from(context).notify(PLAIN_NOTIFICATION_ID, notification)
+        }
+
+        IslandEventBus.emit(
+            CutoutSignal.Notification(
+                packageName = context.packageName,
+                title = title,
+                text = text,
                 smallIcon = Icon.createWithResource(context, R.drawable.ic_stat_island),
             ),
         )
@@ -203,5 +246,55 @@ object TestNotifier {
                 ),
             )
         }
+    }
+
+    fun sendPair(context: Context) {
+        val appContext = context.applicationContext
+
+        pairJob?.cancel()
+
+        pairJob = scope.launch {
+            send(appContext)
+
+            delay(PAIR_GAP_MS)
+
+            sendSecond(appContext)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun sendSecond(context: Context) {
+        ensureChannel(context)
+
+        val title = context.getString(R.string.test_second_notification_title)
+        val text = context.getString(R.string.test_second_notification_text)
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_island_split)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setTimeoutAfter(TIMEOUT_MS)
+            .build()
+
+        if (canPost(context)) {
+            NotificationManagerCompat
+                .from(context)
+                .notify(SECOND_NOTIFICATION_ID, notification)
+        }
+
+        IslandEventBus.emit(
+            CutoutSignal.Notification(
+                packageName = context.packageName,
+                title = title,
+                text = text,
+                smallIcon = Icon.createWithResource(
+                    context,
+                    R.drawable.ic_stat_island_split,
+                ),
+            ),
+        )
     }
 }

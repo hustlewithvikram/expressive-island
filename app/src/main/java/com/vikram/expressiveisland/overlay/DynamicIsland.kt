@@ -258,7 +258,7 @@ internal fun SentAlignment.toHorizontal(): Alignment.Horizontal = when (this) {
  * locks the state (used by the settings preview).
  */
 @Composable
-fun DynamicIsland(
+internal fun DynamicIsland(
     event: IslandEvent?,
     systemEventType: SystemEventType? = null,
     collapsed: IslandDimensions,
@@ -299,6 +299,9 @@ fun DynamicIsland(
     onReplyActiveChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     collapseRequest: Int = 0,
+    satellite: IslandEvent? = null,
+    satellitePosition: SatellitePosition = SatellitePosition.RIGHT,
+    onSatelliteClick: () -> Unit = {},
 ) {
     var lastEvent by remember { mutableStateOf<IslandEvent?>(null) }
     if (event != null) {
@@ -311,7 +314,7 @@ fun DynamicIsland(
 
     val initialExpandedState = if (forcedExpanded == false) false else (shownEvent?.initiallyExpanded ?: false)
     //var tapExpanded by remember(shownEvent?.id, forcedExpanded) { mutableStateOf(initialExpandedState) }
-        
+
     val expansionKey = if (shownEvent?.media != null) {
         "media"
     } else {
@@ -467,8 +470,23 @@ fun DynamicIsland(
         else -> spec
     }
 
+    // The bubble shares the normal cutout's total width instead of making the island wider.
+    val satelliteCandidate = satellite != null && !isExpanded && !isCall && !isStickToCamera
+    val requestedSatelliteSplitDp = collapsed.heightDp + SATELLITE_GAP_DP
+    val remainingSatelliteWidthDp = displayWidthDp * (collapsed.widthPercent / 100f) - requestedSatelliteSplitDp
+    val satelliteSharing = satelliteCandidate &&
+            remainingSatelliteWidthDp >= requestedSatelliteSplitDp &&
+            remainingSatelliteWidthDp >= collapsed.heightDp * 2
+    val satelliteSplitDp = if (satelliteSharing) requestedSatelliteSplitDp else 0
+    val satelliteShiftDp = when {
+        !satelliteSharing -> 0f
+        satellitePosition == SatellitePosition.LEFT -> satelliteSplitDp / 2f
+        else -> -satelliteSplitDp / 2f
+    }
+
     val width by animateDpAsState(
-        if (isStickToCamera) collapsed.heightDp.dp else (displayWidthDp * dims.widthPercent / 100f).dp,
+        if (isStickToCamera) collapsed.heightDp.dp
+        else (displayWidthDp * dims.widthPercent / 100f).dp - satelliteSplitDp.dp,
         spec, label = "islandWidth"
     )
 
@@ -478,7 +496,11 @@ fun DynamicIsland(
     )
 
     val cornerRadius = (collapsed.heightDp / 2f).dp
-    val offsetX by animateDpAsState(if (isStickToCamera) 0.dp else dims.offsetXDp.dp, spec, label = "islandOffsetX")
+    val offsetX by animateDpAsState(
+        if (isStickToCamera) 0.dp else dims.offsetXDp.dp + satelliteShiftDp.dp,
+        spec,
+        label = "islandOffsetX",
+    )
     val offsetY by animateDpAsState(if (isStickToCamera) 0.dp else dims.offsetYDp.dp, spec, label = "islandOffsetY")
     val topLeft by animateDpAsState(if (isStickToCamera) cornerRadius else dims.cornerTopLeftDp.dp, spec, label = "cornerTL")
     val topRight by animateDpAsState(if (isStickToCamera) cornerRadius else dims.cornerTopRightDp.dp, spec, label = "cornerTR")
@@ -499,250 +521,350 @@ fun DynamicIsland(
     val revealBottomLeft = lerpDp(dotCorner, bottomLeft, reveal.value)
     val revealBottomRight = lerpDp(dotCorner, bottomRight, reveal.value)
 
+    var lastSatellite by remember { mutableStateOf<IslandEvent?>(null) }
+    if (satellite != null) lastSatellite = satellite
+    val satelliteShown = satelliteSharing && present
+    val satelliteReveal = remember { Animatable(0f) }
+    LaunchedEffect(satelliteShown) {
+        satelliteReveal.animateTo(
+            targetValue = if (satelliteShown) 1f else 0f,
+            animationSpec = motion.float(baseMs = if (satelliteShown) 320 else 200),
+        )
+    }
+
     val haptic = LocalHapticFeedback.current
 
     CompositionLocalProvider(LocalActionButtonAnimation provides actionButtonAnimation) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        val stickAlignment = if (isRotation270) Alignment.CenterEnd else Alignment.CenterStart
-        val stickPaddingStart = if (isStickToCamera && !isRotation270) offsetYDp.dp else 0.dp
-        val stickPaddingEnd = if (isStickToCamera && isRotation270) offsetYDp.dp else 0.dp
+        Box(modifier = Modifier.fillMaxSize()) {
+            val stickAlignment = if (isRotation270) Alignment.CenterEnd else Alignment.CenterStart
+            val stickPaddingStart = if (isStickToCamera && !isRotation270) offsetYDp.dp else 0.dp
+            val stickPaddingEnd = if (isStickToCamera && isRotation270) offsetYDp.dp else 0.dp
 
-        Box(
-            modifier = Modifier
-                .align(if (isStickToCamera) stickAlignment else Alignment.TopCenter)
-                .padding(start = stickPaddingStart, end = stickPaddingEnd)
-                .offset(x = if (isStickToCamera) 0.dp else offsetX, y = if (isStickToCamera) 0.dp else offsetY),
-        ) {
-            if (present || reveal.value > 0f) {
-                IslandSurface(
-                    modifier = Modifier
-                        .width(revealWidth)
-                        .height(revealHeight)
-                        .graphicsLayer {
-                            val extraPx = PressExpandDp.toPx() * 2f * pressExpand.value
-                            val widen = if (size.width > 0f) (size.width + extraPx) / size.width else 1f
-                            scaleX = boopScale.value * widen
-                            scaleY = boopScale.value
-                            translationX = dismissOffsetX.value
-                            val travel = abs(dismissOffsetX.value) / size.width.coerceAtLeast(1f)
-                            val revealAlpha = (reveal.value / 0.2f).coerceIn(0f, 1f)
-                            alpha = (1f - travel).coerceIn(0.25f, 1f) * revealAlpha
-                        }
-                        .pointerInput(forcedExpanded, isExpanded, replying, emptyPill, pressWidens, shownEvent?.id) {
-                            if (forcedExpanded == true) {
-                                return@pointerInput
+            Box(
+                modifier = Modifier
+                    .align(if (isStickToCamera) stickAlignment else Alignment.TopCenter)
+                    .padding(start = stickPaddingStart, end = stickPaddingEnd)
+                    .offset(x = if (isStickToCamera) 0.dp else offsetX, y = if (isStickToCamera) 0.dp else offsetY),
+            ) {
+                if (present || reveal.value > 0f) {
+                    IslandSurface(
+                        modifier = Modifier
+                            .width(revealWidth)
+                            .height(revealHeight)
+                            .graphicsLayer {
+                                val extraPx = PressExpandDp.toPx() * 2f * pressExpand.value
+                                val widen = if (size.width > 0f) (size.width + extraPx) / size.width else 1f
+                                scaleX = boopScale.value * widen
+                                scaleY = boopScale.value
+                                translationX = dismissOffsetX.value
+                                val travel = abs(dismissOffsetX.value) / size.width.coerceAtLeast(1f)
+                                val revealAlpha = (reveal.value / 0.2f).coerceIn(0f, 1f)
+                                alpha = (1f - travel).coerceIn(0.25f, 1f) * revealAlpha
                             }
+                            .pointerInput(forcedExpanded, isExpanded, replying, emptyPill, pressWidens, shownEvent?.id) {
+                                if (forcedExpanded == true) {
+                                    return@pointerInput
+                                }
 
-                            detectTapGestures(
-                                onPress = {
-                                    if (replying) {
-                                        return@detectTapGestures
-                                    }
-
-                                    if (!isExpanded) {
-                                        scope.launch {
-                                            if (pressWidens) {
-                                                pressExpand.animateTo(1f, motion.boop())
-                                            } else {
-                                                // Empty cutout scale tap animation
-                                                boopScale.animateTo(0.96f, motion.boop())
-                                            }
+                                detectTapGestures(
+                                    onPress = {
+                                        if (replying) {
+                                            return@detectTapGestures
                                         }
-                                    }
 
-                                    tryAwaitRelease()
-
-                                    if (!isExpanded) {
-                                        scope.launch {
-                                            if (pressWidens) {
-                                                pressExpand.animateTo(0f, motion.boop())
-                                            } else {
-                                                boopScale.animateTo(1f, motion.boop())
-                                            }
-                                        }
-                                    }
-                                },
-                                onTap = {
-                                    if (vibrateOnTap) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-
-                                    if (emptyPill) {
-                                        // "Open center" expands the resting pill into the shortcut
-                                        // grid (a second tap toggles it closed); every other "On
-                                        // click" action (e.g. open an app) runs via onEmptyClick.
-                                        if (emptyOpensCenter) {
-                                            if (forcedExpanded == null) {
-                                                tapExpanded = !tapExpanded
-                                                if (tapExpanded) {
-                                                    scope.launch { motion.pop(boopScale, peak = 1.03f) }
-                                                }
-                                            }
-                                        } else {
-                                            onEmptyClick()
-                                        }
-                                        return@detectTapGestures
-                                    }
-
-                                    // While typing a reply, ignore taps on the surface itself.
-                                    if (replying) return@detectTapGestures
-
-                                    // The phone tile is normal-only, so a tap never toggles it open;
-                                    // instead it opens the dialer's in-call screen (its content intent).
-                                    if (isNormalOnly) {
-                                        if (shownEvent.contentIntent != null) onActivate()
-                                        return@detectTapGestures
-                                    }
-
-                                    // Tap to open the app
-                                    if ((isExpanded || forcedExpanded == false) && shownEvent?.contentIntent != null) {
-                                        tapExpanded = false
-                                        onActivate()
-                                    } else if (forcedExpanded == null) {
-                                        tapExpanded = !tapExpanded
-                                        if (isExpanded) {
+                                        if (!isExpanded) {
                                             scope.launch {
-                                                motion.pop(boopScale, peak = 1.02f)
-                                            }
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                        // Swipe up on the expanded island to shrink it back to the normal cutout.
-                        .pointerInput(forcedExpanded, isExpanded, replying, shrinkOnSwipeUp, emptyPill, shownEvent?.id) {
-                            // The resting empty cutout has no expanded state to shrink back from, so
-                            // don't install the detector at all — it would only swallow vertical drags.
-                            if (forcedExpanded != null || !shrinkOnSwipeUp || emptyPill) return@pointerInput
-                            val threshold = SWIPE_UP_SHRINK_THRESHOLD_DP.dp.toPx()
-                            var dragTotal = 0f
-                            detectVerticalDragGestures(
-                                onDragStart = { dragTotal = 0f },
-                                onDragEnd = {
-                                    if (isExpanded && !replying && dragTotal <= -threshold) {
-                                        tapExpanded = false
-                                    }
-                                },
-                            ) { change, dragAmount ->
-                                dragTotal += dragAmount
-                                change.consume()
-                            }
-                        }
-                        // Swipe sideways to dismiss the cutout (and, for a notification, clear it from
-                        // the system). Only the direction(s) and cutout state(s) the user allows lets go.
-                        .pointerInput(forcedExpanded, swipeToDismiss, swipeDismissDirection, swipeDismissTarget, isExpanded, replying, emptyPill, shownEvent?.id) {
-                            val targetAllows = when (swipeDismissTarget) {
-                                SwipeDismissTarget.BOTH -> true
-                                SwipeDismissTarget.EXPANDED -> isExpanded
-                                SwipeDismissTarget.NORMAL -> !isExpanded
-                            }
-                            // The resting empty cutout is meant to stay: a swipe must neither slide it
-                            // away nor clear the departed notification it still remembers.
-                            if (forcedExpanded != null || !swipeToDismiss || replying || emptyPill || !targetAllows) return@pointerInput
-                            val allowLeft = swipeDismissDirection != SwipeDismissDirection.RIGHT
-                            val allowRight = swipeDismissDirection != SwipeDismissDirection.LEFT
-                            val threshold = SWIPE_DISMISS_THRESHOLD_DP.dp.toPx()
-                            detectHorizontalDragGestures(
-                                onDragEnd = {
-                                    val x = dismissOffsetX.value
-                                    val dismiss = (x <= -threshold && allowLeft) || (x >= threshold && allowRight)
-                                    if (dismiss) {
-                                        onDismiss()
-                                    } else {
-                                        scope.launch {
-                                            dismissOffsetX.animateTo(
-                                                targetValue = 0f,
-                                                animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow),
-                                            )
-                                        }
-                                    }
-                                },
-                                onDragCancel = { scope.launch { dismissOffsetX.animateTo(0f) } },
-                            ) { change, dragAmount ->
-                                // Clamp to the allowed direction(s) so a disabled side can't be dragged.
-                                val next = (dismissOffsetX.value + dragAmount).let {
-                                    when {
-                                        !allowLeft -> it.coerceAtLeast(0f)
-                                        !allowRight -> it.coerceAtMost(0f)
-                                        else -> it
-                                    }
-                                }
-                                scope.launch { dismissOffsetX.snapTo(next) }
-                                change.consume()
-                            }
-                        },
-                    shape = cornerShape(revealTopLeft, revealTopRight, revealBottomLeft, revealBottomRight),
-                    appearance = appearance,
-                    progress = expandProgress,
-                ) {
-                    Crossfade(targetState = isExpanded, animationSpec = tween(scaled(150)), label = "islandContent") { showExpanded ->
-                        if (emptyPill) {
-                            if (showExpanded) {
-                                CenterContent(
-                                    shortcuts = centerShortcuts,
-                                    showLabels = centerShowLabels,
-                                    fillContainers = centerFillContainers,
-                                    themedIcons = centerThemedIcons,
-                                    onContentHeight = { centerContentHeightDp = it },
-                                    onShortcut = { shortcut ->
-                                        // Any press counts as activity, restarting the auto-collapse
-                                        // timer so the center stays up while it's being used.
-                                        centerInteraction++
-                                        // In-place toggles (torch) keep the center open; everything
-                                        // else closes it as we act, so it isn't left over the screen
-                                        // (and out of a screenshot the shortcut may trigger).
-                                        if (!shortcut.keepsCenterOpen) tapExpanded = false
-                                        onCenterShortcut(shortcut)
-                                    },
-                                )
-                            } else if (emptyIcon != null) {
-                                EmptyPillContent(
-                                    icon = emptyIcon,
-                                    containerColor = emptyIconColor,
-                                    heightDp = collapsed.heightDp,
-                                    isStickToCamera = isStickToCamera,
-                                )
-                            }
-                        } else {
-                            shownEvent?.let { e ->
-                                if (e.call != null) {
-                                    CallNormalContent(event = e, onAction = onAction)
-                                } else if (showExpanded) {
-                                    ExpandedContent(
-                                        event = e,
-                                        systemEventType = systemEventType,
-                                        chargingState = chargingState,
-                                        showActions = showActions,
-                                        appearance = appearance,
-                                        replyingTo = replyingTo,
-                                        replySent = confirmingSent,
-                                        progressData = e.progressData,
-                                        onAction = onAction,
-                                        onStartReply = { replyingTo = it },
-                                        onCancelReply = { replyingTo = null },
-                                        onSendReply = { text ->
-                                            replyingTo?.let { action ->
-                                                sentReply = action to text
-                                                scope.launch {
-                                                    delay(REPLY_SENT_FEEDBACK_MS.milliseconds)
-                                                    onReply(action, text)
+                                                if (pressWidens) {
+                                                    pressExpand.animateTo(1f, motion.boop())
+                                                } else {
+                                                    // Empty cutout scale tap animation
+                                                    boopScale.animateTo(0.96f, motion.boop())
                                                 }
                                             }
-                                            replyingTo = null
+                                        }
+
+                                        tryAwaitRelease()
+
+                                        if (!isExpanded) {
+                                            scope.launch {
+                                                if (pressWidens) {
+                                                    pressExpand.animateTo(0f, motion.boop())
+                                                } else {
+                                                    boopScale.animateTo(1f, motion.boop())
+                                                }
+                                            }
+                                        }
+                                    },
+                                    onTap = {
+                                        if (vibrateOnTap) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        }
+
+                                        if (emptyPill) {
+                                            // "Open center" expands the resting pill into the shortcut
+                                            // grid (a second tap toggles it closed); every other "On
+                                            // click" action (e.g. open an app) runs via onEmptyClick.
+                                            if (emptyOpensCenter) {
+                                                if (forcedExpanded == null) {
+                                                    tapExpanded = !tapExpanded
+                                                    if (tapExpanded) {
+                                                        scope.launch { motion.pop(boopScale, peak = 1.03f) }
+                                                    }
+                                                }
+                                            } else {
+                                                onEmptyClick()
+                                            }
+                                            return@detectTapGestures
+                                        }
+
+                                        // While typing a reply, ignore taps on the surface itself.
+                                        if (replying) return@detectTapGestures
+
+                                        // The phone tile is normal-only, so a tap never toggles it open;
+                                        // instead it opens the dialer's in-call screen (its content intent).
+                                        if (isNormalOnly) {
+                                            if (shownEvent.contentIntent != null) onActivate()
+                                            return@detectTapGestures
+                                        }
+
+                                        // Tap to open the app
+                                        if ((isExpanded || forcedExpanded == false) && shownEvent?.contentIntent != null) {
+                                            tapExpanded = false
+                                            onActivate()
+                                        } else if (forcedExpanded == null) {
+                                            tapExpanded = !tapExpanded
+                                            if (isExpanded) {
+                                                scope.launch {
+                                                    motion.pop(boopScale, peak = 1.02f)
+                                                }
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                            // Swipe up on the expanded island to shrink it back to the normal cutout.
+                            .pointerInput(forcedExpanded, isExpanded, replying, shrinkOnSwipeUp, emptyPill, shownEvent?.id) {
+                                // The resting empty cutout has no expanded state to shrink back from, so
+                                // don't install the detector at all — it would only swallow vertical drags.
+                                if (forcedExpanded != null || !shrinkOnSwipeUp || emptyPill) return@pointerInput
+                                val threshold = SWIPE_UP_SHRINK_THRESHOLD_DP.dp.toPx()
+                                var dragTotal = 0f
+                                detectVerticalDragGestures(
+                                    onDragStart = { dragTotal = 0f },
+                                    onDragEnd = {
+                                        if (isExpanded && !replying && dragTotal <= -threshold) {
+                                            tapExpanded = false
+                                        }
+                                    },
+                                ) { change, dragAmount ->
+                                    dragTotal += dragAmount
+                                    change.consume()
+                                }
+                            }
+                            // Swipe sideways to dismiss the cutout (and, for a notification, clear it from
+                            // the system). Only the direction(s) and cutout state(s) the user allows lets go.
+                            .pointerInput(forcedExpanded, swipeToDismiss, swipeDismissDirection, swipeDismissTarget, isExpanded, replying, emptyPill, shownEvent?.id) {
+                                val targetAllows = when (swipeDismissTarget) {
+                                    SwipeDismissTarget.BOTH -> true
+                                    SwipeDismissTarget.EXPANDED -> isExpanded
+                                    SwipeDismissTarget.NORMAL -> !isExpanded
+                                }
+                                // The resting empty cutout is meant to stay: a swipe must neither slide it
+                                // away nor clear the departed notification it still remembers.
+                                if (forcedExpanded != null || !swipeToDismiss || replying || emptyPill || !targetAllows) return@pointerInput
+                                val allowLeft = swipeDismissDirection != SwipeDismissDirection.RIGHT
+                                val allowRight = swipeDismissDirection != SwipeDismissDirection.LEFT
+                                val threshold = SWIPE_DISMISS_THRESHOLD_DP.dp.toPx()
+                                detectHorizontalDragGestures(
+                                    onDragEnd = {
+                                        val x = dismissOffsetX.value
+                                        val dismiss = (x <= -threshold && allowLeft) || (x >= threshold && allowRight)
+                                        if (dismiss) {
+                                            onDismiss()
+                                        } else {
+                                            scope.launch {
+                                                dismissOffsetX.animateTo(
+                                                    targetValue = 0f,
+                                                    animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow),
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onDragCancel = { scope.launch { dismissOffsetX.animateTo(0f) } },
+                                ) { change, dragAmount ->
+                                    // Clamp to the allowed direction(s) so a disabled side can't be dragged.
+                                    val next = (dismissOffsetX.value + dragAmount).let {
+                                        when {
+                                            !allowLeft -> it.coerceAtLeast(0f)
+                                            !allowRight -> it.coerceAtMost(0f)
+                                            else -> it
+                                        }
+                                    }
+                                    scope.launch { dismissOffsetX.snapTo(next) }
+                                    change.consume()
+                                }
+                            },
+                        shape = cornerShape(revealTopLeft, revealTopRight, revealBottomLeft, revealBottomRight),
+                        appearance = appearance,
+                        progress = expandProgress,
+                        appColor = shownEvent?.primaryColor(),
+                    ) {
+                        Crossfade(targetState = isExpanded, animationSpec = tween(scaled(150)), label = "islandContent") { showExpanded ->
+                            if (emptyPill) {
+                                if (showExpanded) {
+                                    CenterContent(
+                                        shortcuts = centerShortcuts,
+                                        showLabels = centerShowLabels,
+                                        fillContainers = centerFillContainers,
+                                        themedIcons = centerThemedIcons,
+                                        onContentHeight = { centerContentHeightDp = it },
+                                        onShortcut = { shortcut ->
+                                            // Any press counts as activity, restarting the auto-collapse
+                                            // timer so the center stays up while it's being used.
+                                            centerInteraction++
+                                            // In-place toggles (torch) keep the center open; everything
+                                            // else closes it as we act, so it isn't left over the screen
+                                            // (and out of a screenshot the shortcut may trigger).
+                                            if (!shortcut.keepsCenterOpen) tapExpanded = false
+                                            onCenterShortcut(shortcut)
                                         },
-                                        onDismiss = onDismiss,
-                                        onHeightMeasured = { assistantContentHeightDp = it },
                                     )
-                                } else {
-                                    CollapsedContent(e, collapsed.heightDp, isStickToCamera)
+                                } else if (emptyIcon != null) {
+                                    EmptyPillContent(
+                                        icon = emptyIcon,
+                                        containerColor = emptyIconColor,
+                                        heightDp = collapsed.heightDp,
+                                        isStickToCamera = isStickToCamera,
+                                    )
+                                }
+                            } else {
+                                shownEvent?.let { e ->
+                                    if (e.call != null) {
+                                        CallNormalContent(event = e, onAction = onAction)
+                                    } else if (showExpanded) {
+                                        ExpandedContent(
+                                            event = e,
+                                            systemEventType = systemEventType,
+                                            chargingState = chargingState,
+                                            showActions = showActions,
+                                            appearance = appearance,
+                                            replyingTo = replyingTo,
+                                            replySent = confirmingSent,
+                                            progressData = e.progressData,
+                                            onAction = onAction,
+                                            onStartReply = { replyingTo = it },
+                                            onCancelReply = { replyingTo = null },
+                                            onSendReply = { text ->
+                                                replyingTo?.let { action ->
+                                                    sentReply = action to text
+                                                    scope.launch {
+                                                        delay(REPLY_SENT_FEEDBACK_MS.milliseconds)
+                                                        onReply(action, text)
+                                                    }
+                                                }
+                                                replyingTo = null
+                                            },
+                                            onDismiss = onDismiss,
+                                            onHeightMeasured = { assistantContentHeightDp = it },
+                                        )
+                                    } else {
+                                        CollapsedContent(e, collapsed.heightDp, isStickToCamera)
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+
+            // The bubble is a sibling of the pill so the pill keeps its own centre and the bubble simply
+            // follows its edge. It disappears while expanded, during calls, and in camera-anchored mode.
+            lastSatellite?.takeIf { satelliteReveal.value > 0.01f }?.let { bubble ->
+                val diameterDp = collapsed.heightDp
+                val step = revealWidth / 2 + SATELLITE_GAP_DP.dp + (diameterDp / 2f).dp
+                val satelliteOffsetX =
+                    if (satellitePosition == SatellitePosition.LEFT) offsetX - step else offsetX + step
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(
+                            x = satelliteOffsetX,
+                            y = offsetY,
+                        ),
+                ) {
+                    SatelliteBubble(
+                        event = bubble,
+                        diameterDp = diameterDp,
+                        appearance = appearance,
+                        onClick = onSatelliteClick,
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = satelliteReveal.value
+                            scaleY = satelliteReveal.value
+                            alpha = satelliteReveal.value
+                        },
+                    )
+                }
+            }
         }
     }
+}
+
+
+/**
+ * Small secondary event bubble used by the split-island feature. It reuses the same surface and
+ * badge rendering as the normal pill so themes, icons, album art and call photos stay consistent.
+ */
+@Composable
+private fun SatelliteBubble(
+    event: IslandEvent,
+    diameterDp: Int,
+    appearance: AppearanceSettings,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()
+    val onCall by OnCallBus.state.collectAsStateWithLifecycle()
+    val albumArt = albumArtFor(event, nowPlaying)
+    val callPhoto = event.call?.takeIf { it.showPhoto }?.let { onCall?.photo }
+    val badgeSize = (diameterDp * 0.72f).dp
+
+    IslandSurface(
+        modifier = modifier
+            .size(diameterDp.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { onClick() })
+            },
+        shape = CircleShape,
+        appearance = appearance,
+        progress = 0f,
+        appColor = event.appColor,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            when {
+                albumArt != null -> AlbumArt(
+                    bitmap = albumArt,
+                    size = badgeSize,
+                    rotate = event.media?.rotateAlbumArt == true,
+                    playing = nowPlaying?.isPlaying == true,
+                    strokeColor = albumArtStrokeFor(event),
+                )
+
+                callPhoto != null -> ContactPhoto(
+                    bitmap = callPhoto,
+                    size = badgeSize,
+                )
+
+                else -> IconBadge(
+                    event = event,
+                    badgeSize = badgeSize,
+                    iconSize = (diameterDp * 0.46f).dp,
+                )
+            }
+        }
     }
 }
 
@@ -968,19 +1090,21 @@ private fun IslandSurface(
     shape: Shape,
     appearance: AppearanceSettings,
     progress: Float,
+    appColor: Color? = null,
+    adaptiveColor: Color? = null,
     content: @Composable () -> Unit,
 ) {
-    val normalBrush = appearance.backgroundNormal.resolveBrush()
-    val expandedBrush = appearance.backgroundExpanded.resolveBrush()
+    val normalBrush = appearance.backgroundNormal.resolveBrush(appColor, adaptiveColor)
+    val expandedBrush = appearance.backgroundExpanded.resolveBrush(appColor, adaptiveColor)
     val repColor = lerp(
-        appearance.backgroundNormal.representativeColor(),
-        appearance.backgroundExpanded.representativeColor(),
+        appearance.backgroundNormal.representativeColor(appColor, adaptiveColor),
+        appearance.backgroundExpanded.representativeColor(appColor, adaptiveColor),
         progress,
     )
 
     val contentColor = if (repColor.luminance() > 0.5f) PillTextColorDark else PillTextColor
     val border = if (appearance.strokeEnabled) {
-        BorderStroke(appearance.strokeWidthDp.dp, appearance.strokeColor.resolve())
+        BorderStroke(appearance.strokeWidthDp.dp, appearance.strokeColor.resolve(appColor, adaptiveColor))
     } else {
         null
     }
@@ -1113,7 +1237,7 @@ private fun CollapsedContent(event: IslandEvent, heightDp: Int, isStickToCamera:
                 )
             } else {
                 val fraction = if (progress.max <= 0) 0f
-                    else (progress.current.toFloat() / progress.max).coerceIn(0f, 1f)
+                else (progress.current.toFloat() / progress.max).coerceIn(0f, 1f)
                 val animatedFraction by animateFloatAsState(
                     targetValue = fraction,
                     label = "collapsedProgress",
@@ -1246,7 +1370,7 @@ private fun CenterContent(
                 // borrows width from its siblings (they spring thinner) instead of overflowing in
                 // place — the same give-and-take as the action chips (see [ActionChipRow]).
                 val redistribute = LocalActionButtonAnimation.current == ActionButtonAnimation.EXPAND &&
-                    shortcuts.size > 1
+                        shortcuts.size > 1
                 val interactions = remember(shortcuts.size) {
                     List(shortcuts.size) { MutableInteractionSource() }
                 }
@@ -1532,7 +1656,7 @@ private fun ExpandedContent(
                                 )
                             } else {
                                 val fraction = if (p.max <= 0) 0f
-                                    else (p.current.toFloat() / p.max).coerceIn(0f, 1f)
+                                else (p.current.toFloat() / p.max).coerceIn(0f, 1f)
                                 val animatedFraction by animateFloatAsState(
                                     targetValue = fraction,
                                     label = "notificationProgress",
@@ -1682,7 +1806,7 @@ private fun ActionChipRow(
 ) {
     val full = alignment == ActionButtonAlignment.FULL
     val redistribute = full && actions.size > 1 &&
-        LocalActionButtonAnimation.current == ActionButtonAnimation.EXPAND
+            LocalActionButtonAnimation.current == ActionButtonAnimation.EXPAND
     val interactions = remember(actions.size) { List(actions.size) { MutableInteractionSource() } }
     // Which chip is currently held (first press wins) — drives the width give-and-take. Collected for
     // every chip on each composition so the number of composable calls stays constant.
@@ -3106,6 +3230,8 @@ private fun IconBadge(
                 is CutoutColor.Dynamic -> onDynamicRole(container.role)
                 is CutoutColor.Solid ->
                     if (badgeColor.luminance() > 0.5f) PillTextColorDark else PillTextColor
+
+                is CutoutColor.AppIcon -> TODO()
             }
         }
 

@@ -8,6 +8,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.vikram.expressiveisland.overlay.DEFAULT_SATELLITE_POSITION
+import com.vikram.expressiveisland.overlay.SatellitePosition
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -99,6 +101,8 @@ data class BehaviourSettings(
     val centerFillContainers: Boolean = CENTER_FILL_CONTAINERS,
     val centerThemedIcons: Boolean = CENTER_THEMED_ICONS,
     val vibrateOnTap: Boolean = DEFAULT_VIBRATE_ON_TAP,
+    val splitIslandEnabled: Boolean = DEFAULT_SPLIT_ISLAND_ENABLED,
+    val satellitePosition: SatellitePosition = DEFAULT_SATELLITE_POSITION,
 ) {
     companion object {
         const val DEFAULT_CUTOUT_ENABLED = true
@@ -136,6 +140,8 @@ data class BehaviourSettings(
         const val CENTER_SHOW_LABELS = true
         const val CENTER_FILL_CONTAINERS = false
         const val CENTER_THEMED_ICONS = false
+        const val DEFAULT_SPLIT_ISLAND_ENABLED = true
+        val DEFAULT_SATELLITE_POSITION = SatellitePosition.RIGHT
     }
 }
 

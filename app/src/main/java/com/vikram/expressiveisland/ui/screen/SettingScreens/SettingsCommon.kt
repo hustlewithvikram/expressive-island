@@ -180,7 +180,9 @@ internal fun SettingsToggleCard(
     description: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true,
 ) {
+    val contentAlpha = if (enabled) 1f else 0.38f
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
@@ -193,15 +195,19 @@ internal fun SettingsToggleCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
+                )
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
                 )
             }
             Spacer(Modifier.width(12.dp))
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
+            Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
         }
     }
 }
