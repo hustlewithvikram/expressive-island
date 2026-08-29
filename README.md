@@ -6,7 +6,7 @@
 
 **A Material Expressive dynamic island for Android.**
 
-Expressive Island is an actively developed fork of [Expressive Cutout](https://github.com/EvanKoe/expressive-cutout) by [EvanKoe](https://github.com/EvanKoe).
+Expressive Island is an actively developed fork of [Expressive Cutout](https://github.com/EvanKoe/expressive-cutout) by [HustleWithVkram](https://github.com/hustlewithVikram).
 
 It transforms the camera cutout on your Android phone into a small, living island for notifications, music, calls, timers, charging events, and other system activity.
 

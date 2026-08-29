@@ -28,7 +28,6 @@ import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.PermissionDotColors
 import com.vikram.expressiveisland.system.PermissionUsage
-import com.vikram.expressiveisland.data.PermissionDotColors
 import kotlin.math.roundToInt
 
 /** A dot's diameter and the gap between two of them, both as a fraction of the pill's height. */
@@ -38,10 +37,6 @@ private const val DOT_GAP_FRACTION = 0.14f
  * The same two, for the stacked layout: three dots and their gaps have to share the pill's height
  * rather than its width, so both shrink to fit (3 × 0.15 + 3 × 0.06 = 0.63 of the height).
  */
-private const val VERTICAL_DOT_SIZE_FRACTION = 0.15f
-private const val VERTICAL_DOT_GAP_FRACTION = 0.06f
-
-/** Smaller dots used by the stacked layout so all three fit comfortably inside the pill. */
 private const val VERTICAL_DOT_SIZE_FRACTION = 0.15f
 private const val VERTICAL_DOT_GAP_FRACTION = 0.06f
 
@@ -139,6 +134,7 @@ private fun CutoutColor.resolveForDot(): Color = when (this) {
     is CutoutColor.AppIcon -> Color(0xFF6750A4)
 }
 
+@Composable
 private fun PermissionDot(
     visible: Boolean,
     color: Color,
