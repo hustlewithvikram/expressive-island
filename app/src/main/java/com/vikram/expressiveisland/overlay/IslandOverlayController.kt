@@ -72,6 +72,11 @@ import com.vikram.expressiveisland.data.PhoneTileSettings
 import com.vikram.expressiveisland.data.TimerTilePreferences
 import com.vikram.expressiveisland.data.TimerTileSettings
 import com.vikram.expressiveisland.data.asCallCutout
+import com.vikram.expressiveisland.data.PermissionDotColors
+import com.vikram.expressiveisland.data.PermissionDotPosition
+import com.vikram.expressiveisland.data.PermissionDotPreferences
+import com.vikram.expressiveisland.system.PermissionUsage
+import com.vikram.expressiveisland.system.PermissionUsageMonitor
 import com.vikram.expressiveisland.service.CutoutNotificationListenerService
 import com.vikram.expressiveisland.ui.theme.ExpressiveIslandTheme
 import kotlinx.coroutines.CoroutineScope
@@ -125,6 +130,7 @@ class IslandOverlayController(private val context: Context) {
     private val timerTilePreferences = TimerTilePreferences(context)
     private val assistantTilePreferences = AssistantTilePreferences(context)
     private val appPreferences = AppPreferences(context)
+    private val permissionDotPreferences = PermissionDotPreferences(context)
     private val density = context.resources.displayMetrics.density
 
 
@@ -254,6 +260,12 @@ class IslandOverlayController(private val context: Context) {
 
     private val collapseRequest = MutableStateFlow(0)
 
+    private var permissionDotsEnabled = false
+    private var permissionDotPosition = PermissionDotPosition.RIGHT
+    private var permissionDotColors = PermissionDotColors()
+    private var permissionDotVertical = false
+    private var permissionUsage = PermissionUsage()
+
     fun start() {
         lifecycleOwner.onCreate()
         addOverlay()
@@ -271,6 +283,7 @@ class IslandOverlayController(private val context: Context) {
         observeEventDynamicColorOpacity()
         observeTilePreferences()
         observeAppPreferences()
+        observePermissionDotSettings()
         observeMusicSettings()
         observePhoneSettings()
         observeTimerSettings()
@@ -292,6 +305,43 @@ class IslandOverlayController(private val context: Context) {
         removeOverlay()
         lifecycleOwner.onDestroy()
         scope.cancel()
+    }
+
+    private fun observePermissionDotSettings() {
+        scope.launch {
+            permissionDotPreferences.enabled.collect {
+                permissionDotsEnabled = it
+                syncWindowSize()
+            }
+        }
+
+        scope.launch {
+            permissionDotPreferences.position.collect {
+                permissionDotPosition = it
+                syncWindowSize()
+            }
+        }
+
+        scope.launch {
+            permissionDotPreferences.colors.collect {
+                permissionDotColors = it
+            }
+        }
+
+        scope.launch {
+            permissionDotPreferences.vertical.collect {
+                permissionDotVertical = it
+                syncWindowSize()
+            }
+        }
+
+        scope.launch {
+            PermissionUsageMonitor.usage
+                .collect {
+                    permissionUsage = it
+                    syncWindowSize()
+            }
+        }
     }
 
     private fun registerLockReceiver() {
@@ -504,11 +554,22 @@ class IslandOverlayController(private val context: Context) {
                         centerShowLabels = behaviour.centerShowLabels,
                         centerFillContainers = behaviour.centerFillContainers,
                         centerThemedIcons = behaviour.centerThemedIcons,
+
                         actionButtonAnimation = behaviour.actionButtonAnimation,
                         vibrateOnTap = behaviour.vibrateOnTap,
+
+                        hapticsOnPop = behaviour.hapticsOnPop,
+
+                        permissionDotsEnabled = permissionDotsEnabled,
+                        permissionUsage = permissionUsage,
+                        permissionDotPosition = permissionDotPosition,
+                        permissionDotColors = permissionDotColors,
+                        permissionDotsVertical = permissionDotVertical,
+
                         satellite = satellite,
-                        satellitePosition = DEFAULT_SATELLITE_POSITION,
+                        satellitePosition = behaviour.satellitePosition,
                         onSatelliteClick = ::onSatellitePromote,
+
                         onEmptyClick = ::onEmptyClick,
                         onCenterShortcut = ::onCenterShortcut,
                         collapseRequest = collapseRequestValue,

@@ -168,6 +168,7 @@ import com.vikram.expressiveisland.data.SwipeDismissDirection
 import com.vikram.expressiveisland.data.SwipeDismissTarget
 import com.vikram.expressiveisland.data.asCallCutout
 import com.vikram.expressiveisland.data.PermissionDotPosition
+import com.vikram.expressiveisland.data.PermissionDotColors
 import com.vikram.expressiveisland.system.PermissionUsage
 import com.vikram.expressiveisland.service.ProgressData
 import kotlinx.coroutines.Dispatchers
@@ -305,6 +306,8 @@ internal fun DynamicIsland(
     permissionDotsEnabled: Boolean = false,
     permissionUsage: PermissionUsage = PermissionUsage(),
     permissionDotPosition: PermissionDotPosition = PermissionDotPosition.RIGHT,
+    permissionDotColors: PermissionDotColors = PermissionDotColors(),
+    permissionDotsVertical: Boolean = false,
     onEmptyClick: () -> Unit = {},
     onCenterShortcut: (CenterShortcut) -> Unit = {},
     onExpandedChange: (Boolean) -> Unit,
@@ -557,7 +560,7 @@ internal fun DynamicIsland(
     val showPermissionDots = permissionDotsEnabled && !isExpanded && !isCall && !isStickToCamera
     val permissionDotsOnLeft = permissionDotPosition == PermissionDotPosition.LEFT
     val collapsedTrailingInsetDp = if (showPermissionDots && !permissionDotsOnLeft) {
-        permissionDotRowWidthDp(permissionUsage, collapsed.heightDp)
+        permissionDotRowWidthDp(permissionUsage, collapsed.heightDp, permissionDotsVertical)
     } else {
         0
     }
@@ -823,6 +826,8 @@ internal fun DynamicIsland(
                             PermissionDotRow(
                                 usage = permissionUsage,
                                 heightDp = collapsed.heightDp,
+                                colors = permissionDotColors,
+                                vertical = permissionDotsVertical,
                                 modifier = Modifier
                                     .align(
                                         if (permissionDotsOnLeft) Alignment.CenterStart
