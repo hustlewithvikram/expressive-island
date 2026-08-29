@@ -87,6 +87,9 @@ class SystemEventMonitor(private val context: Context) {
                     isLowBatteryState = false
                 }
 
+                Intent.ACTION_SCREEN_OFF -> 
+                    emit(SystemEventType.DEVICE_LOCKED)
+
                 Intent.ACTION_USER_PRESENT ->
                     emit(SystemEventType.DEVICE_UNLOCKED)
 
@@ -519,6 +522,8 @@ class SystemEventMonitor(private val context: Context) {
             addAction(Intent.ACTION_BATTERY_LOW)
             addAction(Intent.ACTION_BATTERY_OKAY)
 
+            addAction(Intent.ACTION_SCREEN_OFF)
+            
             addAction(Intent.ACTION_USER_PRESENT)
 
             addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)

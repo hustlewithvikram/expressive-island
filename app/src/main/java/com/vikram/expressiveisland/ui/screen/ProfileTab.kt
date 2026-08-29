@@ -259,7 +259,7 @@ private fun DevCard(
                 Text(
                     text = stringResource(R.string.dev_card_author),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                 )
 
                 FlowRow(

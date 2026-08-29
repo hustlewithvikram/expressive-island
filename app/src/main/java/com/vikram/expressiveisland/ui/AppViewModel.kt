@@ -524,6 +524,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         behaviourPreferences.setVibrateOnTap(enabled)
     }
 
+    fun setHapticsOnPop(enabled: Boolean) = viewModelScope.launch {
+        behaviourPreferences.setHapticsOnPop(enabled)
+    }
+
     fun setHideOnLockscreen(enabled: Boolean) = viewModelScope.launch {
         behaviourPreferences.setHideOnLockscreen(enabled)
     }
@@ -852,5 +856,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setMusicShowProgress(enabled: Boolean) = viewModelScope.launch {
         musicTilePreferences.setShowProgress(enabled)
+    }
+
+    fun setDismissNotifications(enabled: Boolean) = viewModelScope.launch {
+        behaviourPreferences.setDismissNotifications(enabled)
+    }
+
+    fun setDisplayWhileDnd(enabled: Boolean) = viewModelScope.launch {
+        behaviourPreferences.setDisplayWhileDnd(enabled)
     }
 }

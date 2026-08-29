@@ -43,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.AppearanceSettings
+import com.vikram.expressiveisland.data.IslandLayout
 import com.vikram.expressiveisland.overlay.IslandEvent
 import com.vikram.expressiveisland.overlay.IslandPreview
 
@@ -290,6 +291,7 @@ internal fun IslandPreviewPanel(
     expanded: Boolean,
     event: IslandEvent,
     appearance: AppearanceSettings = AppearanceSettings(),
+    collapsedHeightDp: Int = IslandLayout.DEFAULT_COLLAPSED.heightDp,
     showActions: Boolean = true,
 ) {
     val cutoutOutline = Color.White.copy(alpha = 0.28f)
@@ -343,6 +345,7 @@ internal fun IslandPreviewPanel(
                 expanded = expanded,
                 appearance = appearance,
                 showActions = showActions,
+                collapsedHeightDp = collapsedHeightDp,
             )
         }
     }

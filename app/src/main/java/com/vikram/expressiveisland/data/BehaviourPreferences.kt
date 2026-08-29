@@ -101,6 +101,9 @@ data class BehaviourSettings(
     val centerFillContainers: Boolean = CENTER_FILL_CONTAINERS,
     val centerThemedIcons: Boolean = CENTER_THEMED_ICONS,
     val vibrateOnTap: Boolean = DEFAULT_VIBRATE_ON_TAP,
+    val hapticsOnPop: Boolean = DEFAULT_HAPTICS_ON_POP,
+    val dismissNotifications: Boolean = DEFAULT_DISMISS_NOTIFICATIONS,
+    val displayWhileDnd: Boolean = DEFAULT_DISPLAY_WHILE_DND,
     val splitIslandEnabled: Boolean = DEFAULT_SPLIT_ISLAND_ENABLED,
     val satellitePosition: SatellitePosition = DEFAULT_SATELLITE_POSITION,
 ) {
@@ -109,9 +112,8 @@ data class BehaviourSettings(
         const val DEFAULT_HIDE_ON_LOCKSCREEN = false
         const val DEFAULT_HIDE_IN_LANDSCAPE = false
         const val DEFAULT_VIBRATE_ON_TAP = true
+        const val DEFAULT_HAPTICS_ON_POP = false
         val DEFAULT_HORIZONTAL_CUTOUT_MODE = HorizontalCutoutMode.CENTER
-        // Baseline for the island's primary expand/collapse transition; the reveal, background fade
-        // and other animations scale in proportion to it. Matches the tuned defaults in DynamicIsland.
         const val DEFAULT_ANIMATION_DURATION_MS = 220
         val DEFAULT_ANIMATION_STYLE = AnimationStyle.EXPRESSIVE
         val DEFAULT_ANIMATION_SPEED = AnimationSpeed.DEFAULT
@@ -140,6 +142,8 @@ data class BehaviourSettings(
         const val CENTER_SHOW_LABELS = true
         const val CENTER_FILL_CONTAINERS = false
         const val CENTER_THEMED_ICONS = false
+        const val DEFAULT_DISMISS_NOTIFICATIONS = false
+        const val DEFAULT_DISPLAY_WHILE_DND = false
         const val DEFAULT_SPLIT_ISLAND_ENABLED = true
         val DEFAULT_SATELLITE_POSITION = SatellitePosition.RIGHT
     }
@@ -207,7 +211,13 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             centerShowLabels = prefs[CENTER_SHOW_LABELS] ?: BehaviourSettings.CENTER_SHOW_LABELS,
             centerFillContainers = prefs[CENTER_FILL_CONTAINERS] ?: BehaviourSettings.CENTER_FILL_CONTAINERS,
             centerThemedIcons = prefs[CENTER_THEMED_ICONS] ?: BehaviourSettings.CENTER_THEMED_ICONS,
-            vibrateOnTap = prefs[VIBRATE_ON_TAP] ?: BehaviourSettings.DEFAULT_VIBRATE_ON_TAP
+            vibrateOnTap = prefs[VIBRATE_ON_TAP] ?: BehaviourSettings.DEFAULT_VIBRATE_ON_TAP,
+            /** If enabled, haptic feedback fires when the cutout appears and disappears */
+            hapticsOnPop = prefs[HAPTICS_ON_POP] ?: BehaviourSettings.DEFAULT_HAPTICS_ON_POP,
+            /** If enabled, remove Android notification pop-ups */
+            dismissNotifications = prefs[DISMISS_NOTIFICATIONS] ?: BehaviourSettings.DEFAULT_DISMISS_NOTIFICATIONS,
+            /** If enabled, notification cutout appears even when Do not disturb is enabled */
+            displayWhileDnd = prefs[DISPLAY_WHILE_DND] ?: BehaviourSettings.DEFAULT_DISPLAY_WHILE_DND
         )
     }
 
@@ -246,6 +256,9 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("centerFillContainers", s.centerFillContainers)
             put("centerThemedIcons", s.centerThemedIcons)
             put("vibrateOnTap", s.vibrateOnTap)
+            put("hapticsOnPop", s.hapticsOnPop)
+            put("dismissNotifications", s.dismissNotifications)
+            put("displayWhileDnd", s.displayWhileDnd)
         }.toString()
     }
 
@@ -309,6 +322,9 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             if (obj.has("centerFillContainers")) it[CENTER_FILL_CONTAINERS] = obj.getBoolean("centerFillContainers")
             if (obj.has("centerThemedIcons")) it[CENTER_THEMED_ICONS] = obj.getBoolean("centerThemedIcons")
             if (obj.has("vibrateOnTap")) it[VIBRATE_ON_TAP] = obj.getBoolean("vibrateOnTap")
+            if (obj.has("hapticsOnPop")) it[HAPTICS_ON_POP] = obj.getBoolean("hapticsOnPop")
+            if (obj.has("dismissNotifications")) it[DISMISS_NOTIFICATIONS] = obj.getBoolean("dismissNotifications")
+            if (obj.has("displayWhileDnd")) it[DISPLAY_WHILE_DND] = obj.getBoolean("displayWhileDnd")
         }
     }
 
@@ -359,6 +375,11 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             BehaviourSettings.MIN_ANIMATION_DURATION_MS,
             BehaviourSettings.MAX_ANIMATION_DURATION_MS,
         )
+    }
+
+     /** If enabled, dismiss notifications automatically */
+    suspend fun setDismissNotifications(enabled: Boolean) = context.behaviourDataStore.edit {
+        it[DISMISS_NOTIFICATIONS] = enabled
     }
 
     suspend fun setNormalDurationSeconds(seconds: Int) = context.behaviourDataStore.edit {
@@ -467,6 +488,16 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[VIBRATE_ON_TAP] = enabled
     }
 
+    /** Sets whether haptic feedback fires when the cutout appears and disappears */
+    suspend fun setHapticsOnPop(enabled: Boolean) = context.behaviourDataStore.edit {
+        it[HAPTICS_ON_POP] = enabled
+    }
+
+    /** Set if notifications appear while Do not disturb is on */
+    suspend fun setDisplayWhileDnd(enabled: Boolean) = context.behaviourDataStore.edit {
+        it[DISPLAY_WHILE_DND] = enabled
+    }
+
     private companion object {
         val CUTOUT_ENABLED = booleanPreferencesKey("cutout_enabled")
         val HIDE_ON_LOCKSCREEN = booleanPreferencesKey("hide_on_lockscreen")
@@ -499,5 +530,8 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val CENTER_FILL_CONTAINERS = booleanPreferencesKey("center_fill_containers")
         val CENTER_THEMED_ICONS = booleanPreferencesKey("center_themed_icons")
         val VIBRATE_ON_TAP = booleanPreferencesKey("vibrate_on_tap")
+        val HAPTICS_ON_POP = booleanPreferencesKey("haptics_on_pop")
+        val DISMISS_NOTIFICATIONS = booleanPreferencesKey("dismiss_notifications")
+        val DISPLAY_WHILE_DND = booleanPreferencesKey("display_while_dnd")
     }
 }

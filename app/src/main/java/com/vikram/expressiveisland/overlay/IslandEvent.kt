@@ -3,6 +3,7 @@ package com.vikram.expressiveisland.overlay
 import android.app.PendingIntent
 import android.app.RemoteInput
 import androidx.annotation.RawRes
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -16,6 +17,7 @@ import com.vikram.expressiveisland.service.ProgressData
  * vector default, a user-picked image, or another app's launcher icon) to just two
  * cases keeps the [DynamicIsland] composable trivial and free of Android plumbing.
  */
+@Immutable
 sealed interface IslandIcon {
     data class Vector(val image: ImageVector) : IslandIcon
 
@@ -45,6 +47,7 @@ sealed interface IslandIcon {
         val clipEndFrame: Int? = null,
         val scale: Float = 1f,
         val tint: Boolean = false,
+        val speed: Float = 1f,
     ) : IslandIcon
 }
 
@@ -53,6 +56,7 @@ sealed interface IslandIcon {
  * line (shown when expanded); [detail] is an optional secondary line (e.g. a notification
  * title). The collapsed island shows only the icon.
  */
+@Immutable
 data class IslandEvent(
     val id: Long,
     val icon: IslandIcon,
@@ -186,6 +190,7 @@ data class MediaTileOptions(
  * when [reply] is non-null the chip opens an inline text field and the typed text is sent through
  * [intent] instead.
  */
+@Immutable
 data class IslandAction(
     val label: String,
     val intent: PendingIntent? = null,
@@ -197,6 +202,7 @@ data class IslandAction(
 )
 
 /** Everything needed to send an inline reply through a notification action's intent. */
+@Immutable
 data class IslandReply(
     val resultKey: String,
     val remoteInputs: List<RemoteInput>,

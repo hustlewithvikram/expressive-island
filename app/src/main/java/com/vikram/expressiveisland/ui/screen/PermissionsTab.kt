@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.PhoneCallback
+import androidx.compose.material.icons.rounded.NotificationsNone
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -80,6 +81,8 @@ fun PermissionsTab(contentPadding: PaddingValues) {
     }
 
     fun onTestNotification() = postWithPermission { TestNotifier.send(context) }
+
+    fun onTestPlainNotification() = postWithPermission { TestNotifier.sendPlain(context) }
 
     fun onTestProgressNotification() = postWithPermission { TestNotifier.sendProgress(context) }
 
@@ -137,6 +140,13 @@ fun PermissionsTab(contentPadding: PaddingValues) {
                 icon = Icons.Rounded.NotificationsActive,
                 title = stringResource(R.string.action_send_test),
                 onClick = ::onTestNotification,
+            )
+
+            // Send a test notification carrying no action buttons
+            TestCard(
+                icon = Icons.Rounded.NotificationsNone,
+                title = stringResource(R.string.action_send_test_plain),
+                onClick = ::onTestPlainNotification,
             )
 
             // Send a test progress notification

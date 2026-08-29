@@ -1,8 +1,11 @@
 package com.vikram.expressiveisland.service
 
+import android.app.KeyguardManager
 import android.app.Notification
 import android.content.ComponentName
 import android.content.Context
+import android.os.PowerManager
+import android.os.SystemClock
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -21,6 +24,16 @@ import com.vikram.expressiveisland.events.CallNotificationParser
 import com.vikram.expressiveisland.events.TimerNotificationParser
 import com.vikram.expressiveisland.overlay.loadImageBitmapOrNull
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import com.vikram.expressiveisland.data.BehaviourPreferences
+import com.vikram.expressiveisland.data.BehaviourSettings
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.collect
 
 
 /**
@@ -36,11 +49,23 @@ data class ProgressData(
 /**
  * Mirrors freshly posted notifications onto the island. It keeps only the posting package,
  * title and text (shown when the island is expanded) and filters out noise (its own posts,
- * group summaries, and ongoing/system-managed notifications).
+ * group summaries, and ongoing/system-managed notifications — except when one carries a live
+ * progress bar, which the progress tile is there to show).
  *
  * It also lets the overlay dismiss the real notification (not just the pill): the connected
  * instance is published statically so [dismiss] can cancel a notification by key on the user's
  * swipe, mirroring a swipe-away in the shade.
+ *
+ * When the user asked for the shade to be cleared automatically, a mirrored notification is *held*
+ * out of the shade (snoozed) rather than cancelled — see [hold]. Cancelling outright loses the
+ * notification for good if nobody happened to be looking at the island while the pill was up, so the
+ * island decides its fate instead: [releaseHeld] hands it back the moment the pill fades, while
+ * [discard] destroys it because the user acted on the pill. With the setting off, nothing here ever
+ * touches the real notification.
+ *
+ * A held notification is out of the framework's active list, so it cannot be cancelled by key while
+ * the hold lasts. Both endings therefore re-snooze it for [RETURN_DELAY_MS] to fetch it back, and act
+ * on the re-post: letting it settle into the shade silently, or cancelling it then.
  */
 class CutoutNotificationListenerService : NotificationListenerService() {
 
@@ -60,9 +85,37 @@ class CutoutNotificationListenerService : NotificationListenerService() {
 
     private var timerRemovalJob: Job? = null
 
+    private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+
+    private val behaviourPreferences by lazy { BehaviourPreferences(this) }
+
+    private var behaviourJob: Job? = null
+
+    // Mirror of BehaviourSettings.dismissNotifications, cached because onNotificationPosted runs on
+    // the main thread and must not wait on a DataStore read. Main-thread only, like the key fields.
+    private var dismissNotifications = BehaviourSettings.DEFAULT_DISMISS_NOTIFICATIONS
+
+    // Mirror of BehaviourSettings.displayWhileDnd, cached alongside [dismissNotifications] and for
+    // the same reason. Main-thread only, like the key fields.
+    private var displayWhileDnd = BehaviourSettings.DEFAULT_DISPLAY_WHILE_DND
+
+    // Keys currently held out of the shade because the island is showing them, mapped to the
+    // elapsed-realtime at which the hold expires on its own. Timestamped rather than a bare set
+    // because notification keys are recycled: an entry that outlived its window must not swallow the
+    // pill of a genuinely new notification reusing the key. Insertion-ordered and capped at
+    // [MAX_TRACKED_KEYS]. Main-thread only, like the key fields.
+    private val held = LinkedHashMap<String, Long>()
+
+    // Keys handed back to the shade, awaiting the re-post that puts them there. Mirrors [held].
+    private val returning = LinkedHashMap<String, Long>()
+
+    // Keys the user killed on the pill, awaiting the re-post that lets us cancel them. Mirrors [held].
+    private val pendingCancel = LinkedHashMap<String, Long>()
+
     override fun onListenerConnected() {
         instance = this
         _bound.value = true
+        observeBehaviour()
     }
 
     override fun onListenerDisconnected() {
@@ -73,14 +126,144 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     override fun onDestroy() {
         if (instance === this) instance = null
         _bound.value = false
+        scope.cancel()
         super.onDestroy()
     }
 
-    /**
-     * Checks if the notification is a progress one
+     /**
+     * Keep [dismissNotifications] and [displayWhileDnd] in step with the stored behaviour settings.
+     * The collection outlives a disconnect (the framework re-uses the same instance on rebind, and a
+     * cancelled scope could not be restarted), so it is only torn down in [onDestroy] and re-entry is
+     * a no-op.
      */
-    fun isProgressNotification(sbn: StatusBarNotification): Boolean {
-        return getProgressDataOrNull(sbn) != null
+    private fun observeBehaviour() {
+        if (behaviourJob?.isActive == true) return
+        behaviourJob = scope.launch {
+            behaviourPreferences.settings
+                .distinctUntilChanged()
+                .collect { settings ->
+                    dismissNotifications = settings.dismissNotifications
+                    displayWhileDnd = settings.displayWhileDnd
+                }
+        }
+    }
+
+     /**
+     * Whether Do Not Disturb should keep this notification off the island. Reads the effective
+     * interruption filter rather than Settings.Global.zen_mode: that global only tracks the manual
+     * toggle, so a filter in force through a schedule, an automatic rule or a Mode leaves it at zero
+     * and the gate never closes. The filter is matched explicitly because
+     * [INTERRUPTION_FILTER_UNKNOWN] sorts *below* [INTERRUPTION_FILTER_ALL] — "not yet known" must
+     * not read as either "no DND" or "DND on".
+     *
+     * Calls and timers are deliberately handled before this check ever runs: they break through DND
+     * by design, and an island that hid an incoming call would be worse than no island at all.
+     */
+    private fun suppressedByDnd(): Boolean {
+        if (displayWhileDnd) return false
+        return when (currentInterruptionFilter) {
+            INTERRUPTION_FILTER_PRIORITY,
+            INTERRUPTION_FILTER_ALARMS,
+            INTERRUPTION_FILTER_NONE -> true
+            else -> false
+        }
+    }
+
+
+    /**
+     * Whether the user could plausibly have been looking at the island when a notification landed.
+     * A dark or locked screen never showed the pill, so those notifications are left in the shade
+     * untouched rather than snoozed — there is nothing to have missed them *from*.
+     */
+    private fun isUserPresent(): Boolean {
+        val power = getSystemService(PowerManager::class.java) ?: return false
+        val keyguard = getSystemService(KeyguardManager::class.java) ?: return false
+        return power.isInteractive && !keyguard.isKeyguardLocked
+    }
+
+    /**
+     * Pull [key] out of the shade while the island mirrors it, so a notification the user deals with
+     * on the pill never reaches the panel at all. The hold lasts until the island says what became of
+     * the pill ([releaseHeld] or [discard]); [MAX_HOLD_MS] is only a ceiling, so a notification we
+     * never hear about again — the overlay was torn down, the listener died — still comes back on its
+     * own rather than being lost. Tracked only on success: a refused snooze leaves the notification
+     * exactly where it is.
+     */
+    private fun hold(key: String) {
+        if (!snooze(key, MAX_HOLD_MS)) return
+        returning.remove(key)
+        pendingCancel.remove(key)
+        held.track(key, SystemClock.elapsedRealtime() + MAX_HOLD_MS)
+    }
+
+    /**
+     * The pill mirroring [key] faded on its own, so the notification has had its turn on the island
+     * and belongs in the panel now: cut the hold short and let the re-post through silently. Only
+     * touches keys we hold — one the user already acted on, or that was never held, is not ours to
+     * bring back. Kept tracked until the original ceiling rather than the short delay, so a re-post
+     * the framework drags its feet over (or one that only arrives when the ceiling fires, because the
+     * fetch-back was refused) is still recognised as ours and doesn't pop a second pill.
+     */
+    private fun releaseHeld(key: String) {
+        val ceiling = held.remove(key) ?: return
+        snooze(key, RETURN_DELAY_MS)
+        returning.track(key, ceiling)
+    }
+
+    /**
+     * The user acted on the pill mirroring [key] — swiped it away, tapped it, fired an action — so
+     * the notification must never reach the panel. A held notification is out of the framework's
+     * active list and cannot be cancelled by key, so it is fetched back first and cancelled the
+     * moment it lands, before any of it is mirrored.
+     *
+     * A key we never held is cancelled outright, but only when the user asked for notifications to be
+     * dismissed automatically and this was a swipe: with that setting off the shade is not ours to
+     * touch, and a tap or an action ([onlyIfHeld]) leaves the notification to the app that owns it,
+     * exactly as tapping it in the shade would.
+     */
+    private fun discard(key: String, onlyIfHeld: Boolean) {
+        val ceiling = held.remove(key)
+        if (ceiling == null) {
+            if (onlyIfHeld || !dismissNotifications) return
+            cancel(key)
+            return
+        }
+        returning.remove(key)
+        snooze(key, RETURN_DELAY_MS)
+        pendingCancel.track(key, ceiling)
+    }
+
+    /** Snooze [key] for [durationMs], reporting whether the framework took it. */
+    private fun snooze(key: String, durationMs: Long): Boolean =
+        runCatching { snoozeNotification(key, durationMs) }
+            .onFailure { Log.w(TAG, "Failed to snooze notification $key", it) }
+            .isSuccess
+
+    /** Cancel [key] from the system, exactly as swiping it away in the shade would. */
+    private fun cancel(key: String) {
+        runCatching { cancelNotification(key) }
+            .onFailure { Log.w(TAG, "Failed to cancel notification $key", it) }
+    }
+
+    /**
+     * Track [key] until [dueAt], dropping entries whose window has already passed so a recycled key
+     * can never be mistaken for one still in flight, and capping growth at [MAX_TRACKED_KEYS].
+     */
+    private fun LinkedHashMap<String, Long>.track(key: String, dueAt: Long) {
+        val now = SystemClock.elapsedRealtime()
+        entries.removeAll { it.value + SNOOZE_GRACE_MS < now }
+        put(key, dueAt)
+        while (size > MAX_TRACKED_KEYS) remove(keys.first())
+    }
+
+    /**
+     * Take [key] out of this map, reporting whether it was still within its window. Consumes the
+     * entry either way: a key that turns up later than that is a fresh notification which happens to
+     * reuse it, and deserves its pill.
+     */
+    private fun LinkedHashMap<String, Long>.consume(key: String): Boolean {
+        val dueAt = remove(key) ?: return false
+        return SystemClock.elapsedRealtime() <= dueAt + SNOOZE_GRACE_MS
     }
 
     /**
@@ -125,67 +308,22 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         // Music
         notification.publishMediaArt()
 
-        Log.d(
-            TAG,
-            """
-    ===== NAVIGATION DEBUG =====
-    package=${notification.packageName}
-    key=${notification.key}
+         // A held notification coming back. The user acted on its pill, so now that the framework has
+        // handed it back — and it can be cancelled at all — kill it before any of it reaches the
+        // panel. Checked ahead of every filter below: whatever the island would make of it now, this
+        // one is already spoken for.
+        if (pendingCancel.consume(notification.key)) {
+            cancel(notification.key)
+            return
+        }
 
-    title=${notification.notification.extras?.getCharSequence(Notification.EXTRA_TITLE)}
-    text=${notification.notification.extras?.getCharSequence(Notification.EXTRA_TEXT)}
-    subText=${notification.notification.extras?.getCharSequence(Notification.EXTRA_SUB_TEXT)}
-    infoText=${notification.notification.extras?.getCharSequence(Notification.EXTRA_INFO_TEXT)}
-
-    flags=${notification.notification.flags}
-    ongoing=${notification.notification.flags and Notification.FLAG_ONGOING_EVENT != 0}
-    clearable=${notification.isClearable}
-
-    category=${notification.notification.category}
-
-    showChronometer=${notification.notification.extras
-                ?.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER, false)}
-
-    chronometerCountDown=${notification.notification.extras
-                ?.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN, false)}
-
-    when=${notification.notification.`when`}
-
-    progress=${getProgressDataOrNull(notification)}
-
-    actions=${
-                notification.notification.actions?.map { action ->
-                    mapOf(
-                        "title" to action.title?.toString(),
-                        "hasIntent" to (action.actionIntent != null),
-                        "remoteInputs" to (
-                                action.remoteInputs?.map { input ->
-                                    input.resultKey
-                                }
-                                )
-                    )
-                }
-            }
-
-    largeIcon=${notification.notification.getLargeIcon() != null}
-
-    extrasKeys=${notification.notification.extras?.keySet()?.toList()}
-
-    extrasValues=${
-                notification.notification.extras?.keySet()?.associateWith { key ->
-                    try {
-                        notification.notification.extras?.get(key)?.toString()
-                    } catch (_: Exception) {
-                        "<unreadable>"
-                    }
-                }
-            }
-
-    ==============================
-    """.trimIndent()
-        )
+        // Likewise, but the pill merely ran out: the island already had its turn with this one, so
+        // let it settle into the panel without popping a second pill.
+        if (returning.consume(notification.key)) return
 
         if (!notification.shouldSurface()) return
+
+        if (suppressedByDnd()) return
 
         val extras = notification.notification.extras
 
@@ -193,19 +331,26 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString()
         val progress = getProgressDataOrNull(sbn)
 
-        IslandEventBus.emit(
-            CutoutSignal.Notification(
-                packageName = notification.packageName,
-                title = title,
-                text = text,
-                key = notification.key,
-                contentIntent = notification.notification.contentIntent,
-                actions = notification.notification.surfaceableActions(),
-                largeIcon = notification.notification.getLargeIcon(),
-                smallIcon = notification.notification.smallIcon,
-                progressData = progress
-            ),
+        val islandEvent = CutoutSignal.Notification(
+            packageName = notification.packageName,
+            title = title,
+            text = text,
+            key = notification.key,
+            contentIntent = notification.notification.contentIntent,
+            actions = notification.notification.surfaceableActions(),
+            largeIcon = notification.notification.getLargeIcon(),
+            smallIcon = notification.notification.smallIcon,
+            progressData = progress
         )
+
+        IslandEventBus.emit(islandEvent)
+
+        // Never hold a transfer still running: it re-posts on every step, so holding it would fight
+        // the download for the shade and hide the very bar the user wants to watch. Its completion
+        // notice carries no progress, so that one auto-dismisses normally.
+        if (dismissNotifications && progress == null && isUserPresent()) {
+            hold(notification.key)
+        }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
@@ -367,6 +512,24 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     companion object {
         private const val TAG = "CutoutNotifListener"
 
+        // Ceiling on a hold, for the case where the island never reports back — the overlay was torn
+        // down, the accessibility service died — so a notification is never kept from the panel for
+        // longer than this no matter what. Well past any pill the user could plausibly leave up,
+        // since the island normally ends the hold itself long before this fires.
+        private const val MAX_HOLD_MS = 60_000L
+
+        // How long the fetch-back at the end of a hold takes. Short enough that the notification
+        // lands as the pill fades rather than noticeably after it, long enough to be a delay the
+        // framework's alarm can actually honour.
+        private const val RETURN_DELAY_MS = 500L
+
+        // Slack allowed on a re-post arriving later than its window says it should.
+        private const val SNOOZE_GRACE_MS = 3_000L
+
+        // Upper bound on [held], [returning] and [pendingCancel] Far above the handful that can be in flight within one
+        // in a fight at once; purely a guard against runaway growth.
+        private const val MAX_TRACKED_KEYS = 64
+
         // The currently connected listener, or null when unbound. Only touched on the main thread
         // (the framework's listener callbacks and the overlay both run there).
         @Volatile
@@ -399,13 +562,33 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         }
 
         /**
-         * Cancel the notification with [key] from the system, exactly as swiping it away in the
-         * shade would. A no-op if the listener isn't connected (nothing we can do without it).
+         * The user swiped the pill mirroring [key] away, so the notification it stands for is thrown
+         * away too — it never reaches the notification panel. Only when the user asked for
+         * notifications to be dismissed automatically: with that setting off the pill is a mirror and
+         * nothing more, and swiping it leaves the real notification exactly where it is. A no-op if
+         * the listener isn't connected (nothing we can do without it).
          */
         fun dismiss(key: String) {
-            val service = instance ?: return
-            runCatching { service.cancelNotification(key) }
-                .onFailure { Log.w(TAG, "Failed to cancel notification $key", it) }
+            instance?.discard(key, onlyIfHeld = false)
+        }
+
+         /**
+         * The user acted on the pill mirroring [key] — tapped it, fired an action, sent a reply — so
+         * a notification we were holding back has served its purpose and must not resurface. Only
+         * touches keys we hold ourselves: one the app still owns is the app's to clear, exactly as
+         * before the island got involved.
+         */
+        fun settle(key: String) {
+            instance?.discard(key, onlyIfHeld = true)
+        }
+
+        /**
+         * The pill mirroring [key] went away without the user acting on it — it timed out, or another
+         * event took the island over. A notification held back for it is handed to the notification
+         * panel now, landing as the pill fades. A no-op for a notification we never held.
+        */
+        fun release(key: String) {
+            instance?.releaseHeld(key)
         }
     }
 }
