@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,65 +48,92 @@ import com.vikram.expressiveisland.ui.screen.AdjustableSlider
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-/** Grouped-list item shape: large outer corners at the group ends, small between items. */
-private fun groupedShape(isFirst: Boolean, isLast: Boolean) = RoundedCornerShape(
-    topStart = if (isFirst) 32.dp else 4.dp,
-    topEnd = if (isFirst) 32.dp else 4.dp,
-    bottomStart = if (isLast) 32.dp else 4.dp,
-    bottomEnd = if (isLast) 32.dp else 4.dp,
+private fun groupedShape(
+    isFirst: Boolean,
+    isLast: Boolean,
+) = RoundedCornerShape(
+    topStart = if (isFirst) 28.dp else 6.dp,
+    topEnd = if (isFirst) 28.dp else 6.dp,
+    bottomStart = if (isLast) 28.dp else 6.dp,
+    bottomEnd = if (isLast) 28.dp else 6.dp,
 )
 
-/**
- * The Animations screen: picks between the Material 3 expressive spring motion (with a slow /
- * default / fast speed) and a standard ease-in-out tween (with a millisecond duration slider).
- * Only the controls that apply to the chosen style are shown.
- */
 @Composable
 internal fun AnimationScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
 ) {
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
+
     var animationMs by remember(behaviour.animationDurationMs) {
         mutableStateOf(behaviour.animationDurationMs.toFloat())
     }
-    val expressive = behaviour.animationStyle == AnimationStyle.EXPRESSIVE
+
+    val expressive =
+        behaviour.animationStyle == AnimationStyle.EXPRESSIVE
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+            .padding(contentPadding)
+            .padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
+
+        // ─────────────────────────────────────────────
+        // PREVIEW
+        // ─────────────────────────────────────────────
+
         AnimationExampleCard(
-            shape = groupedShape(isFirst = true, isLast = true),
+            shape = RoundedCornerShape(28.dp),
             speed = behaviour.animationSpeed,
             bounce = behaviour.animationBounce,
             durationMs = behaviour.animationDurationMs,
         )
 
+        // ─────────────────────────────────────────────
+        // MOTION
+        // ─────────────────────────────────────────────
+
+        AnimationSectionTitle(
+            title = "Motion",
+            description = "Control how the island moves and responds.",
+        )
+
         Column(
-            modifier = Modifier.clip(shape = RoundedCornerShape(24.dp)),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(28.dp)),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             AnimationSegmentedRow(
-                shape = groupedShape(isFirst = true, isLast = false),
+                shape = groupedShape(
+                    isFirst = true,
+                    isLast = expressive.not(),
+                ),
                 label = stringResource(R.string.animation_style),
                 options = listOf(
                     stringResource(R.string.animation_style_expressive),
                     stringResource(R.string.animation_style_ease),
                 ),
                 selectedIndex = behaviour.animationStyle.ordinal,
-                onSelect = { viewModel.setAnimationStyle(AnimationStyle.entries[it]) },
+                onSelect = {
+                    viewModel.setAnimationStyle(
+                        AnimationStyle.entries[it]
+                    )
+                },
             )
 
-            // Expressive springs have no fixed duration: their pace is the slow / default / fast speed,
-            // and their overshoot the bounce.
             AnimatedVisibility(visible = expressive) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     AnimationSegmentedRow(
-                        shape = groupedShape(isFirst = false, isLast = false),
+                        shape = groupedShape(
+                            isFirst = false,
+                            isLast = false,
+                        ),
                         label = stringResource(R.string.animation_speed),
                         options = listOf(
                             stringResource(R.string.animation_speed_slow),
@@ -112,10 +141,18 @@ internal fun AnimationScreen(
                             stringResource(R.string.animation_speed_fast),
                         ),
                         selectedIndex = behaviour.animationSpeed.ordinal,
-                        onSelect = { viewModel.setAnimationSpeed(AnimationSpeed.entries[it]) },
+                        onSelect = {
+                            viewModel.setAnimationSpeed(
+                                AnimationSpeed.entries[it]
+                            )
+                        },
                     )
+
                     AnimationSegmentedRow(
-                        shape = groupedShape(isFirst = false, isLast = true),
+                        shape = groupedShape(
+                            isFirst = false,
+                            isLast = true,
+                        ),
                         label = stringResource(R.string.animation_bounce),
                         options = listOf(
                             stringResource(R.string.animation_bounce_big),
@@ -123,59 +160,164 @@ internal fun AnimationScreen(
                             stringResource(R.string.animation_bounce_small),
                         ),
                         selectedIndex = behaviour.animationBounce.ordinal,
-                        onSelect = { viewModel.setAnimationBounce(AnimationBounce.entries[it]) },
+                        onSelect = {
+                            viewModel.setAnimationBounce(
+                                AnimationBounce.entries[it]
+                            )
+                        },
                     )
                 }
             }
-            // The ease-in-out tween is the one timed in milliseconds, so the slider only applies to it.
+
             AnimatedVisibility(visible = !expressive) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = groupedShape(isFirst = false, isLast = true),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                        AdjustableSlider(
-                            label = stringResource(R.string.behaviour_animation_duration),
-                            valueText = "${animationMs.roundToInt()} ms",
-                            value = animationMs,
-                            valueRange = BehaviourSettings.MIN_ANIMATION_DURATION_MS.toFloat()..
-                                    BehaviourSettings.MAX_ANIMATION_DURATION_MS.toFloat(),
-                            step = 20f,
-                            onValueChange = { animationMs = it },
-                            onCommit = { viewModel.setAnimationDurationMs(animationMs.roundToInt()) },
+                AnimationDurationCard(
+                    shape = groupedShape(
+                        isFirst = false,
+                        isLast = true,
+                    ),
+                    animationMs = animationMs,
+                    onValueChange = {
+                        animationMs = it
+                    },
+                    onCommit = {
+                        viewModel.setAnimationDurationMs(
+                            animationMs.roundToInt()
                         )
-                    }
-                }
+                    },
+                )
             }
         }
 
-        // The press reaction of the action / reply buttons is independent of the primary motion
-        // style above, so it lives in its own group.
+        // ─────────────────────────────────────────────
+        // BUTTONS
+        // ─────────────────────────────────────────────
+
+        AnimationSectionTitle(
+            title = "Interaction",
+            description = "Choose how action and reply buttons react when pressed.",
+        )
+
         AnimationSegmentedRow(
-            shape = groupedShape(isFirst = true, isLast = true),
+            shape = RoundedCornerShape(28.dp),
             label = stringResource(R.string.animation_button),
             options = listOf(
                 stringResource(R.string.animation_button_scale),
                 stringResource(R.string.animation_button_expand),
             ),
             selectedIndex = behaviour.actionButtonAnimation.ordinal,
-            onSelect = { viewModel.setActionButtonAnimation(ActionButtonAnimation.entries[it]) },
+            onSelect = {
+                viewModel.setActionButtonAnimation(
+                    ActionButtonAnimation.entries[it]
+                )
+            },
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+    }
+}
+
+@Composable
+private fun AnimationSectionTitle(
+    title: String,
+    description: String,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 4.dp,
+            ),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
-// The example pills' collapsed / expanded sizes, loosely matching the real cutout's proportions.
-private val ExampleCollapsedSize = DpSize(96.dp, 30.dp)
-private val ExampleExpandedSize = DpSize(230.dp, 56.dp)
+@Composable
+private fun AnimationDurationCard(
+    shape: Shape,
+    animationMs: Float,
+    onValueChange: (Float) -> Unit,
+    onCommit: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(
+                horizontal = 16.dp,
+                vertical = 16.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = stringResource(
+                            R.string.behaviour_animation_duration
+                        ),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
 
-/**
- * A live side-by-side example of the two animation styles: both pills expand and collapse on a
- * shared clock, each driven by [IslandMotion] — the very same spec builder the overlay island
- * uses — so the difference shown here is exactly the difference on the real cutout. The expressive
- * pill follows the selected speed and the ease-in-out pill the duration slider, so tweaking either
- * control is previewed immediately.
- */
+                    Text(
+                        text = "Adjust the transition speed",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                Text(
+                    text = "${animationMs.roundToInt()} ms",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+
+            AdjustableSlider(
+                label = "",
+                valueText = "",
+                value = animationMs,
+                valueRange =
+                    BehaviourSettings.MIN_ANIMATION_DURATION_MS.toFloat()..
+                            BehaviourSettings.MAX_ANIMATION_DURATION_MS.toFloat(),
+                step = 20f,
+                onValueChange = onValueChange,
+                onCommit = onCommit,
+            )
+        }
+    }
+}
+
+private val ExampleCollapsedSize = DpSize(
+    96.dp,
+    30.dp,
+)
+
+private val ExampleExpandedSize = DpSize(
+    230.dp,
+    56.dp,
+)
+
 @Composable
 private fun AnimationExampleCard(
     shape: Shape,
@@ -183,35 +325,81 @@ private fun AnimationExampleCard(
     bounce: AnimationBounce,
     durationMs: Int,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember {
+        mutableStateOf(false)
+    }
+
     LaunchedEffect(Unit) {
         while (true) {
             delay(1_300)
             expanded = !expanded
         }
     }
-    val expressiveMotion = remember(speed, bounce) {
-        IslandMotion(AnimationStyle.EXPRESSIVE, speed, bounce, BehaviourSettings.DEFAULT_ANIMATION_DURATION_MS)
+
+    val expressiveMotion = remember(
+        speed,
+        bounce,
+    ) {
+        IslandMotion(
+            AnimationStyle.EXPRESSIVE,
+            speed,
+            bounce,
+            BehaviourSettings.DEFAULT_ANIMATION_DURATION_MS,
+        )
     }
-    val easeMotion = remember(durationMs) {
-        IslandMotion(AnimationStyle.EASE_IN_OUT, AnimationSpeed.DEFAULT, AnimationBounce.NORMAL, durationMs)
+
+    val easeMotion = remember(
+        durationMs,
+    ) {
+        IslandMotion(
+            AnimationStyle.EASE_IN_OUT,
+            AnimationSpeed.DEFAULT,
+            AnimationBounce.NORMAL,
+            durationMs,
+        )
     }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(
+                horizontal = 16.dp,
+                vertical = 16.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Text(
+                    text = "Preview",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+
+                Text(
+                    text = "See how the selected animation feels.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             ExamplePill(
-                label = stringResource(R.string.animation_style_expressive),
+                label = stringResource(
+                    R.string.animation_style_expressive
+                ),
                 motion = expressiveMotion,
                 expanded = expanded,
             )
+
             ExamplePill(
-                label = stringResource(R.string.animation_style_ease),
+                label = stringResource(
+                    R.string.animation_style_ease
+                ),
                 motion = easeMotion,
                 expanded = expanded,
             )
@@ -219,25 +407,51 @@ private fun AnimationExampleCard(
     }
 }
 
-/** One example pill: its width, height and corners animate with [motion]'s dp spec — the same
- *  properties (and spec) the real island animates between its normal and expanded shapes. */
 @Composable
-private fun ExamplePill(label: String, motion: IslandMotion, expanded: Boolean) {
-    val target = if (expanded) ExampleExpandedSize else ExampleCollapsedSize
-    val width by animateDpAsState(target.width, motion.dp(), label = "exampleWidth")
-    val height by animateDpAsState(target.height, motion.dp(), label = "exampleHeight")
+private fun ExamplePill(
+    label: String,
+    motion: IslandMotion,
+    expanded: Boolean,
+) {
+    val target =
+        if (expanded) {
+            ExampleExpandedSize
+        } else {
+            ExampleCollapsedSize
+        }
+
+    val width by animateDpAsState(
+        target.width,
+        motion.dp(),
+        label = "exampleWidth",
+    )
+
+    val height by animateDpAsState(
+        target.height,
+        motion.dp(),
+        label = "exampleHeight",
+    )
+
     val corner by animateDpAsState(
-        if (expanded) 24.dp else ExampleCollapsedSize.height / 2,
+        if (expanded) {
+            24.dp
+        } else {
+            ExampleCollapsedSize.height / 2
+        },
         motion.dp(),
         label = "exampleCorner",
     )
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        // Reserve the expanded height so the row below doesn't jump while the pill grows.
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -246,9 +460,16 @@ private fun ExamplePill(label: String, motion: IslandMotion, expanded: Boolean) 
         ) {
             Box(
                 modifier = Modifier
-                    .size(width, height)
-                    .clip(RoundedCornerShape(corner))
-                    .background(MaterialTheme.colorScheme.inverseSurface),
+                    .size(
+                        width = width,
+                        height = height,
+                    )
+                    .clip(
+                        RoundedCornerShape(corner)
+                    )
+                    .background(
+                        MaterialTheme.colorScheme.inverseSurface
+                    ),
             )
         }
     }
@@ -265,13 +486,22 @@ private fun AnimationSegmentedRow(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(
+                horizontal = 16.dp,
+                vertical = 15.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
-            Text(text = label, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleSmall,
+            )
+
             ExpressiveSegmentedRow(
                 options = options,
                 selectedIndex = selectedIndex,

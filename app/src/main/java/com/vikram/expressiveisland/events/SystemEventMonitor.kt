@@ -27,6 +27,11 @@ import kotlin.math.abs
 import android.net.LinkProperties
 import android.net.wifi.WifiInfo
 import android.util.Log
+import com.vikram.expressiveisland.core.BatteryBus
+import com.vikram.expressiveisland.core.BatteryState
+import com.vikram.expressiveisland.core.HeadphonesBus
+import com.vikram.expressiveisland.core.HeadphonesState
+import kotlin.math.roundToInt
 
 /**
  * Listens for device-level events and republishes them on [IslandEventBus].
@@ -107,9 +112,18 @@ class SystemEventMonitor(private val context: Context) {
         override fun onAudioDevicesAdded(
             addedDevices: Array<out AudioDeviceInfo>
         ) {
-            if (addedDevices.any { it.isHeadphone }) {
-                emit(SystemEventType.HEADPHONES_CONNECTED)
-            }
+            addedDevices
+                .firstOrNull { it.isHeadphone }
+                ?.let { device ->
+                    HeadphonesBus.update(
+                        HeadphonesState(
+                            name = device.productName?.toString(),
+                            type = device.type,
+                        )
+                    )
+
+                    emit(SystemEventType.HEADPHONES_CONNECTED)
+                }
         }
 
         override fun onAudioDevicesRemoved(
@@ -439,6 +453,21 @@ class SystemEventMonitor(private val context: Context) {
             BatteryManager.EXTRA_SCALE,
             100,
         )
+
+        val percentage = if (level >= 0 && scale > 0) {
+            ((level * 100f) / scale).roundToInt()
+        } else {
+            -1
+        }
+
+        if (percentage >= 0) {
+            BatteryBus.update(
+                BatteryState(
+                    percentage = percentage.coerceIn(0, 100),
+                    isCharging = isCharging,
+                )
+            )
+        }
 
         val batteryPercent =
             if (level >= 0 && scale > 0) {

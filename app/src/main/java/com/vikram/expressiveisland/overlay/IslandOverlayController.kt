@@ -1404,10 +1404,15 @@ class IslandOverlayController(private val context: Context) {
                 is CutoutSignal.Notification -> behaviourState.value.notificationsAutoExpand
                 is CutoutSignal.Music -> musicSettings.expandOnPlay
                 is CutoutSignal.Assistant -> assistantSettings.displayAnswerInCutout
+                is CutoutSignal.System -> {
+                    signal.type == SystemEventType.BATTERY_LOW ||
+                            signal.type == SystemEventType.CHARGING_STARTED ||
+                            signal.type == SystemEventType.WIFI_CONNECTED ||
+                            signal.type == SystemEventType.HEADPHONES_CONNECTED
+                }
                 // The phone tile has no expanded state — it is shown as one bigger normal cutout.
                 is CutoutSignal.Call -> false
                 is CutoutSignal.Timer -> false
-                is CutoutSignal.System -> false
             }
             // "Normal only": this app's pill has no expanded state at all. Suppressing auto-expand
             // here keeps the window from ever being sized for it; the flag carried on the event is

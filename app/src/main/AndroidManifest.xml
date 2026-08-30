@@ -12,6 +12,9 @@
     <!-- Lets the app talk to Shizuku, which performs the privileged status-bar calls on our
          behalf. Optional at runtime: everything except the Status bar screen works without it. -->
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
+    <!-- It's required for the Wi-Fi events to work. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <!-- Makes launchable apps visible to the package manager on Android 11+, so the Apps screen
          can list them for the per-app allow/mute switches. -->

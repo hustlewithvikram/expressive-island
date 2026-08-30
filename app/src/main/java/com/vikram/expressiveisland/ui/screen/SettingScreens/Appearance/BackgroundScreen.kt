@@ -120,11 +120,11 @@ internal fun BackgroundScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = stringResource(R.string.appearance_preview),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            CardSectionHeader(
+                text = "Preview",
+                padding = PaddingValues(start = 2.dp, bottom = 0.dp)
             )
+
             FilledTonalIconButton(onClick = { previewDark = !previewDark }) {
                 Icon(
                     imageVector = if (previewDark) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,

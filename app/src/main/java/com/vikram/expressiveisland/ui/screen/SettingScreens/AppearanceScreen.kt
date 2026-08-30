@@ -107,7 +107,7 @@ internal fun AppearanceScreen(
     ) {
         CardSectionHeader(
             text = "Appearance",
-            padding = PaddingValues(start = 8.dp, bottom = 2.dp)
+            padding = PaddingValues(start = 6.dp, bottom = 8.dp)
         )
 
         SettingsToggleCard(

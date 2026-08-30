@@ -1,8 +1,10 @@
 package com.vikram.expressiveisland.overlay
 
+import android.content.Context
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.drawable.AdaptiveIconDrawable
+import android.os.BatteryManager
 import android.os.Build
 import android.os.SystemClock
 import androidx.compose.animation.AnimatedVisibility
@@ -54,14 +56,17 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.CallEnd
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -138,6 +143,8 @@ import com.airbnb.lottie.compose.rememberLottieDynamicProperty
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.core.ChargingBus
 import com.vikram.expressiveisland.core.ChargingState
+import com.vikram.expressiveisland.core.HeadphonesBus
+import com.vikram.expressiveisland.core.HeadphonesState
 import com.vikram.expressiveisland.core.MediaArtBus
 import com.vikram.expressiveisland.core.MediaProgress
 import com.vikram.expressiveisland.core.NowPlaying
@@ -147,6 +154,8 @@ import com.vikram.expressiveisland.core.OnCallBus
 import com.vikram.expressiveisland.core.RunningTimerBus
 import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.core.TorchStateBus
+import com.vikram.expressiveisland.core.WifiBus
+import com.vikram.expressiveisland.core.WifiState
 import com.vikram.expressiveisland.data.ActionButtonAlignment
 import com.vikram.expressiveisland.data.ActionButtonAnimation
 import com.vikram.expressiveisland.data.ActionButtonStyle
@@ -328,6 +337,7 @@ internal fun DynamicIsland(
 
     val shownEvent = lastEvent
     val chargingState by ChargingBus.state.collectAsStateWithLifecycle()
+    val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
     val emptyPill = event == null && showsWhenEmpty
 
     val initialExpandedState = if (forcedExpanded == false) false else (shownEvent?.initiallyExpanded ?: false)
@@ -445,7 +455,11 @@ internal fun DynamicIsland(
         }
         emptyPill -> 0
 
-        isExpanded && systemEventType == SystemEventType.CHARGING_STARTED -> 20
+        isExpanded && (
+                systemEventType == SystemEventType.CHARGING_STARTED ||
+                        systemEventType == SystemEventType.BATTERY_LOW ||
+                        systemEventType == SystemEventType.WIFI_CONNECTED
+                ) -> 20
 
         isExpanded && shownEvent?.assistant != null && shownEvent.assistant.displayAnswerInCutout -> {
             val maxCutoutHeightDp = (screenHeightDp * shownEvent.assistant.maxCutoutHeightPercent / 100)
@@ -1090,6 +1104,94 @@ private fun ChargingExpandedContent(
     }
 }
 
+@Composable
+private fun BatteryLowExpandedContent(
+    appearance: AppearanceSettings,
+) {
+    val contentColor = LocalContentColor.current
+    val secondaryColor = contentColor.copy(alpha = 0.68f)
+
+    // Get the current battery percentage.
+    val context = LocalContext.current
+    val batteryManager =
+        remember(context) {
+            context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+        }
+    val batteryPercent =
+        remember {
+            batteryManager.getIntProperty(
+                BatteryManager.BATTERY_PROPERTY_CAPACITY
+            )
+        }.coerceIn(0, 100)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                start = 16.dp,
+                end = 16.dp,
+                bottom = 24.dp,
+            ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomStart),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.BatteryAlert,
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp),
+                    tint = Color(0xFFF87171),
+                )
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.event_battery_low),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = contentColor,
+                    )
+
+                    Text(
+                        text = "Your battery is running low",
+                        fontSize = 12.sp,
+                        color = secondaryColor,
+                    )
+                }
+
+                Text(
+                    text = "$batteryPercent%",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFF87171),
+                )
+            }
+
+            LinearProgressIndicator(
+                progress = {
+                    batteryPercent / 100f
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(50)),
+                color = Color(0xFFF87171),
+                trackColor = contentColor.copy(alpha = 0.12f),
+            )
+        }
+    }
+}
+
 private fun formatChargingTime(minutes: Long): String {
     if (minutes <= 0L) return ""
 
@@ -1105,7 +1207,205 @@ private fun formatChargingTime(minutes: Long): String {
     }
 }
 
-/** A static, non-interactive pill used by the settings screen for previewing one state. */
+@Composable
+private fun WifiConnectedExpandedContent(
+    wifi: WifiState,
+) {
+    val contentColor = LocalContentColor.current
+    val secondaryColor = contentColor.copy(alpha = 0.68f)
+
+    val signalLevel = wifi.signalLevel?.coerceIn(0, 4)
+
+    val signalText = when (signalLevel) {
+        4 -> "Excellent signal"
+        3 -> "Good signal"
+        2 -> "Fair signal"
+        1 -> "Weak signal"
+        else -> "Signal unavailable"
+    }
+
+    val networkName = wifi.ssid
+        ?.takeUnless { it.isBlank() || it == "<unknown ssid>" }
+        ?: "Unknown network"
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                start = 16.dp,
+                end = 16.dp,
+                bottom = 24.dp,
+            ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomStart),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Wifi,
+                    contentDescription = null,
+                    modifier = Modifier.size(34.dp),
+                    tint = Color(0xFF60A5FA),
+                )
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = stringResource(
+                            R.string.event_wifi_connected,
+                        ),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = contentColor,
+                    )
+
+                    Text(
+                        text = networkName,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = contentColor,
+                        maxLines = 1,
+                    )
+
+                    Text(
+                        text = buildString {
+                            append(signalText)
+
+                            wifi.band?.let {
+                                append(" • ")
+                                append(it)
+                            }
+                        },
+                        fontSize = 11.sp,
+                        color = secondaryColor,
+                    )
+                }
+
+                WifiSignalIndicator(
+                    level = signalLevel,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeadphonesConnectedExpandedContent(
+    headphones: HeadphonesState,
+) {
+    val contentColor = LocalContentColor.current
+    val secondaryColor = contentColor.copy(alpha = 0.68f)
+
+    val deviceName = headphones.name
+        ?.takeUnless { it.isBlank() }
+        ?: "Headphones"
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                start = 16.dp,
+                end = 16.dp,
+                top = 25.dp,
+                bottom = 15.dp,
+            ),
+        verticalArrangement = Arrangement.Bottom,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Headphones,
+                contentDescription = null,
+                modifier = Modifier.size(30.dp),
+                tint = Color(0xFFA78BFA),
+            )
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
+            ) {
+                Text(
+                    text = "Headphones Connected",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = contentColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+
+                Text(
+                    text = deviceName,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = contentColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+
+                Text(
+                    text = "Ready to play",
+                    fontSize = 10.sp,
+                    color = secondaryColor,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WifiSignalIndicator(
+    level: Int?,
+) {
+    val activeColor = Color(0xFF60A5FA)
+    val inactiveColor =
+        LocalContentColor.current.copy(alpha = 0.14f)
+
+    Row(
+        modifier = Modifier.height(24.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        repeat(4) { index ->
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height((7 + index * 5).dp)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 3.dp,
+                            topEnd = 3.dp,
+                            bottomStart = 3.dp,
+                            bottomEnd = 3.dp,
+                        ),
+                    )
+                    .background(
+                        if (level != null && index < level) {
+                            activeColor
+                        } else {
+                            inactiveColor
+                        },
+                    ),
+            )
+        }
+    }
+}
+
+/**
+ * A static, non-interactive pill used by the settings screen for previewing one state.
+ */
 @Composable
 fun IslandPreview(
     event: IslandEvent,
@@ -1129,29 +1429,31 @@ fun IslandPreview(
             bottomRight = cornerBottomRightDp.dp,
         ),
         appearance = appearance,
-        // A static preview shows one state outright, so snap the fill to it.
         progress = if (expanded) 1f else 0f,
     ) {
         if (expanded) {
             ExpandedContent(
                 event = event,
+                systemEventType = null,
+                chargingState = null,
                 showActions = showActions,
                 appearance = appearance,
+                collapsedHeightDp = collapsedHeightDp,
                 replyingTo = null,
                 replySent = false,
+                progressData = event.progressData,
                 onAction = {},
                 onStartReply = {},
                 onCancelReply = {},
                 onSendReply = {},
-                systemEventType = TODO(),
-                chargingState = TODO(),
-                progressData = TODO(),
-                onDismiss = TODO(),
-                onHeightMeasured = TODO(),
-                collapsedHeightDp = TODO(),
+                onDismiss = {},
+                onHeightMeasured = {},
             )
         } else {
-            CollapsedContent(event, heightDp)
+            CollapsedContent(
+                event = event,
+                heightDp = heightDp,
+            )
         }
     }
 }
@@ -1662,6 +1964,12 @@ private fun ExpandedContent(
     onDismiss: () -> Unit = {},
     onHeightMeasured: ((Int) -> Unit)? = null,
 ) {
+    val wifiState by WifiBus.state.collectAsStateWithLifecycle()
+    val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
+
+    val currentWifiState = wifiState
+    val currentHeadphonesState = headphonesState
+
     // The music tile has its own expanded layout (album art + playback controls).
     if (event.media != null) {
         MediaExpandedContent(
@@ -1691,6 +1999,33 @@ private fun ExpandedContent(
         ChargingExpandedContent(
             charging = chargingState,
             appearance = appearance,
+        )
+        return
+    }
+
+    if (systemEventType == SystemEventType.BATTERY_LOW) {
+        BatteryLowExpandedContent(
+            appearance = appearance,
+        )
+        return
+    }
+
+    if (
+        systemEventType == SystemEventType.WIFI_CONNECTED &&
+        currentWifiState != null
+    ) {
+        WifiConnectedExpandedContent(
+            wifi = currentWifiState,
+        )
+        return
+    }
+
+    if (
+        systemEventType == SystemEventType.HEADPHONES_CONNECTED &&
+        currentHeadphonesState != null
+    ) {
+        HeadphonesConnectedExpandedContent(
+            headphones = currentHeadphonesState,
         )
         return
     }
