@@ -36,7 +36,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Colorize
 import androidx.compose.material.icons.rounded.FormatColorFill
 import androidx.compose.material.icons.rounded.RestartAlt
-import androidx.compose.material.icons.rounded.SmartButton
+import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -69,6 +69,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.AppearanceSettings
@@ -79,6 +81,7 @@ import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.DefaultPresetColors
 import com.vikram.expressiveisland.ui.screen.AdjustableSlider
 import com.vikram.expressiveisland.ui.screen.SettingsToggleCard
+import com.vikram.expressiveisland.ui.screen.CardSectionHeader
 import kotlin.math.roundToInt
 
 /** The Material You dynamic roles [ColorPickerCard] offers by default, in display order. */
@@ -100,10 +103,20 @@ internal fun AppearanceScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        CardSectionHeader(
+            text = "Appearance",
+            padding = PaddingValues(start = 8.dp, bottom = 2.dp)
+        )
+
         SettingsToggleCard(
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(
+                topStart = 24.dp,
+                topEnd = 24.dp,
+                bottomStart = 0.dp,
+                bottomEnd = 0.dp
+            ),
             title = stringResource(R.string.appearance_shadow_title),
             description = stringResource(R.string.appearance_shadow_desc),
             checked = appearance.shadowEnabled,
@@ -111,7 +124,7 @@ internal fun AppearanceScreen(
         )
 
         SettingsToggleCard(
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(0.dp),
             title = stringResource(R.string.appearance_stroke_title),
             description = stringResource(R.string.appearance_stroke_desc),
             checked = appearance.strokeEnabled,
@@ -121,7 +134,7 @@ internal fun AppearanceScreen(
         AnimatedVisibility(visible = appearance.strokeEnabled) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(0.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             ) {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
@@ -167,7 +180,7 @@ private fun BackgroundCard(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(0.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
@@ -210,7 +223,12 @@ private fun ActionButtonsCard(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(
+            topStart = 0.dp,
+            topEnd = 0.dp,
+            bottomStart = 24.dp,
+            bottomEnd = 24.dp
+        ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
@@ -220,7 +238,7 @@ private fun ActionButtonsCard(onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Icons.Rounded.SmartButton,
+                imageVector = Icons.Rounded.TouchApp,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(26.dp),

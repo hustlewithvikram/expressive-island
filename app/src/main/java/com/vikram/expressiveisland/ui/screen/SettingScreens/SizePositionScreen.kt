@@ -41,7 +41,6 @@ import com.vikram.expressiveisland.data.IslandLayout
 import com.vikram.expressiveisland.permissions.Permissions
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
-import com.vikram.expressiveisland.ui.screen.AdjustableSlider
 import kotlin.math.roundToInt
 
 @Composable

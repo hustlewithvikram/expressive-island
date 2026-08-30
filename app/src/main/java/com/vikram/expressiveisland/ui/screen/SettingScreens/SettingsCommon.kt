@@ -41,6 +41,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.IslandLayout
@@ -375,4 +379,26 @@ internal fun rememberTopCutout(): TopCutout? {
             null
         }
     }
+}
+
+
+/* 
+ * A simple card section header which you can use to show the section type
+ */
+@Composable
+fun CardSectionHeader(
+    text: String,
+    modifier: Modifier = Modifier,
+    padding: PaddingValues = PaddingValues(0.dp),
+    fontSize: TextUnit = 12.sp,
+    fontWeight: FontWeight = FontWeight.SemiBold,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant
+) {
+    Text(
+        text = text,
+        fontSize = fontSize,
+        fontWeight = fontWeight,
+        color = color,
+        modifier = modifier.padding(padding)
+    )
 }
