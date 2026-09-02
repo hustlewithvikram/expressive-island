@@ -57,6 +57,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -143,7 +144,7 @@ internal fun AppearanceScreen(
                         valueText = "${strokeWidth.roundToInt()} dp",
                         value = strokeWidth,
                         valueRange = AppearanceSettings.MIN_STROKE_WIDTH_DP.toFloat()..
-                            AppearanceSettings.MAX_STROKE_WIDTH_DP.toFloat(),
+                                AppearanceSettings.MAX_STROKE_WIDTH_DP.toFloat(),
                         step = 1f,
                         onValueChange = { strokeWidth = it },
                         onCommit = { viewModel.setStrokeWidth(strokeWidth.roundToInt()) },
@@ -156,6 +157,47 @@ internal fun AppearanceScreen(
                 onSelect = { it?.let(viewModel::setStrokeColor) },
             )
         }
+
+        SettingsToggleCard(
+            shape = RoundedCornerShape(0.dp),
+            title = stringResource(R.string.appearance_show_source_app_name_title),
+            description = stringResource(R.string.appearance_show_source_app_name_desc),
+            checked = appearance.showSourceAppName,
+            onCheckedChange = viewModel::setShowSourceAppName,
+        )
+
+        SettingsToggleCard(
+            shape = RoundedCornerShape(0.dp),
+            title = stringResource(R.string.appearance_show_timestamp_title),
+            description = stringResource(R.string.appearance_show_timestamp_desc),
+            checked = appearance.showTimestamp,
+            onCheckedChange = viewModel::setShowTimestamp,
+        )
+
+        SettingsToggleCard(
+            shape = RoundedCornerShape(0.dp),
+            title = stringResource(R.string.appearance_full_notification_text_title),
+            description = stringResource(R.string.appearance_full_notification_text_desc),
+            checked = appearance.showFullNotificationText,
+            onCheckedChange = viewModel::setShowFullNotificationText,
+        )
+
+        SettingsToggleCard(
+            shape = RoundedCornerShape(0.dp),
+            title = stringResource(R.string.appearance_prefer_dynamic_icon_color_title),
+            description = stringResource(R.string.appearance_prefer_dynamic_icon_color_desc),
+            checked = appearance.preferDynamicIconColor,
+            onCheckedChange = viewModel::setPreferDynamicIconColor,
+        )
+
+        ColorPickerCard(
+            label = stringResource(R.string.appearance_text_color),
+            selected = appearance.textColor,
+            defaultLabel = stringResource(R.string.appearance_text_color_default),
+            defaultColor = MaterialTheme.colorScheme.onSurface,
+            onSelect = viewModel::setTextColor,
+            shape = RoundedCornerShape(0.dp)
+        )
 
         // Opens the dedicated screen for the collapsed/expanded background fills (solid colours
         // and gradients, one per state).
@@ -283,7 +325,7 @@ internal fun ColorPickerCard(
     defaultColor: Color? = null,
     presetColors: List<Long> = DefaultPresetColors,
     dynamicRoles: List<DynamicRole> = DefaultDynamicRoles,
-    roundedCorners: Dp = 24.dp
+    shape: Shape = RoundedCornerShape(24.dp),
 ) {
     var showPicker by remember { mutableStateOf(false) }
     val customArgb = (selected as? CutoutColor.Solid)?.argb
@@ -292,7 +334,7 @@ internal fun ColorPickerCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(roundedCorners),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(

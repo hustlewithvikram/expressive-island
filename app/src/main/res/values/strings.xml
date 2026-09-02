@@ -204,6 +204,16 @@
     <string name="cd_color_secondary">Secondary colour</string>
     <string name="cd_color_tertiary">Tertiary colour</string>
     <string name="cd_color_error">Error colour</string>
+    <string name="appearance_show_source_app_name_title">Show source app name</string>
+    <string name="appearance_show_source_app_name_desc">Show the notifications app name in the island</string>
+    <string name="appearance_show_timestamp_title">Show timestamp</string>
+    <string name="appearance_show_timestamp_desc">Display when the notification arrived relative to now</string>
+    <string name="appearance_full_notification_text_title">Show full notification text</string>
+    <string name="appearance_full_notification_text_desc">Show the full notification text instead of truncating it</string>
+    <string name="appearance_prefer_dynamic_icon_color_title">Prefer dynamic icon color</string>
+    <string name="appearance_prefer_dynamic_icon_color_desc">Use dynamic Material You app icon when available, or plain icon when off</string>
+    <string name="appearance_text_color">Text color</string>
+    <string name="appearance_text_color_default">Use automatic text color</string>
 
     <!-- Shizuku options screen -->
     <string name="shizuku_options_title">Shizuku options</string>
@@ -378,6 +388,8 @@
     <string name="behaviour_swipe_dismiss">Swipe to dismiss</string>
     <string name="behaviour_swipe_dismiss_desc">Swipe the cutout sideways to dismiss it. Notifications are cleared from the system too.</string>
     <string name="behaviour_swipe_direction">Swipe direction</string>
+    <string name="behaviour_ignore_silent_notif">Ignore silent notifications</string>
+    <string name="behaviour_ignore_silent_notif_desc">Dont show a cutout bubble for notifications marked as silent</string>
     <string name="swipe_dir_left">Left</string>
     <string name="swipe_dir_right">Right</string>
     <string name="swipe_dir_both">Both</string>

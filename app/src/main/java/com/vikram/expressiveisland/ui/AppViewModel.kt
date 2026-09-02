@@ -580,6 +580,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         behaviourPreferences.setNotificationsAutoExpand(enabled)
     }
 
+    fun setIgnoreSilentNotifications(enabled: Boolean) = viewModelScope.launch {
+        behaviourPreferences.setIgnoreSilentNotifications(enabled)
+    }
+
     fun setShowActionButtons(enabled: Boolean) = viewModelScope.launch {
         behaviourPreferences.setShowActionButtons(enabled)
     }
@@ -810,6 +814,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         appearancePreferences.setStrokeColor(color)
     }
 
+    fun setTextColor(color: CutoutColor?) = viewModelScope.launch {
+        appearancePreferences.setTextColor(color)
+    }
+
     fun setBackgroundNormal(fill: CutoutFill) = viewModelScope.launch {
         appearancePreferences.setBackgroundNormal(fill)
     }
@@ -864,5 +872,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setDisplayWhileDnd(enabled: Boolean) = viewModelScope.launch {
         behaviourPreferences.setDisplayWhileDnd(enabled)
+    }
+
+    fun setShowSourceAppName(enabled: Boolean) = viewModelScope.launch {
+        appearancePreferences.setShowSourceAppName(enabled)
+    }
+
+    fun setShowTimestamp(enabled: Boolean) = viewModelScope.launch {
+        appearancePreferences.setShowTimestamp(enabled)
+    }
+
+    fun setShowFullNotificationText(enabled: Boolean) = viewModelScope.launch {
+        appearancePreferences.setShowFullNotificationText(enabled)
+    }
+
+    fun setPreferDynamicIconColor(enabled: Boolean) = viewModelScope.launch {
+        appearancePreferences.setPreferDynamicIconColor(enabled)
     }
 }

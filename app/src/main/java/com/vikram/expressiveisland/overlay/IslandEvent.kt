@@ -101,6 +101,10 @@ data class IslandEvent(
      * clear the real notification from the system, not just hide the pill. Null for everything else.
      */
     val notificationKey: String? = null,
+    /** The posting app's display name, resolved once while the notification is received. */
+    val notificationAppName: String? = null,
+    /** The notification's system post time, used to render its relative timestamp. */
+    val notificationPostTimeMs: Long? = null,
     /** Optional action buttons shown as chips in the expanded island. */
     val actions: List<IslandAction> = emptyList(),
     /**

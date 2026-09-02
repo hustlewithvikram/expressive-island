@@ -1,7 +1,9 @@
 package com.vikram.expressiveisland.overlay
 
 import android.content.Context
+import android.graphics.drawable.AdaptiveIconDrawable
 import android.net.Uri
+import android.os.Build
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Person
@@ -66,9 +68,9 @@ fun SystemEventType.animationLoopsByDefault(): Boolean =
 /**
  * Turns a source-agnostic [CutoutSignal] into a renderable [IslandEvent], applying the user's icon
  * overrides and rasterising whatever art the signal carried. This is the one place that loads
- * drawables and reads the content resolver, so all the "impure" resolution lives here. It
- * deliberately asks the package manager nothing about other apps: everything shown comes from the
- * notification or media session itself, so the app needs no package-visibility declaration.
+ * drawables, the package manager, and the content resolver, so all the "impure" resolution lives
+ * here. A notification's source package makes its launcher and adaptive icon available without
+ * broad package visibility.
  */
 class IconResolver(private val context: Context) {
 
@@ -87,12 +89,14 @@ class IconResolver(private val context: Context) {
         animatedIconEnabled: Map<SystemEventType, Boolean> = emptyMap(),
         animatedIconLoop: Map<SystemEventType, Boolean> = emptyMap(),
         eventColorOverrides: Map<SystemEventType, CutoutColor> = emptyMap(),
+        preferDynamicIconColor: Boolean = false,
     ): IslandEvent = when (signal) {
         is CutoutSignal.Notification -> resolveNotification(
             signal,
             dynamicEventColor,
             dynamicEventColorRole,
             dynamicEventColorOpacity,
+            preferDynamicIconColor,
         )
         is CutoutSignal.System -> resolveSystem(
             signal.type,
@@ -115,11 +119,10 @@ class IconResolver(private val context: Context) {
         dynamicEventColor: Boolean,
         dynamicEventColorRole: DynamicRole,
         dynamicEventColorOpacity: Float,
+        preferDynamicIconColor: Boolean,
     ): IslandEvent {
-        // Everything shown comes from the notification itself — no app lookup, so the app needs no
-        // package-visibility declaration at all. A notification always carries a small icon, so
-        // the generic bell is a belt-and-braces fallback for one that somehow doesn't.
-        val icon = signal.notificationIcon() ?: IslandIcon.Vector(Icons.Rounded.Notifications)
+        val icon = signal.notificationIcon(preferDynamicIconColor)
+            ?: IslandIcon.Vector(Icons.Rounded.Notifications)
 
         val title = signal.title?.takeIf { it.isNotBlank() }
         val text = signal.text?.takeIf { it.isNotBlank() }
@@ -139,6 +142,11 @@ class IconResolver(private val context: Context) {
             themeColorOpacity = dynamicEventColorOpacity,
             contentIntent = signal.contentIntent,
             notificationKey = signal.key,
+            notificationAppName = NotificationHeaderResolver.resolveAppName(
+                context = context,
+                packageName = signal.packageName,
+            ),
+            notificationPostTimeMs = NotificationHeaderResolver.resolvePostTimeMs(signal.postTimeMs),
             progressData = signal.progressData,
             actions = signal.actions.map { action ->
                 IslandAction(
@@ -153,15 +161,32 @@ class IconResolver(private val context: Context) {
     }
 
     /**
-     * The icon the posting app put on the notification itself, or null when it carries neither.
-     * Colour first: a large icon is full-colour art (a sender's photo, a podcast cover) and is
-     * drawn as-is. The small icon is Android's status-bar glyph — an alpha-only silhouette with no
-     * colour of its own — so it is tinted with the badge's ink, following the theme like every
-     * other glyph rather than being drawn as flat white pixels.
+     * Resolves a notification icon using the selected Appearance preference. Dynamic mode favours
+     * tintable monochrome artwork (the status-bar glyph, then Android 13+'s adaptive monochrome
+     * layer); normal mode keeps the full-colour notification artwork first. The launcher icon is a
+     * fallback only, so a notification's own icon is never replaced unnecessarily.
      */
-    private fun CutoutSignal.Notification.notificationIcon(): IslandIcon? {
-        largeIcon?.loadImageBitmapOrNull(context)?.let { return IslandIcon.Raster(it) }
-        smallIcon?.loadImageBitmapOrNull(context)?.let { return IslandIcon.Raster(it, tint = true) }
+    private fun CutoutSignal.Notification.notificationIcon(preferDynamicColor: Boolean): IslandIcon? {
+        val appDrawable = runCatching {
+            context.packageManager.getApplicationIcon(packageName)
+        }.getOrNull()
+
+        if (preferDynamicColor) {
+            smallIcon?.loadImageBitmapOrNull(context)?.let { return IslandIcon.Raster(it, tint = true) }
+
+            val monochrome = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                (appDrawable as? AdaptiveIconDrawable)?.monochrome
+            } else {
+                null
+            }
+            monochrome?.let { return IslandIcon.Raster(it.toImageBitmap(), tint = true) }
+            appDrawable?.let { return IslandIcon.Raster(it.toImageBitmap()) }
+            largeIcon?.loadImageBitmapOrNull(context)?.let { return IslandIcon.Raster(it) }
+        } else {
+            largeIcon?.loadImageBitmapOrNull(context)?.let { return IslandIcon.Raster(it) }
+            smallIcon?.loadImageBitmapOrNull(context)?.let { return IslandIcon.Raster(it, tint = true) }
+            appDrawable?.let { return IslandIcon.Raster(it.toImageBitmap()) }
+        }
         return null
     }
 

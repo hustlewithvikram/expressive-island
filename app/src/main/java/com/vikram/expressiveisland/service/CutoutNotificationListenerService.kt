@@ -8,6 +8,8 @@ import android.os.PowerManager
 import android.os.SystemClock
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import android.service.notification.NotificationListenerService.Ranking
+import android.service.notification.NotificationListenerService.RankingMap
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -111,6 +113,9 @@ class CutoutNotificationListenerService : NotificationListenerService() {
 
     // Keys the user killed on the pill, awaiting the re-post that lets us cancel them. Mirrors [held].
     private val pendingCancel = LinkedHashMap<String, Long>()
+
+    // todo
+    private var currentRanking: RankingMap? = null
 
     override fun onListenerConnected() {
         instance = this
@@ -330,17 +335,20 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString()
         val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString()
         val progress = getProgressDataOrNull(sbn)
+        val isSilent = isSilentNotification(notification)
 
         val islandEvent = CutoutSignal.Notification(
             packageName = notification.packageName,
             title = title,
             text = text,
+            postTimeMs = notification.postTime,
             key = notification.key,
             contentIntent = notification.notification.contentIntent,
             actions = notification.notification.surfaceableActions(),
             largeIcon = notification.notification.getLargeIcon(),
             smallIcon = notification.notification.smallIcon,
-            progressData = progress
+            progressData = progress,
+            isSilent = isSilent,
         )
 
         IslandEventBus.emit(islandEvent)
@@ -507,6 +515,25 @@ class CutoutNotificationListenerService : NotificationListenerService() {
 
         return !isSummary &&
                 (!isOngoing || hasProgress || hasActions)
+    }
+
+    private fun isSilentNotification(
+        sbn: StatusBarNotification,
+    ): Boolean {
+        val ranking = Ranking()
+
+        val found = currentRanking?.getRanking(sbn.key, ranking) == true
+
+        return NotificationClassifier.isSilent(
+            importance = if (found) ranking.importance else null,
+            isAmbient = if (found) ranking.isAmbient else false,
+            priority = sbn.notification?.priority ?: Notification.PRIORITY_DEFAULT,
+        )
+    }
+
+    override fun onNotificationRankingUpdate(rankingMap: RankingMap) {
+        currentRanking = rankingMap
+        super.onNotificationRankingUpdate(rankingMap)
     }
 
     companion object {

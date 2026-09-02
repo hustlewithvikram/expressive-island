@@ -124,7 +124,7 @@ internal fun MusicTileScreen(
                         onSelect = viewModel::setMusicAlbumArtStrokeColor,
                         defaultLabel = stringResource(R.string.music_default_accent),
                         defaultColor = MusicAccent,
-                        roundedCorners = 4.dp
+                        shape = RoundedCornerShape(4.dp)
                     )
                 }
             }

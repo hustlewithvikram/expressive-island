@@ -2042,6 +2042,7 @@ private fun ExpandedContent(
         )
         return
     }
+    val notificationHeader = rememberNotificationHeader(event, appearance)
      // Content hugs the card's bottom edge, below a collapsed-pill-height band that keeps the camera
     // hole clear. The band is a hard floor: a header tall enough to overrun the card (a two-line
     // detail plus a progress bar) now spills past the bottom instead of riding up under the camera.
@@ -2067,6 +2068,15 @@ private fun ExpandedContent(
             ) {
                 IconBadge(event = event, badgeSize = 44.dp, iconSize = 26.dp)
                 Column(modifier = Modifier.weight(1f)) {
+                    notificationHeader?.let { header ->
+                        Text(
+                            text = header,
+                            color = LocalContentColor.current.copy(alpha = 0.62f),
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                     Text(
                         text = event.label,
                         color = LocalContentColor.current,
@@ -2075,17 +2085,28 @@ private fun ExpandedContent(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    // The only flexible child: the title above and the progress bar below are
-                    // measured at their full size first, so a card too short for all three cuts
-                    // the body text down (and ellipsises it) rather than shaving the bar.
+                    // The only flexible child: the header, title and progress bar are measured at
+                    // their full size first. When full text is enabled, this constrained area
+                    // scrolls instead of dropping notification content.
                     event.detail?.let { detail ->
+                        val detailModifier = Modifier.weight(1f, fill = false).let { modifier ->
+                            if (appearance.showFullNotificationText) {
+                                modifier.verticalScroll(rememberScrollState())
+                            } else {
+                                modifier
+                            }
+                        }
                         Text(
                             text = detail,
-                            modifier = Modifier.weight(1f, fill = false),
+                            modifier = detailModifier,
                             color = LocalContentColor.current.copy(alpha = 0.70f),
                             fontSize = 12.sp,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
+                            maxLines = if (appearance.showFullNotificationText) Int.MAX_VALUE else 2,
+                            overflow = if (appearance.showFullNotificationText) {
+                                TextOverflow.Clip
+                            } else {
+                                TextOverflow.Ellipsis
+                            },
                         )
                     }
 
@@ -2167,6 +2188,35 @@ private fun ExpandedContent(
             }
         }
     }
+}
+
+/** Keeps a visible notification's relative timestamp current while the expanded island is open. */
+@Composable
+private fun rememberNotificationHeader(
+    event: IslandEvent,
+    appearance: AppearanceSettings,
+): String? {
+    val nowMs by produceState(
+        initialValue = System.currentTimeMillis(),
+        key1 = event.id,
+        key2 = event.notificationPostTimeMs,
+        key3 = appearance.showTimestamp,
+    ) {
+        if (appearance.showTimestamp && event.notificationPostTimeMs != null) {
+            while (true) {
+                value = System.currentTimeMillis()
+                delay(1_000L)
+            }
+        }
+    }
+
+    return NotificationHeaderResolver.resolveHeader(
+        appName = event.notificationAppName,
+        postTimeMs = event.notificationPostTimeMs,
+        showAppName = appearance.showSourceAppName,
+        showTimestamp = appearance.showTimestamp,
+        nowMs = nowMs,
+    )
 }
 
 /**

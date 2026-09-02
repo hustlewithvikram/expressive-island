@@ -41,6 +41,10 @@ data class AppearanceSettings(
     val strokeOpacity: Float = DEFAULT_STROKE_OPACITY,
     val strokeColor: CutoutColor = DEFAULT_STROKE_COLOR,
     val textColor: CutoutColor? = DEFAULT_TEXT_COLOR,
+    val showSourceAppName: Boolean = DEFAULT_SHOW_SOURCE_APP_NAME,
+    val showTimestamp: Boolean = DEFAULT_SHOW_TIMESTAMP,
+    val showFullNotificationText: Boolean = DEFAULT_SHOW_FULL_NOTIFICATION_TEXT,
+    val preferDynamicIconColor: Boolean = DEFAULT_PREFER_DYNAMIC_ICON_COLOR,
     val backgroundNormal: CutoutFill = DEFAULT_BACKGROUND_FILL,
     val backgroundExpanded: CutoutFill = DEFAULT_BACKGROUND_FILL,
     val sendButtonColor: CutoutColor? = DEFAULT_SEND_BUTTON_COLOR,
@@ -87,6 +91,11 @@ data class AppearanceSettings(
         const val DEFAULT_ACTION_BUTTON_HEIGHT_DP = 44
         const val MIN_ACTION_BUTTON_HEIGHT_DP = 36
         const val MAX_ACTION_BUTTON_HEIGHT_DP = 56
+
+        const val DEFAULT_SHOW_SOURCE_APP_NAME = true
+        const val DEFAULT_SHOW_TIMESTAMP = true
+        const val DEFAULT_SHOW_FULL_NOTIFICATION_TEXT = true
+        const val DEFAULT_PREFER_DYNAMIC_ICON_COLOR = false
     }
 }
 
@@ -122,6 +131,11 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
             cancelButtonOnLeft = prefs[CANCEL_ON_LEFT] ?: AppearanceSettings.DEFAULT_CANCEL_ON_LEFT,
             sentAlignment = SentAlignment.deserialize(prefs[SENT_ALIGNMENT])
                 ?: AppearanceSettings.DEFAULT_SENT_ALIGNMENT,
+            showSourceAppName = prefs[SHOW_SOURCE_APP_NAME] ?: AppearanceSettings.DEFAULT_SHOW_SOURCE_APP_NAME,
+            showTimestamp = prefs[SHOW_TIMESTAMP] ?: AppearanceSettings.DEFAULT_SHOW_TIMESTAMP,
+            showFullNotificationText = prefs[SHOW_FULL_NOTIFICATION_TEXT] ?: AppearanceSettings.DEFAULT_SHOW_FULL_NOTIFICATION_TEXT,
+            preferDynamicIconColor = prefs[PREFER_DYNAMIC_ICON_COLOR]
+                ?: AppearanceSettings.DEFAULT_PREFER_DYNAMIC_ICON_COLOR,
         )
     }
 
@@ -146,6 +160,10 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
             put("replyInputStyle", s.replyInputStyle.name)
             put("cancelButtonOnLeft", s.cancelButtonOnLeft)
             put("sentAlignment", s.sentAlignment.name)
+            put("showSourceAppName", s.showSourceAppName)
+            put("showTimestamp", s.showTimestamp)
+            put("showFullNotificationText", s.showFullNotificationText)
+            put("preferDynamicIconColor", s.preferDynamicIconColor)
         }.toString()
     }
 
@@ -189,6 +207,16 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
             if (obj.has("cancelButtonOnLeft")) it[CANCEL_ON_LEFT] = obj.getBoolean("cancelButtonOnLeft")
             if (obj.has("sentAlignment")) {
                 SentAlignment.deserialize(obj.optString("sentAlignment"))?.let { a -> it[SENT_ALIGNMENT] = a.name }
+            }
+            if (obj.has("showSourceAppName")) {
+                it[SHOW_SOURCE_APP_NAME] = obj.getBoolean("showSourceAppName")
+            }
+            if (obj.has("showTimestamp")) it[SHOW_TIMESTAMP] = obj.getBoolean("showTimestamp")
+            if (obj.has("showFullNotificationText")) {
+                it[SHOW_FULL_NOTIFICATION_TEXT] = obj.getBoolean("showFullNotificationText")
+            }
+            if (obj.has("preferDynamicIconColor")) {
+                it[PREFER_DYNAMIC_ICON_COLOR] = obj.getBoolean("preferDynamicIconColor")
             }
         }
     }
@@ -291,6 +319,25 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
         it[SENT_ALIGNMENT] = alignment.name
     }
 
+    suspend fun setShowSourceAppName(enabled: Boolean) =
+        context.appearanceDataStore.edit {
+            it[SHOW_SOURCE_APP_NAME] = enabled
+        }
+
+    suspend fun setShowTimestamp(enabled: Boolean) = context.appearanceDataStore.edit {
+        it[SHOW_TIMESTAMP] = enabled
+    }
+
+    suspend fun setShowFullNotificationText(enabled: Boolean) =
+        context.appearanceDataStore.edit {
+            it[SHOW_FULL_NOTIFICATION_TEXT] = enabled
+        }
+
+    suspend fun setPreferDynamicIconColor(enabled: Boolean) =
+        context.appearanceDataStore.edit {
+            it[PREFER_DYNAMIC_ICON_COLOR] = enabled
+        }
+
     private companion object {
         val SHADOW_ENABLED = booleanPreferencesKey("shadow_enabled")
         val STROKE_ENABLED = booleanPreferencesKey("stroke_enabled")
@@ -313,5 +360,12 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
         val REPLY_INPUT_STYLE = stringPreferencesKey("reply_input_style")
         val CANCEL_ON_LEFT = booleanPreferencesKey("cancel_button_on_left")
         val SENT_ALIGNMENT = stringPreferencesKey("sent_alignment")
+
+        val SHOW_SOURCE_APP_NAME = booleanPreferencesKey("show_source_app_name")
+        val SHOW_TIMESTAMP = booleanPreferencesKey("show_timestamp")
+        val SHOW_FULL_NOTIFICATION_TEXT =
+            booleanPreferencesKey("show_full_notification_text")
+        val PREFER_DYNAMIC_ICON_COLOR =
+            booleanPreferencesKey("prefer_dynamic_icon_color")
     }
 }

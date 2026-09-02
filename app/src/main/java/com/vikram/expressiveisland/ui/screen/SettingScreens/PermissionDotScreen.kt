@@ -197,7 +197,7 @@ private fun PermissionDotKindCard(
                     onSelect = { onSelectColor(it ?: defaultColor) },
                     defaultLabel = stringResource(R.string.label_default),
                     defaultColor = defaultColor.resolve(),
-                    roundedCorners = 0.dp,
+                    shape = RoundedCornerShape(0.dp),
                 )
             }
         }

@@ -1387,6 +1387,14 @@ class IslandOverlayController(private val context: Context) {
             // Skip anything posted by an app the user muted on the Apps screen.
             if (signal.sourcePackage() in disabledApps) return@collect
 
+            if (
+                signal is CutoutSignal.Notification &&
+                behaviourState.value.ignoreSilentNotifications &&
+                signal.isSilent
+            ) {
+                return@collect
+            }
+
             if (signal is CutoutSignal.Assistant && !signal.active) {
                 assistantActive = false
                 lastAssistantEvent = null
@@ -1433,6 +1441,7 @@ class IslandOverlayController(private val context: Context) {
                 eventAnimatedIcons,
                 eventAnimatedIconLoops,
                 eventColors,
+                appearanceState.value.preferDynamicIconColor,
             ).copy(initiallyExpanded = autoExpand, normalOnly = normalOnly)
 
             if (overlayHidden) {

@@ -31,6 +31,8 @@ sealed interface CutoutSignal {
         val packageName: String,
         val title: String?,
         val text: String? = null,
+        /** Time the system posted this notification, in wall-clock milliseconds. */
+        val postTimeMs: Long = java.lang.System.currentTimeMillis(),
         /** The posting notification's stable key, used to dismiss it from the system. */
         val key: String? = null,
         /** The notification's tap action, fired when the user taps the expanded island. */
@@ -47,7 +49,8 @@ sealed interface CutoutSignal {
          * a valid notification, and the fallback when [largeIcon] is null.
          */
         val smallIcon: Icon? = null,
-        val progressData: ProgressData? = null
+        val progressData: ProgressData? = null,
+        val isSilent: Boolean = false,
     ) : CutoutSignal {
 
         /**
