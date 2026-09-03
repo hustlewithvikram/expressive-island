@@ -57,6 +57,7 @@ import com.vikram.expressiveisland.core.DynamicTile
 import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.permissions.Permissions
 import com.vikram.expressiveisland.ui.AppViewModel
+import com.vikram.expressiveisland.ui.pageTransition
 import com.vikram.expressiveisland.ui.screen.tiles.TileSettingsScreen
 
 // TESTING ONLY — flip to true to force both "needs a restart" cards visible even when the grants
@@ -101,8 +102,11 @@ fun SettingsTab(
         transitionSpec = {
             val forward = targetState.depth >= initialState.depth
             val dir = if (forward) 1 else -1
-            (slideInHorizontally(tween(300)) { w -> dir * w } + fadeIn(tween(300))) togetherWith
-                (slideOutHorizontally(tween(300)) { w -> -dir * w } + fadeOut(tween(300)))
+
+            pageTransition(
+                viewModel.appearance.value.pageTransitionStyle,
+                dir,
+            )
         },
         label = "settingsRoute",
     ) { current ->
@@ -128,15 +132,18 @@ fun SettingsTab(
             SettingsRoute.EventIcons -> EventIconsScreen(viewModel, contentPadding, onOpenEvent)
             SettingsRoute.EventDetail ->
                 selectedEvent?.let { EventDetailScreen(it, viewModel, contentPadding) }
+
             SettingsRoute.DynamicTiles -> DynamicTilesScreen(viewModel, contentPadding, onOpenTile)
             SettingsRoute.Apps -> AppsScreen(viewModel, contentPadding)
             SettingsRoute.DynamicTileDetail ->
                 selectedTile?.let { TileSettingsScreen(it, viewModel, contentPadding) }
+
             SettingsRoute.Behaviour -> BehaviourScreen(
                 viewModel,
                 contentPadding,
                 onOpenShowsWhenEmpty
             )
+
             SettingsRoute.ShowsWhenEmpty -> ShowsWhenEmptyScreen(viewModel, contentPadding)
             SettingsRoute.Animation -> AnimationScreen(viewModel, contentPadding)
             SettingsRoute.Appearance -> AppearanceScreen(
@@ -145,6 +152,7 @@ fun SettingsTab(
                 onOpenBackground,
                 onOpenActionButtons
             )
+
             SettingsRoute.Background -> BackgroundScreen(viewModel, contentPadding)
             SettingsRoute.ActionButtons -> ButtonScreen(viewModel, contentPadding)
             SettingsRoute.Shizuku -> ShizukuScreen(viewModel, contentPadding, onOpenPermissionDot)
@@ -175,7 +183,9 @@ val SettingsRoute.depth: Int
     get() = when (this) {
         SettingsRoute.List -> 0
         SettingsRoute.Background, SettingsRoute.ActionButtons, SettingsRoute.DynamicTileDetail,
-        SettingsRoute.EventDetail, SettingsRoute.ShowsWhenEmpty -> 2
+        SettingsRoute.EventDetail, SettingsRoute.ShowsWhenEmpty,
+            -> 2
+
         else -> 1
     }
 
@@ -309,16 +319,16 @@ private fun SettingsList(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             SettingsListItem(
-                icon = Icons.Rounded.Notifications,
-                title = stringResource(R.string.section_icons_title),
-                subtitle = stringResource(R.string.settings_icons_subtitle),
-                onClick = onOpenEventIcons,
-            )
-            SettingsListItem(
                 icon = Icons.Rounded.GridView,
                 title = stringResource(R.string.dynamic_tiles_title),
                 subtitle = stringResource(R.string.settings_dynamic_tiles_subtitle),
                 onClick = onOpenDynamicTiles,
+            )
+            SettingsListItem(
+                icon = Icons.Rounded.Notifications,
+                title = stringResource(R.string.section_icons_title),
+                subtitle = stringResource(R.string.settings_icons_subtitle),
+                onClick = onOpenEventIcons,
             )
             SettingsListItem(
                 icon = Icons.Rounded.Apps,
@@ -334,7 +344,7 @@ private fun SettingsList(
 private fun CutoutEnableCard(
     enabled: Boolean,
     canEdit: Boolean,
-    onEnabledChange: (Boolean) -> Unit
+    onEnabledChange: (Boolean) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -372,7 +382,7 @@ fun SettingsListItem(
     onClick: () -> Unit,
     bgColor: Color = MaterialTheme.colorScheme.surface,
     fgColor: Color? = null,
-    hapticsOnClick: Boolean = true
+    hapticsOnClick: Boolean = true,
 ) {
     val haptics = LocalHapticFeedback.current
 

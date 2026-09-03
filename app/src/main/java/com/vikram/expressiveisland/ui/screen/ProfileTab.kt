@@ -63,6 +63,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
+import com.vikram.expressiveisland.ui.pageTransition
 import com.vikram.expressiveisland.ui.theme.AppTheme
 
 /** The screens reachable from the Profile tab. Hoisted to MainScreen, like [SettingsRoute]. */
@@ -87,8 +88,11 @@ fun ProfileTab(
         targetState = route,
         transitionSpec = {
             val dir = if (targetState != ProfileRoute.List) 1 else -1
-            (slideInHorizontally(tween(300)) { w -> dir * w } + fadeIn(tween(300))) togetherWith
-                (slideOutHorizontally(tween(300)) { w -> -dir * w } + fadeOut(tween(300)))
+
+            pageTransition(
+                viewModel.appearance.value.pageTransitionStyle,
+                dir,
+            )
         },
         label = "profileRoute",
     ) { current ->

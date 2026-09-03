@@ -43,6 +43,7 @@ import com.vikram.expressiveisland.data.LayoutPreferences
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.MusicTilePreferences
 import com.vikram.expressiveisland.data.MusicTileSettings
+import com.vikram.expressiveisland.data.PageTransitionStyle
 import com.vikram.expressiveisland.data.PermissionDotColors
 import com.vikram.expressiveisland.data.PermissionDotKinds
 import com.vikram.expressiveisland.data.PermissionDotPosition
@@ -56,6 +57,7 @@ import com.vikram.expressiveisland.data.TimerTileSettings
 import com.vikram.expressiveisland.data.SwipeDismissDirection
 import com.vikram.expressiveisland.data.SwipeDismissTarget
 import com.vikram.expressiveisland.data.ThemePreferences
+import com.vikram.expressiveisland.overlay.SatellitePosition
 import com.vikram.expressiveisland.ui.theme.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -874,6 +876,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         behaviourPreferences.setDisplayWhileDnd(enabled)
     }
 
+    fun setAlertOnNotification(enabled: Boolean) =
+        viewModelScope.launch {
+            behaviourPreferences.setAlertOnNotification(enabled)
+        }
+
     fun setShowSourceAppName(enabled: Boolean) = viewModelScope.launch {
         appearancePreferences.setShowSourceAppName(enabled)
     }
@@ -888,5 +895,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setPreferDynamicIconColor(enabled: Boolean) = viewModelScope.launch {
         appearancePreferences.setPreferDynamicIconColor(enabled)
+    }
+
+    fun setSplitIslandEnabled(enabled: Boolean) =
+        viewModelScope.launch {
+            behaviourPreferences.setSplitIslandEnabled(enabled)
+        }
+
+    fun setSatellitePosition(position: SatellitePosition) =
+        viewModelScope.launch {
+            behaviourPreferences.setSatellitePosition(position)
+        }
+
+    fun setPageTransitionStyle(style: PageTransitionStyle) = viewModelScope.launch {
+        appearancePreferences.setPageTransitionStyle(style)
     }
 }

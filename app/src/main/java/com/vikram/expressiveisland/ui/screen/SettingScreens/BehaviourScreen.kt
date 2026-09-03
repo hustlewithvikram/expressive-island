@@ -39,6 +39,7 @@ import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.HorizontalCutoutMode
 import com.vikram.expressiveisland.data.SwipeDismissDirection
 import com.vikram.expressiveisland.data.SwipeDismissTarget
+import com.vikram.expressiveisland.overlay.SatellitePosition
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 import kotlin.math.roundToInt
@@ -193,6 +194,42 @@ internal fun BehaviourScreen(
             checked = behaviour.swipeToDismiss,
             onCheckedChange = viewModel::setSwipeToDismiss,
         )
+
+        SettingsToggleCard(
+            shape = groupedShape(isFirst = false, isLast = false),
+            title = stringResource(R.string.behaviour_split_island),
+            description = stringResource(R.string.behaviour_split_island_desc),
+            checked = behaviour.splitIslandEnabled,
+            onCheckedChange = viewModel::setSplitIslandEnabled,
+        )
+
+        AnimatedVisibility(visible = behaviour.splitIslandEnabled) {
+            BehaviourSegmentedRow(
+                shape = groupedShape(isFirst = false, isLast = false),
+                label = stringResource(R.string.behaviour_satellite_position),
+                options = listOf(
+                    stringResource(R.string.satellite_position_left),
+                    stringResource(R.string.satellite_position_right),
+                ),
+                selectedIndex = if (
+                    behaviour.satellitePosition == SatellitePosition.LEFT
+                ) {
+                    0
+                } else {
+                    1
+                },
+                onSelect = { index ->
+                    viewModel.setSatellitePosition(
+                        if (index == 0) {
+                            SatellitePosition.LEFT
+                        } else {
+                            SatellitePosition.RIGHT
+                        }
+                    )
+                },
+            )
+        }
+
         AnimatedVisibility(visible = behaviour.swipeToDismiss) {
             Column (verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 BehaviourSegmentedRow(
@@ -237,6 +274,21 @@ internal fun BehaviourScreen(
             description = stringResource(R.string.behaviour_dismissNotifs_desc),
             checked = behaviour.dismissNotifications,
             onCheckedChange = viewModel::setDismissNotifications,
+        )
+
+        SettingsToggleCard(
+            shape = groupedShape(
+                isFirst = false,
+                isLast = false,
+            ),
+            title = stringResource(
+                R.string.behaviour_alertOnNotif_title,
+            ),
+            description = stringResource(
+                R.string.behaviour_alertOnNotif_desc,
+            ),
+            checked = behaviour.alertOnNotification,
+            onCheckedChange = viewModel::setAlertOnNotification,
         )
 
         SettingsToggleCard(

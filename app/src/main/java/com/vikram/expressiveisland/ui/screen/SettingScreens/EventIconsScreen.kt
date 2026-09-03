@@ -2,7 +2,9 @@ package com.vikram.expressiveisland.ui.screen
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,20 +25,29 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -46,6 +58,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -58,21 +71,22 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.rememberLottieDynamicProperties
 import com.airbnb.lottie.compose.rememberLottieDynamicProperty
 import com.vikram.expressiveisland.R
+import com.vikram.expressiveisland.core.SystemEventFamily
 import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.IconSource
+import com.vikram.expressiveisland.overlay.MaterialIconCatalog
 import com.vikram.expressiveisland.overlay.animatedIcon
 import com.vikram.expressiveisland.overlay.animationLoopsByDefault
 import com.vikram.expressiveisland.overlay.forRole
 import com.vikram.expressiveisland.overlay.loadImageBitmapOrNull
-import com.vikram.expressiveisland.overlay.MaterialIconCatalog
 import com.vikram.expressiveisland.overlay.onForRole
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
-import com.vikram.expressiveisland.ui.screen.AdjustableSlider
-import com.vikram.expressiveisland.ui.screen.SettingsToggleCard
+import com.vikram.expressiveisland.ui.components.ExpressivePillRow
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
@@ -89,6 +103,7 @@ internal fun EventIconsScreen(
     val dynamicColorOpacity by viewModel.eventDynamicColorOpacity.collectAsStateWithLifecycle()
     val animatedIcons by viewModel.eventAnimatedIcons.collectAsStateWithLifecycle()
     val animatedIconLoops by viewModel.eventAnimatedIconLoops.collectAsStateWithLifecycle()
+    var selectedFamily by remember { mutableStateOf<SystemEventFamily?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -96,58 +111,214 @@ internal fun EventIconsScreen(
             modifier = Modifier.clip(shape = RoundedCornerShape(24.dp)),
             contentPadding = contentPadding
         ) {
-            val lastIndex = SystemEventType.entries.lastIndex
-            // The dynamic-colour toggle is the top row of the same grouped list, so it carries the
-            // group's rounded top corners; the events below flow on beneath it.
             item(key = "dynamic_container") {
                 Column(
-                    modifier = Modifier.padding(bottom = 8.dp)
-                        .clip(shape = RoundedCornerShape(32.dp)),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier
+                        .padding(bottom = 8.dp)
+                        .clip(RoundedCornerShape(32.dp)),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     SettingsToggleCard(
                         shape = RoundedCornerShape(4.dp),
                         title = stringResource(R.string.dynamic_event_color),
                         description = stringResource(R.string.dynamic_event_color_desc),
                         checked = dynamicColor,
-                        onCheckedChange = { viewModel.setEventDynamicColor(it) },
+                        onCheckedChange = {
+                            viewModel.setEventDynamicColor(it)
+                        },
                     )
 
-                    // The role picker + opacity slider only make sense while dynamic colour is on.
                     AnimatedVisibility(visible = dynamicColor) {
                         DynamicColorOptionsCard(
                             shape = RoundedCornerShape(4.dp),
                             role = dynamicColorRole,
                             opacity = dynamicColorOpacity,
-                            onRoleChange = { viewModel.setEventDynamicColorRole(it) },
-                            onOpacityChange = { viewModel.setEventDynamicColorOpacity(it) },
+                            onRoleChange = {
+                                viewModel.setEventDynamicColorRole(it)
+                            },
+                            onOpacityChange = {
+                                viewModel.setEventDynamicColorOpacity(it)
+                            },
                         )
                     }
                 }
             }
+            
+            itemsIndexed(
+                SystemEventFamily.entries,
+                key = { _, family -> family.name },
+            ) { index, family ->
+                val topRadius = if (index == 0) 24.dp else 4.dp
+                val bottomRadius =
+                    if (index == SystemEventFamily.entries.lastIndex) 24.dp else 4.dp
 
-            itemsIndexed(SystemEventType.entries, key = { _, type -> type.name }) { index, type ->
-                // Grouped list: 4dp between, and the last event carries the group's rounded bottom
-                // corners (the toggle above holds the top ones).
-                val shape = RoundedCornerShape(
-                    topStart = if (index == 0) 32.dp else 4.dp,
-                    topEnd = if (index == 0) 32.dp else 4.dp,
-                    bottomStart = if (index == lastIndex) 32.dp else 4.dp,
-                    bottomEnd = if (index == lastIndex) 32.dp else 4.dp,
-                )
-                EventIconCard(
-                    type = type,
-                    source = customIcons[type],
-                    shape = shape,
-                    enabled = eventEnabled[type] != false,
+                EventFamilyCard(
+                    family = family,
+                    shape = RoundedCornerShape(
+                        topStart = topRadius,
+                        topEnd = topRadius,
+                        bottomStart = bottomRadius,
+                        bottomEnd = bottomRadius,
+                    ),
+                    source = customIcons[family.members.first()],
                     dynamicColor = dynamicColor,
                     dynamicColorRole = dynamicColorRole,
                     dynamicColorOpacity = dynamicColorOpacity,
-                    animate = animatedIcons[type] ?: true,
-                    loop = animatedIconLoops[type] ?: type.animationLoopsByDefault(),
-                    onEnabledChange = { viewModel.setEventEnabled(type, it) },
-                    onClick = { onOpenEvent(type) },
+                    animate = animatedIcons[family.members.first()] ?: true,
+                    loop = animatedIconLoops[family.members.first()]
+                        ?: family.members.first().animationLoopsByDefault(),
+                    eventEnabled = eventEnabled,
+                    onEnabledChange = {
+                        viewModel.setEventEnabled(family.members.first(), it)
+                    },
+                    onClick = {
+                        selectedFamily = family
+                    },
                 )
+            }
+        }
+    }
+
+    selectedFamily?.let { family ->
+        EventFamilySheet(
+            family = family,
+            viewModel = viewModel,
+            customIcons = customIcons,
+            eventEnabled = eventEnabled,
+            dynamicColor = dynamicColor,
+            dynamicColorRole = dynamicColorRole,
+            dynamicColorOpacity = dynamicColorOpacity,
+            animatedIcons = animatedIcons,
+            animatedIconLoops = animatedIconLoops,
+            onDismiss = {
+                selectedFamily = null
+            },
+        )
+    }
+}
+
+@Composable
+private fun EventFamilyCard(
+    family: SystemEventFamily,
+    shape: Shape,
+    source: IconSource?,
+    dynamicColor: Boolean,
+    dynamicColorRole: DynamicRole,
+    dynamicColorOpacity: Float,
+    animate: Boolean,
+    loop: Boolean,
+    eventEnabled: Map<SystemEventType, Boolean>,
+    onEnabledChange: (Boolean) -> Unit,
+    onClick: () -> Unit,
+) {
+    val context = LocalContext.current
+
+    val familyEnabled =
+        family.members.all { eventEnabled[it] != false }
+
+    SettingsToggleNavCard(
+        shape = shape,
+        title = stringResource(family.labelRes),
+        description = context.getString(family.descriptionRes),
+        checked = familyEnabled,
+        onCheckedChange = onEnabledChange,
+        onClick = onClick,
+        leading = {
+            EventIconThumbnail(
+                type = family.members.first(),
+                source = source,
+                dynamicColor = dynamicColor,
+                dynamicColorRole = dynamicColorRole,
+                dynamicColorOpacity = dynamicColorOpacity,
+                animate = animate,
+                loop = loop,
+                size = 48.dp,
+            )
+        },
+    )
+}
+
+@Composable
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+private fun EventFamilySheet(
+    family: SystemEventFamily,
+    viewModel: AppViewModel,
+    customIcons: Map<SystemEventType, IconSource>,
+    eventEnabled: Map<SystemEventType, Boolean>,
+    dynamicColor: Boolean,
+    dynamicColorRole: DynamicRole,
+    dynamicColorOpacity: Float,
+    animatedIcons: Map<SystemEventType, Boolean>,
+    animatedIconLoops: Map<SystemEventType, Boolean>,
+    onDismiss: () -> Unit,
+) {
+    val pagerState = rememberPagerState(
+        pageCount = { family.members.size },
+    )
+
+    val scope = rememberCoroutineScope()
+
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+    )
+
+    LaunchedEffect(family) {
+        sheetState.show()
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.8f),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringResource(family.labelRes),
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 8.dp),
+            )
+
+            ExpressivePillRow(
+                options = family.members.map {
+                    stringResource(it.tabLabelRes)
+                },
+                selectedIndex = pagerState.currentPage,
+                onSelect = { index ->
+                    scope.launch {
+                        pagerState.animateScrollToPage(index)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 24.dp),
+            )
+
+            HorizontalPager(
+                state = pagerState,
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                pageSpacing = 8.dp,
+            ) { page ->
+                Crossfade(
+                    targetState = family.members[page],
+                    label = "familySettingsMode",
+                ) { type ->
+                    EventDetailScreen(
+                        type = type,
+                        viewModel = viewModel,
+                        contentPadding = PaddingValues(
+                            start = 8.dp,
+                            end = 8.dp,
+                            bottom = 24.dp,
+                        ),
+                    )
+                }
             }
         }
     }
@@ -359,7 +530,9 @@ internal fun EventIconThumbnail(
     val overrideColor = colorOverride?.resolve()
     val targetBadge = when {
         overrideColor != null -> overrideColor.copy(alpha = 0.18f)
-        dynamicColor -> MaterialTheme.colorScheme.forRole(dynamicColorRole).copy(alpha = dynamicColorOpacity)
+        dynamicColor -> MaterialTheme.colorScheme.forRole(dynamicColorRole)
+            .copy(alpha = dynamicColorOpacity)
+
         else -> Color(type.accent).copy(alpha = 0.18f)
     }
     val badgeColor by animateColorAsState(targetBadge, label = "eventBadgeColor")
@@ -380,7 +553,8 @@ internal fun EventIconThumbnail(
     }
 
     // A Material-icon override renders as a tinted vector glyph (like the default), rather than a raster.
-    val materialIcon = (source as? IconSource.Material)?.let { MaterialIconCatalog.iconFor(it.iconName) }
+    val materialIcon =
+        (source as? IconSource.Material)?.let { MaterialIconCatalog.iconFor(it.iconName) }
 
     // Events that render as motion on the cutout (e.g. the charging bolt) preview their animation here
     // so it's visible at a glance — unless the user turned the animated icon off. A custom image/app
@@ -399,7 +573,9 @@ internal fun EventIconThumbnail(
             loaded != null -> Image(
                 bitmap = loaded,
                 contentDescription = null,
-                modifier = Modifier.size(32.dp * sizeScale).clip(CircleShape),
+                modifier = Modifier
+                    .size(32.dp * sizeScale)
+                    .clip(CircleShape),
             )
 
             materialIcon != null -> Icon(

@@ -91,6 +91,10 @@ class CutoutNotificationListenerService : NotificationListenerService() {
 
     private val behaviourPreferences by lazy { BehaviourPreferences(this) }
 
+    private val alerter by lazy {
+        NotificationAlerter(this)
+    }
+
     private var behaviourJob: Job? = null
 
     // Mirror of BehaviourSettings.dismissNotifications, cached because onNotificationPosted runs on
@@ -100,6 +104,12 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     // Mirror of BehaviourSettings.displayWhileDnd, cached alongside [dismissNotifications] and for
     // the same reason. Main-thread only, like the key fields.
     private var displayWhileDnd = BehaviourSettings.DEFAULT_DISPLAY_WHILE_DND
+
+    /**
+     * Whether the island should ring/vibrate when a notification surfaces.
+     */
+    private var alertOnNotification =
+        BehaviourSettings.DEFAULT_ALERT_ON_NOTIFICATION
 
     // Keys currently held out of the shade because the island is showing them, mapped to the
     // elapsed-realtime at which the hold expires on its own. Timestamped rather than a bare set
@@ -131,6 +141,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     override fun onDestroy() {
         if (instance === this) instance = null
         _bound.value = false
+        alerter.stop()
         scope.cancel()
         super.onDestroy()
     }
@@ -149,6 +160,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
                 .collect { settings ->
                     dismissNotifications = settings.dismissNotifications
                     displayWhileDnd = settings.displayWhileDnd
+                    alertOnNotification = settings.alertOnNotification
                 }
         }
     }
@@ -353,6 +365,8 @@ class CutoutNotificationListenerService : NotificationListenerService() {
 
         IslandEventBus.emit(islandEvent)
 
+        alertFor(sbn)
+
         // Never hold a transfer still running: it re-posts on every step, so holding it would fight
         // the download for the shade and hide the very bar the user wants to watch. Its completion
         // notice carries no progress, so that one auto-dismisses normally.
@@ -529,6 +543,34 @@ class CutoutNotificationListenerService : NotificationListenerService() {
             isAmbient = if (found) ranking.isAmbient else false,
             priority = sbn.notification?.priority ?: Notification.PRIORITY_DEFAULT,
         )
+    }
+
+    private fun alertFor(sbn: StatusBarNotification) {
+        if (!alertOnNotification) return
+
+        val ranking = Ranking()
+
+        if (currentRanking?.getRanking(
+                sbn.key,
+                ranking,
+            ) != true
+        ) {
+            return
+        }
+
+        if (!ranking.matchesInterruptionFilter()) {
+            return
+        }
+
+        val channel = ranking.channel
+        val importance = ranking.importance
+
+        scope.launch(Dispatchers.IO) {
+            alerter.alert(
+                channel = channel,
+                importance = importance,
+            )
+        }
     }
 
     override fun onNotificationRankingUpdate(rankingMap: RankingMap) {

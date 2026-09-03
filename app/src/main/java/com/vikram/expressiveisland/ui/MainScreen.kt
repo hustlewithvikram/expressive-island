@@ -196,7 +196,9 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                 AnimatedContent(
                     targetState = current,
                     transitionSpec = {
-                        slideInHorizontally(tween(220, delayMillis = 90)) togetherWith slideOutHorizontally(tween(90))
+                        pageTransition(
+                            viewModel.appearance.value.pageTransitionStyle
+                        )
                     },
                     label = "homeTab",
                 ) { tab ->

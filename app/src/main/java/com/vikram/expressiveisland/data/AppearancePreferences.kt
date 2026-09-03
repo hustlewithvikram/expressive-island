@@ -56,6 +56,7 @@ data class AppearanceSettings(
     val replyInputStyle: ReplyInputStyle = DEFAULT_REPLY_INPUT_STYLE,
     val cancelButtonOnLeft: Boolean = DEFAULT_CANCEL_ON_LEFT,
     val sentAlignment: SentAlignment = DEFAULT_SENT_ALIGNMENT,
+    val pageTransitionStyle: PageTransitionStyle = DEFAULT_PAGE_TRANSITION_STYLE,
 ) {
     companion object {
         const val DEFAULT_SHADOW_ENABLED = true
@@ -88,6 +89,7 @@ data class AppearanceSettings(
         const val DEFAULT_CANCEL_ON_LEFT = false
         /** The confirmation historically hugged the leading edge. */
         val DEFAULT_SENT_ALIGNMENT = SentAlignment.LEFT
+        val DEFAULT_PAGE_TRANSITION_STYLE = PageTransitionStyle.FADE
         const val DEFAULT_ACTION_BUTTON_HEIGHT_DP = 44
         const val MIN_ACTION_BUTTON_HEIGHT_DP = 36
         const val MAX_ACTION_BUTTON_HEIGHT_DP = 56
@@ -131,6 +133,9 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
             cancelButtonOnLeft = prefs[CANCEL_ON_LEFT] ?: AppearanceSettings.DEFAULT_CANCEL_ON_LEFT,
             sentAlignment = SentAlignment.deserialize(prefs[SENT_ALIGNMENT])
                 ?: AppearanceSettings.DEFAULT_SENT_ALIGNMENT,
+            pageTransitionStyle = PageTransitionStyle.deserialize(
+                prefs[PAGE_TRANSITION_STYLE],
+            ) ?: AppearanceSettings.DEFAULT_PAGE_TRANSITION_STYLE,
             showSourceAppName = prefs[SHOW_SOURCE_APP_NAME] ?: AppearanceSettings.DEFAULT_SHOW_SOURCE_APP_NAME,
             showTimestamp = prefs[SHOW_TIMESTAMP] ?: AppearanceSettings.DEFAULT_SHOW_TIMESTAMP,
             showFullNotificationText = prefs[SHOW_FULL_NOTIFICATION_TEXT] ?: AppearanceSettings.DEFAULT_SHOW_FULL_NOTIFICATION_TEXT,
@@ -160,6 +165,7 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
             put("replyInputStyle", s.replyInputStyle.name)
             put("cancelButtonOnLeft", s.cancelButtonOnLeft)
             put("sentAlignment", s.sentAlignment.name)
+            put("pageTransitionStyle", s.pageTransitionStyle.name)
             put("showSourceAppName", s.showSourceAppName)
             put("showTimestamp", s.showTimestamp)
             put("showFullNotificationText", s.showFullNotificationText)
@@ -215,8 +221,17 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
             if (obj.has("showFullNotificationText")) {
                 it[SHOW_FULL_NOTIFICATION_TEXT] = obj.getBoolean("showFullNotificationText")
             }
+
             if (obj.has("preferDynamicIconColor")) {
                 it[PREFER_DYNAMIC_ICON_COLOR] = obj.getBoolean("preferDynamicIconColor")
+            }
+
+            if (obj.has("pageTransitionStyle")) {
+                PageTransitionStyle.entries.firstOrNull {
+                    it.name == obj.optString("pageTransitionStyle")
+                }?.let { style ->
+                    it[PAGE_TRANSITION_STYLE] = style.name
+                }
             }
         }
     }
@@ -338,6 +353,11 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
             it[PREFER_DYNAMIC_ICON_COLOR] = enabled
         }
 
+    suspend fun setPageTransitionStyle(style: PageTransitionStyle) =
+        context.appearanceDataStore.edit {
+            it[PAGE_TRANSITION_STYLE] = style.name
+        }
+
     private companion object {
         val SHADOW_ENABLED = booleanPreferencesKey("shadow_enabled")
         val STROKE_ENABLED = booleanPreferencesKey("stroke_enabled")
@@ -360,12 +380,13 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
         val REPLY_INPUT_STYLE = stringPreferencesKey("reply_input_style")
         val CANCEL_ON_LEFT = booleanPreferencesKey("cancel_button_on_left")
         val SENT_ALIGNMENT = stringPreferencesKey("sent_alignment")
-
         val SHOW_SOURCE_APP_NAME = booleanPreferencesKey("show_source_app_name")
         val SHOW_TIMESTAMP = booleanPreferencesKey("show_timestamp")
         val SHOW_FULL_NOTIFICATION_TEXT =
             booleanPreferencesKey("show_full_notification_text")
         val PREFER_DYNAMIC_ICON_COLOR =
             booleanPreferencesKey("prefer_dynamic_icon_color")
+        val PAGE_TRANSITION_STYLE =
+            stringPreferencesKey("page_transition_style")
     }
 }

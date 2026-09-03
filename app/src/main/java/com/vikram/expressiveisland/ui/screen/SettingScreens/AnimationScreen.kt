@@ -1,5 +1,7 @@
 package com.vikram.expressiveisland.ui.screen
 
+import android.annotation.SuppressLint
+import android.widget.Space
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -41,6 +43,7 @@ import com.vikram.expressiveisland.data.AnimationBounce
 import com.vikram.expressiveisland.data.AnimationSpeed
 import com.vikram.expressiveisland.data.AnimationStyle
 import com.vikram.expressiveisland.data.BehaviourSettings
+import com.vikram.expressiveisland.data.PageTransitionStyle
 import com.vikram.expressiveisland.overlay.IslandMotion
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
@@ -58,12 +61,14 @@ private fun groupedShape(
     bottomEnd = if (isLast) 28.dp else 6.dp,
 )
 
+@SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 internal fun AnimationScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
 ) {
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
+    val appearance by viewModel.appearance.collectAsStateWithLifecycle()
 
     var animationMs by remember(behaviour.animationDurationMs) {
         mutableStateOf(behaviour.animationDurationMs.toFloat())
@@ -209,6 +214,20 @@ internal fun AnimationScreen(
                 viewModel.setActionButtonAnimation(
                     ActionButtonAnimation.entries[it]
                 )
+            },
+        )
+
+        AnimationSegmentedRow(
+            shape = groupedShape(isFirst = true, isLast = true),
+            label = stringResource(R.string.appearance_page_transition_title),
+            description = stringResource(R.string.appearance_page_transition_desc),
+            options = listOf(
+                stringResource(R.string.appearance_page_transition_fade),
+                stringResource(R.string.appearance_page_transition_slide),
+            ),
+            selectedIndex = appearance.pageTransitionStyle.ordinal,
+            onSelect = { index ->
+                viewModel.setPageTransitionStyle(PageTransitionStyle.entries[index])
             },
         )
 
@@ -479,6 +498,7 @@ private fun ExamplePill(
 private fun AnimationSegmentedRow(
     shape: Shape,
     label: String,
+    description: String = "",
     options: List<String>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
@@ -501,6 +521,15 @@ private fun AnimationSegmentedRow(
                 text = label,
                 style = MaterialTheme.typography.titleSmall,
             )
+
+            Spacer(modifier = Modifier.height(1.dp))
+
+            if(description.isNotEmpty() || description.isNotBlank()) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
 
             ExpressiveSegmentedRow(
                 options = options,

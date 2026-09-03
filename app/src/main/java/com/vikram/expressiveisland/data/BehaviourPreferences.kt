@@ -8,7 +8,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.vikram.expressiveisland.overlay.DEFAULT_SATELLITE_POSITION
+import com.vikram.expressiveisland.data.BehaviourPreferences.Companion.HIDE_IN_LANDSCAPE
+import com.vikram.expressiveisland.data.BehaviourPreferences.Companion.HORIZONTAL_CUTOUT_MODE
 import com.vikram.expressiveisland.overlay.SatellitePosition
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -105,6 +106,7 @@ data class BehaviourSettings(
     val hapticsOnPop: Boolean = DEFAULT_HAPTICS_ON_POP,
     val dismissNotifications: Boolean = DEFAULT_DISMISS_NOTIFICATIONS,
     val displayWhileDnd: Boolean = DEFAULT_DISPLAY_WHILE_DND,
+    val alertOnNotification: Boolean = DEFAULT_ALERT_ON_NOTIFICATION,
     val splitIslandEnabled: Boolean = DEFAULT_SPLIT_ISLAND_ENABLED,
     val satellitePosition: SatellitePosition = DEFAULT_SATELLITE_POSITION,
 ) {
@@ -146,6 +148,7 @@ data class BehaviourSettings(
         const val CENTER_THEMED_ICONS = false
         const val DEFAULT_DISMISS_NOTIFICATIONS = false
         const val DEFAULT_DISPLAY_WHILE_DND = false
+        const val DEFAULT_ALERT_ON_NOTIFICATION = false
         const val DEFAULT_SPLIT_ISLAND_ENABLED = true
         val DEFAULT_SATELLITE_POSITION = SatellitePosition.RIGHT
     }
@@ -220,7 +223,15 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             /** If enabled, remove Android notification pop-ups */
             dismissNotifications = prefs[DISMISS_NOTIFICATIONS] ?: BehaviourSettings.DEFAULT_DISMISS_NOTIFICATIONS,
             /** If enabled, notification cutout appears even when Do not disturb is enabled */
-            displayWhileDnd = prefs[DISPLAY_WHILE_DND] ?: BehaviourSettings.DEFAULT_DISPLAY_WHILE_DND
+            displayWhileDnd = prefs[DISPLAY_WHILE_DND] ?: BehaviourSettings.DEFAULT_DISPLAY_WHILE_DND,
+            splitIslandEnabled = prefs[SPLIT_ISLAND_ENABLED]
+            ?: BehaviourSettings.DEFAULT_SPLIT_ISLAND_ENABLED,
+            satellitePosition = prefs[SATELLITE_POSITION]
+                ?.let { runCatching { SatellitePosition.valueOf(it) }.getOrNull() }
+                ?: BehaviourSettings.DEFAULT_SATELLITE_POSITION,
+            alertOnNotification =
+                prefs[ALERT_ON_NOTIFICATION]
+                    ?: BehaviourSettings.DEFAULT_ALERT_ON_NOTIFICATION,
         )
     }
 
@@ -263,6 +274,9 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("hapticsOnPop", s.hapticsOnPop)
             put("dismissNotifications", s.dismissNotifications)
             put("displayWhileDnd", s.displayWhileDnd)
+            put("splitIslandEnabled", s.splitIslandEnabled)
+            put("satellitePosition", s.satellitePosition.name)
+            put("alertOnNotification", s.alertOnNotification)
         }.toString()
     }
 
@@ -330,6 +344,19 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             if (obj.has("hapticsOnPop")) it[HAPTICS_ON_POP] = obj.getBoolean("hapticsOnPop")
             if (obj.has("dismissNotifications")) it[DISMISS_NOTIFICATIONS] = obj.getBoolean("dismissNotifications")
             if (obj.has("displayWhileDnd")) it[DISPLAY_WHILE_DND] = obj.getBoolean("displayWhileDnd")
+
+            if (obj.has("splitIslandEnabled")) {
+                it[SPLIT_ISLAND_ENABLED] = obj.getBoolean("splitIslandEnabled")
+            }
+
+            parseEnum<SatellitePosition>(obj, "satellitePosition")?.let { position ->
+                it[SATELLITE_POSITION] = position.name
+            }
+
+            if (obj.has("alertOnNotification")) {
+                it[ALERT_ON_NOTIFICATION] =
+                    obj.getBoolean("alertOnNotification")
+            }
         }
     }
 
@@ -507,6 +534,24 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[DISPLAY_WHILE_DND] = enabled
     }
 
+    suspend fun setAlertOnNotification(
+        enabled: Boolean,
+    ) {
+        context.behaviourDataStore.edit {
+            it[ALERT_ON_NOTIFICATION] = enabled
+        }
+    }
+
+    suspend fun setSplitIslandEnabled(enabled: Boolean) =
+        context.behaviourDataStore.edit {
+            it[SPLIT_ISLAND_ENABLED] = enabled
+        }
+
+    suspend fun setSatellitePosition(position: SatellitePosition) =
+        context.behaviourDataStore.edit {
+            it[SATELLITE_POSITION] = position.name
+        }
+
     private companion object {
         val CUTOUT_ENABLED = booleanPreferencesKey("cutout_enabled")
         val HIDE_ON_LOCKSCREEN = booleanPreferencesKey("hide_on_lockscreen")
@@ -543,5 +588,8 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val HAPTICS_ON_POP = booleanPreferencesKey("haptics_on_pop")
         val DISMISS_NOTIFICATIONS = booleanPreferencesKey("dismiss_notifications")
         val DISPLAY_WHILE_DND = booleanPreferencesKey("display_while_dnd")
+        val SPLIT_ISLAND_ENABLED = booleanPreferencesKey("split_island_enabled")
+        val SATELLITE_POSITION = stringPreferencesKey("satellite_position")
+        val ALERT_ON_NOTIFICATION = booleanPreferencesKey("alert_on_notification")
     }
 }

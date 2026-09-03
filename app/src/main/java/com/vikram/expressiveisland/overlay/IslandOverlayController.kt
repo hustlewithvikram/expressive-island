@@ -1028,7 +1028,10 @@ class IslandOverlayController(private val context: Context) {
         val margin = (TOUCH_MARGIN_DP * density).toInt()
         val centerX = viewWidth / 2 + (collapsed.offsetXDp * density).toInt() + satelliteShiftPx(splitDp)
         val step = pillWidthPx / 2 + gapPx + diameterPx / 2
-        val satelliteCenterX = centerX + step // bubble is on the right
+        val satelliteCenterX = when (behaviourState.value.satellitePosition) {
+            SatellitePosition.LEFT -> centerX - step
+            SatellitePosition.RIGHT -> centerX + step
+        }
         val topPx = (collapsed.offsetYDp * density).toInt()
         return Rect(
             (satelliteCenterX - diameterPx / 2 - margin).coerceAtLeast(0),
@@ -1128,7 +1131,14 @@ class IslandOverlayController(private val context: Context) {
         return if (remaining >= splitDp && remaining >= collapsed.heightDp * 2) splitDp else 0
     }
 
-    private fun satelliteShiftPx(splitDp: Int): Int = -(splitDp * density / 2f).roundToInt()
+    private fun satelliteShiftPx(splitDp: Int): Int {
+        val shift = (splitDp * density / 2f).roundToInt()
+
+        return when (behaviourState.value.satellitePosition) {
+            SatellitePosition.LEFT -> shift
+            SatellitePosition.RIGHT -> -shift
+        }
+    }
 
     private fun satelliteAllowed(displaced: IslandEvent, incoming: IslandEvent): Boolean {
         if (!behaviourState.value.splitIslandEnabled) return false

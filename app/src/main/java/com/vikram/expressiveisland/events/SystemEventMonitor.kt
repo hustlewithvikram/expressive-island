@@ -1,5 +1,7 @@
 package com.vikram.expressiveisland.events
 
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -25,7 +27,9 @@ import com.vikram.expressiveisland.core.WifiBus
 import com.vikram.expressiveisland.core.WifiState
 import kotlin.math.abs
 import android.net.LinkProperties
+import android.net.NetworkCapabilities.TRANSPORT_VPN
 import android.net.wifi.WifiInfo
+import android.provider.Settings
 import android.util.Log
 import com.vikram.expressiveisland.core.BatteryBus
 import com.vikram.expressiveisland.core.BatteryState
@@ -54,8 +58,23 @@ class SystemEventMonitor(private val context: Context) {
     private val connectivityManager =
         context.getSystemService<ConnectivityManager>()
 
+    private val bluetoothManager =
+        context.getSystemService<BluetoothManager>()
+
+    private val vpnNetworks = mutableSetOf<Network>()
+    private val bluetoothDevices = mutableSetOf<String>()
+
     @Volatile
     private var isLowBatteryState = false
+
+    @Volatile
+    private var wasBatteryFull = false
+
+    @Volatile
+    private var wasHotspotEnabled = false
+
+    @Volatile
+    private var lastRingerMode = AudioManager.RINGER_MODE_NORMAL
 
     private val broadcastReceiver = object : BroadcastReceiver() {
 
@@ -65,15 +84,13 @@ class SystemEventMonitor(private val context: Context) {
 
                 Intent.ACTION_POWER_CONNECTED -> {
                     isLowBatteryState = false
-
                     updateChargingState(intent)
-
                     emit(SystemEventType.CHARGING_STARTED)
                 }
 
                 Intent.ACTION_POWER_DISCONNECTED -> {
+                    wasBatteryFull = false
                     ChargingBus.update(null)
-
                     emit(SystemEventType.CHARGING_STOPPED)
                 }
 
@@ -92,17 +109,101 @@ class SystemEventMonitor(private val context: Context) {
                     isLowBatteryState = false
                 }
 
-                Intent.ACTION_SCREEN_OFF -> 
+                Intent.ACTION_SCREEN_OFF ->
                     emit(SystemEventType.DEVICE_LOCKED)
 
                 Intent.ACTION_USER_PRESENT ->
                     emit(SystemEventType.DEVICE_UNLOCKED)
 
-                UsbManager.ACTION_USB_DEVICE_ATTACHED ->
+                UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
                     emit(SystemEventType.USB_MOUNTED)
 
-                UsbManager.ACTION_USB_DEVICE_DETACHED ->
+                    if (isAdbConnection(intent)) {
+                        emit(SystemEventType.ADB_CONNECTED)
+                    }
+                }
+
+                UsbManager.ACTION_USB_DEVICE_DETACHED -> {
                     emit(SystemEventType.USB_UNMOUNTED)
+
+                    if (isAdbConnection(intent)) {
+                        emit(SystemEventType.ADB_DISCONNECTED)
+                    }
+                }
+
+                BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                    val device = intent.getParcelableExtra<BluetoothDevice>(
+                        BluetoothDevice.EXTRA_DEVICE
+                    )
+
+                    device?.address?.let { address ->
+                        if (bluetoothDevices.add(address)) {
+                            emit(SystemEventType.BLUETOOTH_CONNECTED)
+                        }
+                    }
+                }
+
+                BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                    val device = intent.getParcelableExtra<BluetoothDevice>(
+                        BluetoothDevice.EXTRA_DEVICE
+                    )
+
+                    device?.address?.let { address ->
+                        if (bluetoothDevices.remove(address)) {
+                            emit(SystemEventType.BLUETOOTH_DISCONNECTED)
+                        }
+                    }
+                }
+
+                "android.net.wifi.WIFI_AP_STATE_CHANGED" -> {
+                    val state = intent.getIntExtra(
+                        "wifi_state",
+                        -1,
+                    )
+
+                    when (state) {
+                        13 -> {
+                            if (!wasHotspotEnabled) {
+                                wasHotspotEnabled = true
+                                emit(SystemEventType.HOTSPOT_ENABLED)
+                            }
+                        }
+
+                        11 -> {
+                            if (wasHotspotEnabled) {
+                                wasHotspotEnabled = false
+                                emit(SystemEventType.HOTSPOT_DISABLED)
+                            }
+                        }
+                    }
+                }
+
+                AudioManager.RINGER_MODE_CHANGED_ACTION -> {
+                    val mode = intent.getIntExtra(
+                        AudioManager.EXTRA_RINGER_MODE,
+                        AudioManager.RINGER_MODE_NORMAL,
+                    )
+
+                    if (mode == lastRingerMode) {
+                        return
+                    }
+
+                    lastRingerMode = mode
+
+                    when (mode) {
+                        AudioManager.RINGER_MODE_NORMAL -> {
+                            emit(SystemEventType.RINGER_NORMAL)
+                        }
+
+                        AudioManager.RINGER_MODE_VIBRATE -> {
+                            emit(SystemEventType.RINGER_VIBRATE)
+                        }
+
+                        AudioManager.RINGER_MODE_SILENT -> {
+                            emit(SystemEventType.RINGER_SILENT)
+                        }
+                    }
+                }
             }
         }
     }
@@ -110,7 +211,7 @@ class SystemEventMonitor(private val context: Context) {
     private val audioDeviceCallback = object : AudioDeviceCallback() {
 
         override fun onAudioDevicesAdded(
-            addedDevices: Array<out AudioDeviceInfo>
+            addedDevices: Array<out AudioDeviceInfo>,
         ) {
             addedDevices
                 .firstOrNull { it.isHeadphone }
@@ -127,7 +228,7 @@ class SystemEventMonitor(private val context: Context) {
         }
 
         override fun onAudioDevicesRemoved(
-            removedDevices: Array<out AudioDeviceInfo>
+            removedDevices: Array<out AudioDeviceInfo>,
         ) {
             if (removedDevices.any { it.isHeadphone }) {
                 emit(SystemEventType.HEADPHONES_DISCONNECTED)
@@ -139,10 +240,12 @@ class SystemEventMonitor(private val context: Context) {
         object : ConnectivityManager.NetworkCallback() {
 
             override fun onAvailable(network: Network) {
-                Log.d(
-                    "WifiDebug",
-                    "onAvailable() network=$network"
-                )
+                val capabilities = connectivityManager?.getNetworkCapabilities(network)
+
+                if (capabilities?.hasTransport(TRANSPORT_VPN) == true) {
+                    vpnNetworks.add(network)
+                    emit(SystemEventType.VPN_CONNECTED)
+                }
 
                 emit(SystemEventType.WIFI_CONNECTED)
             }
@@ -179,10 +282,9 @@ class SystemEventMonitor(private val context: Context) {
             }
 
             override fun onLost(network: Network) {
-                Log.d(
-                    "WifiDebug",
-                    "onLost() network=$network"
-                )
+                if (vpnNetworks.remove(network)) {
+                    emit(SystemEventType.VPN_DISCONNECTED)
+                }
 
                 WifiBus.update(null)
 
@@ -381,7 +483,24 @@ class SystemEventMonitor(private val context: Context) {
         }
     }
 
+    private fun isAdbConnection(intent: Intent): Boolean {
+        val device =
+            intent.getParcelableExtra<android.hardware.usb.UsbDevice>(
+                UsbManager.EXTRA_DEVICE
+            ) ?: return false
+
+        return device.interfaceCount > 0 &&
+                (0 until device.interfaceCount).any { index ->
+                    device.getInterface(index).interfaceClass == 255 &&
+                            device.getInterface(index).interfaceSubclass == 66 &&
+                            device.getInterface(index).interfaceProtocol == 1
+                }
+    }
+
     fun start() {
+
+        lastRingerMode = audioManager?.ringerMode
+            ?: AudioManager.RINGER_MODE_NORMAL
 
         ContextCompat.registerReceiver(
             context,
@@ -411,7 +530,6 @@ class SystemEventMonitor(private val context: Context) {
     }
 
     fun stop() {
-
         runCatching {
             context.unregisterReceiver(broadcastReceiver)
         }
@@ -423,6 +541,10 @@ class SystemEventMonitor(private val context: Context) {
         connectivityManager?.unregisterNetworkCallback(
             networkCallback
         )
+
+        vpnNetworks.clear()
+        bluetoothDevices.clear()
+        wasHotspotEnabled = false
 
         ChargingBus.update(null)
         WifiBus.update(null)
@@ -440,8 +562,16 @@ class SystemEventMonitor(private val context: Context) {
                     status == BatteryManager.BATTERY_STATUS_FULL
 
         if (!isCharging) {
+            wasBatteryFull = false
             ChargingBus.update(null)
             return
+        }
+
+        if (status == BatteryManager.BATTERY_STATUS_FULL && !wasBatteryFull) {
+            wasBatteryFull = true
+            emit(SystemEventType.CHARGING_COMPLETE)
+        } else if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
+            wasBatteryFull = false
         }
 
         val level = intent.getIntExtra(
@@ -552,11 +682,18 @@ class SystemEventMonitor(private val context: Context) {
             addAction(Intent.ACTION_BATTERY_OKAY)
 
             addAction(Intent.ACTION_SCREEN_OFF)
-            
+
             addAction(Intent.ACTION_USER_PRESENT)
 
             addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
             addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+
+            addAction("android.net.wifi.WIFI_AP_STATE_CHANGED")
+
+            addAction(AudioManager.RINGER_MODE_CHANGED_ACTION)
         }
 
     private fun wifiRequest() =
