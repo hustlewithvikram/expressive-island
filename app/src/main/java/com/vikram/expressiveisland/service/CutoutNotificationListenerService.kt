@@ -45,7 +45,7 @@ data class ProgressData(
     val max: Int = 0,
     val current: Int = 0,
     val isIndeterminate: Boolean = false,
-    val title: String? = null
+    val title: String? = null,
 )
 
 /**
@@ -127,10 +127,26 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     // todo
     private var currentRanking: RankingMap? = null
 
+    /**
+     * Republishes the cover from the media notifications already on the panel.
+     *
+     * The framework only delivers onNotificationPosted() for notifications posted
+     * after a bind. On a rebind, an already-playing media notification would
+     * otherwise never be seen again, leaving the music tile without album art.
+     *
+     * Oldest first, so the most recently posted media notification is the one
+     * left published.
+     */
+    private fun seedMediaArt() {
+        val active = runCatching { activeNotifications }.getOrNull() ?: return
+        active.sortedBy { it.postTime }.forEach { it.publishMediaArt() }
+    }
+
     override fun onListenerConnected() {
         instance = this
         _bound.value = true
         observeBehaviour()
+        seedMediaArt()
     }
 
     override fun onListenerDisconnected() {
@@ -146,7 +162,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         super.onDestroy()
     }
 
-     /**
+    /**
      * Keep [dismissNotifications] and [displayWhileDnd] in step with the stored behaviour settings.
      * The collection outlives a disconnect (the framework re-uses the same instance on rebind, and a
      * cancelled scope could not be restarted), so it is only torn down in [onDestroy] and re-entry is
@@ -165,7 +181,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         }
     }
 
-     /**
+    /**
      * Whether Do Not Disturb should keep this notification off the island. Reads the effective
      * interruption filter rather than Settings.Global.zen_mode: that global only tracks the manual
      * toggle, so a filter in force through a schedule, an automatic rule or a Mode leaves it at zero
@@ -181,7 +197,9 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         return when (currentInterruptionFilter) {
             INTERRUPTION_FILTER_PRIORITY,
             INTERRUPTION_FILTER_ALARMS,
-            INTERRUPTION_FILTER_NONE -> true
+            INTERRUPTION_FILTER_NONE,
+                -> true
+
             else -> false
         }
     }
@@ -325,7 +343,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         // Music
         notification.publishMediaArt()
 
-         // A held notification coming back. The user acted on its pill, so now that the framework has
+        // A held notification coming back. The user acted on its pill, so now that the framework has
         // handed it back — and it can be cancelled at all — kill it before any of it reaches the
         // panel. Checked ahead of every filter below: whatever the island would make of it now, this
         // one is already spoken for.
@@ -466,7 +484,8 @@ class CutoutNotificationListenerService : NotificationListenerService() {
      */
     private fun Notification.surfaceableActions(): List<CutoutSignal.Notification.Action> =
         actions.orEmpty().mapNotNull { action ->
-            val title = action.title?.toString()?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val title =
+                action.title?.toString()?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
             val intent = action.actionIntent ?: return@mapNotNull null
             CutoutSignal.Notification.Action(title, intent, action.toReplyInput())
         }
@@ -641,7 +660,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
             instance?.discard(key, onlyIfHeld = false)
         }
 
-         /**
+        /**
          * The user acted on the pill mirroring [key] — tapped it, fired an action, sent a reply — so
          * a notification we were holding back has served its purpose and must not resurface. Only
          * touches keys we hold ourselves: one the app still owns is the app's to clear, exactly as
@@ -655,7 +674,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
          * The pill mirroring [key] went away without the user acting on it — it timed out, or another
          * event took the island over. A notification held back for it is handed to the notification
          * panel now, landing as the pill fades. A no-op for a notification we never held.
-        */
+         */
         fun release(key: String) {
             instance?.releaseHeld(key)
         }

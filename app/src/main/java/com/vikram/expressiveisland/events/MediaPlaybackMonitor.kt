@@ -26,9 +26,11 @@ import com.vikram.expressiveisland.overlay.toArtImageBitmap
 import com.vikram.expressiveisland.service.CutoutNotificationListenerService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 /**
  * Watches the device's active media sessions and drives the music tile. It keeps [NowPlayingBus]
@@ -41,7 +43,8 @@ import kotlinx.coroutines.launch
 class MediaPlaybackMonitor(private val context: Context) {
 
     private val sessionManager = context.getSystemService<MediaSessionManager>()
-    private val listenerComponent = ComponentName(context, CutoutNotificationListenerService::class.java)
+    private val listenerComponent =
+        ComponentName(context, CutoutNotificationListenerService::class.java)
     private val dynamicTilePreferences = DynamicTilePreferences(context)
     private val appPreferences = AppPreferences(context)
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -57,6 +60,9 @@ class MediaPlaybackMonitor(private val context: Context) {
 
     // The track last surfaced as a "show" signal, so we don't re-pop on every state tick.
     private var lastShownKey: String? = null
+
+    //
+    private var showJob: Job? = null
 
     private val sessionsListener =
         MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
@@ -85,12 +91,24 @@ class MediaPlaybackMonitor(private val context: Context) {
     }
 
     fun stop() {
-        sessionManager?.let { runCatching { it.removeOnActiveSessionsChangedListener(sessionsListener) } }
+        sessionManager?.let {
+            runCatching {
+                it.removeOnActiveSessionsChangedListener(
+                    sessionsListener
+                )
+            }
+        }
         watched.forEach { (controller, callback) -> controller.unregisterCallback(callback) }
         watched.clear()
         scope.coroutineContext.cancelChildren()
-        lastShownKey = null
+        clearPendingShow()
         NowPlayingBus.update(null)
+    }
+
+    private fun clearPendingShow() {
+        showJob?.cancel()
+        showJob = null
+        lastShownKey = null
     }
 
     /** Attach callbacks to newly active sessions and detach ones that have gone away. */
@@ -118,16 +136,16 @@ class MediaPlaybackMonitor(private val context: Context) {
     private fun isAssistantPackage(packageName: String): Boolean {
         val pkg = packageName.lowercase()
         return pkg == "com.google.android.googlequicksearchbox" ||
-            pkg == "com.google.android.apps.googleassistant" ||
-            pkg == "com.google.android.apps.bard" ||
-            pkg == "com.samsung.android.bixby.agent" ||
-            pkg == "com.samsung.android.bixby.service" ||
-            pkg == "com.amazon.dee.app" ||
-            pkg == "com.openai.chatgpt" ||
-            pkg == "com.microsoft.copilot" ||
-            pkg.contains("assistant") ||
-            pkg.contains("bixby") ||
-            pkg.contains("gemini")
+                pkg == "com.google.android.apps.googleassistant" ||
+                pkg == "com.google.android.apps.bard" ||
+                pkg == "com.samsung.android.bixby.agent" ||
+                pkg == "com.samsung.android.bixby.service" ||
+                pkg == "com.amazon.dee.app" ||
+                pkg == "com.openai.chatgpt" ||
+                pkg == "com.microsoft.copilot" ||
+                pkg.contains("assistant") ||
+                pkg.contains("bixby") ||
+                pkg.contains("gemini")
     }
 
     /**
@@ -146,10 +164,11 @@ class MediaPlaybackMonitor(private val context: Context) {
             }
         }
 
-        val primary = validControllers.firstOrNull { it.isPlaying } ?: validControllers.firstOrNull()
+        val primary =
+            validControllers.firstOrNull { it.isPlaying } ?: validControllers.firstOrNull()
         if (primary == null) {
             NowPlayingBus.update(null)
-            lastShownKey = null
+            clearPendingShow()
             return
         }
 
@@ -171,7 +190,7 @@ class MediaPlaybackMonitor(private val context: Context) {
         if (isAssistantPackage(primary.packageName)) {
             // Assistant sessions are handled exclusively via NotificationListenerService
             NowPlayingBus.update(null)
-            lastShownKey = null
+            clearPendingShow()
             return
         }
 
@@ -191,20 +210,26 @@ class MediaPlaybackMonitor(private val context: Context) {
 
         // Pop the island when a fresh track begins playing; reset when paused so a resume re-pops.
         if (!playing) {
-            lastShownKey = null
+            clearPendingShow()
             return
         }
+
         val key = "${primary.packageName}|$title|$artist"
-        if (key != lastShownKey) {
-            lastShownKey = key
-            IslandEventBus.emit(
-                CutoutSignal.Music(
-                    packageName = primary.packageName,
-                    title = title,
-                    artist = artist,
-                    contentIntent = primary.sessionActivity,
-                ),
-            )
+        if (key == lastShownKey) return
+
+        lastShownKey = key
+
+        val signal = CutoutSignal.Music(
+            packageName = primary.packageName,
+            title = title,
+            artist = artist,
+            contentIntent = primary.sessionActivity,
+        )
+
+        showJob?.cancel()
+        showJob = scope.launch {
+            delay(SHOW_DEBOUNCE_MS)
+            IslandEventBus.emit(signal)
         }
     }
 
@@ -218,7 +243,10 @@ class MediaPlaybackMonitor(private val context: Context) {
      * yield a null length and an indeterminate bar. A state carrying [PlaybackState.PLAYBACK_POSITION_UNKNOWN]
      * gives no anchor at all.
      */
-    private fun MediaController.progress(metadata: MediaMetadata?, playing: Boolean): MediaProgress? {
+    private fun MediaController.progress(
+        metadata: MediaMetadata?,
+        playing: Boolean,
+    ): MediaProgress? {
         val state = playbackState ?: return null
         if (state.position == PlaybackState.PLAYBACK_POSITION_UNKNOWN) return null
 
@@ -242,10 +270,10 @@ class MediaPlaybackMonitor(private val context: Context) {
      * [com.vikram.expressiveisland.core.MediaArtBus].
      */
     private fun MediaMetadata.albumArt(): ImageBitmap? = (
-        getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
-            ?: getBitmap(MediaMetadata.METADATA_KEY_ART)
-            ?: getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
-        )?.toArtImageBitmap()
+            getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+                ?: getBitmap(MediaMetadata.METADATA_KEY_ART)
+                ?: getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
+            )?.toArtImageBitmap()
         ?: artUri()?.loadImageBitmapOrNull(context)
 
     /** The art URI a player publishes in place of a bitmap, if it gave one at all. */
@@ -279,5 +307,6 @@ class MediaPlaybackMonitor(private val context: Context) {
 
     private companion object {
         const val TAG = "MediaPlaybackMonitor"
+        const val SHOW_DEBOUNCE_MS = 250L
     }
 }

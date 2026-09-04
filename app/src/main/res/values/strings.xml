@@ -12,7 +12,7 @@
 
     <string name="event_wifi_connected">Wi‑Fi connected</string>
     <string name="event_wifi_disconnected">Wi‑Fi lost</string>
-
+    
     <string name="event_headphones_connected">Headphones</string>
     <string name="event_headphones_disconnected">Headphones out</string>
 

@@ -179,17 +179,32 @@ enum class SystemEventType(
     DEVICE_UNLOCKED(Icons.Rounded.LockOpen, R.string.event_device_unlocked, 0xFFFACC15),
     VPN_CONNECTED(Icons.Rounded.VpnKey, R.string.event_vpn_connected, 0xFF38BDF8),
     VPN_DISCONNECTED(Icons.Rounded.VpnKeyOff, R.string.event_vpn_disconnected, 0xFFF87171),
-    ADB_CONNECTED(Icons.Rounded.Adb, R.string.event_adb_connected, 0xFF4ADE80),
-    ADB_DISCONNECTED(Icons.Rounded.Adb, R.string.event_adb_disconnected, 0xFFF87171),
+
+    ADB_CONNECTED(
+        Icons.Rounded.Adb,
+        R.string.event_adb_connected,
+        0xFF4ADE80,
+        R.string.event_adb_connected,
+    ),
+
+    ADB_DISCONNECTED(
+        Icons.Rounded.Adb,
+        R.string.event_adb_disconnected,
+        0xFFF87171,
+        R.string.event_adb_disconnected,
+    ),
+
     WIRELESS_DEBUGGING_CONNECTED(
         Icons.Rounded.Adb,
         R.string.event_wireless_debugging_connected,
-        0xFF38BDF8
+        0xFF38BDF8,
+        R.string.event_wireless_debugging_connected,
     ),
+
     WIRELESS_DEBUGGING_DISCONNECTED(
         Icons.Rounded.Adb,
         R.string.event_wireless_debugging_disconnected,
-        0xFFF87171
+        0xFFF87171,
     ),
     BLUETOOTH_CONNECTED(
         Icons.Rounded.BluetoothConnected,

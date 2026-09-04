@@ -240,7 +240,8 @@ private const val BASE_TRANSITION_MS = IslandMotion.BASE_TRANSITION_MS
  * downward instead of pushing the content up into the camera cutout: one chip row (at its configured
  * height) plus its spacing. The controller grows the host window by the same amount so it never clips.
  */
-internal fun expandedActionsExtraDp(buttonHeightDp: Int): Int = buttonHeightDp + ACTIONS_ROW_SPACING_DP
+internal fun expandedActionsExtraDp(buttonHeightDp: Int): Int =
+    buttonHeightDp + ACTIONS_ROW_SPACING_DP
 
 /**
  * A safe upper bound on the height the expanded "center" claims below the base expanded cutout. The
@@ -338,9 +339,11 @@ internal fun DynamicIsland(
     val shownEvent = lastEvent
     val chargingState by ChargingBus.state.collectAsStateWithLifecycle()
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
+    val mediaActive = shownEvent?.media != null
     val emptyPill = event == null && showsWhenEmpty
 
-    val initialExpandedState = if (forcedExpanded == false) false else (shownEvent?.initiallyExpanded ?: false)
+    val initialExpandedState =
+        if (forcedExpanded == false) false else (shownEvent?.initiallyExpanded ?: false)
     //var tapExpanded by remember(shownEvent?.id, forcedExpanded) { mutableStateOf(initialExpandedState) }
 
     val expansionKey = if (shownEvent?.media != null) {
@@ -360,12 +363,14 @@ internal fun DynamicIsland(
     var sentReply by remember(shownEvent?.id) { mutableStateOf<Pair<IslandAction, String>?>(null) }
     val confirmingSent = sentReply != null
     val isCall = shownEvent?.call != null
-    val isAssistantNormalOnly = shownEvent?.assistant != null && !shownEvent.assistant.displayAnswerInCutout
+    val isAssistantNormalOnly =
+        shownEvent?.assistant != null && !shownEvent.assistant.displayAnswerInCutout
     val isNormalOnly = isCall || isAssistantNormalOnly || shownEvent?.normalOnly == true
     val centerExpanded = emptyPill && emptyOpensCenter && tapExpanded
+
     val isExpanded = when {
         forcedExpanded == false -> false
-        emptyPill -> centerExpanded
+        emptyPill && !mediaActive -> centerExpanded
         isNormalOnly -> false
         else -> forcedExpanded ?: tapExpanded
     }
@@ -425,9 +430,22 @@ internal fun DynamicIsland(
     }
 
     val density = LocalDensity.current.density
-    val callWidthPercent = remember(isCall, shownEvent?.label, callTrailingButtons, callIncoming, displayWidthDp, density) {
+    val callWidthPercent = remember(
+        isCall,
+        shownEvent?.label,
+        callTrailingButtons,
+        callIncoming,
+        displayWidthDp,
+        density
+    ) {
         if (isCall) {
-            callCutoutWidthPercent(shownEvent.label, callTrailingButtons, callIncoming, displayWidthDp, density)
+            callCutoutWidthPercent(
+                shownEvent.label,
+                callTrailingButtons,
+                callIncoming,
+                displayWidthDp,
+                density
+            )
         } else {
             CALL_MIN_WIDTH_PERCENT
         }
@@ -453,6 +471,7 @@ internal fun DynamicIsland(
                 CENTER_SHORTCUTS_EXTRA_DP
             }
         }
+
         emptyPill -> 0
 
         isExpanded && (
@@ -462,13 +481,16 @@ internal fun DynamicIsland(
                 ) -> 20
 
         isExpanded && shownEvent?.assistant != null && shownEvent.assistant.displayAnswerInCutout -> {
-            val maxCutoutHeightDp = (screenHeightDp * shownEvent.assistant.maxCutoutHeightPercent / 100)
+            val maxCutoutHeightDp =
+                (screenHeightDp * shownEvent.assistant.maxCutoutHeightPercent / 100)
             val fitHeightDp = if (assistantContentHeightDp > 0) assistantContentHeightDp else 110
             val targetHeightDp = fitHeightDp.coerceIn(110, maxCutoutHeightDp)
             (targetHeightDp - dims.heightDp)
         }
+
         isExpanded && (hasActions || hasMediaControls || hasCallActions || hasTimerActions) ->
             expandedActionsExtraDp(appearance.actionButtonHeightDp)
+
         callTwoRow -> callIncomingExtraDp()
         else -> 0
     }
@@ -496,16 +518,13 @@ internal fun DynamicIsland(
 
     val spec: AnimationSpec<Dp> = if (reveal.value == 0f) snap() else motion.dp()
     val isAssistantAnswer = isExpanded && shownEvent?.assistant?.displayAnswerInCutout == true
-    val heightSpec: AnimationSpec<Dp> = when {
-        reveal.value == 0f -> snap()
-        isAssistantAnswer -> motion.dpSmooth()
-        else -> spec
-    }
+    val heightSpec: AnimationSpec<Dp> = spec
 
     // The bubble shares the normal cutout's total width instead of making the island wider.
     val satelliteCandidate = satellite != null && !isExpanded && !isCall && !isStickToCamera
     val requestedSatelliteSplitDp = collapsed.heightDp + SATELLITE_GAP_DP
-    val remainingSatelliteWidthDp = displayWidthDp * (collapsed.widthPercent / 100f) - requestedSatelliteSplitDp
+    val remainingSatelliteWidthDp =
+        displayWidthDp * (collapsed.widthPercent / 100f) - requestedSatelliteSplitDp
     val satelliteSharing = satelliteCandidate &&
             remainingSatelliteWidthDp >= requestedSatelliteSplitDp &&
             remainingSatelliteWidthDp >= collapsed.heightDp * 2
@@ -523,8 +542,13 @@ internal fun DynamicIsland(
     )
 
     val height by animateDpAsState(
-        if (isStickToCamera) (displayWidthDp * dims.widthPercent / 100f).dp else (dims.heightDp + heightBonus).dp,
-        heightSpec, label = "islandHeight"
+        if (isStickToCamera) {
+            (displayWidthDp * dims.widthPercent / 100f).dp
+        } else {
+            (dims.heightDp + heightBonus + if (isExpanded && shownEvent?.media != null) 20 else 0).dp
+        },
+        heightSpec,
+        label = "islandHeight"
     )
 
     val cornerRadius = (collapsed.heightDp / 2f).dp
@@ -533,11 +557,31 @@ internal fun DynamicIsland(
         spec,
         label = "islandOffsetX",
     )
-    val offsetY by animateDpAsState(if (isStickToCamera) 0.dp else dims.offsetYDp.dp, spec, label = "islandOffsetY")
-    val topLeft by animateDpAsState(if (isStickToCamera) cornerRadius else dims.cornerTopLeftDp.dp, spec, label = "cornerTL")
-    val topRight by animateDpAsState(if (isStickToCamera) cornerRadius else dims.cornerTopRightDp.dp, spec, label = "cornerTR")
-    val bottomLeft by animateDpAsState(if (isStickToCamera) cornerRadius else dims.cornerBottomLeftDp.dp, spec, label = "cornerBL")
-    val bottomRight by animateDpAsState(if (isStickToCamera) cornerRadius else dims.cornerBottomRightDp.dp, spec, label = "cornerBR")
+    val offsetY by animateDpAsState(
+        if (isStickToCamera) 0.dp else dims.offsetYDp.dp,
+        spec,
+        label = "islandOffsetY"
+    )
+    val topLeft by animateDpAsState(
+        if (isStickToCamera) cornerRadius else dims.cornerTopLeftDp.dp,
+        spec,
+        label = "cornerTL"
+    )
+    val topRight by animateDpAsState(
+        if (isStickToCamera) cornerRadius else dims.cornerTopRightDp.dp,
+        spec,
+        label = "cornerTR"
+    )
+    val bottomLeft by animateDpAsState(
+        if (isStickToCamera) cornerRadius else dims.cornerBottomLeftDp.dp,
+        spec,
+        label = "cornerBL"
+    )
+    val bottomRight by animateDpAsState(
+        if (isStickToCamera) cornerRadius else dims.cornerBottomRightDp.dp,
+        spec,
+        label = "cornerBR"
+    )
     val expandProgress by animateFloatAsState(
         targetValue = if (isExpanded) 1f else 0f,
         animationSpec = motion.fade(),
@@ -598,7 +642,10 @@ internal fun DynamicIsland(
                 modifier = Modifier
                     .align(if (isStickToCamera) stickAlignment else Alignment.TopCenter)
                     .padding(start = stickPaddingStart, end = stickPaddingEnd)
-                    .offset(x = if (isStickToCamera) 0.dp else offsetX, y = if (isStickToCamera) 0.dp else offsetY),
+                    .offset(
+                        x = if (isStickToCamera) 0.dp else offsetX,
+                        y = if (isStickToCamera) 0.dp else offsetY
+                    ),
             ) {
                 if (present || reveal.value > 0f) {
                     IslandSurface(
@@ -607,15 +654,24 @@ internal fun DynamicIsland(
                             .height(revealHeight)
                             .graphicsLayer {
                                 val extraPx = PressExpandDp.toPx() * 2f * pressExpand.value
-                                val widen = if (size.width > 0f) (size.width + extraPx) / size.width else 1f
+                                val widen =
+                                    if (size.width > 0f) (size.width + extraPx) / size.width else 1f
                                 scaleX = boopScale.value * widen
                                 scaleY = boopScale.value
                                 translationX = dismissOffsetX.value
-                                val travel = abs(dismissOffsetX.value) / size.width.coerceAtLeast(1f)
+                                val travel =
+                                    abs(dismissOffsetX.value) / size.width.coerceAtLeast(1f)
                                 val revealAlpha = (reveal.value / 0.2f).coerceIn(0f, 1f)
                                 alpha = (1f - travel).coerceIn(0.25f, 1f) * revealAlpha
                             }
-                            .pointerInput(forcedExpanded, isExpanded, replying, emptyPill, pressWidens, shownEvent?.id) {
+                            .pointerInput(
+                                forcedExpanded,
+                                isExpanded,
+                                replying,
+                                emptyPill,
+                                pressWidens,
+                                shownEvent?.id
+                            ) {
                                 if (forcedExpanded == true) {
                                     return@pointerInput
                                 }
@@ -662,7 +718,12 @@ internal fun DynamicIsland(
                                                 if (forcedExpanded == null) {
                                                     tapExpanded = !tapExpanded
                                                     if (tapExpanded) {
-                                                        scope.launch { motion.pop(boopScale, peak = 1.03f) }
+                                                        scope.launch {
+                                                            motion.pop(
+                                                                boopScale,
+                                                                peak = 1.03f
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             } else {
@@ -697,7 +758,14 @@ internal fun DynamicIsland(
                                 )
                             }
                             // Swipe up on the expanded island to shrink it back to the normal cutout.
-                            .pointerInput(forcedExpanded, isExpanded, replying, shrinkOnSwipeUp, emptyPill, shownEvent?.id) {
+                            .pointerInput(
+                                forcedExpanded,
+                                isExpanded,
+                                replying,
+                                shrinkOnSwipeUp,
+                                emptyPill,
+                                shownEvent?.id
+                            ) {
                                 // The resting empty cutout has no expanded state to shrink back from, so
                                 // don't install the detector at all — it would only swallow vertical drags.
                                 if (forcedExpanded != null || !shrinkOnSwipeUp || emptyPill) return@pointerInput
@@ -717,7 +785,16 @@ internal fun DynamicIsland(
                             }
                             // Swipe sideways to dismiss the cutout (and, for a notification, clear it from
                             // the system). Only the direction(s) and cutout state(s) the user allows lets go.
-                            .pointerInput(forcedExpanded, swipeToDismiss, swipeDismissDirection, swipeDismissTarget, isExpanded, replying, emptyPill, shownEvent?.id) {
+                            .pointerInput(
+                                forcedExpanded,
+                                swipeToDismiss,
+                                swipeDismissDirection,
+                                swipeDismissTarget,
+                                isExpanded,
+                                replying,
+                                emptyPill,
+                                shownEvent?.id
+                            ) {
                                 val targetAllows = when (swipeDismissTarget) {
                                     SwipeDismissTarget.BOTH -> true
                                     SwipeDismissTarget.EXPANDED -> isExpanded
@@ -732,14 +809,18 @@ internal fun DynamicIsland(
                                 detectHorizontalDragGestures(
                                     onDragEnd = {
                                         val x = dismissOffsetX.value
-                                        val dismiss = (x <= -threshold && allowLeft) || (x >= threshold && allowRight)
+                                        val dismiss =
+                                            (x <= -threshold && allowLeft) || (x >= threshold && allowRight)
                                         if (dismiss) {
                                             onDismiss()
                                         } else {
                                             scope.launch {
                                                 dismissOffsetX.animateTo(
                                                     targetValue = 0f,
-                                                    animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow),
+                                                    animationSpec = spring(
+                                                        dampingRatio = 0.6f,
+                                                        stiffness = Spring.StiffnessMediumLow
+                                                    ),
                                                 )
                                             }
                                         }
@@ -758,12 +839,21 @@ internal fun DynamicIsland(
                                     change.consume()
                                 }
                             },
-                        shape = cornerShape(revealTopLeft, revealTopRight, revealBottomLeft, revealBottomRight),
+                        shape = cornerShape(
+                            revealTopLeft,
+                            revealTopRight,
+                            revealBottomLeft,
+                            revealBottomRight
+                        ),
                         appearance = appearance,
                         progress = expandProgress,
                         appColor = shownEvent?.primaryColor(),
                     ) {
-                        Crossfade(targetState = isExpanded, animationSpec = tween(scaled(150)), label = "islandContent") { showExpanded ->
+                        Crossfade(
+                            targetState = isExpanded,
+                            animationSpec = tween(scaled(150)),
+                            label = "islandContent"
+                        ) { showExpanded ->
                             if (emptyPill) {
                                 if (showExpanded) {
                                     CenterContent(
@@ -821,6 +911,9 @@ internal fun DynamicIsland(
                                             },
                                             onDismiss = onDismiss,
                                             onHeightMeasured = { assistantContentHeightDp = it },
+                                            onMediaInteraction = {
+                                                mediaInteraction++
+                                            },
                                         )
                                     } else {
                                         CollapsedContent(
@@ -835,33 +928,33 @@ internal fun DynamicIsland(
                         }
 
                         // Microphone / camera / location dots
-                    if (showPermissionDots) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            PermissionDotRow(
-                                usage = permissionUsage,
-                                heightDp = collapsed.heightDp,
-                                colors = permissionDotColors,
-                                vertical = permissionDotsVertical,
-                                modifier = Modifier
-                                    .align(
-                                        if (permissionDotsOnLeft) Alignment.CenterStart
-                                        else Alignment.CenterEnd
-                                    )
-                                    .padding(
-                                        start = if (permissionDotsOnLeft) {
-                                            permissionDotStartInsetDp(collapsed.heightDp).dp
-                                        } else {
-                                            0.dp
-                                        },
-                                        end = if (permissionDotsOnLeft) {
-                                            0.dp
-                                        } else {
-                                            permissionDotEndInsetDp(collapsed.heightDp).dp
-                                        },
-                                    ),
-                            )
+                        if (showPermissionDots) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                PermissionDotRow(
+                                    usage = permissionUsage,
+                                    heightDp = collapsed.heightDp,
+                                    colors = permissionDotColors,
+                                    vertical = permissionDotsVertical,
+                                    modifier = Modifier
+                                        .align(
+                                            if (permissionDotsOnLeft) Alignment.CenterStart
+                                            else Alignment.CenterEnd
+                                        )
+                                        .padding(
+                                            start = if (permissionDotsOnLeft) {
+                                                permissionDotStartInsetDp(collapsed.heightDp).dp
+                                            } else {
+                                                0.dp
+                                            },
+                                            end = if (permissionDotsOnLeft) {
+                                                0.dp
+                                            } else {
+                                                permissionDotEndInsetDp(collapsed.heightDp).dp
+                                            },
+                                        ),
+                                )
+                            }
                         }
-                    }
                     }
                 }
             }
@@ -1448,6 +1541,7 @@ fun IslandPreview(
                 onSendReply = {},
                 onDismiss = {},
                 onHeightMeasured = {},
+                onMediaInteraction = {},
             )
         } else {
             CollapsedContent(
@@ -1483,7 +1577,10 @@ private fun IslandSurface(
 
     val contentColor = if (repColor.luminance() > 0.5f) PillTextColorDark else PillTextColor
     val border = if (appearance.strokeEnabled) {
-        BorderStroke(appearance.strokeWidthDp.dp, appearance.strokeColor.resolve(appColor, adaptiveColor))
+        BorderStroke(
+            appearance.strokeWidthDp.dp,
+            appearance.strokeColor.resolve(appColor, adaptiveColor)
+        )
     } else {
         null
     }
@@ -1498,7 +1595,11 @@ private fun IslandSurface(
         border = border,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxSize().background(normalBrush))
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(normalBrush)
+            )
             if (progress > 0f) {
                 Box(
                     modifier = Modifier
@@ -1581,7 +1682,11 @@ private fun CollapsedContent(
                 strokeColor = albumArtStrokeFor(event),
             )
 
-            callPhoto != null -> ContactPhoto(bitmap = callPhoto, size = badgeSize, modifier = placement)
+            callPhoto != null -> ContactPhoto(
+                bitmap = callPhoto,
+                size = badgeSize,
+                modifier = placement
+            )
 
             else -> IconBadge(
                 event = event,
@@ -1665,10 +1770,12 @@ private fun EmptyPillContent(
             is IconSource.Image -> withContext(Dispatchers.IO) {
                 icon.uri.toUri().loadImageBitmapOrNull(context)
             }
+
             is IconSource.Material -> null
         }
     }
-    val materialIcon = (icon as? IconSource.Material)?.let { MaterialIconCatalog.iconFor(it.iconName) }
+    val materialIcon =
+        (icon as? IconSource.Material)?.let { MaterialIconCatalog.iconFor(it.iconName) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Sit on the leading edge like the normal cutout's icon (clear of the camera), or centred at
@@ -1692,7 +1799,9 @@ private fun EmptyPillContent(
                     bitmap = loaded,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(badgeSize * 0.78f).clip(CircleShape),
+                    modifier = Modifier
+                        .size(badgeSize * 0.78f)
+                        .clip(CircleShape),
                 )
 
                 materialIcon != null -> Icon(
@@ -1726,7 +1835,11 @@ private fun CenterContent(
     val density = LocalDensity.current.density
     val torchOn by TorchStateBus.on.collectAsStateWithLifecycle()
 
-    Box(modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 18.dp)
+    ) {
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -1753,8 +1866,9 @@ private fun CenterContent(
                 // cutout with evenly-spread buttons. Under the EXPAND press animation a pressed button
                 // borrows width from its siblings (they spring thinner) instead of overflowing in
                 // place — the same give-and-take as the action chips (see [ActionChipRow]).
-                val redistribute = LocalActionButtonAnimation.current == ActionButtonAnimation.EXPAND &&
-                        shortcuts.size > 1
+                val redistribute =
+                    LocalActionButtonAnimation.current == ActionButtonAnimation.EXPAND &&
+                            shortcuts.size > 1
                 val interactions = remember(shortcuts.size) {
                     List(shortcuts.size) { MutableInteractionSource() }
                 }
@@ -1772,7 +1886,10 @@ private fun CenterContent(
                         }
                         val weight by animateFloatAsState(
                             targetValue = target,
-                            animationSpec = spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessMediumLow),
+                            animationSpec = spring(
+                                dampingRatio = 0.42f,
+                                stiffness = Spring.StiffnessMediumLow
+                            ),
                             label = "centerWeight",
                         )
                         CenterShortcutButton(
@@ -1812,10 +1929,13 @@ private fun CenterShortcutButton(
     interaction: MutableInteractionSource = remember { MutableInteractionSource() },
     animatePress: Boolean = true,
 ) {
-    val containerColor = if (active) MaterialTheme.colorScheme.primary else LocalContentColor.current.copy(alpha = 0.14f)
+    val containerColor =
+        if (active) MaterialTheme.colorScheme.primary else LocalContentColor.current.copy(alpha = 0.14f)
     val glyphColor = if (active) MaterialTheme.colorScheme.onPrimary else LocalContentColor.current
     val shapeModifier = if (fillContainer) {
-        Modifier.fillMaxWidth().height(CenterDiscDp)
+        Modifier
+            .fillMaxWidth()
+            .height(CenterDiscDp)
     } else {
         Modifier.size(CenterDiscDp)
     }
@@ -1833,7 +1953,12 @@ private fun CenterShortcutButton(
             modifier = shapeModifier.then(if (animatePress) Modifier.pressScale(interaction) else Modifier),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                val appIcon = (shortcut as? CenterShortcut.LaunchApp)?.let { rememberAppIcon(it.packageName, themedIcon) }
+                val appIcon = (shortcut as? CenterShortcut.LaunchApp)?.let {
+                    rememberAppIcon(
+                        it.packageName,
+                        themedIcon
+                    )
+                }
                 when {
                     // A themed (monochrome) app icon: tint its glyph to match the built-in shortcuts.
                     // Its safe-zone padding means it reads well filling the whole button.
@@ -1847,7 +1972,9 @@ private fun CenterShortcutButton(
                     appIcon != null -> Image(
                         bitmap = appIcon.bitmap,
                         contentDescription = null,
-                        modifier = Modifier.size(CenterDiscDp * 0.6f).clip(CircleShape),
+                        modifier = Modifier
+                            .size(CenterDiscDp * 0.6f)
+                            .clip(CircleShape),
                     )
 
                     else -> Icon(
@@ -1903,11 +2030,12 @@ private fun rememberAppIcon(packageName: String, themed: Boolean): LoadedAppIcon
         value = withContext(Dispatchers.IO) {
             runCatching {
                 val drawable = context.packageManager.getApplicationIcon(packageName)
-                val monochrome = if (themed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    (drawable as? AdaptiveIconDrawable)?.monochrome
-                } else {
-                    null
-                }
+                val monochrome =
+                    if (themed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        (drawable as? AdaptiveIconDrawable)?.monochrome
+                    } else {
+                        null
+                    }
                 if (monochrome != null) {
                     LoadedAppIcon(monochrome.toBitmap().asImageBitmap(), themed = true)
                 } else {
@@ -1963,6 +2091,7 @@ private fun ExpandedContent(
     onSendReply: (String) -> Unit,
     onDismiss: () -> Unit = {},
     onHeightMeasured: ((Int) -> Unit)? = null,
+    onMediaInteraction: () -> Unit,
 ) {
     val wifiState by WifiBus.state.collectAsStateWithLifecycle()
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
@@ -1976,8 +2105,9 @@ private fun ExpandedContent(
             event = event,
             buttonHeightDp = appearance.actionButtonHeightDp,
             collapsedHeightDp = collapsedHeightDp,
-        )   
-        
+            onMediaInteraction = onMediaInteraction,
+        )
+
         return
     }
     // The timer tile: icon + ticking remaining time, and its Reset / Add 1-min chips.
@@ -2043,7 +2173,7 @@ private fun ExpandedContent(
         return
     }
     val notificationHeader = rememberNotificationHeader(event, appearance)
-     // Content hugs the card's bottom edge, below a collapsed-pill-height band that keeps the camera
+    // Content hugs the card's bottom edge, below a collapsed-pill-height band that keeps the camera
     // hole clear. The band is a hard floor: a header tall enough to overrun the card (a two-line
     // detail plus a progress bar) now spills past the bottom instead of riding up under the camera.
     Box(
@@ -2334,11 +2464,15 @@ private fun ActionChipRow(
                     }
                     val weight by animateFloatAsState(
                         targetValue = target,
-                        animationSpec = spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessMediumLow),
+                        animationSpec = spring(
+                            dampingRatio = 0.42f,
+                            stiffness = Spring.StiffnessMediumLow
+                        ),
                         label = "chipWeight",
                     )
                     Modifier.weight(weight)
                 }
+
                 full -> Modifier.weight(1f)
                 else -> Modifier
             }
@@ -2385,6 +2519,7 @@ private fun Modifier.pressScale(
                 scaleX = scale
                 scaleY = scale
             }
+
             ActionButtonAnimation.EXPAND -> {
                 // Grow the width by PressExpandDp on each side, expressed as a scale relative to the
                 // button's own measured width so layout stays put.
@@ -2539,8 +2674,10 @@ private fun SegmentedReplyRow(
 ) {
     val cap = (heightDp / 2).dp
     val inner = 8.dp
-    val startCap = RoundedCornerShape(topStart = cap, bottomStart = cap, topEnd = inner, bottomEnd = inner)
-    val endCap = RoundedCornerShape(topStart = inner, bottomStart = inner, topEnd = cap, bottomEnd = cap)
+    val startCap =
+        RoundedCornerShape(topStart = cap, bottomStart = cap, topEnd = inner, bottomEnd = inner)
+    val endCap =
+        RoundedCornerShape(topStart = inner, bottomStart = inner, topEnd = cap, bottomEnd = cap)
     val innerShape = RoundedCornerShape(inner)
 
     Row(
@@ -2648,7 +2785,9 @@ private fun ReplyField(
             cursorBrush = SolidColor(accent),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { onSend() }),
-            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester),
             decorationBox = { inner ->
                 if (text.isEmpty() && !hint.isNullOrBlank()) {
                     Text(
@@ -2724,7 +2863,12 @@ private fun ReplySendButton(
  * transport handle — is read from [NowPlayingBus] so the controls stay in sync as playback changes.
  */
 @Composable
-private fun MediaExpandedContent(event: IslandEvent, buttonHeightDp: Int, collapsedHeightDp: Int) {
+private fun MediaExpandedContent(
+    event: IslandEvent,
+    buttonHeightDp: Int,
+    collapsedHeightDp: Int,
+    onMediaInteraction: () -> Unit,
+) {
     val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()
     val albumArt = albumArtFor(event, nowPlaying)
 
@@ -2732,7 +2876,7 @@ private fun MediaExpandedContent(event: IslandEvent, buttonHeightDp: Int, collap
         modifier = Modifier
             .fillMaxSize()
             .padding(start = 18.dp, end = 18.dp, top = collapsedHeightDp.dp)
-    ) {        
+    ) {
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -2779,7 +2923,15 @@ private fun MediaExpandedContent(event: IslandEvent, buttonHeightDp: Int, collap
             }
 
             event.media?.takeIf { it.showProgress }?.let {
-                MediaProgressBar(progress = nowPlaying?.progress)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(28.dp),
+                ) {
+                    nowPlaying?.progress?.let { progress ->
+                        MediaProgressBar(progress = progress)
+                    }
+                }
             }
 
             event.media?.takeIf { it.showControls }?.let { media ->
@@ -2790,9 +2942,18 @@ private fun MediaExpandedContent(event: IslandEvent, buttonHeightDp: Int, collap
                     heightDp = buttonHeightDp,
                     skipStyle = media.skipStyle,
                     playPauseStyle = media.playPauseStyle,
-                    onPrevious = { nowPlaying?.transport?.previous() },
-                    onPlayPause = { nowPlaying?.transport?.playPause() },
-                    onNext = { nowPlaying?.transport?.next() },
+                    onPrevious = {
+                        onMediaInteraction()
+                        nowPlaying?.transport?.previous()
+                    },
+                    onPlayPause = {
+                        onMediaInteraction()
+                        nowPlaying?.transport?.playPause()
+                    },
+                    onNext = {
+                        onMediaInteraction()
+                        nowPlaying?.transport?.next()
+                    },
                 )
             }
         }
@@ -3101,11 +3262,13 @@ private fun RowScope.MediaButton(
 // callCutoutWidthPercent (which measures the name to size the pill) so the two stay in agreement.
 private const val CALL_ROW_PADDING_DP = 8
 private const val CALL_ROW_SPACING_DP = 12
+
 // The photo/icon container and the hang-up button are deliberately the same size so the cutout
 // reads as symmetrical, with the caller between two equal circles.
 private const val CALL_HANGUP_BUTTON_DP = 44
 private const val CALL_AVATAR_DP = CALL_HANGUP_BUTTON_DP
 private const val CALL_NAME_SIZE_SP = 15
+
 // A little breathing room so the name never sits flush against the button before the pill grows.
 private const val CALL_NAME_SLACK_DP = 8
 
@@ -3114,6 +3277,7 @@ private const val CALL_NAME_SLACK_DP = 8
 // hole with a flexible gap before the buttons pinned to the bottom edge.
 private const val CALL_INCOMING_SIDE_PAD_DP = 14
 private const val CALL_INCOMING_BOTTOM_PAD_DP = 14
+
 // Top clearance for the camera hole, matching the empty top the expanded card leaves for it.
 private const val CALL_INCOMING_TOP_PAD_DP = 34
 private const val CALL_INCOMING_BUTTON_GAP_DP = 10
@@ -3180,9 +3344,20 @@ private fun CallNormalContent(
     // The two-row layout only earns its extra height when there are buttons to fill the second row.
     val hasActions = call.showActions && event.actions.isNotEmpty()
     if (incoming && call.incomingExpandedLayout && hasActions) {
-        IncomingCallExpandedContent(event = event, call = call, onCall = onCall, onAction = onAction)
+        IncomingCallExpandedContent(
+            event = event,
+            call = call,
+            onCall = onCall,
+            onAction = onAction
+        )
     } else {
-        CallSingleRowContent(event = event, call = call, onCall = onCall, incoming = incoming, onAction = onAction)
+        CallSingleRowContent(
+            event = event,
+            call = call,
+            onCall = onCall,
+            incoming = incoming,
+            onAction = onAction
+        )
     }
 }
 
@@ -3551,7 +3726,8 @@ private fun AssistantExpandedContent(
     val contentColor = LocalContentColor.current
     val density = LocalDensity.current.density
     val configuration = LocalConfiguration.current
-    val maxCutoutHeightDp = (configuration.screenHeightDp * assistant.maxCutoutHeightPercent / 100).dp
+    val maxCutoutHeightDp =
+        (configuration.screenHeightDp * assistant.maxCutoutHeightPercent / 100).dp
     val maxHeaderWidthDp = (configuration.screenWidthDp * 0.47f).dp
 
     Box(
@@ -3559,7 +3735,12 @@ private fun AssistantExpandedContent(
             .fillMaxWidth()
             .heightIn(max = maxCutoutHeightDp)
             .verticalScroll(rememberScrollState())
-            .padding(start = 18.dp, end = 18.dp, top = 14.dp + collapsedHeightDp.dp, bottom = 14.dp),
+            .padding(
+                start = 18.dp,
+                end = 18.dp,
+                top = 14.dp + collapsedHeightDp.dp,
+                bottom = 14.dp
+            ),
     ) {
         Column(
             modifier = Modifier
@@ -3599,7 +3780,8 @@ private fun AssistantExpandedContent(
             // Answer content text displayed below title header
             if (assistant.displayAnswerInCutout) {
                 Spacer(Modifier.height(8.dp))
-                val textToDisplay = assistant.answerText.takeIf { !it.isNullOrBlank() } ?: "Assistant active..."
+                val textToDisplay =
+                    assistant.answerText.takeIf { !it.isNullOrBlank() } ?: "Assistant active..."
                 Text(
                     text = textToDisplay,
                     style = MaterialTheme.typography.bodyMedium,
@@ -3614,7 +3796,10 @@ private fun AssistantExpandedContent(
                 val full = appearance.actionButtonAlignment == ActionButtonAlignment.FULL
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, appearance.actionButtonAlignment.toHorizontal()),
+                    horizontalArrangement = Arrangement.spacedBy(
+                        8.dp,
+                        appearance.actionButtonAlignment.toHorizontal()
+                    ),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     ActionChip(
@@ -3801,7 +3986,9 @@ private fun IconBadge(
                 modifier = if (icon.tint) {
                     Modifier.size(iconSize)
                 } else {
-                    Modifier.size(badgeSize * 0.78f).clip(CircleShape)
+                    Modifier
+                        .size(badgeSize * 0.78f)
+                        .clip(CircleShape)
                 },
             )
 

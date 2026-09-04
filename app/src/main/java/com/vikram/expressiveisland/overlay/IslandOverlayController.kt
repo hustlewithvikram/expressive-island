@@ -134,7 +134,6 @@ class IslandOverlayController(private val context: Context) {
     private val density = context.resources.displayMetrics.density
 
 
-
     // Full display width, used by the island to size itself as a percentage of the screen. Read from
     // the *current* window metrics so it follows the device between portrait and landscape — recomputed
     // on rotation by [onOrientationChanged]. (maximumWindowMetrics would stay pinned to the natural
@@ -178,6 +177,7 @@ class IslandOverlayController(private val context: Context) {
     private var eventAnimatedIcons: Map<SystemEventType, Boolean> = emptyMap()
     private var eventAnimatedIconLoops: Map<SystemEventType, Boolean> = emptyMap()
     private var eventColors: Map<SystemEventType, CutoutColor> = emptyMap()
+
     // The system event currently on the pill, so its auto-dismiss uses that event's own duration
     // override (null while a notification or live tile is showing → the global normal duration).
     private var currentSystemEventType: SystemEventType? = null
@@ -185,8 +185,10 @@ class IslandOverlayController(private val context: Context) {
     private var eventDynamicColorRole: DynamicRole = DynamicRole.PRIMARY
     private var eventDynamicColorOpacity: Float = 1f
     private var tileEnabled: Map<DynamicTile, Boolean> = emptyMap()
+
     // Packages the user muted on the Apps screen: nothing they post reaches the cutout.
     private var disabledApps: Set<String> = emptySet()
+
     // Packages allowed on the cutout but never allowed to expand it on their own.
     private var normalOnlyApps: Set<String> = emptySet()
     private var musicSettings: MusicTileSettings = MusicTileSettings()
@@ -196,25 +198,32 @@ class IslandOverlayController(private val context: Context) {
     private var previewPinned = false
     private var previewExpanded = false
     private var expanded = false
+
     // True while a media session is actively playing; keeps the music cutout pinned up (no
     // auto-dismiss) for as long as playback lasts.
     private var musicPlaying = false
+
     // The last resolved music event, so the pill can return after a notification/system event that
     // briefly took over the cutout while playback carried on.
     private var lastMusicEvent: IslandEvent? = null
+
     // The package of the app currently in the foreground, from the accessibility service. Drives the
     // "Visible in player app" option: when off, the music cutout hides while this matches the player.
     private var foregroundPackage: String? = null
+
     // True while the music cutout is being held hidden because the playing app is in the foreground
     // and "Visible in player app" is off, so it can be brought back when the user leaves that app.
     private var playerAppHidden = false
+
     // True while the phone cutout is being held hidden because the phone app is full screen in the
     // foreground, so it can be brought back when the user leaves the phone app.
     private var phoneAppHidden = false
+
     // True while a phone call is present; keeps the call cutout pinned up (no auto-dismiss) for the
     // whole call, and — like [lastMusicEvent] — lets the pill return after an interruption.
     private var callActive = false
     private var lastCallEvent: IslandEvent? = null
+
     // True while a countdown timer is running; keeps the timer cutout pinned up (no auto-dismiss) for
     // the whole countdown, and — like [lastCallEvent] — lets the pill return after an interruption.
     private var timerActive = false
@@ -237,6 +246,7 @@ class IslandOverlayController(private val context: Context) {
     private var layoutParams: WindowManager.LayoutParams? = null
     private var dismissJob: Job? = null
     private var windowResizeJob: Job? = null
+
     // Tracks a downward swipe that starts on the visible overlay. On some OEM builds a
     // touchable TYPE_ACCESSIBILITY_OVERLAY can prevent SystemUI from receiving the top-edge
     // notification-shade gesture. In that case we invoke the accessibility global action instead.
@@ -340,7 +350,7 @@ class IslandOverlayController(private val context: Context) {
                 .collect {
                     permissionUsage = it
                     syncWindowSize()
-            }
+                }
         }
     }
 
@@ -365,8 +375,9 @@ class IslandOverlayController(private val context: Context) {
     private fun applyLockVisibility() {
         val shouldHideLock = behaviourState.value.hideOnLockscreen &&
                 keyguardManager?.isKeyguardLocked == true
-        val isLandscapeHidden = behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.HIDDEN ||
-                behaviourState.value.hideInLandscape
+        val isLandscapeHidden =
+            behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.HIDDEN ||
+                    behaviourState.value.hideInLandscape
         val shouldHideLandscape = isLandscapeHidden &&
                 currentOrientation == Configuration.ORIENTATION_LANDSCAPE
         val shouldHide = shouldHideLock || shouldHideLandscape
@@ -400,19 +411,23 @@ class IslandOverlayController(private val context: Context) {
                 expanded = previewExpanded
                 currentEvent.value = previewEvent
             }
+
             callActive && lastCallEvent != null -> {
                 dismissJob?.cancel()
                 expanded = false
                 currentEvent.value = lastCallEvent
             }
+
             musicPlaying && lastMusicEvent != null && !playerAppHidden -> {
                 dismissJob?.cancel()
                 currentEvent.value = lastMusicEvent
             }
+
             timerActive && lastTimerEvent != null -> {
                 dismissJob?.cancel()
                 currentEvent.value = lastTimerEvent
             }
+
             savedEventBeforeHide != null -> {
                 dismissJob?.cancel()
                 currentEvent.value = savedEventBeforeHide
@@ -478,6 +493,7 @@ class IslandOverlayController(private val context: Context) {
                         shadeSwipeTriggered = false
                         false
                     }
+
                     MotionEvent.ACTION_MOVE -> {
                         val dy = event.rawY - touchDownY
                         val elapsed = SystemClock.uptimeMillis() - touchDownTime
@@ -488,11 +504,13 @@ class IslandOverlayController(private val context: Context) {
                             shadeSwipeTriggered
                         }
                     }
+
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         val handled = shadeSwipeTriggered
                         shadeSwipeTriggered = false
                         handled
                     }
+
                     MotionEvent.ACTION_OUTSIDE -> {
                         if (expanded && !previewPinned) {
                             collapseRequest.value++
@@ -502,6 +520,7 @@ class IslandOverlayController(private val context: Context) {
                             false
                         }
                     }
+
                     else -> shadeSwipeTriggered
                 }
             }
@@ -869,10 +888,12 @@ class IslandOverlayController(private val context: Context) {
     private fun isPinnedTimer(): Boolean = timerActive && currentEvent.value?.timer != null
 
     /** The assistant cutout should stay pinned up (no auto-dismiss) while assistant is active. */
-    private fun isPinnedAssistant(): Boolean = assistantActive && currentEvent.value?.assistant != null
+    private fun isPinnedAssistant(): Boolean =
+        assistantActive && currentEvent.value?.assistant != null
 
     /** Any live tile (music, a call, a running timer, or assistant) is currently pinned up. */
-    private fun isPinnedLiveTile(): Boolean = isPinnedMusic() || isPinnedCall() || isPinnedTimer() || isPinnedAssistant()
+    private fun isPinnedLiveTile(): Boolean =
+        isPinnedMusic() || isPinnedCall() || isPinnedTimer() || isPinnedAssistant()
 
     private fun observeLayout() = scope.launch {
         layoutPreferences.layout.collect { layout ->
@@ -930,7 +951,8 @@ class IslandOverlayController(private val context: Context) {
         val grownWidth = if (currentWidth < 0) targetWidthPx else maxOf(targetWidthPx, currentWidth)
         val grownHeight = maxOf(targetHeightPx, currentHeight)
         resizeWindow(grownWidth, grownHeight)
-        val shrinks = (currentWidth >= 0 && targetWidthPx < currentWidth) || targetHeightPx < currentHeight
+        val shrinks =
+            (currentWidth >= 0 && targetWidthPx < currentWidth) || targetHeightPx < currentHeight
         if (shrinks) {
             windowResizeJob = scope.launch {
                 delay(WINDOW_SHRINK_DELAY_MS)
@@ -976,13 +998,20 @@ class IslandOverlayController(private val context: Context) {
             val listenerClass =
                 Class.forName("android.view.ViewTreeObserver\$OnComputeInternalInsetsListener")
             val infoClass = Class.forName("android.view.ViewTreeObserver\$InternalInsetsInfo")
-            val setTouchableInsets = infoClass.getMethod("setTouchableInsets", Int::class.javaPrimitiveType)
+            val setTouchableInsets =
+                infoClass.getMethod("setTouchableInsets", Int::class.javaPrimitiveType)
             val touchableRegionField = infoClass.getField("touchableRegion")
             val touchableInsetsRegion = infoClass.getField("TOUCHABLE_INSETS_REGION").getInt(null)
             val addListener =
-                ViewTreeObserver::class.java.getMethod("addOnComputeInternalInsetsListener", listenerClass)
+                ViewTreeObserver::class.java.getMethod(
+                    "addOnComputeInternalInsetsListener",
+                    listenerClass
+                )
 
-            val proxy = Proxy.newProxyInstance(listenerClass.classLoader, arrayOf(listenerClass)) { self, method, args ->
+            val proxy = Proxy.newProxyInstance(
+                listenerClass.classLoader,
+                arrayOf(listenerClass)
+            ) { self, method, args ->
                 when (method.name) {
                     "onComputeInternalInsets" -> {
                         val info = args?.getOrNull(0)
@@ -990,10 +1019,16 @@ class IslandOverlayController(private val context: Context) {
                             setTouchableInsets.invoke(info, touchableInsetsRegion)
                             val region = touchableRegionField.get(info) as Region
                             region.setEmpty()
-                            touchRects(view.width, view.height).forEach { region.op(it, Region.Op.UNION) }
+                            touchRects(view.width, view.height).forEach {
+                                region.op(
+                                    it,
+                                    Region.Op.UNION
+                                )
+                            }
                         }
                         null
                     }
+
                     "equals" -> self === args?.getOrNull(0)
                     "hashCode" -> System.identityHashCode(self)
                     "toString" -> "IslandTouchableRegionListener"
@@ -1002,7 +1037,13 @@ class IslandOverlayController(private val context: Context) {
             }
             addListener.invoke(view.viewTreeObserver, proxy)
             insetsListener = proxy
-        }.onFailure { Log.w(TAG, "Touchable region unavailable; overlay stays fully touchable", it) }
+        }.onFailure {
+            Log.w(
+                TAG,
+                "Touchable region unavailable; overlay stays fully touchable",
+                it
+            )
+        }
     }
 
     /**
@@ -1026,7 +1067,8 @@ class IslandOverlayController(private val context: Context) {
         val pillWidthPx = (displayWidthPx * collapsed.widthPercent / 100f).toInt() -
                 (splitDp * density).toInt()
         val margin = (TOUCH_MARGIN_DP * density).toInt()
-        val centerX = viewWidth / 2 + (collapsed.offsetXDp * density).toInt() + satelliteShiftPx(splitDp)
+        val centerX =
+            viewWidth / 2 + (collapsed.offsetXDp * density).toInt() + satelliteShiftPx(splitDp)
         val step = pillWidthPx / 2 + gapPx + diameterPx / 2
         val satelliteCenterX = when (behaviourState.value.satellitePosition) {
             SatellitePosition.LEFT -> centerX - step
@@ -1052,7 +1094,8 @@ class IslandOverlayController(private val context: Context) {
         val splitPx = (satelliteSplitDp() * density).toInt()
         val pillWidthPx = displayWidthPx * dims.widthPercent / 100 - splitPx
         val margin = (TOUCH_MARGIN_DP * density).toInt()
-        val centerX = viewWidth / 2 + (dims.offsetXDp * density).toInt() + satelliteShiftPx(satelliteSplitDp())
+        val centerX =
+            viewWidth / 2 + (dims.offsetXDp * density).toInt() + satelliteShiftPx(satelliteSplitDp())
         val topPx = (dims.offsetYDp * density).toInt()
         val bottomPx = ((dims.offsetYDp + dims.heightDp + bonusDp) * density).toInt()
         return Rect(
@@ -1151,6 +1194,17 @@ class IslandOverlayController(private val context: Context) {
         return satelliteFitsWidth()
     }
 
+    /**
+     * Whether both events represent the same live tile.
+     * Live tiles are singletons, so a new signal for the same tile should
+     * replace the existing pill instead of being parked beside itself.
+     */
+    private fun isSameTile(a: IslandEvent, b: IslandEvent): Boolean =
+        (a.media != null && b.media != null) ||
+                (a.timer != null && b.timer != null) ||
+                (a.call != null && b.call != null) ||
+                (a.assistant != null && b.assistant != null)
+
     private fun satelliteFitsWidth(): Boolean {
         if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) return false
         val collapsed = layoutState.value.collapsed
@@ -1172,11 +1226,22 @@ class IslandOverlayController(private val context: Context) {
         }
     }
 
-    private fun demoteToSatellite(displaced: IslandEvent?, incoming: IslandEvent, deadlineMs: Long?) {
+    private fun demoteToSatellite(
+        displaced: IslandEvent?,
+        incoming: IslandEvent,
+        deadlineMs: Long?,
+    ) {
+        // The same live tile must never occupy both the main pill and satellite.
+        // A fresh event ID does not mean it is a different tile.
+        if (displaced != null && isSameTile(displaced, incoming)) {
+            return
+        }
+
         if (displaced == null || !satelliteAllowed(displaced, incoming)) {
             clearSatellite()
             return
         }
+
         parkInSatellite(displaced, deadlineMs)
     }
 
@@ -1294,10 +1359,17 @@ class IslandOverlayController(private val context: Context) {
                         else -> 1
                     }
                     layout.collapsed.asCallCutout(
-                        callCutoutWidthPercent(event.label, trailingButtons, incoming, displayWidthDp.value, density),
+                        callCutoutWidthPercent(
+                            event.label,
+                            trailingButtons,
+                            incoming,
+                            displayWidthDp.value,
+                            density
+                        ),
                     )
                 }
             }
+
             else -> layout.collapsed
         }
     }
@@ -1311,13 +1383,17 @@ class IslandOverlayController(private val context: Context) {
         val event = currentEvent.value
         if (expanded && event?.assistant != null && event.assistant.displayAnswerInCutout) {
             val maxCutoutDp = (displayHeightDp * event.assistant.maxCutoutHeightPercent / 100)
-            return maxOf(expandedActionsBonusDp(), maxCutoutDp - layoutState.value.expanded.heightDp)
+            return maxOf(
+                expandedActionsBonusDp(),
+                maxCutoutDp - layoutState.value.expanded.heightDp
+            )
         }
         return when {
             // The empty pill's expanded "center" (no event) claims room for its shortcut row.
             expanded && event == null &&
                     behaviourState.value.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER ->
                 CENTER_SHORTCUTS_EXTRA_DP
+
             expanded -> expandedActionsBonusDp()
             isTwoRowCall() -> callIncomingExtraDp()
             else -> 0
@@ -1335,7 +1411,8 @@ class IslandOverlayController(private val context: Context) {
     /** The extra height the expanded island claims for its bottom control row, mirroring the composable. */
     private fun expandedActionsBonusDp(): Int {
         val event = currentEvent.value
-        val hasActions = behaviourState.value.showActionButtons && event?.actions?.isNotEmpty() == true
+        val hasActions =
+            behaviourState.value.showActionButtons && event?.actions?.isNotEmpty() == true
         val hasMediaControls = event?.media?.showControls == true
         val hasCallActions = event?.call?.showActions == true && event.actions.isNotEmpty()
         val hasTimerActions = event?.timer?.showActions == true && event.actions.isNotEmpty()
@@ -1353,9 +1430,10 @@ class IslandOverlayController(private val context: Context) {
             .collect { (pinned, expandedTab) ->
                 previewPinned = pinned
                 previewExpanded = expandedTab
-                val isNoExpandLandscape = currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
-                        (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
-                                behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
+                val isNoExpandLandscape =
+                    currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
+                            (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
+                                    behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
                 val targetExpanded = if (isNoExpandLandscape) false else expandedTab
                 if (pinned) {
                     dismissJob?.cancel()
@@ -1462,14 +1540,17 @@ class IslandOverlayController(private val context: Context) {
                             musicPlaying = true
                             lastMusicEvent = resolvedEvent
                         }
+
                         is CutoutSignal.Call -> {
                             callActive = true
                             lastCallEvent = resolvedEvent
                         }
+
                         is CutoutSignal.Timer -> {
                             timerActive = true
                             lastTimerEvent = resolvedEvent
                         }
+
                         else -> {}
                     }
                 }
@@ -1668,7 +1749,11 @@ class IslandOverlayController(private val context: Context) {
      * notification from the system too (like swiping it away in the shade).
      */
     private fun onDismiss() {
-        currentEvent.value?.notificationKey?.let { CutoutNotificationListenerService.Companion.dismiss(it) }
+        currentEvent.value?.notificationKey?.let {
+            CutoutNotificationListenerService.Companion.dismiss(
+                it
+            )
+        }
         dismissIsland()
     }
 
@@ -1851,6 +1936,7 @@ class IslandOverlayController(private val context: Context) {
                     forcedExpanded.value = null
                     currentEvent.value = livePill
                 }
+
                 else -> {
                     expanded = false
                     forcedExpanded.value = null
