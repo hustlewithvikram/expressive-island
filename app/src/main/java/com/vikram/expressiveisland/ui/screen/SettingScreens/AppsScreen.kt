@@ -10,6 +10,7 @@ import android.util.LruCache
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,17 +26,28 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Android
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.FilterList
+import androidx.compose.material.icons.rounded.SortByAlpha
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -55,8 +67,10 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -91,6 +105,10 @@ internal fun AppsScreen(
     var query by rememberSaveable { mutableStateOf("") }
     // Only one row's options are open at a time, so the list never turns into a wall of controls.
     var expandedPackage by rememberSaveable { mutableStateOf<String?>(null) }
+    var filter by rememberSaveable { mutableStateOf(AppFilter.ALL) }
+    var sortOrder by rememberSaveable { mutableStateOf(AppSort.A_TO_Z) }
+    var sortDialogVisible by rememberSaveable { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
     val loaded = apps
     if (loaded == null) {
@@ -105,15 +123,30 @@ internal fun AppsScreen(
         return
     }
 
-    val filtered = remember(loaded, query) {
+    val filtered = remember(loaded, query, filter, sortOrder, disabled, normalOnly) {
         val needle = query.trim()
-        if (needle.isEmpty()) {
-            loaded
-        } else {
-            loaded.filter {
-                it.label.contains(needle, ignoreCase = true) ||
-                    it.packageName.contains(needle, ignoreCase = true)
+
+        val matching = loaded.filter { app ->
+            val matchesQuery = needle.isEmpty() ||
+                    app.label.contains(needle, ignoreCase = true) ||
+                    app.packageName.contains(needle, ignoreCase = true)
+
+            val isEnabled = app.packageName !in disabled
+            val isNormalOnly = app.packageName in normalOnly
+
+            val matchesFilter = when (filter) {
+                AppFilter.ALL -> true
+                AppFilter.ENABLED -> isEnabled
+                AppFilter.DISABLED -> !isEnabled
+                AppFilter.NORMAL_ONLY -> isNormalOnly
             }
+
+            matchesQuery && matchesFilter
+        }
+
+        when (sortOrder) {
+            AppSort.A_TO_Z -> matching.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+            AppSort.Z_TO_A -> matching.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.label })
         }
     }
     val lastIndex = filtered.lastIndex
@@ -124,23 +157,107 @@ internal fun AppsScreen(
         contentPadding = contentPadding,
     ) {
         item(key = "header") {
-            Column {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            focusManager.clearFocus()
+                        }
+                    },
+            ) {
+                CardSectionHeader(
+                    text = "Apps",
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+
                 Text(
                     text = stringResource(R.string.apps_screen_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
+
+                Spacer(Modifier.height(14.dp))
+
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(24.dp),
-                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                    placeholder = { Text(stringResource(R.string.apps_search_hint)) },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        shape = RoundedCornerShape(percent = 50),
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Search,
+                                contentDescription = null,
+                            )
+                        },
+                        trailingIcon = {
+                            if (query.isNotEmpty()) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Clear,
+                                    contentDescription = "Clear search",
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clickable { query = "" }
+                                        .padding(3.dp),
+                                )
+                            }
+                        },
+                        placeholder = {
+                            Text(stringResource(R.string.apps_search_hint))
+                        },
+                    )
+
+                    IconButton(
+                        onClick = { sortDialogVisible = true },
+                        modifier = Modifier.size(52.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.SortByAlpha,
+                            contentDescription = "Sort apps",
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(end = 4.dp),
+                ) {
+                    items(
+                        items = AppFilter.entries.toList(),
+                        key = { it.name },
+                    ) { option ->
+                        FilterChip(
+                            selected = filter == option,
+                            onClick = { filter = option },
+                            label = { Text(option.label) },
+                            shape = CircleShape,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    text = if (query.isNotBlank() || filter != AppFilter.ALL) {
+                        "${filtered.size} of ${loaded.size} apps"
+                    } else {
+                        "${loaded.size} apps"
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp),
                 )
-                Spacer(Modifier.height(12.dp))
+
+                Spacer(Modifier.height(8.dp))
             }
         }
 
@@ -163,21 +280,77 @@ internal fun AppsScreen(
                 normalOnly = app.packageName in normalOnly,
                 expanded = expandedPackage == app.packageName,
                 onExpandToggle = {
-                    expandedPackage = if (expandedPackage == app.packageName) null else app.packageName
+                    expandedPackage =
+                        if (expandedPackage == app.packageName) null else app.packageName
                 },
                 onEnabledChange = { viewModel.setAppEnabled(app.packageName, it) },
                 onNormalOnlyChange = { viewModel.setAppNormalOnly(app.packageName, it) },
             )
         }
     }
+
+    if (sortDialogVisible) {
+        AlertDialog(
+            onDismissRequest = { sortDialogVisible = false },
+            title = { Text("Sort apps") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    AppSort.entries.forEach { option ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .clickable {
+                                    sortOrder = option
+                                    sortDialogVisible = false
+                                }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = option.label,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f),
+                            )
+
+                            if (sortOrder == option) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+        )
+    }
+}
+
+private enum class AppFilter(val label: String) {
+    ALL("All"),
+    ENABLED("Enabled"),
+    DISABLED("Disabled"),
+    NORMAL_ONLY("Normal only")
+}
+
+private enum class AppSort(val label: String) {
+    A_TO_Z("A–Z"),
+    Z_TO_A("Z–A"),
 }
 
 // Grouped-list corners: the group's outer corners (first top, last bottom) are 32dp, rest 4dp.
 // Hoisted to constants rather than built per item — with a few hundred rows the allocation churn
 // during a fling is pure waste.
-private val GroupShapeFirst = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+private val GroupShapeFirst =
+    RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
 private val GroupShapeMiddle = RoundedCornerShape(4.dp)
-private val GroupShapeLast = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 32.dp, bottomEnd = 32.dp)
+private val GroupShapeLast =
+    RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 32.dp, bottomEnd = 32.dp)
 private val GroupShapeOnly = RoundedCornerShape(32.dp)
 
 private fun appGroupShape(index: Int, lastIndex: Int): Shape = when {
@@ -207,89 +380,107 @@ private fun AppCard(
         targetValue = if (expanded) 180f else 0f,
         label = "appChevron",
     )
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onExpandToggle)
-                    .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 20.dp),
+                    .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AppIcon(packageName = app.packageName)
-                Spacer(Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
+
+                Spacer(Modifier.width(14.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
                     Text(
                         text = app.label,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+
                     Text(
-                        // Surface the override on the collapsed row, so a configured app is
-                        // recognisable without opening it.
-                        text = if (enabled && normalOnly) {
-                            stringResource(R.string.apps_normal_only_title)
-                        } else {
-                            app.packageName
-                        },
+                        text = app.packageName,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (enabled && normalOnly) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+
+                    Spacer(Modifier.height(3.dp))
+
+                    AppStatusBadge(
+                        enabled = enabled,
+                        normalOnly = normalOnly,
+                    )
                 }
+
                 Spacer(Modifier.width(8.dp))
+
                 Icon(
                     imageVector = Icons.Rounded.ExpandMore,
-                    contentDescription = null,
+                    contentDescription = if (expanded) "Collapse options" else "Expand options",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
-                        .size(20.dp)
+                        .size(22.dp)
                         .rotate(chevronRotation),
                 )
-                Spacer(Modifier.width(12.dp))
-                // Thin divider between the (tappable) row and the switch, as on the tiles screen.
-                Box(
-                    modifier = Modifier
-                        .height(28.dp)
-                        .width(1.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant),
+
+                Spacer(Modifier.width(8.dp))
+
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = onEnabledChange,
                 )
-                Spacer(Modifier.width(12.dp))
-                Switch(checked = enabled, onCheckedChange = onEnabledChange)
             }
 
             AnimatedVisibility(visible = expanded) {
                 Column {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 20.dp),
+                            .padding(
+                                start = 16.dp,
+                                top = 12.dp,
+                                bottom = 12.dp,
+                                end = 16.dp,
+                            ),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
                             Text(
                                 text = stringResource(R.string.apps_normal_only_title),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
+
                             Text(
                                 text = stringResource(R.string.apps_normal_only_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+
                         Spacer(Modifier.width(12.dp))
-                        // Meaningless for a muted app — nothing of theirs reaches the cutout at all.
+
                         Switch(
                             checked = normalOnly,
                             onCheckedChange = onNormalOnlyChange,
@@ -299,6 +490,43 @@ private fun AppCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AppStatusBadge(
+    enabled: Boolean,
+    normalOnly: Boolean,
+) {
+    val label = when {
+        !enabled -> "Disabled"
+        normalOnly -> "Normal only"
+        else -> "Enabled"
+    }
+
+    val containerColor = when {
+        !enabled -> MaterialTheme.colorScheme.surfaceVariant
+        normalOnly -> MaterialTheme.colorScheme.primaryContainer
+        else -> MaterialTheme.colorScheme.secondaryContainer
+    }
+
+    val contentColor = when {
+        !enabled -> MaterialTheme.colorScheme.onSurfaceVariant
+        normalOnly -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSecondaryContainer
+    }
+
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(containerColor)
+            .padding(horizontal = 9.dp, vertical = 4.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor,
+        )
     }
 }
 

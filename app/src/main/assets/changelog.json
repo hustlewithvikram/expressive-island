@@ -1,5 +1,40 @@
 [
   {
+    "version": "0.1.5",
+    "description": "Expressive Island — system events, notifications, settings, and UI improvements",
+    "features": [
+      "Added expanded battery information with detailed battery status and charging information",
+      "Added system event support for more device states and system actions",
+      "Added notification timestamp display",
+      "Added an option to show the full notification text",
+      "Added an option to display the source app name in notifications",
+      "Added notification testing options for plain and double notifications",
+      "Added configurable notification behaviour for silent notifications, DND, and notification alerts",
+      "Added dynamic color controls for system events and notification appearance",
+      "Added per-app fallback color options",
+      "Added Shizuku integration with status bar, system alert, and permission controls",
+      "Added page transition options with fade and slide animations",
+      "Added haptic feedback controls for island interactions",
+      "Added Split Island behaviour",
+      "Added configurable satellite position",
+      "Added notification dismissal controls",
+      "Improved the Events screen with grouped system event settings and event appearance controls",
+      "Improved the Apps screen with search, filtering, sorting, status badges, and Normal only controls",
+      "Improved the Behaviour, Animation, Shizuku, Dynamic Tiles, and Events settings screens with clearer section organization",
+      "Added a new Expressive Island app identity and updated project branding",
+      "Updated profile links and project information for Expressive Island"
+    ],
+    "bugfixes": [
+      "Fixed duplicate satellite rendering between music and timer dynamic tiles",
+      "Fixed album artwork recovery after the MediaSession listener is rebound",
+      "Fixed custom expanded height being incorrectly applied to the expanded music player",
+      "Fixed notification display options not being applied correctly",
+      "Fixed various Dynamic Island UI and interaction issues",
+      "Improved music player controls and expanded player behaviour",
+      "Improved system event and notification rendering reliability"
+    ]
+  },
+  {
     "version": "0.1.4-beta",
     "description": "Music controls, progress, and system event improvements",
     "features": [

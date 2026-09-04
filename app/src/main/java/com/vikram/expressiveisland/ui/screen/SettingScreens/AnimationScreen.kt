@@ -83,12 +83,16 @@ internal fun AnimationScreen(
             .verticalScroll(rememberScrollState())
             .padding(contentPadding)
             .padding(horizontal = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-
-        // ─────────────────────────────────────────────
-        // PREVIEW
-        // ─────────────────────────────────────────────
+        // Preview
+        CardSectionHeader(
+            text = "Preview",
+            padding = PaddingValues(
+                start = 4.dp,
+                bottom = 4.dp,
+            ),
+        )
 
         AnimationExampleCard(
             shape = RoundedCornerShape(28.dp),
@@ -97,13 +101,14 @@ internal fun AnimationScreen(
             durationMs = behaviour.animationDurationMs,
         )
 
-        // ─────────────────────────────────────────────
-        // MOTION
-        // ─────────────────────────────────────────────
-
-        AnimationSectionTitle(
-            title = "Motion",
-            description = "Control how the island moves and responds.",
+        // Motion
+        CardSectionHeader(
+            text = "Motion",
+            padding = PaddingValues(
+                start = 4.dp,
+                top = 8.dp,
+                bottom = 4.dp,
+            ),
         )
 
         Column(
@@ -193,13 +198,14 @@ internal fun AnimationScreen(
             }
         }
 
-        // ─────────────────────────────────────────────
-        // BUTTONS
-        // ─────────────────────────────────────────────
-
-        AnimationSectionTitle(
-            title = "Interaction",
-            description = "Choose how action and reply buttons react when pressed.",
+        // Interaction
+        CardSectionHeader(
+            text = "Interaction",
+            padding = PaddingValues(
+                start = 4.dp,
+                top = 8.dp,
+                bottom = 4.dp,
+            ),
         )
 
         AnimationSegmentedRow(
@@ -217,8 +223,18 @@ internal fun AnimationScreen(
             },
         )
 
+        // Page transition
+        CardSectionHeader(
+            text = "Page transition",
+            padding = PaddingValues(
+                start = 4.dp,
+                top = 8.dp,
+                bottom = 4.dp,
+            ),
+        )
+
         AnimationSegmentedRow(
-            shape = groupedShape(isFirst = true, isLast = true),
+            shape = RoundedCornerShape(28.dp),
             label = stringResource(R.string.appearance_page_transition_title),
             description = stringResource(R.string.appearance_page_transition_desc),
             options = listOf(
@@ -227,7 +243,9 @@ internal fun AnimationScreen(
             ),
             selectedIndex = appearance.pageTransitionStyle.ordinal,
             onSelect = { index ->
-                viewModel.setPageTransitionStyle(PageTransitionStyle.entries[index])
+                viewModel.setPageTransitionStyle(
+                    PageTransitionStyle.entries[index]
+                )
             },
         )
 
@@ -524,7 +542,7 @@ private fun AnimationSegmentedRow(
 
             Spacer(modifier = Modifier.height(1.dp))
 
-            if(description.isNotEmpty() || description.isNotBlank()) {
+            if (description.isNotEmpty() || description.isNotBlank()) {
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,

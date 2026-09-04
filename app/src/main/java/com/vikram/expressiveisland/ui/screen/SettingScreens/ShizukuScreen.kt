@@ -100,13 +100,9 @@ internal fun ShizukuScreen(
             .verticalScroll(rememberScrollState())
             .padding(contentPadding)
             .padding(horizontal = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-
-        // ─────────────────────────────────────────────
-        // SHIZUKU STATUS
-        // ─────────────────────────────────────────────
-
+        // Shizuku status
         AnimatedVisibility(
             visible = !ready,
             modifier = Modifier.clip(RoundedCornerShape(24.dp)),
@@ -123,13 +119,14 @@ internal fun ShizukuScreen(
             )
         }
 
-        // ─────────────────────────────────────────────
-        // PREVIEW
-        // ─────────────────────────────────────────────
-
-        SectionHeader(
-            title = "Status bar",
-            description = "Preview how the selected system information will appear.",
+        // Status bar
+        CardSectionHeader(
+            text = "Status bar",
+            padding = PaddingValues(
+                start = 4.dp,
+                top = 4.dp,
+                bottom = 4.dp,
+            ),
         )
 
         StatusBarPreview(
@@ -145,11 +142,10 @@ internal fun ShizukuScreen(
             modifier = Modifier.padding(horizontal = 8.dp),
         )
 
-        // ─────────────────────────────────────────────
-        // STATUS BAR CONTROLS
-        // ─────────────────────────────────────────────
-
         Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(28.dp)),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             SettingsToggleCard(
@@ -157,12 +153,8 @@ internal fun ShizukuScreen(
                     isFirst = true,
                     isLast = false,
                 ),
-                title = stringResource(
-                    R.string.status_bar_hide_icons_title
-                ),
-                description = stringResource(
-                    R.string.status_bar_hide_icons_desc
-                ),
+                title = stringResource(R.string.status_bar_hide_icons_title),
+                description = stringResource(R.string.status_bar_hide_icons_desc),
                 checked = ready && hideIcons,
                 onCheckedChange = viewModel::setHideNotificationIcons,
                 enabled = ready,
@@ -173,12 +165,8 @@ internal fun ShizukuScreen(
                     isFirst = false,
                     isLast = false,
                 ),
-                title = stringResource(
-                    R.string.status_bar_hide_system_info_title
-                ),
-                description = stringResource(
-                    R.string.status_bar_hide_system_info_desc
-                ),
+                title = stringResource(R.string.status_bar_hide_system_info_title),
+                description = stringResource(R.string.status_bar_hide_system_info_desc),
                 checked = ready && hideSystemInfo,
                 onCheckedChange = viewModel::setHideSystemInfo,
                 enabled = ready,
@@ -189,57 +177,47 @@ internal fun ShizukuScreen(
                     isFirst = false,
                     isLast = true,
                 ),
-                title = stringResource(
-                    R.string.status_bar_hide_clock_title
-                ),
-                description = stringResource(
-                    R.string.status_bar_hide_clock_desc
-                ),
+                title = stringResource(R.string.status_bar_hide_clock_title),
+                description = stringResource(R.string.status_bar_hide_clock_desc),
                 checked = ready && hideClock,
                 onCheckedChange = viewModel::setHideClock,
                 enabled = ready,
             )
         }
 
-        // ─────────────────────────────────────────────
-        // SYSTEM ALERTS
-        // ─────────────────────────────────────────────
-
-        SectionHeader(
-            title = "System alerts",
-            description = "Control system notifications that may overlap the island.",
+        // System alerts
+        CardSectionHeader(
+            text = "System alerts",
+            padding = PaddingValues(
+                start = 4.dp,
+                top = 8.dp,
+                bottom = 4.dp,
+            ),
         )
 
         SettingsToggleCard(
-            shape = RoundedCornerShape(24.dp),
-            title = stringResource(
-                R.string.status_bar_silence_alerts_title
-            ),
-            description = stringResource(
-                R.string.status_bar_silence_alerts_desc
-            ),
+            shape = RoundedCornerShape(28.dp),
+            title = stringResource(R.string.status_bar_silence_alerts_title),
+            description = stringResource(R.string.status_bar_silence_alerts_desc),
             checked = ready && silenceAlerts,
             onCheckedChange = viewModel::setSilenceSystemAlerts,
             enabled = ready,
         )
 
-        // ─────────────────────────────────────────────
-        // PERMISSIONS
-        // ─────────────────────────────────────────────
-
-        SectionHeader(
-            title = "Permissions",
-            description = "Manage additional access required by Expressive Island.",
+        // Permissions
+        CardSectionHeader(
+            text = "Permissions",
+            padding = PaddingValues(
+                start = 4.dp,
+                top = 8.dp,
+                bottom = 4.dp,
+            ),
         )
 
         SettingsToggleNavCard(
-            shape = RoundedCornerShape(24.dp),
-            title = stringResource(
-                R.string.permission_dot_title
-            ),
-            description = stringResource(
-                R.string.permission_dot_desc
-            ),
+            shape = RoundedCornerShape(28.dp),
+            title = stringResource(R.string.permission_dot_title),
+            description = stringResource(R.string.permission_dot_desc),
             checked = ready && permissionDot,
             onCheckedChange = viewModel::setPermissionDotEnabled,
             onClick = onOpenPermissionDot,

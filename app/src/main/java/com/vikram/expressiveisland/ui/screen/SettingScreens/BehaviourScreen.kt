@@ -1,6 +1,7 @@
 package com.vikram.expressiveisland.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -75,7 +76,15 @@ internal fun BehaviourScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        // Grouped list: the first item's top corners and the last item's bottom corners round.
+        // Behaviour
+        CardSectionHeader(
+            text = "Behaviour",
+            padding = PaddingValues(
+                start = 6.dp,
+                bottom = 4.dp,
+            ),
+        )
+
         SettingsToggleCard(
             shape = groupedShape(isFirst = true, isLast = false),
             title = stringResource(R.string.behaviour_hide_lockscreen),
@@ -83,6 +92,7 @@ internal fun BehaviourScreen(
             checked = behaviour.hideOnLockscreen,
             onCheckedChange = viewModel::setHideOnLockscreen,
         )
+
         BehaviourRadioGroupCard(
             shape = groupedShape(isFirst = false, isLast = false),
             title = stringResource(R.string.behaviour_horizontal_cutout),
@@ -109,16 +119,18 @@ internal fun BehaviourScreen(
                 viewModel.setHorizontalCutoutMode(HorizontalCutoutMode.entries[index])
             },
         )
+
         BehaviourSliderRow(
             shape = groupedShape(isFirst = false, isLast = false),
             label = stringResource(R.string.behaviour_normal_duration),
             valueText = "${normalSeconds.roundToInt()} s",
             value = normalSeconds,
             valueRange = BehaviourSettings.MIN_NORMAL_SECONDS.toFloat()..
-                BehaviourSettings.MAX_NORMAL_SECONDS.toFloat(),
+                    BehaviourSettings.MAX_NORMAL_SECONDS.toFloat(),
             onValueChange = { normalSeconds = it },
             onCommit = { viewModel.setNormalDurationSeconds(normalSeconds.roundToInt()) },
         )
+
         SettingsToggleCard(
             shape = groupedShape(isFirst = false, isLast = false),
             title = stringResource(R.string.behaviour_auto_collapse),
@@ -126,6 +138,7 @@ internal fun BehaviourScreen(
             checked = behaviour.expandedAutoCollapse,
             onCheckedChange = viewModel::setExpandedAutoCollapse,
         )
+
         AnimatedVisibility(visible = behaviour.expandedAutoCollapse) {
             BehaviourSliderRow(
                 shape = groupedShape(isFirst = false, isLast = false),
@@ -133,25 +146,38 @@ internal fun BehaviourScreen(
                 valueText = "${seconds.roundToInt()} s",
                 value = seconds,
                 valueRange = BehaviourSettings.MIN_COLLAPSE_SECONDS.toFloat()..
-                    BehaviourSettings.MAX_COLLAPSE_SECONDS.toFloat(),
+                        BehaviourSettings.MAX_COLLAPSE_SECONDS.toFloat(),
                 onValueChange = { seconds = it },
                 onCommit = { viewModel.setExpandedCollapseSeconds(seconds.roundToInt()) },
             )
         }
+
         SettingsToggleCard(
-            shape = groupedShape(isFirst = false, isLast = false),
+            shape = groupedShape(isFirst = false, isLast = true),
             title = stringResource(R.string.behaviour_disappear),
             description = stringResource(R.string.behaviour_disappear_desc),
             checked = behaviour.expandedDisappearOnShrink,
             onCheckedChange = viewModel::setExpandedDisappearOnShrink,
         )
+
+        // Notifications
+        CardSectionHeader(
+            text = "Notifications",
+            padding = PaddingValues(
+                start = 6.dp,
+                top = 8.dp,
+                bottom = 4.dp,
+            ),
+        )
+
         SettingsToggleCard(
-            shape = groupedShape(isFirst = false, isLast = false),
+            shape = groupedShape(isFirst = true, isLast = false),
             title = stringResource(R.string.behaviour_notif_auto_expand),
             description = stringResource(R.string.behaviour_notif_auto_expand_desc),
             checked = behaviour.notificationsAutoExpand,
             onCheckedChange = viewModel::setNotificationsAutoExpand,
         )
+
         SettingsToggleCard(
             shape = groupedShape(isFirst = false, isLast = false),
             title = stringResource(R.string.behaviour_ignore_silent_notif),
@@ -159,13 +185,49 @@ internal fun BehaviourScreen(
             checked = behaviour.ignoreSilentNotifications,
             onCheckedChange = viewModel::setIgnoreSilentNotifications,
         )
+
         SettingsToggleCard(
             shape = groupedShape(isFirst = false, isLast = false),
+            title = stringResource(R.string.behaviour_dismissNotifs_title),
+            description = stringResource(R.string.behaviour_dismissNotifs_desc),
+            checked = behaviour.dismissNotifications,
+            onCheckedChange = viewModel::setDismissNotifications,
+        )
+
+        SettingsToggleCard(
+            shape = groupedShape(isFirst = false, isLast = false),
+            title = stringResource(R.string.behaviour_alertOnNotif_title),
+            description = stringResource(R.string.behaviour_alertOnNotif_desc),
+            checked = behaviour.alertOnNotification,
+            onCheckedChange = viewModel::setAlertOnNotification,
+        )
+
+        SettingsToggleCard(
+            shape = groupedShape(isFirst = false, isLast = true),
+            title = stringResource(R.string.behaviour_displayWhileDnd_title),
+            description = stringResource(R.string.behaviour_displayWhileDnd_desc),
+            checked = behaviour.displayWhileDnd,
+            onCheckedChange = viewModel::setDisplayWhileDnd,
+        )
+
+        // Interactions
+        CardSectionHeader(
+            text = "Interactions",
+            padding = PaddingValues(
+                start = 6.dp,
+                top = 8.dp,
+                bottom = 4.dp,
+            ),
+        )
+
+        SettingsToggleCard(
+            shape = groupedShape(isFirst = true, isLast = false),
             title = stringResource(R.string.behaviour_action_buttons),
             description = stringResource(R.string.behaviour_action_buttons_desc),
             checked = behaviour.showActionButtons,
             onCheckedChange = viewModel::setShowActionButtons,
         )
+
         SettingsToggleCard(
             shape = groupedShape(isFirst = false, isLast = false),
             title = stringResource(R.string.behaviour_shrink_swipe_up),
@@ -173,30 +235,92 @@ internal fun BehaviourScreen(
             checked = behaviour.shrinkOnSwipeUp,
             onCheckedChange = viewModel::setShrinkOnSwipeUp,
         )
+
         SettingsToggleCard(
             shape = groupedShape(isFirst = false, isLast = false),
             title = stringResource(R.string.behaviour_vibrateOnTap_title),
             description = stringResource(R.string.behaviour_vibrateOnTap_desc),
             checked = behaviour.vibrateOnTap,
-            onCheckedChange = viewModel::setVibrateOnTap
+            onCheckedChange = viewModel::setVibrateOnTap,
         )
+
         SettingsToggleCard(
-            shape = groupedShape(isFirst = false, isLast = false),
+            shape = groupedShape(isFirst = false, isLast = true),
             title = stringResource(R.string.behaviour_hapticsOnPop_title),
             description = stringResource(R.string.behaviour_hapticsOnPop_desc),
             checked = behaviour.hapticsOnPop,
             onCheckedChange = viewModel::setHapticsOnPop,
         )
+
+        // Swipe to dismiss
+        CardSectionHeader(
+            text = "Swipe to dismiss",
+            padding = PaddingValues(
+                start = 6.dp,
+                top = 8.dp,
+                bottom = 4.dp,
+            ),
+        )
+
         SettingsToggleCard(
-            shape = groupedShape(isFirst = false, isLast = false),
+            shape = groupedShape(isFirst = true, isLast = false),
             title = stringResource(R.string.behaviour_swipe_dismiss),
             description = stringResource(R.string.behaviour_swipe_dismiss_desc),
             checked = behaviour.swipeToDismiss,
             onCheckedChange = viewModel::setSwipeToDismiss,
         )
 
+        AnimatedVisibility(visible = behaviour.swipeToDismiss) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                BehaviourSegmentedRow(
+                    shape = groupedShape(isFirst = false, isLast = false),
+                    label = stringResource(R.string.behaviour_swipe_direction),
+                    options = listOf(
+                        stringResource(R.string.swipe_dir_left),
+                        stringResource(R.string.swipe_dir_right),
+                        stringResource(R.string.swipe_dir_both),
+                    ),
+                    selectedIndex = behaviour.swipeDismissDirection.ordinal,
+                    onSelect = {
+                        viewModel.setSwipeDismissDirection(
+                            SwipeDismissDirection.entries[it]
+                        )
+                    },
+                )
+
+                BehaviourSegmentedRow(
+                    shape = groupedShape(isFirst = false, isLast = true),
+                    label = stringResource(R.string.behaviour_swipe_target),
+                    options = listOf(
+                        stringResource(R.string.swipe_target_expanded),
+                        stringResource(R.string.swipe_target_both),
+                        stringResource(R.string.swipe_target_normal),
+                    ),
+                    selectedIndex = behaviour.swipeDismissTarget.ordinal,
+                    onSelect = {
+                        viewModel.setSwipeDismissTarget(
+                            SwipeDismissTarget.entries[it]
+                        )
+                    },
+                )
+            }
+        }
+
+        // Split Island
+        CardSectionHeader(
+            text = "Split Island",
+            padding = PaddingValues(
+                start = 6.dp,
+                top = 8.dp,
+                bottom = 4.dp,
+            ),
+        )
+
         SettingsToggleCard(
-            shape = groupedShape(isFirst = false, isLast = false),
+            shape = groupedShape(
+                isFirst = true,
+                isLast = !behaviour.splitIslandEnabled,
+            ),
             title = stringResource(R.string.behaviour_split_island),
             description = stringResource(R.string.behaviour_split_island_desc),
             checked = behaviour.splitIslandEnabled,
@@ -205,7 +329,7 @@ internal fun BehaviourScreen(
 
         AnimatedVisibility(visible = behaviour.splitIslandEnabled) {
             BehaviourSegmentedRow(
-                shape = groupedShape(isFirst = false, isLast = false),
+                shape = groupedShape(isFirst = false, isLast = true),
                 label = stringResource(R.string.behaviour_satellite_position),
                 options = listOf(
                     stringResource(R.string.satellite_position_left),
@@ -230,34 +354,18 @@ internal fun BehaviourScreen(
             )
         }
 
-        AnimatedVisibility(visible = behaviour.swipeToDismiss) {
-            Column (verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                BehaviourSegmentedRow(
-                    shape = groupedShape(isFirst = false, isLast = false),
-                    label = stringResource(R.string.behaviour_swipe_direction),
-                    options = listOf(
-                        stringResource(R.string.swipe_dir_left),
-                        stringResource(R.string.swipe_dir_right),
-                        stringResource(R.string.swipe_dir_both),
-                    ),
-                    selectedIndex = behaviour.swipeDismissDirection.ordinal,
-                    onSelect = { viewModel.setSwipeDismissDirection(SwipeDismissDirection.entries[it]) },
-                )
-                BehaviourSegmentedRow(
-                    shape = groupedShape(isFirst = false, isLast = false),
-                    label = stringResource(R.string.behaviour_swipe_target),
-                    options = listOf(
-                        stringResource(R.string.swipe_target_expanded),
-                        stringResource(R.string.swipe_target_both),
-                        stringResource(R.string.swipe_target_normal),
-                    ),
-                    selectedIndex = behaviour.swipeDismissTarget.ordinal,
-                    onSelect = { viewModel.setSwipeDismissTarget(SwipeDismissTarget.entries[it]) },
-                )
-            }
-        }
+        // Empty Island
+        CardSectionHeader(
+            text = "Empty Island",
+            padding = PaddingValues(
+                start = 6.dp,
+                top = 8.dp,
+                bottom = 4.dp,
+            ),
+        )
+
         SettingsToggleNavCard(
-            shape = groupedShape(isFirst = false, isLast = false),
+            shape = groupedShape(isFirst = true, isLast = true),
             title = stringResource(R.string.behaviour_empty_pill),
             description = stringResource(R.string.behaviour_empty_pill_desc),
             checked = behaviour.showsWhenEmpty,
@@ -265,38 +373,7 @@ internal fun BehaviourScreen(
             onClick = {
                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onOpenShowsWhenEmpty()
-            }
-        )
-
-        SettingsToggleCard(
-            shape = groupedShape(isFirst = false, isLast = false),
-            title = stringResource(R.string.behaviour_dismissNotifs_title),
-            description = stringResource(R.string.behaviour_dismissNotifs_desc),
-            checked = behaviour.dismissNotifications,
-            onCheckedChange = viewModel::setDismissNotifications,
-        )
-
-        SettingsToggleCard(
-            shape = groupedShape(
-                isFirst = false,
-                isLast = false,
-            ),
-            title = stringResource(
-                R.string.behaviour_alertOnNotif_title,
-            ),
-            description = stringResource(
-                R.string.behaviour_alertOnNotif_desc,
-            ),
-            checked = behaviour.alertOnNotification,
-            onCheckedChange = viewModel::setAlertOnNotification,
-        )
-
-        SettingsToggleCard(
-            shape = groupedShape(isFirst = false, isLast = true),
-            title = stringResource(R.string.behaviour_displayWhileDnd_title),
-            description = stringResource(R.string.behaviour_displayWhileDnd_desc),
-            checked = behaviour.displayWhileDnd,
-            onCheckedChange = viewModel::setDisplayWhileDnd
+            },
         )
     }
 }
@@ -384,23 +461,47 @@ private fun BehaviourRadioGroupCard(
             Text(text = title, style = MaterialTheme.typography.titleMedium)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 options.forEachIndexed { index, option ->
+                    val itemShape = when (index) {
+                        0 -> RoundedCornerShape(
+                            topStart = 12.dp,
+                            topEnd = 12.dp,
+                            bottomStart = 0.dp,
+                            bottomEnd = 0.dp,
+                        )
+
+                        options.lastIndex -> RoundedCornerShape(
+                            topStart = 0.dp,
+                            topEnd = 0.dp,
+                            bottomStart = 12.dp,
+                            bottomEnd = 12.dp,
+                        )
+
+                        else -> RoundedCornerShape(0.dp)
+                    }
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(itemShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                             .clickable { onSelect(index) }
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(text = option.title, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                text = option.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
                             Text(
                                 text = option.description,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+
                         Spacer(Modifier.width(12.dp))
+
                         RadioButton(
                             selected = (index == selectedIndex),
                             onClick = { onSelect(index) },
@@ -411,4 +512,3 @@ private fun BehaviourRadioGroupCard(
         }
     }
 }
-

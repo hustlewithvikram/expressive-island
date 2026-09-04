@@ -109,17 +109,34 @@ internal fun EventIconsScreen(
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.clip(shape = RoundedCornerShape(24.dp)),
-            contentPadding = contentPadding
+            contentPadding = contentPadding,
         ) {
+            // Global event appearance
+            item(key = "event_appearance_header") {
+                CardSectionHeader(
+                    text = "Event appearance",
+                    padding = PaddingValues(
+                        start = 6.dp,
+                        top = 4.dp,
+                        bottom = 4.dp,
+                    ),
+                )
+            }
+
             item(key = "dynamic_container") {
                 Column(
                     modifier = Modifier
-                        .padding(bottom = 8.dp)
+                        .fillMaxWidth()
                         .clip(RoundedCornerShape(32.dp)),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     SettingsToggleCard(
-                        shape = RoundedCornerShape(4.dp),
+                        shape = RoundedCornerShape(
+                            topStart = 32.dp,
+                            topEnd = 32.dp,
+                            bottomStart = if (dynamicColor) 4.dp else 32.dp,
+                            bottomEnd = if (dynamicColor) 4.dp else 32.dp,
+                        ),
                         title = stringResource(R.string.dynamic_event_color),
                         description = stringResource(R.string.dynamic_event_color_desc),
                         checked = dynamicColor,
@@ -130,7 +147,12 @@ internal fun EventIconsScreen(
 
                     AnimatedVisibility(visible = dynamicColor) {
                         DynamicColorOptionsCard(
-                            shape = RoundedCornerShape(4.dp),
+                            shape = RoundedCornerShape(
+                                topStart = 4.dp,
+                                topEnd = 4.dp,
+                                bottomStart = 32.dp,
+                                bottomEnd = 32.dp,
+                            ),
                             role = dynamicColorRole,
                             opacity = dynamicColorOpacity,
                             onRoleChange = {
@@ -143,14 +165,26 @@ internal fun EventIconsScreen(
                     }
                 }
             }
-            
+
+            // System event families
+            item(key = "event_families_header") {
+                CardSectionHeader(
+                    text = "System events",
+                    padding = PaddingValues(
+                        start = 6.dp,
+                        top = 8.dp,
+                        bottom = 4.dp,
+                    ),
+                )
+            }
+
             itemsIndexed(
                 SystemEventFamily.entries,
                 key = { _, family -> family.name },
             ) { index, family ->
-                val topRadius = if (index == 0) 24.dp else 4.dp
+                val topRadius = if (index == 0) 32.dp else 4.dp
                 val bottomRadius =
-                    if (index == SystemEventFamily.entries.lastIndex) 24.dp else 4.dp
+                    if (index == SystemEventFamily.entries.lastIndex) 32.dp else 4.dp
 
                 EventFamilyCard(
                     family = family,

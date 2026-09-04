@@ -67,6 +67,17 @@ internal fun DynamicTilesScreen(
             modifier = Modifier.clip(RoundedCornerShape(24.dp)),
             contentPadding = contentPadding,
         ) {
+            item {
+                CardSectionHeader(
+                    text = "Dynamic tiles",
+                    padding = PaddingValues(
+                        start = 6.dp,
+                        top = 4.dp,
+                        bottom = 4.dp,
+                    ),
+                )
+            }
+
             itemsIndexed(tiles, key = { _, tile -> tile.name }) { index, tile ->
                 // Music shows the album art / app icon, never a coloured badge, so it has no override.
                 val containerColor = when (tile) {
@@ -75,6 +86,7 @@ internal fun DynamicTilesScreen(
                     DynamicTile.ASSISTANT -> assistant.iconContainerColor
                     DynamicTile.MUSIC -> null
                 }
+
                 DynamicTileCard(
                     tile = tile,
                     shape = groupShape(index = index, lastIndex = lastIndex),
