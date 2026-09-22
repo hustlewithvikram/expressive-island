@@ -108,4 +108,4 @@ jobs:
       - name: Lint
         run: ./gradlew lintDebug --no-daemon
 
-      # Trigger-only workflow update; no application code changed.
+      # Workflow-only retrigger marker.
