@@ -1,0 +1,105 @@
+name: Apply Music Background Settings
+
+on:
+  push:
+    branches:
+      - feat/music-background-settings
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply remaining music background wiring
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new, label):
+              p = Path(path)
+              s = p.read_text()
+              if new in s:
+                  return
+              if old not in s:
+                  raise SystemExit(f'Anchor not found: {label}')
+              p.write_text(s.replace(old, new, 1))
+
+          replace_once(
+              'app/src/main/java/com/vikram/expressiveisland/ui/AppViewModel.kt',
+              '''    fun setMusicShowProgress(enabled: Boolean) = viewModelScope.launch {\n        musicTilePreferences.setShowProgress(enabled)\n    }\n''',
+              '''    fun setMusicShowProgress(enabled: Boolean) = viewModelScope.launch {\n        musicTilePreferences.setShowProgress(enabled)\n    }\n\n    fun setMusicExpandedBackground(enabled: Boolean) = viewModelScope.launch {\n        musicTilePreferences.setExpandedBackground(enabled)\n    }\n\n    fun setMusicExpandedBackgroundBlur(blurDp: Float) = viewModelScope.launch {\n        musicTilePreferences.setExpandedBackgroundBlur(blurDp)\n    }\n''',
+              'view model setters',
+          )
+
+          replace_once(
+              'app/src/main/java/com/vikram/expressiveisland/ui/screen/tiles/MusicTileScreen.kt',
+              '''        SettingsToggleCard(\n            shape = RoundedCornerShape(size = 24.dp),\n            title = stringResource(R.string.music_progress_title),\n            description = stringResource(R.string.music_progress_description),\n            checked = settings.showProgress,\n            onCheckedChange = viewModel::setMusicShowProgress,\n        )\n''',
+              '''        SettingsToggleCard(\n            shape = RoundedCornerShape(size = 24.dp),\n            title = stringResource(R.string.music_progress_title),\n            description = stringResource(R.string.music_progress_description),\n            checked = settings.showProgress,\n            onCheckedChange = viewModel::setMusicShowProgress,\n        )\n\n        SettingsToggleCard(\n            shape = RoundedCornerShape(4.dp),\n            title = stringResource(R.string.music_expanded_background_title),\n            description = stringResource(R.string.music_expanded_background_desc),\n            checked = settings.expandedBackground,\n            onCheckedChange = viewModel::setMusicExpandedBackground,\n        )\n        AnimatedVisibility(visible = settings.expandedBackground) {\n            Card(\n                modifier = Modifier.fillMaxWidth(),\n                shape = RoundedCornerShape(24.dp),\n                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),\n            ) {\n                var blur by remember(settings.expandedBackgroundBlur) {\n                    mutableFloatStateOf(settings.expandedBackgroundBlur)\n                }\n                AdjustableSlider(\n                    label = stringResource(R.string.music_background_blur),\n                    valueText = "${blur.roundToInt()} dp",\n                    value = blur,\n                    valueRange = 0f..40f,\n                    step = 1f,\n                    onValueChange = { blur = it },\n                    onCommit = { viewModel.setMusicExpandedBackgroundBlur(blur) },\n                )\n            }\n        }\n''',
+              'music settings controls',
+          )
+
+          replace_once(
+              'app/src/main/res/values/strings.xml',
+              '    <string name="music_progress_description">Display a playback progress bar under the controls</string>\n',
+              '''    <string name="music_progress_description">Display a playback progress bar under the controls</string>\n    <string name="music_expanded_background_title">Album cover background</string>\n    <string name="music_expanded_background_desc">Use the current album cover as the background of the expanded music card.</string>\n    <string name="music_background_blur">Background blur</string>\n''',
+              'music strings',
+          )
+
+          p = Path('app/src/main/java/com/vikram/expressiveisland/overlay/DynamicIsland.kt')
+          s = p.read_text()
+          if 'import androidx.compose.ui.draw.blur\n' not in s:
+              s = s.replace('import androidx.compose.ui.draw.clip\n', 'import androidx.compose.ui.draw.blur\nimport androidx.compose.ui.draw.clip\n', 1)
+          if 'import com.vikram.expressiveisland.data.MusicTilePreferences\n' not in s:
+              s = s.replace('import com.vikram.expressiveisland.data.MusicButtonStyle\n', 'import com.vikram.expressiveisland.data.MusicButtonStyle\nimport com.vikram.expressiveisland.data.MusicTilePreferences\n', 1)
+
+          old = '''    val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()\n    val albumArt = albumArtFor(event, nowPlaying)\n\n    Box(\n        modifier = Modifier\n            .fillMaxSize()\n            .padding(start = 18.dp, end = 18.dp, top = collapsedHeightDp.dp)\n    ) {\n        Column(\n            modifier = Modifier\n                .align(Alignment.BottomStart)\n'''
+          new = '''    val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()\n    val albumArt = albumArtFor(event, nowPlaying)\n    val musicPreferences = remember { MusicTilePreferences(LocalContext.current) }\n    val musicSettings by musicPreferences.settings.collectAsStateWithLifecycle()\n\n    Box(modifier = Modifier.fillMaxSize()) {\n        if (musicSettings.expandedBackground && albumArt != null) {\n            Image(\n                bitmap = albumArt,\n                contentDescription = null,\n                contentScale = ContentScale.Crop,\n                modifier = Modifier\n                    .fillMaxSize()\n                    .blur(musicSettings.expandedBackgroundBlur.dp)\n                    .graphicsLayer { alpha = 0.72f },\n            )\n            Box(\n                modifier = Modifier\n                    .fillMaxSize()\n                    .background(Color.Black.copy(alpha = 0.28f)),\n            )\n        }\n\n        Column(\n            modifier = Modifier\n                .align(Alignment.BottomStart)\n                .fillMaxWidth()\n                .padding(start = 18.dp, end = 18.dp, top = collapsedHeightDp.dp)\n'''
+          if 'musicSettings.expandedBackground' not in s:
+              if old not in s:
+                  raise SystemExit('MediaExpandedContent anchor not found')
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/java/com/vikram/expressiveisland/ui/AppViewModel.kt \
+            app/src/main/java/com/vikram/expressiveisland/ui/screen/tiles/MusicTileScreen.kt \
+            app/src/main/java/com/vikram/expressiveisland/overlay/DynamicIsland.kt \
+            app/src/main/res/values/strings.xml
+          if git diff --cached --quiet; then
+            echo "No source changes needed"
+          else
+            git commit -m "feat: connect music background toggle and blur control"
+            git push
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: expressive-cutout-music-background-${{ github.sha }}
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
