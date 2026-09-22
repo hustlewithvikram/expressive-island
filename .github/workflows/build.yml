@@ -4,10 +4,13 @@ on:
   push:
     branches:
       - main
-      - feat/music-background-settings
+      - feat/music-background-settings-ui
   pull_request:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 concurrency:
   group: build-${{ github.ref }}
@@ -19,6 +22,79 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Fix music background slider spacing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("app/src/main/java/com/vikram/expressiveisland/ui/screen/tiles/MusicTileScreen.kt")
+          text = path.read_text()
+
+          old = '''        AnimatedVisibility(visible = settings.expandedBackground) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                var blur by remember(settings.expandedBackgroundBlur) {
+                    mutableFloatStateOf(settings.expandedBackgroundBlur)
+                }
+                AdjustableSlider(
+                    label = stringResource(R.string.music_background_blur),
+                    valueText = "${blur.roundToInt()} dp",
+                    value = blur,
+                    valueRange = 0f..40f,
+                    step = 1f,
+                    onValueChange = { blur = it },
+                    onCommit = { viewModel.setMusicExpandedBackgroundBlur(blur) },
+                )
+            }
+        }
+'''
+
+          new = '''        AnimatedVisibility(visible = settings.expandedBackground) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                var blur by remember(settings.expandedBackgroundBlur) {
+                    mutableFloatStateOf(settings.expandedBackgroundBlur)
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    AdjustableSlider(
+                        label = stringResource(R.string.music_background_blur),
+                        valueText = "${blur.roundToInt()} dp",
+                        value = blur,
+                        valueRange = 0f..40f,
+                        step = 1f,
+                        onValueChange = { blur = it },
+                        onCommit = { viewModel.setMusicExpandedBackgroundBlur(blur) },
+                    )
+                }
+            }
+        }
+'''
+
+          if old not in text:
+              raise SystemExit("Expected music background slider block was not found; refusing to modify source.")
+
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/java/com/vikram/expressiveisland/ui/screen/tiles/MusicTileScreen.kt
+          git commit -m "fix: add padding to music background blur slider" || true
+          git push || true
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
