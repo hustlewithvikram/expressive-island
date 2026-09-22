@@ -30,24 +30,22 @@ jobs:
           from pathlib import Path
           p = Path("app/src/main/java/com/vikram/expressiveisland/overlay/DynamicIsland.kt")
           s = p.read_text()
-          s = s.replace(
-              "    val musicPreferences = remember { MusicTilePreferences(LocalContext.current) }\n"
-              "    val musicSettings by musicPreferences.settings.collectAsStateWithLifecycle()",
-              "    val context = LocalContext.current\n"
-              "    val musicPreferences = remember(context) { MusicTilePreferences(context) }\n"
-              "    val musicSettings by musicPreferences.settings.collectAsStateWithLifecycle(\n"
-              "        initialValue = MusicTileSettings(),\n"
-              "    )",
-              1,
-          )
-          if "initialValue = MusicTileSettings()" not in s:
-              raise SystemExit("Expected music settings block was not found")
+          old = """    val musicPreferences = remember { MusicTilePreferences(LocalContext.current) }
+    val musicSettings by musicPreferences.settings.collectAsStateWithLifecycle()"""
+          new = """    val context = LocalContext.current
+    val musicPreferences = remember(context) { MusicTilePreferences(context) }
+    val musicSettings by musicPreferences.settings.collectAsStateWithLifecycle(
+        initialValue = MusicTileSettings(),
+    )"""
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif "initialValue = MusicTileSettings()" not in s:
+              raise SystemExit("Expected music settings state block was not found")
           if "import com.vikram.expressiveisland.data.MusicTileSettings" not in s:
-              s = s.replace(
-                  "import com.vikram.expressiveisland.data.MusicTilePreferences\n",
-                  "import com.vikram.expressiveisland.data.MusicTilePreferences\nimport com.vikram.expressiveisland.data.MusicTileSettings\n",
-                  1,
-              )
+              marker = "import com.vikram.expressiveisland.data.MusicTilePreferences\n"
+              if marker not in s:
+                  raise SystemExit("MusicTilePreferences import not found")
+              s = s.replace(marker, marker + "import com.vikram.expressiveisland.data.MusicTileSettings\n", 1)
           p.write_text(s)
           PY
 
@@ -72,4 +70,5 @@ jobs:
           name: lint-report-${{ github.sha }}
           path: app/build/reports/lint-results-debug.html
           if-no-files-found: ignore
-          retention-days: 14
+
+      # Music settings build validation
