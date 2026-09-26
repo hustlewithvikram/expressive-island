@@ -394,7 +394,7 @@ internal fun MusicTileScreen(
         SettingsGroup {
 
             SettingsToggleCard(
-                shape = groupShape(GroupPosition.FIRST),
+                shape = groupShape(GroupPosition.ONLY),
                 title = stringResource(
                     R.string.music_progress_title,
                 ),

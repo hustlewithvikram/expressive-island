@@ -90,6 +90,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.lang.reflect.Proxy
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Secondary bubble side. Kept internal for now; the visual feature is enabled by default. */
 const val SATELLITE_GAP_DP = 8
@@ -1511,18 +1512,23 @@ class IslandOverlayController(private val context: Context) {
                             behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
 
             val rawAutoExpand = when (signal) {
-                is CutoutSignal.Notification -> behaviourState.value.notificationsAutoExpand
-                is CutoutSignal.Music -> musicSettings.expandOnPlay
-                is CutoutSignal.Assistant -> assistantSettings.displayAnswerInCutout
-                is CutoutSignal.System -> {
-                    signal.type == SystemEventType.BATTERY_LOW ||
-                            signal.type == SystemEventType.CHARGING_STARTED ||
-                            signal.type == SystemEventType.WIFI_CONNECTED ||
-                            signal.type == SystemEventType.HEADPHONES_CONNECTED
-                }
-                // The phone tile has no expanded state — it is shown as one bigger normal cutout.
-                is CutoutSignal.Call -> false
-                is CutoutSignal.Timer -> false
+                is CutoutSignal.Notification ->
+                    behaviourState.value.notificationsAutoExpand
+
+                is CutoutSignal.Music ->
+                    musicSettings.expandOnPlay
+
+                is CutoutSignal.Assistant ->
+                    assistantSettings.displayAnswerInCutout
+
+                is CutoutSignal.System ->
+                    false
+
+                is CutoutSignal.Call ->
+                    false
+
+                is CutoutSignal.Timer ->
+                    false
             }
             // "Normal only": this app's pill has no expanded state at all. Suppressing auto-expand
             // here keeps the window from ever being sized for it; the flag carried on the event is
@@ -1584,10 +1590,43 @@ class IslandOverlayController(private val context: Context) {
             }
 
             restoreSlotsOnCollapse = false
-            demoteToSatellite(existing, resolvedEvent, currentDeadlineMs)
+
+            val incomingSystemEventType =
+                (signal as? CutoutSignal.System)?.type
+
+            val sameSystemFamily =
+                existing != null &&
+                        currentSystemEventType != null &&
+                        incomingSystemEventType != null &&
+                        isSameSystemEventFamily(
+                            currentSystemEventType,
+                            incomingSystemEventType,
+                        )
+
+            if (sameSystemFamily) {
+                // Same system-event family means this is a state transition.
+                // Replace the existing event instead of keeping both states alive.
+                clearSatellite()
+
+                dismissJob?.cancel()
+                currentDeadlineMs = null
+            } else {
+                demoteToSatellite(
+                    existing,
+                    resolvedEvent,
+                    currentDeadlineMs,
+                )
+            }
+
             currentDeadlineMs = null
-            // Remember the system event (if any) so its auto-dismiss honours its per-event duration.
-            currentSystemEventType = (signal as? CutoutSignal.System)?.type
+            currentSystemEventType = incomingSystemEventType
+
+            forcedExpanded.value =
+                if (isNoExpandLandscape) false else null
+
+            expanded = autoExpand
+            currentEvent.value = resolvedEvent
+
             forcedExpanded.value = if (isNoExpandLandscape) false else null
             expanded = autoExpand
             currentEvent.value = resolvedEvent
@@ -1680,7 +1719,7 @@ class IslandOverlayController(private val context: Context) {
                 // Keep the expanded window alive until Compose finishes.
                 windowResizeJob?.cancel()
                 windowResizeJob = scope.launch {
-                    delay(WINDOW_SHRINK_DELAY_MS)
+                    delay(WINDOW_SHRINK_DELAY_MS.milliseconds)
 
                     if (!expanded && !overlayHidden) {
                         syncWindowSize()
@@ -1831,9 +1870,17 @@ class IslandOverlayController(private val context: Context) {
         val notificationKey = event?.notificationKey
         if (notificationKey != null) {
             when (disposition) {
-                NotificationDisposition.RELEASE -> CutoutNotificationListenerService.release(notificationKey)
-                NotificationDisposition.SETTLE -> CutoutNotificationListenerService.settle(notificationKey)
-                NotificationDisposition.DISCARD -> CutoutNotificationListenerService.dismiss(notificationKey)
+                NotificationDisposition.RELEASE -> CutoutNotificationListenerService.release(
+                    notificationKey
+                )
+
+                NotificationDisposition.SETTLE -> CutoutNotificationListenerService.settle(
+                    notificationKey
+                )
+
+                NotificationDisposition.DISCARD -> CutoutNotificationListenerService.dismiss(
+                    notificationKey
+                )
             }
         }
         if (promoteSatelliteCollapsed()) return
@@ -2030,6 +2077,132 @@ class IslandOverlayController(private val context: Context) {
                 layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
             }
+        }
+    }
+
+    private fun isSameSystemEventFamily(
+        currentType: SystemEventType?,
+        incomingType: SystemEventType?,
+    ): Boolean {
+        if (currentType == null || incomingType == null) return false
+
+        return when (currentType) {
+            SystemEventType.CHARGING_STARTED,
+            SystemEventType.CHARGING_STOPPED,
+            SystemEventType.CHARGING_COMPLETE,
+            SystemEventType.BATTERY_LOW,
+                ->
+                incomingType == SystemEventType.CHARGING_STARTED ||
+                        incomingType == SystemEventType.CHARGING_STOPPED ||
+                        incomingType == SystemEventType.CHARGING_COMPLETE ||
+                        incomingType == SystemEventType.BATTERY_LOW
+
+            SystemEventType.WIFI_CONNECTED,
+            SystemEventType.WIFI_DISCONNECTED,
+                ->
+                incomingType == SystemEventType.WIFI_CONNECTED ||
+                        incomingType == SystemEventType.WIFI_DISCONNECTED
+
+            SystemEventType.HEADPHONES_CONNECTED,
+            SystemEventType.HEADPHONES_DISCONNECTED,
+                ->
+                incomingType == SystemEventType.HEADPHONES_CONNECTED ||
+                        incomingType == SystemEventType.HEADPHONES_DISCONNECTED
+
+            SystemEventType.USB_MOUNTED,
+            SystemEventType.USB_UNMOUNTED,
+                ->
+                incomingType == SystemEventType.USB_MOUNTED ||
+                        incomingType == SystemEventType.USB_UNMOUNTED
+
+            SystemEventType.DEVICE_LOCKED,
+            SystemEventType.DEVICE_UNLOCKED,
+                ->
+                incomingType == SystemEventType.DEVICE_LOCKED ||
+                        incomingType == SystemEventType.DEVICE_UNLOCKED
+
+            SystemEventType.VPN_CONNECTED,
+            SystemEventType.VPN_DISCONNECTED,
+                ->
+                incomingType == SystemEventType.VPN_CONNECTED ||
+                        incomingType == SystemEventType.VPN_DISCONNECTED
+
+            SystemEventType.ADB_CONNECTED,
+            SystemEventType.ADB_DISCONNECTED,
+                ->
+                incomingType == SystemEventType.ADB_CONNECTED ||
+                        incomingType == SystemEventType.ADB_DISCONNECTED
+
+            SystemEventType.WIRELESS_DEBUGGING_CONNECTED,
+            SystemEventType.WIRELESS_DEBUGGING_DISCONNECTED,
+                ->
+                incomingType == SystemEventType.WIRELESS_DEBUGGING_CONNECTED ||
+                        incomingType == SystemEventType.WIRELESS_DEBUGGING_DISCONNECTED
+
+            SystemEventType.BLUETOOTH_CONNECTED,
+            SystemEventType.BLUETOOTH_DISCONNECTED,
+                ->
+                incomingType == SystemEventType.BLUETOOTH_CONNECTED ||
+                        incomingType == SystemEventType.BLUETOOTH_DISCONNECTED
+
+            SystemEventType.HOTSPOT_ENABLED,
+            SystemEventType.HOTSPOT_DISABLED,
+                ->
+                incomingType == SystemEventType.HOTSPOT_ENABLED ||
+                        incomingType == SystemEventType.HOTSPOT_DISABLED
+
+            SystemEventType.RINGER_NORMAL,
+            SystemEventType.RINGER_VIBRATE,
+            SystemEventType.RINGER_SILENT,
+                ->
+                incomingType == SystemEventType.RINGER_NORMAL ||
+                        incomingType == SystemEventType.RINGER_VIBRATE ||
+                        incomingType == SystemEventType.RINGER_SILENT
+        }
+    }
+
+    private fun shouldAutoExpandSystemEvent(
+        type: SystemEventType?,
+    ): Boolean {
+        return when (type) {
+            SystemEventType.CHARGING_STARTED,
+            SystemEventType.CHARGING_STOPPED,
+            SystemEventType.CHARGING_COMPLETE,
+            SystemEventType.BATTERY_LOW,
+
+            SystemEventType.WIFI_CONNECTED,
+            SystemEventType.WIFI_DISCONNECTED,
+
+            SystemEventType.BLUETOOTH_CONNECTED,
+            SystemEventType.BLUETOOTH_DISCONNECTED,
+
+            SystemEventType.HEADPHONES_CONNECTED,
+            SystemEventType.HEADPHONES_DISCONNECTED,
+
+            SystemEventType.USB_MOUNTED,
+            SystemEventType.USB_UNMOUNTED,
+
+            SystemEventType.VPN_CONNECTED,
+            SystemEventType.VPN_DISCONNECTED,
+
+            SystemEventType.HOTSPOT_ENABLED,
+            SystemEventType.HOTSPOT_DISABLED,
+
+            SystemEventType.ADB_CONNECTED,
+            SystemEventType.ADB_DISCONNECTED,
+
+            SystemEventType.WIRELESS_DEBUGGING_CONNECTED,
+            SystemEventType.WIRELESS_DEBUGGING_DISCONNECTED,
+
+            SystemEventType.RINGER_NORMAL,
+            SystemEventType.RINGER_VIBRATE,
+            SystemEventType.RINGER_SILENT,
+
+            SystemEventType.DEVICE_LOCKED,
+            SystemEventType.DEVICE_UNLOCKED,
+                -> false
+
+            else -> true
         }
     }
 

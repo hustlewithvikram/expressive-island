@@ -425,7 +425,7 @@ internal fun DynamicIsland(
     val hasTimerActions = shownEvent?.timer?.showActions == true && shownEvent.actions.isNotEmpty()
     val liveCall by OnCallBus.state.collectAsStateWithLifecycle()
     val callIncoming = isCall && liveCall?.ongoing == false
-    val callTwoRow = callIncoming && shownEvent.call.incomingExpandedLayout && hasCallActions
+    val callTwoRow = false
     val callTrailingButtons = when {
         !isCall || !hasCallActions -> 0
         callTwoRow -> 0
@@ -495,7 +495,6 @@ internal fun DynamicIsland(
         isExpanded && (hasActions || hasMediaControls || hasCallActions || hasTimerActions) ->
             expandedActionsExtraDp(appearance.actionButtonHeightDp)
 
-        callTwoRow -> callIncomingExtraDp()
         else -> 0
     }
 
@@ -3369,24 +3368,14 @@ private fun CallNormalContent(
     val call = event.call ?: return
     val onCall by OnCallBus.state.collectAsStateWithLifecycle()
     val incoming = onCall?.ongoing == false
-    // The two-row layout only earns its extra height when there are buttons to fill the second row.
-    val hasActions = call.showActions && event.actions.isNotEmpty()
-    if (incoming && call.incomingExpandedLayout && hasActions) {
-        IncomingCallExpandedContent(
-            event = event,
-            call = call,
-            onCall = onCall,
-            onAction = onAction
-        )
-    } else {
-        CallSingleRowContent(
-            event = event,
-            call = call,
-            onCall = onCall,
-            incoming = incoming,
-            onAction = onAction
-        )
-    }
+
+    CallSingleRowContent(
+        event = event,
+        call = call,
+        onCall = onCall,
+        onAction = onAction,
+        incoming = incoming
+    )
 }
 
 /**
@@ -3414,8 +3403,6 @@ private fun CallSingleRowContent(
             .padding(
                 start = CALL_ROW_PADDING_DP.dp,
                 end = CALL_ROW_PADDING_DP.dp,
-                // An incoming call sits its content at the bottom so the single caller label clears
-                // the camera hole at the pill's top edge; a connected call stays vertically centred.
                 bottom = if (incoming) CALL_ROW_PADDING_DP.dp else 0.dp,
             ),
         verticalAlignment = if (incoming) Alignment.Bottom else Alignment.CenterVertically,
@@ -3960,36 +3947,70 @@ private fun IconBadge(
     val override = event.colorOverride
     val badgeColor: Color
     val glyphColor: Color
+
+    fun contrastingGlyphColor(background: Color): Color {
+        val dark = Color.Black
+        val light = Color.White
+
+        // Pick the side with better visual contrast.
+        val darkContrast = contrastRatio(background, dark)
+        val lightContrast = contrastRatio(background, light)
+
+        return if (darkContrast >= lightContrast) dark else light
+    }
+
     when {
         container != null -> {
             badgeColor = container.resolve()
-            glyphColor = when (container) {
-                is CutoutColor.Dynamic -> onDynamicRole(container.role)
-                is CutoutColor.Solid ->
-                    if (badgeColor.luminance() > 0.5f) PillTextColorDark else PillTextColor
 
-                is CutoutColor.AppIcon ->
-                    if (badgeColor.luminance() > 0.5f) PillTextColorDark else PillTextColor
+            glyphColor = when (container) {
+                is CutoutColor.Dynamic -> {
+                    val defaultGlyph = onDynamicRole(container.role)
+
+                    if (contrastRatio(badgeColor, defaultGlyph) < 3f) {
+                        contrastingGlyphColor(badgeColor)
+                    } else {
+                        defaultGlyph
+                    }
+                }
+
+                is CutoutColor.Solid,
+                is CutoutColor.AppIcon,
+                    -> {
+                    contrastingGlyphColor(badgeColor)
+                }
             }
         }
 
         override != null -> {
             val tint = override.resolve()
-            badgeColor = tint.copy(alpha = 0.20f)
-            glyphColor = tint
+
+            badgeColor = tint
+            glyphColor = contrastingGlyphColor(badgeColor)
         }
 
         event.useThemeColor -> {
-            badgeColor = MaterialTheme.colorScheme.forRole(event.themeColorRole)
+            badgeColor = MaterialTheme.colorScheme
+                .forRole(event.themeColorRole)
                 .copy(alpha = event.themeColorOpacity)
-            glyphColor = MaterialTheme.colorScheme.onForRole(event.themeColorRole)
+
+            val defaultGlyph = MaterialTheme.colorScheme
+                .onForRole(event.themeColorRole)
+
+            glyphColor =
+                if (contrastRatio(badgeColor, defaultGlyph) < 3f) {
+                    contrastingGlyphColor(badgeColor)
+                } else {
+                    defaultGlyph
+                }
         }
 
         else -> {
-            badgeColor = event.accent.copy(alpha = 0.20f)
-            glyphColor = event.accent
+            badgeColor = event.accent
+            glyphColor = contrastingGlyphColor(badgeColor)
         }
     }
+
     Box(
         modifier = modifier
             .size(badgeSize)
@@ -4059,4 +4080,17 @@ private fun IconBadge(
             }
         }
     }
+}
+
+private fun contrastRatio(
+    background: Color,
+    foreground: Color,
+): Float {
+    val backgroundLuminance = background.luminance()
+    val foregroundLuminance = foreground.luminance()
+
+    val lighter = maxOf(backgroundLuminance, foregroundLuminance)
+    val darker = minOf(backgroundLuminance, foregroundLuminance)
+
+    return (lighter + 0.05f) / (darker + 0.05f)
 }
