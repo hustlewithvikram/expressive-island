@@ -71,7 +71,6 @@ private enum class HomeTab(
     val icon: ImageVector,
 ) {
     Settings(R.string.nav_settings, Icons.Rounded.Tune),
-    Permissions(R.string.nav_permissions, Icons.Rounded.Shield),
     Profile(R.string.nav_profile, Icons.Rounded.Person),
 }
 
@@ -87,9 +86,11 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
     var settingsRoute by rememberSaveable { mutableStateOf(SettingsRoute.List) }
     var profileRoute by rememberSaveable { mutableStateOf(ProfileRoute.List) }
     var selectedTileName by rememberSaveable { mutableStateOf<String?>(null) }
-    val selectedTile = selectedTileName?.let { name -> DynamicTile.entries.firstOrNull { it.name == name } }
+    val selectedTile =
+        selectedTileName?.let { name -> DynamicTile.entries.firstOrNull { it.name == name } }
     var selectedEventName by rememberSaveable { mutableStateOf<String?>(null) }
-    val selectedEvent = selectedEventName?.let { name -> SystemEventType.entries.firstOrNull { it.name == name } }
+    val selectedEvent =
+        selectedEventName?.let { name -> SystemEventType.entries.firstOrNull { it.name == name } }
     val tabs = HomeTab.entries
     val current = tabs[selectedIndex]
     val haptics = LocalHapticFeedback.current
@@ -97,7 +98,7 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
 
     // On a detail screen the bottom bar becomes a back pill instead of the tab bar.
     val inSubScreen = (current == HomeTab.Settings && settingsRoute != SettingsRoute.List) ||
-        (current == HomeTab.Profile && profileRoute != ProfileRoute.List)
+            (current == HomeTab.Profile && profileRoute != ProfileRoute.List)
 
     val navigateBack: () -> Unit = {
         if (current == HomeTab.Profile) {
@@ -165,7 +166,8 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
     // title on the list, the screen title in the back pill), so a bar would only waste height at
     // the top. A scrim mirroring the bottom one stands in for it.
     Scaffold { _ ->
-        val navBarBottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        val navBarBottomInset =
+            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         val statusBarTopInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         // The scrim is only a fade for *scrolled* content, so content at rest starts below it —
         // same relationship the bottom padding has with the bottom scrim.
@@ -178,7 +180,11 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
             bottom = 96.dp + navBarBottomInset,
         )
 
-        Box(modifier = Modifier.fillMaxSize().background(color = MaterialTheme.colorScheme.surfaceContainer)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color = MaterialTheme.colorScheme.surfaceContainer)
+        ) {
             // Peek animation: as the user drags back, the content shrinks, rounds its corners
             // and slides toward the swiped edge, revealing the surface beneath.
             val contentTransform = Modifier.graphicsLayer {
@@ -187,12 +193,17 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                     val scale = 1f - 0.08f * p
                     scaleX = scale
                     scaleY = scale
-                    translationX = (if (backEdge == BackEventCompat.EDGE_LEFT) 1f else -1f) * 16.dp.toPx() * p
+                    translationX =
+                        (if (backEdge == BackEventCompat.EDGE_LEFT) 1f else -1f) * 16.dp.toPx() * p
                     shape = RoundedCornerShape(32.dp.toPx() * p)
                     clip = true
                 }
             }
-            Box(modifier = Modifier.fillMaxSize().then(contentTransform)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(contentTransform)
+            ) {
                 AnimatedContent(
                     targetState = current,
                     transitionSpec = {
@@ -231,7 +242,6 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                             onOpenPermissionDot = { settingsRoute = SettingsRoute.PermissionDot },
                         )
 
-                        HomeTab.Permissions -> PermissionsTab(contentPadding)
                         HomeTab.Profile -> ProfileTab(
                             viewModel = viewModel,
                             contentPadding = contentPadding,
@@ -300,9 +310,13 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                     SettingsRoute.SizePosition -> stringResource(R.string.appearance_title)
                     SettingsRoute.DynamicTiles -> stringResource(R.string.dynamic_tiles_title)
                     SettingsRoute.DynamicTileDetail ->
-                        selectedTile?.let { stringResource(it.labelRes) } ?: stringResource(R.string.dynamic_tiles_title)
+                        selectedTile?.let { stringResource(it.labelRes) }
+                            ?: stringResource(R.string.dynamic_tiles_title)
+
                     SettingsRoute.EventDetail ->
-                        selectedEvent?.let { stringResource(it.labelRes) } ?: stringResource(R.string.section_icons_title)
+                        selectedEvent?.let { stringResource(it.labelRes) }
+                            ?: stringResource(R.string.section_icons_title)
+
                     SettingsRoute.Apps -> stringResource(R.string.apps_title)
                     SettingsRoute.Behaviour -> stringResource(R.string.behaviour_title)
                     SettingsRoute.ShowsWhenEmpty -> stringResource(R.string.behaviour_empty_pill)

@@ -81,6 +81,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -173,6 +174,7 @@ import com.vikram.expressiveisland.data.IslandDimensions
 import com.vikram.expressiveisland.data.IslandLayout
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.MusicTilePreferences
+import com.vikram.expressiveisland.data.MusicTileSettings
 import com.vikram.expressiveisland.data.ReplyInputStyle
 import com.vikram.expressiveisland.data.SentAlignment
 import com.vikram.expressiveisland.data.SwipeDismissDirection
@@ -207,7 +209,7 @@ private const val PROGRESS_BAR_TOP_GAP_DP = 6
 // Vertical spacing added around the action row on top of the chip height itself. Must equal the
 // expanded column's own child spacing, or a notification with actions and one without end up with
 // their header rows at different heights.
-private const val ACTIONS_ROW_SPACING_DP = 12
+private const val ACTIONS_ROW_SPACING_DP = 6
 
 // How far the island must be dragged upward before a swipe-up collapses it.
 private const val SWIPE_UP_SHRINK_THRESHOLD_DP = 24
@@ -2873,8 +2875,15 @@ private fun MediaExpandedContent(
 ) {
     val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()
     val albumArt = albumArtFor(event, nowPlaying)
-    val musicPreferences = remember { MusicTilePreferences(LocalContext.current) }
-    val musicSettings by musicPreferences.settings.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    val musicPreferences = remember(context) {
+        MusicTilePreferences(context)
+    }
+
+    val musicSettings by musicPreferences.settings.collectAsState(
+        initial = MusicTileSettings(),
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (musicSettings.expandedBackground && albumArt != null) {
@@ -3879,7 +3888,7 @@ private fun ContactPhoto(bitmap: ImageBitmap, size: Dp, modifier: Modifier = Mod
  * non-null [strokeColor] rings the cover, set apart from it by a small gap.
  */
 @Composable
-private fun AlbumArt(
+fun AlbumArt(
     bitmap: ImageBitmap,
     size: Dp,
     modifier: Modifier = Modifier,
