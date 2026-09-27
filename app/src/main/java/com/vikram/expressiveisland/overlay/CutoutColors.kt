@@ -17,6 +17,7 @@ import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.CutoutFill
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.GradientDirection
+import com.vikram.expressiveisland.overlay.island.IslandEvent
 
 /** Fallback accent used for dynamic colours before Android 12 (no Material You). */
 private val DYNAMIC_FALLBACK = Color(0xFF60A5FA)
@@ -27,17 +28,18 @@ private val DYNAMIC_FALLBACK = Color(0xFF60A5FA)
  * [AppIcon] resolves to [appColor] or the configured fallback strategy if no app color is present.
  */
 @Composable
-fun CutoutColor.resolve(appColor: Color? = null, adaptiveColor: Color? = null): Color = when (this) {
-    is CutoutColor.Solid -> Color(argb)
-    is CutoutColor.Dynamic -> dynamicRole(role)
-    is CutoutColor.AppIcon -> {
-        appColor ?: when (fallback) {
-            AppColorFallback.DYNAMIC_THEME -> dynamicRole(DynamicRole.PRIMARY)
-            AppColorFallback.OLED_BLACK -> Color(0xFF000000L)
-            AppColorFallback.ADAPTIVE -> adaptiveColor ?: dynamicRole(DynamicRole.PRIMARY)
+fun CutoutColor.resolve(appColor: Color? = null, adaptiveColor: Color? = null): Color =
+    when (this) {
+        is CutoutColor.Solid -> Color(argb)
+        is CutoutColor.Dynamic -> dynamicRole(role)
+        is CutoutColor.AppIcon -> {
+            appColor ?: when (fallback) {
+                AppColorFallback.DYNAMIC_THEME -> dynamicRole(DynamicRole.PRIMARY)
+                AppColorFallback.OLED_BLACK -> Color(0xFF000000L)
+                AppColorFallback.ADAPTIVE -> adaptiveColor ?: dynamicRole(DynamicRole.PRIMARY)
+            }
         }
     }
-}
 
 /** Resolve a single [ColorSpec] to a concrete [Color], applying its opacity. */
 @Composable
@@ -94,65 +96,73 @@ fun ColorSpec.resolveColor(
  * [SolidColor]; a [CutoutFill.Gradient] becomes a two-stop gradient in its chosen direction.
  */
 @Composable
-fun CutoutFill.resolveBrush(appColor: Color? = null, adaptiveColor: Color? = null): Brush = when (this) {
-    is CutoutFill.Solid -> SolidColor(color.resolve(appColor, adaptiveColor))
-    is CutoutFill.Gradient -> {
-        val startColor = start.resolve(appColor, adaptiveColor).let { it.copy(alpha = it.alpha * opacity) }
-        val endColor = end.resolve(appColor, adaptiveColor).let { it.copy(alpha = it.alpha * opacity) }
-        val colors = listOf(startColor, endColor)
-        when (direction) {
-            GradientDirection.VERTICAL -> Brush.verticalGradient(colors)
-            GradientDirection.HORIZONTAL -> Brush.horizontalGradient(colors)
-            GradientDirection.DIAGONAL -> Brush.linearGradient(colors)
+fun CutoutFill.resolveBrush(appColor: Color? = null, adaptiveColor: Color? = null): Brush =
+    when (this) {
+        is CutoutFill.Solid -> SolidColor(color.resolve(appColor, adaptiveColor))
+        is CutoutFill.Gradient -> {
+            val startColor =
+                start.resolve(appColor, adaptiveColor).let { it.copy(alpha = it.alpha * opacity) }
+            val endColor =
+                end.resolve(appColor, adaptiveColor).let { it.copy(alpha = it.alpha * opacity) }
+            val colors = listOf(startColor, endColor)
+            when (direction) {
+                GradientDirection.VERTICAL -> Brush.verticalGradient(colors)
+                GradientDirection.HORIZONTAL -> Brush.horizontalGradient(colors)
+                GradientDirection.DIAGONAL -> Brush.linearGradient(colors)
+            }
         }
     }
-}
 
 /**
  * A single representative [Color] for a [CutoutFill], used to decide whether text/icons over it
  * should be light or dark. A gradient reports the midpoint of its two stops.
  */
 @Composable
-fun CutoutFill.representativeColor(appColor: Color? = null, adaptiveColor: Color? = null): Color = when (this) {
-    is CutoutFill.Solid -> color.resolve(appColor, adaptiveColor)
-    is CutoutFill.Gradient -> lerp(
-        start.resolve(appColor, adaptiveColor).let { it.copy(alpha = it.alpha * opacity) },
-        end.resolve(appColor, adaptiveColor).let { it.copy(alpha = it.alpha * opacity) },
-        0.5f,
-    )
-}
+fun CutoutFill.representativeColor(appColor: Color? = null, adaptiveColor: Color? = null): Color =
+    when (this) {
+        is CutoutFill.Solid -> color.resolve(appColor, adaptiveColor)
+        is CutoutFill.Gradient -> lerp(
+            start.resolve(appColor, adaptiveColor).let { it.copy(alpha = it.alpha * opacity) },
+            end.resolve(appColor, adaptiveColor).let { it.copy(alpha = it.alpha * opacity) },
+            0.5f,
+        )
+    }
 
 /**
  * Resolves the solid base background color for a [CutoutFill] to sit on top of.
  * Defaults to OLED Black (#000000), or the configured fallback if Solid AppIcon is chosen.
  */
 @Composable
-fun CutoutFill.resolveBaseColor(appColor: Color? = null, adaptiveColor: Color? = null): Color = when (this) {
-    is CutoutFill.Solid -> when (val spec = color) {
-        is ColorSpec.AppIcon -> when (spec.fallback) {
-            AppColorFallback.DYNAMIC_THEME -> dynamicRole(DynamicRole.PRIMARY)
-            AppColorFallback.OLED_BLACK -> Color(0xFF000000L)
-            AppColorFallback.ADAPTIVE -> adaptiveColor ?: dynamicRole(DynamicRole.PRIMARY)
+fun CutoutFill.resolveBaseColor(appColor: Color? = null, adaptiveColor: Color? = null): Color =
+    when (this) {
+        is CutoutFill.Solid -> when (val spec = color) {
+            is ColorSpec.AppIcon -> when (spec.fallback) {
+                AppColorFallback.DYNAMIC_THEME -> dynamicRole(DynamicRole.PRIMARY)
+                AppColorFallback.OLED_BLACK -> Color(0xFF000000L)
+                AppColorFallback.ADAPTIVE -> adaptiveColor ?: dynamicRole(DynamicRole.PRIMARY)
+            }
+
+            else -> Color(0xFF000000L)
         }
-        else -> Color(0xFF000000L)
+
+        is CutoutFill.Gradient -> Color(0xFF000000L)
     }
-    is CutoutFill.Gradient -> Color(0xFF000000L)
-}
 
 /**
- * Resolves the primary accent/branding color for an [IslandEvent].
+ * Resolves the primary accent/branding color for an [com.vikram.expressiveisland.overlay.island.IslandEvent].
  * Order of precedence:
- * 1. User-configured per-event [IslandEvent.colorOverride]
- * 2. System Material You dynamic color when [IslandEvent.useThemeColor] is enabled
- * 3. Extracted [IslandEvent.appColor] for apps/notifications
- * 4. Built-in [IslandEvent.accent] default color
+ * 1. User-configured per-event [com.vikram.expressiveisland.overlay.island.IslandEvent.colorOverride]
+ * 2. System Material You dynamic color when [com.vikram.expressiveisland.overlay.island.IslandEvent.useThemeColor] is enabled
+ * 3. Extracted [com.vikram.expressiveisland.overlay.island.IslandEvent.appColor] for apps/notifications
+ * 4. Built-in [com.vikram.expressiveisland.overlay.island.IslandEvent.accent] default color
  */
-fun IslandEvent.resolvePrimaryColor(dynamicResolver: (DynamicRole) -> Color = { DYNAMIC_FALLBACK }): Color = when {
-    colorOverride != null -> colorOverride.resolveColor(appColor, dynamicResolver)
-    useThemeColor -> dynamicResolver(themeColorRole)
-    appColor != null -> appColor
-    else -> accent
-}
+fun IslandEvent.resolvePrimaryColor(dynamicResolver: (DynamicRole) -> Color = { DYNAMIC_FALLBACK }): Color =
+    when {
+        colorOverride != null -> colorOverride.resolveColor(appColor, dynamicResolver)
+        useThemeColor -> dynamicResolver(themeColorRole)
+        appColor != null -> appColor
+        else -> accent
+    }
 
 @Composable
 fun IslandEvent.primaryColor(): Color = when {

@@ -160,30 +160,140 @@ object PermissionUsageMonitor {
      * [ShizukuStatus.READY] bridge means the OS rejected or moved the hidden API.
      */
     private fun read(ownPackage: String): PermissionUsage = runCatching {
-        val codes = watchedCodes ?: resolveWatchedCodes().also { watchedCodes = it }
-        if (codes.isEmpty()) return PermissionUsage()
-        val appOps = service ?: buildService().also { service = it }
+        val codes = watchedCodes
+            ?: resolveWatchedCodes().also {
+                watchedCodes = it
+            }
+
+        if (codes.isEmpty()) {
+            return PermissionUsage()
+        }
+
+        val appOps = service
+            ?: buildService().also {
+                service = it
+            }
 
         var microphone = false
         var camera = false
         var location = false
+
         for (packageOps in appOps.packagesForOps(codes)) {
-            if (packageOps.call("getPackageName") == ownPackage) continue
-            val entries = packageOps.call("getOps") as? List<*> ?: continue
+
+            val packageName =
+                packageOps.call("getPackageName") as? String
+
+            // Never report Expressive Island itself.
+            if (packageName == ownPackage) {
+                continue
+            }
+
+            val entries =
+                packageOps.call("getOps") as? List<*> ?: continue
+
             for (entry in entries.filterNotNull()) {
-                if (entry.call("isRunning") != true) continue
-                when (WATCHED_OPS[entry.call("getOpStr")]) {
+
+                /*
+                 * Android/OEM builds don't always expose the same
+                 * OpEntry reflection surface.
+                 *
+                 * Try the string first, then fall back to the
+                 * numeric op code.
+                 */
+                val opName =
+                    runCatching {
+                        entry.call("getOpStr") as? String
+                    }.getOrNull()
+
+                val opCode =
+                    runCatching {
+                        entry.call("getOp") as? Int
+                    }.getOrNull()
+
+                val usageKind = when {
+                    opName != null -> WATCHED_OPS[opName]
+
+                    opCode != null -> {
+                        when {
+                            opCode == codes.getOrNull(
+                                WATCHED_OPS.keys.indexOf(
+                                    AppOpsManager.OPSTR_RECORD_AUDIO
+                                )
+                            ) -> UsageKind.MICROPHONE
+
+                            opCode == codes.getOrNull(
+                                WATCHED_OPS.keys.indexOf(
+                                    AppOpsManager.OPSTR_CAMERA
+                                )
+                            ) -> UsageKind.CAMERA
+
+                            opCode == codes.getOrNull(
+                                WATCHED_OPS.keys.indexOf(
+                                    AppOpsManager.OPSTR_FINE_LOCATION
+                                )
+                            ) -> UsageKind.LOCATION
+
+                            opCode == codes.getOrNull(
+                                WATCHED_OPS.keys.indexOf(
+                                    AppOpsManager.OPSTR_COARSE_LOCATION
+                                )
+                            ) -> UsageKind.LOCATION
+
+                            else -> null
+                        }
+                    }
+
+                    else -> null
+                }
+
+                if (usageKind == null) {
+                    continue
+                }
+
+                /*
+                 * isRunning() is the important part for camera/mic.
+                 *
+                 * If reflection exposes it, use it.
+                 */
+                val running = runCatching {
+                    entry.call("isRunning") as? Boolean
+                }.getOrNull()
+
+                if (running != true) {
+                    continue
+                }
+
+                Log.d(
+                    TAG,
+                    "ACTIVE: package=$packageName op=$opName code=$opCode kind=$usageKind"
+                )
+
+                when (usageKind) {
                     UsageKind.MICROPHONE -> microphone = true
                     UsageKind.CAMERA -> camera = true
                     UsageKind.LOCATION -> location = true
-                    null -> Unit
                 }
             }
         }
-        PermissionUsage(microphone = microphone, camera = camera, location = location)
+
+        PermissionUsage(
+            microphone = microphone,
+            camera = camera,
+            location = location,
+        )
     }.getOrElse { error ->
-        Log.w(TAG, "Could not read app-op usage", error)
+        Log.w(
+            TAG,
+            "Could not read app-op usage",
+            error,
+        )
+
         service = null
+
+        /*
+         * Keep the existing behavior here.
+         * The next poll will rebuild the Shizuku service.
+         */
         PermissionUsage()
     }
 
@@ -205,7 +315,8 @@ object PermissionUsageMonitor {
      * the app lifts the hidden-API restriction at startup.
      */
     private fun buildService(): Any {
-        val binder = ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.APP_OPS_SERVICE))
+        val binder =
+            ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.APP_OPS_SERVICE))
         return Class.forName("com.android.internal.app.IAppOpsService\$Stub")
             .getMethod("asInterface", IBinder::class.java)
             .invoke(null, binder)

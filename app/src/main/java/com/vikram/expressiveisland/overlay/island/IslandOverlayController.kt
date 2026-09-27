@@ -1,4 +1,4 @@
-package com.vikram.expressiveisland.overlay
+package com.vikram.expressiveisland.overlay.island
 
 import android.accessibilityservice.AccessibilityService
 import android.app.ActivityOptions
@@ -75,6 +75,14 @@ import com.vikram.expressiveisland.data.asCallCutout
 import com.vikram.expressiveisland.data.PermissionDotColors
 import com.vikram.expressiveisland.data.PermissionDotPosition
 import com.vikram.expressiveisland.data.PermissionDotPreferences
+import com.vikram.expressiveisland.overlay.CENTER_SHORTCUTS_EXTRA_DP
+import com.vikram.expressiveisland.overlay.DynamicIsland
+import com.vikram.expressiveisland.overlay.IconResolver
+import com.vikram.expressiveisland.overlay.OverlayLifecycleOwner
+import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
+import com.vikram.expressiveisland.overlay.contents.callCutoutWidthPercent
+import com.vikram.expressiveisland.overlay.contents.callIncomingExtraDp
+import com.vikram.expressiveisland.overlay.expandedActionsExtraDp
 import com.vikram.expressiveisland.system.PermissionUsage
 import com.vikram.expressiveisland.system.PermissionUsageMonitor
 import com.vikram.expressiveisland.service.CutoutNotificationListenerService
@@ -174,7 +182,7 @@ class IslandOverlayController(private val context: Context) {
     private var satelliteDeadlineMs: Long? = null
     private var restoreSlotsOnCollapse = false
 
-    private val layoutState = MutableStateFlow(IslandLayout.Companion.DEFAULT)
+    private val layoutState = MutableStateFlow(IslandLayout.DEFAULT)
     private val forcedExpanded = MutableStateFlow<Boolean?>(null)
     private val behaviourState = MutableStateFlow(BehaviourSettings())
     private val appearanceState = MutableStateFlow(AppearanceSettings())
@@ -2060,8 +2068,8 @@ class IslandOverlayController(private val context: Context) {
         // too. Starts non-touchable (nothing showing) and becomes touchable only while the island is
         // visible (so tap-to-expand works).
         return WindowManager.LayoutParams(
-            windowWidthPx(IslandLayout.Companion.DEFAULT),
-            windowHeightPx(IslandLayout.Companion.DEFAULT),
+            windowWidthPx(IslandLayout.DEFAULT),
+            windowHeightPx(IslandLayout.DEFAULT),
             overlayType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or

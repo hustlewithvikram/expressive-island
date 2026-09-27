@@ -1,4 +1,4 @@
-package com.vikram.expressiveisland.overlay
+package com.vikram.expressiveisland.overlay.island
 
 import android.app.PendingIntent
 import android.app.RemoteInput
@@ -15,7 +15,7 @@ import com.vikram.expressiveisland.service.ProgressData
 /**
  * A fully resolved, ready-to-render icon. Reducing every possible source (a Material
  * vector default, a user-picked image, or another app's launcher icon) to just two
- * cases keeps the [DynamicIsland] composable trivial and free of Android plumbing.
+ * cases keeps the [com.vikram.expressiveisland.overlay.DynamicIsland] composable trivial and free of Android plumbing.
  */
 @Immutable
 sealed interface IslandIcon {
@@ -184,9 +184,9 @@ data class MediaTileOptions(
     /** Show the playback progress bar under the controls. */
     val showProgress: Boolean = false,
     /** Look of the previous / next (skip) buttons. */
-    val skipStyle: MusicButtonStyle = MusicButtonStyle.Companion.DEFAULT,
+    val skipStyle: MusicButtonStyle = MusicButtonStyle.DEFAULT,
     /** Look of the central play / pause button. */
-    val playPauseStyle: MusicButtonStyle = MusicButtonStyle.Companion.DEFAULT,
+    val playPauseStyle: MusicButtonStyle = MusicButtonStyle.DEFAULT,
 )
 
 /**

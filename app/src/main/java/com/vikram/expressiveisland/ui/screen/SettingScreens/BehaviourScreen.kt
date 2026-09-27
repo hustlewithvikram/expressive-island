@@ -40,7 +40,7 @@ import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.HorizontalCutoutMode
 import com.vikram.expressiveisland.data.SwipeDismissDirection
 import com.vikram.expressiveisland.data.SwipeDismissTarget
-import com.vikram.expressiveisland.overlay.SatellitePosition
+import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 import kotlin.math.roundToInt

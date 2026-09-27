@@ -47,8 +47,8 @@ import com.vikram.expressiveisland.data.ColorSpec
 import com.vikram.expressiveisland.data.CutoutFill
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.GradientDirection
-import com.vikram.expressiveisland.overlay.IslandEvent
-import com.vikram.expressiveisland.overlay.IslandIcon
+import com.vikram.expressiveisland.overlay.island.IslandEvent
+import com.vikram.expressiveisland.overlay.island.IslandIcon
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.overlay.resolveBrush
 import com.vikram.expressiveisland.ui.AppViewModel
@@ -105,8 +105,10 @@ internal fun BackgroundScreen(
     }
     val cutout = rememberTopCutout()
     val dims = if (expandedTab) layout.expanded else layout.collapsed
-    val currentFill = if (expandedTab) appearance.backgroundExpanded else appearance.backgroundNormal
-    val onSelect: (CutoutFill) -> Unit = if (expandedTab) viewModel::setBackgroundExpanded else viewModel::setBackgroundNormal
+    val currentFill =
+        if (expandedTab) appearance.backgroundExpanded else appearance.backgroundNormal
+    val onSelect: (CutoutFill) -> Unit =
+        if (expandedTab) viewModel::setBackgroundExpanded else viewModel::setBackgroundNormal
 
     Column(
         modifier = Modifier
@@ -191,7 +193,9 @@ private fun FillPickerCard(
                     when {
                         index == 1 && selected !is CutoutFill.Gradient -> onSelect(
                             CutoutFill.Gradient(
-                                start = (selected as? CutoutFill.Solid)?.color ?: ColorSpec.Fixed(0xFF0A0A0AL),
+                                start = (selected as? CutoutFill.Solid)?.color ?: ColorSpec.Fixed(
+                                    0xFF0A0A0AL
+                                ),
                                 end = ColorSpec.Fixed(0xFF3B82F6L),
                                 direction = GradientDirection.VERTICAL,
                             ),
@@ -230,7 +234,10 @@ private fun GradientControls(
             .background(gradient.resolveBrush()),
     )
 
-    Text(text = stringResource(R.string.gradient_start), style = MaterialTheme.typography.titleSmall)
+    Text(
+        text = stringResource(R.string.gradient_start),
+        style = MaterialTheme.typography.titleSmall
+    )
     ColorSpecPicker(
         spec = gradient.start,
         onChange = { onSelect(gradient.copy(start = it)) },

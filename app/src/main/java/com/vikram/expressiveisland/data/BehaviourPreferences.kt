@@ -10,7 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.vikram.expressiveisland.data.BehaviourPreferences.Companion.HIDE_IN_LANDSCAPE
 import com.vikram.expressiveisland.data.BehaviourPreferences.Companion.HORIZONTAL_CUTOUT_MODE
-import com.vikram.expressiveisland.overlay.SatellitePosition
+import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -170,7 +170,8 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
 
         BehaviourSettings(
             cutoutEnabled = prefs[CUTOUT_ENABLED] ?: BehaviourSettings.DEFAULT_CUTOUT_ENABLED,
-            hideOnLockscreen = prefs[HIDE_ON_LOCKSCREEN] ?: BehaviourSettings.DEFAULT_HIDE_ON_LOCKSCREEN,
+            hideOnLockscreen = prefs[HIDE_ON_LOCKSCREEN]
+                ?: BehaviourSettings.DEFAULT_HIDE_ON_LOCKSCREEN,
             hideInLandscape = hideLandscape || (horizontalCutoutMode == HorizontalCutoutMode.HIDDEN),
             horizontalCutoutMode = horizontalCutoutMode,
             animationStyle = prefs[ANIMATION_STYLE]
@@ -185,19 +186,36 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             actionButtonAnimation = prefs[ACTION_BUTTON_ANIMATION]
                 ?.let { runCatching { ActionButtonAnimation.valueOf(it) }.getOrNull() }
                 ?: BehaviourSettings.DEFAULT_ACTION_BUTTON_ANIMATION,
-            animationDurationMs = (prefs[ANIMATION_DURATION_MS] ?: BehaviourSettings.DEFAULT_ANIMATION_DURATION_MS)
-                .coerceIn(BehaviourSettings.MIN_ANIMATION_DURATION_MS, BehaviourSettings.MAX_ANIMATION_DURATION_MS),
-            normalDurationSeconds = (prefs[NORMAL_SECONDS] ?: BehaviourSettings.DEFAULT_NORMAL_SECONDS)
-                .coerceIn(BehaviourSettings.MIN_NORMAL_SECONDS, BehaviourSettings.MAX_NORMAL_SECONDS),
+            animationDurationMs = (prefs[ANIMATION_DURATION_MS]
+                ?: BehaviourSettings.DEFAULT_ANIMATION_DURATION_MS)
+                .coerceIn(
+                    BehaviourSettings.MIN_ANIMATION_DURATION_MS,
+                    BehaviourSettings.MAX_ANIMATION_DURATION_MS
+                ),
+            normalDurationSeconds = (prefs[NORMAL_SECONDS]
+                ?: BehaviourSettings.DEFAULT_NORMAL_SECONDS)
+                .coerceIn(
+                    BehaviourSettings.MIN_NORMAL_SECONDS,
+                    BehaviourSettings.MAX_NORMAL_SECONDS
+                ),
             expandedAutoCollapse = prefs[AUTO_COLLAPSE] ?: BehaviourSettings.DEFAULT_AUTO_COLLAPSE,
-            expandedCollapseSeconds = (prefs[COLLAPSE_SECONDS] ?: BehaviourSettings.DEFAULT_COLLAPSE_SECONDS)
-                .coerceIn(BehaviourSettings.MIN_COLLAPSE_SECONDS, BehaviourSettings.MAX_COLLAPSE_SECONDS),
-            expandedDisappearOnShrink = prefs[DISAPPEAR_ON_SHRINK] ?: BehaviourSettings.DEFAULT_DISAPPEAR_ON_SHRINK,
-            notificationsAutoExpand = prefs[NOTIF_AUTO_EXPAND] ?: BehaviourSettings.DEFAULT_NOTIFICATIONS_AUTO_EXPAND,
-            ignoreSilentNotifications = prefs[IGNORE_SILENT_NOTIFICATIONS] ?: BehaviourSettings.DEFAULT_IGNORE_SILENT_NOTIFICATIONS,
-            showActionButtons = prefs[SHOW_ACTION_BUTTONS] ?: BehaviourSettings.DEFAULT_SHOW_ACTION_BUTTONS,
+            expandedCollapseSeconds = (prefs[COLLAPSE_SECONDS]
+                ?: BehaviourSettings.DEFAULT_COLLAPSE_SECONDS)
+                .coerceIn(
+                    BehaviourSettings.MIN_COLLAPSE_SECONDS,
+                    BehaviourSettings.MAX_COLLAPSE_SECONDS
+                ),
+            expandedDisappearOnShrink = prefs[DISAPPEAR_ON_SHRINK]
+                ?: BehaviourSettings.DEFAULT_DISAPPEAR_ON_SHRINK,
+            notificationsAutoExpand = prefs[NOTIF_AUTO_EXPAND]
+                ?: BehaviourSettings.DEFAULT_NOTIFICATIONS_AUTO_EXPAND,
+            ignoreSilentNotifications = prefs[IGNORE_SILENT_NOTIFICATIONS]
+                ?: BehaviourSettings.DEFAULT_IGNORE_SILENT_NOTIFICATIONS,
+            showActionButtons = prefs[SHOW_ACTION_BUTTONS]
+                ?: BehaviourSettings.DEFAULT_SHOW_ACTION_BUTTONS,
             toastOnAction = prefs[TOAST_ON_ACTION] ?: BehaviourSettings.DEFAULT_TOAST_ON_ACTION,
-            shrinkOnSwipeUp = prefs[SHRINK_ON_SWIPE_UP] ?: BehaviourSettings.DEFAULT_SHRINK_ON_SWIPE_UP,
+            shrinkOnSwipeUp = prefs[SHRINK_ON_SWIPE_UP]
+                ?: BehaviourSettings.DEFAULT_SHRINK_ON_SWIPE_UP,
             swipeToDismiss = prefs[SWIPE_TO_DISMISS] ?: BehaviourSettings.DEFAULT_SWIPE_TO_DISMISS,
             swipeDismissDirection = prefs[SWIPE_DISMISS_DIRECTION]
                 ?.let { runCatching { SwipeDismissDirection.valueOf(it) }.getOrNull() }
@@ -206,7 +224,8 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
                 ?.let { runCatching { SwipeDismissTarget.valueOf(it) }.getOrNull() }
                 ?: BehaviourSettings.DEFAULT_SWIPE_DISMISS_TARGET,
             showsWhenEmpty = prefs[SHOWS_WHEN_EMPTY] ?: BehaviourSettings.SHOWS_WHEN_EMPTY,
-            showsWhenEmptyShowIcon = prefs[SHOWS_WHEN_EMPTY_SHOW_ICON] ?: BehaviourSettings.SHOWS_WHEN_EMPTY_SHOW_ICON,
+            showsWhenEmptyShowIcon = prefs[SHOWS_WHEN_EMPTY_SHOW_ICON]
+                ?: BehaviourSettings.SHOWS_WHEN_EMPTY_SHOW_ICON,
             showsWhenEmptyIcon = prefs[SHOWS_WHEN_EMPTY_ICON]?.let { IconSource.decode(it) },
             showsWhenEmptyIconColor = CutoutColor.deserialize(prefs[SHOWS_WHEN_EMPTY_ICON_COLOR]),
             showsWhenEmptyClickAction = prefs[SHOWS_WHEN_EMPTY_CLICK_ACTION]
@@ -215,17 +234,20 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             showsWhenEmptyClickPackage = prefs[SHOWS_WHEN_EMPTY_CLICK_PACKAGE],
             centerShortcuts = CenterShortcut.decodeList(prefs[CENTER_SHORTCUTS]),
             centerShowLabels = prefs[CENTER_SHOW_LABELS] ?: BehaviourSettings.CENTER_SHOW_LABELS,
-            centerFillContainers = prefs[CENTER_FILL_CONTAINERS] ?: BehaviourSettings.CENTER_FILL_CONTAINERS,
+            centerFillContainers = prefs[CENTER_FILL_CONTAINERS]
+                ?: BehaviourSettings.CENTER_FILL_CONTAINERS,
             centerThemedIcons = prefs[CENTER_THEMED_ICONS] ?: BehaviourSettings.CENTER_THEMED_ICONS,
             vibrateOnTap = prefs[VIBRATE_ON_TAP] ?: BehaviourSettings.DEFAULT_VIBRATE_ON_TAP,
             /** If enabled, haptic feedback fires when the cutout appears and disappears */
             hapticsOnPop = prefs[HAPTICS_ON_POP] ?: BehaviourSettings.DEFAULT_HAPTICS_ON_POP,
             /** If enabled, remove Android notification pop-ups */
-            dismissNotifications = prefs[DISMISS_NOTIFICATIONS] ?: BehaviourSettings.DEFAULT_DISMISS_NOTIFICATIONS,
+            dismissNotifications = prefs[DISMISS_NOTIFICATIONS]
+                ?: BehaviourSettings.DEFAULT_DISMISS_NOTIFICATIONS,
             /** If enabled, notification cutout appears even when Do not disturb is enabled */
-            displayWhileDnd = prefs[DISPLAY_WHILE_DND] ?: BehaviourSettings.DEFAULT_DISPLAY_WHILE_DND,
+            displayWhileDnd = prefs[DISPLAY_WHILE_DND]
+                ?: BehaviourSettings.DEFAULT_DISPLAY_WHILE_DND,
             splitIslandEnabled = prefs[SPLIT_ISLAND_ENABLED]
-            ?: BehaviourSettings.DEFAULT_SPLIT_ISLAND_ENABLED,
+                ?: BehaviourSettings.DEFAULT_SPLIT_ISLAND_ENABLED,
             satellitePosition = prefs[SATELLITE_POSITION]
                 ?.let { runCatching { SatellitePosition.valueOf(it) }.getOrNull() }
                 ?: BehaviourSettings.DEFAULT_SATELLITE_POSITION,
@@ -263,7 +285,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("showsWhenEmpty", s.showsWhenEmpty)
             put("showsWhenEmptyShowIcon", s.showsWhenEmptyShowIcon)
             put("showsWhenEmptyIcon", s.showsWhenEmptyIcon?.encode() ?: JSONObject.NULL)
-            put("showsWhenEmptyIconColor", s.showsWhenEmptyIconColor?.serialize() ?: JSONObject.NULL)
+            put(
+                "showsWhenEmptyIconColor",
+                s.showsWhenEmptyIconColor?.serialize() ?: JSONObject.NULL
+            )
             put("showsWhenEmptyClickAction", s.showsWhenEmptyClickAction.name)
             put("showsWhenEmptyClickPackage", s.showsWhenEmptyClickPackage ?: JSONObject.NULL)
             put("centerShortcuts", CenterShortcut.encodeList(s.centerShortcuts))
@@ -290,60 +315,110 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val obj = JSONObject(json)
         context.behaviourDataStore.edit {
             if (obj.has("cutoutEnabled")) it[CUTOUT_ENABLED] = obj.getBoolean("cutoutEnabled")
-            if (obj.has("hideOnLockscreen")) it[HIDE_ON_LOCKSCREEN] = obj.getBoolean("hideOnLockscreen")
-            if (obj.has("hideInLandscape")) it[HIDE_IN_LANDSCAPE] = obj.getBoolean("hideInLandscape")
+            if (obj.has("hideOnLockscreen")) it[HIDE_ON_LOCKSCREEN] =
+                obj.getBoolean("hideOnLockscreen")
+            if (obj.has("hideInLandscape")) it[HIDE_IN_LANDSCAPE] =
+                obj.getBoolean("hideInLandscape")
             parseEnum<HorizontalCutoutMode>(obj, "horizontalCutoutMode")?.let { mode ->
                 it[HORIZONTAL_CUTOUT_MODE] = mode.name
-                it[HIDE_IN_LANDSCAPE] = (mode == HorizontalCutoutMode.HIDDEN) || (it[HIDE_IN_LANDSCAPE] ?: false)
+                it[HIDE_IN_LANDSCAPE] =
+                    (mode == HorizontalCutoutMode.HIDDEN) || (it[HIDE_IN_LANDSCAPE] ?: false)
             }
-            parseEnum<AnimationStyle>(obj, "animationStyle")?.let { s -> it[ANIMATION_STYLE] = s.name }
-            parseEnum<AnimationSpeed>(obj, "animationSpeed")?.let { s -> it[ANIMATION_SPEED] = s.name }
-            parseEnum<AnimationBounce>(obj, "animationBounce")?.let { b -> it[ANIMATION_BOUNCE] = b.name }
-            parseEnum<ActionButtonAnimation>(obj, "actionButtonAnimation")?.let { a -> it[ACTION_BUTTON_ANIMATION] = a.name }
-            if (obj.has("animationDurationMs")) it[ANIMATION_DURATION_MS] = obj.getInt("animationDurationMs")
-                .coerceIn(BehaviourSettings.MIN_ANIMATION_DURATION_MS, BehaviourSettings.MAX_ANIMATION_DURATION_MS)
-            if (obj.has("normalDurationSeconds")) it[NORMAL_SECONDS] = obj.getInt("normalDurationSeconds")
-                .coerceIn(BehaviourSettings.MIN_NORMAL_SECONDS, BehaviourSettings.MAX_NORMAL_SECONDS)
-            if (obj.has("expandedAutoCollapse")) it[AUTO_COLLAPSE] = obj.getBoolean("expandedAutoCollapse")
-            if (obj.has("expandedCollapseSeconds")) it[COLLAPSE_SECONDS] = obj.getInt("expandedCollapseSeconds")
-                .coerceIn(BehaviourSettings.MIN_COLLAPSE_SECONDS, BehaviourSettings.MAX_COLLAPSE_SECONDS)
-            if (obj.has("expandedDisappearOnShrink")) it[DISAPPEAR_ON_SHRINK] = obj.getBoolean("expandedDisappearOnShrink")
-            if (obj.has("notificationsAutoExpand")) it[NOTIF_AUTO_EXPAND] = obj.getBoolean("notificationsAutoExpand")
-            if (obj.has("ignoreSilentNotifications")) it[IGNORE_SILENT_NOTIFICATIONS] = obj.getBoolean("ignoreSilentNotifications")
-            if (obj.has("showActionButtons")) it[SHOW_ACTION_BUTTONS] = obj.getBoolean("showActionButtons")
+            parseEnum<AnimationStyle>(obj, "animationStyle")?.let { s ->
+                it[ANIMATION_STYLE] = s.name
+            }
+            parseEnum<AnimationSpeed>(obj, "animationSpeed")?.let { s ->
+                it[ANIMATION_SPEED] = s.name
+            }
+            parseEnum<AnimationBounce>(obj, "animationBounce")?.let { b ->
+                it[ANIMATION_BOUNCE] = b.name
+            }
+            parseEnum<ActionButtonAnimation>(
+                obj,
+                "actionButtonAnimation"
+            )?.let { a -> it[ACTION_BUTTON_ANIMATION] = a.name }
+            if (obj.has("animationDurationMs")) it[ANIMATION_DURATION_MS] =
+                obj.getInt("animationDurationMs")
+                    .coerceIn(
+                        BehaviourSettings.MIN_ANIMATION_DURATION_MS,
+                        BehaviourSettings.MAX_ANIMATION_DURATION_MS
+                    )
+            if (obj.has("normalDurationSeconds")) it[NORMAL_SECONDS] =
+                obj.getInt("normalDurationSeconds")
+                    .coerceIn(
+                        BehaviourSettings.MIN_NORMAL_SECONDS,
+                        BehaviourSettings.MAX_NORMAL_SECONDS
+                    )
+            if (obj.has("expandedAutoCollapse")) it[AUTO_COLLAPSE] =
+                obj.getBoolean("expandedAutoCollapse")
+            if (obj.has("expandedCollapseSeconds")) it[COLLAPSE_SECONDS] =
+                obj.getInt("expandedCollapseSeconds")
+                    .coerceIn(
+                        BehaviourSettings.MIN_COLLAPSE_SECONDS,
+                        BehaviourSettings.MAX_COLLAPSE_SECONDS
+                    )
+            if (obj.has("expandedDisappearOnShrink")) it[DISAPPEAR_ON_SHRINK] =
+                obj.getBoolean("expandedDisappearOnShrink")
+            if (obj.has("notificationsAutoExpand")) it[NOTIF_AUTO_EXPAND] =
+                obj.getBoolean("notificationsAutoExpand")
+            if (obj.has("ignoreSilentNotifications")) it[IGNORE_SILENT_NOTIFICATIONS] =
+                obj.getBoolean("ignoreSilentNotifications")
+            if (obj.has("showActionButtons")) it[SHOW_ACTION_BUTTONS] =
+                obj.getBoolean("showActionButtons")
             if (obj.has("toastOnAction")) it[TOAST_ON_ACTION] = obj.getBoolean("toastOnAction")
-            if (obj.has("shrinkOnSwipeUp")) it[SHRINK_ON_SWIPE_UP] = obj.getBoolean("shrinkOnSwipeUp")
+            if (obj.has("shrinkOnSwipeUp")) it[SHRINK_ON_SWIPE_UP] =
+                obj.getBoolean("shrinkOnSwipeUp")
             if (obj.has("swipeToDismiss")) it[SWIPE_TO_DISMISS] = obj.getBoolean("swipeToDismiss")
-            parseEnum<SwipeDismissDirection>(obj, "swipeDismissDirection")?.let { d -> it[SWIPE_DISMISS_DIRECTION] = d.name }
-            parseEnum<SwipeDismissTarget>(obj, "swipeDismissTarget")?.let { t -> it[SWIPE_DISMISS_TARGET] = t.name }
+            parseEnum<SwipeDismissDirection>(
+                obj,
+                "swipeDismissDirection"
+            )?.let { d -> it[SWIPE_DISMISS_DIRECTION] = d.name }
+            parseEnum<SwipeDismissTarget>(
+                obj,
+                "swipeDismissTarget"
+            )?.let { t -> it[SWIPE_DISMISS_TARGET] = t.name }
             if (obj.has("showsWhenEmpty")) it[SHOWS_WHEN_EMPTY] = obj.getBoolean("showsWhenEmpty")
-            if (obj.has("showsWhenEmptyShowIcon")) it[SHOWS_WHEN_EMPTY_SHOW_ICON] = obj.getBoolean("showsWhenEmptyShowIcon")
+            if (obj.has("showsWhenEmptyShowIcon")) it[SHOWS_WHEN_EMPTY_SHOW_ICON] =
+                obj.getBoolean("showsWhenEmptyShowIcon")
             if (obj.has("showsWhenEmptyIcon")) {
-                val raw = if (obj.isNull("showsWhenEmptyIcon")) null else obj.optString("showsWhenEmptyIcon")
+                val raw =
+                    if (obj.isNull("showsWhenEmptyIcon")) null else obj.optString("showsWhenEmptyIcon")
                 val icon = raw?.let { s -> IconSource.decode(s) }
-                if (icon == null) it.remove(SHOWS_WHEN_EMPTY_ICON) else it[SHOWS_WHEN_EMPTY_ICON] = icon.encode()
+                if (icon == null) it.remove(SHOWS_WHEN_EMPTY_ICON) else it[SHOWS_WHEN_EMPTY_ICON] =
+                    icon.encode()
             }
             if (obj.has("showsWhenEmptyIconColor")) {
-                val raw = if (obj.isNull("showsWhenEmptyIconColor")) null else obj.optString("showsWhenEmptyIconColor")
+                val raw =
+                    if (obj.isNull("showsWhenEmptyIconColor")) null else obj.optString("showsWhenEmptyIconColor")
                 val color = CutoutColor.deserialize(raw)
-                if (color == null) it.remove(SHOWS_WHEN_EMPTY_ICON_COLOR) else it[SHOWS_WHEN_EMPTY_ICON_COLOR] = color.serialize()
+                if (color == null) it.remove(SHOWS_WHEN_EMPTY_ICON_COLOR) else it[SHOWS_WHEN_EMPTY_ICON_COLOR] =
+                    color.serialize()
             }
-            parseEnum<EmptyClickAction>(obj, "showsWhenEmptyClickAction")?.let { a -> it[SHOWS_WHEN_EMPTY_CLICK_ACTION] = a.name }
+            parseEnum<EmptyClickAction>(
+                obj,
+                "showsWhenEmptyClickAction"
+            )?.let { a -> it[SHOWS_WHEN_EMPTY_CLICK_ACTION] = a.name }
             if (obj.has("showsWhenEmptyClickPackage")) {
                 val pkg = if (obj.isNull("showsWhenEmptyClickPackage")) null
                 else obj.optString("showsWhenEmptyClickPackage").takeIf { s -> s.isNotEmpty() }
-                if (pkg == null) it.remove(SHOWS_WHEN_EMPTY_CLICK_PACKAGE) else it[SHOWS_WHEN_EMPTY_CLICK_PACKAGE] = pkg
+                if (pkg == null) it.remove(SHOWS_WHEN_EMPTY_CLICK_PACKAGE) else it[SHOWS_WHEN_EMPTY_CLICK_PACKAGE] =
+                    pkg
             }
             if (obj.has("centerShortcuts") && !obj.isNull("centerShortcuts")) {
                 it[CENTER_SHORTCUTS] = obj.getString("centerShortcuts")
             }
-            if (obj.has("centerShowLabels")) it[CENTER_SHOW_LABELS] = obj.getBoolean("centerShowLabels")
-            if (obj.has("centerFillContainers")) it[CENTER_FILL_CONTAINERS] = obj.getBoolean("centerFillContainers")
-            if (obj.has("centerThemedIcons")) it[CENTER_THEMED_ICONS] = obj.getBoolean("centerThemedIcons")
+            if (obj.has("centerShowLabels")) it[CENTER_SHOW_LABELS] =
+                obj.getBoolean("centerShowLabels")
+            if (obj.has("centerFillContainers")) it[CENTER_FILL_CONTAINERS] =
+                obj.getBoolean("centerFillContainers")
+            if (obj.has("centerThemedIcons")) it[CENTER_THEMED_ICONS] =
+                obj.getBoolean("centerThemedIcons")
             if (obj.has("vibrateOnTap")) it[VIBRATE_ON_TAP] = obj.getBoolean("vibrateOnTap")
             if (obj.has("hapticsOnPop")) it[HAPTICS_ON_POP] = obj.getBoolean("hapticsOnPop")
-            if (obj.has("dismissNotifications")) it[DISMISS_NOTIFICATIONS] = obj.getBoolean("dismissNotifications")
-            if (obj.has("displayWhileDnd")) it[DISPLAY_WHILE_DND] = obj.getBoolean("displayWhileDnd")
+            if (obj.has("dismissNotifications")) it[DISMISS_NOTIFICATIONS] =
+                obj.getBoolean("dismissNotifications")
+            if (obj.has("displayWhileDnd")) it[DISPLAY_WHILE_DND] =
+                obj.getBoolean("displayWhileDnd")
 
             if (obj.has("splitIslandEnabled")) {
                 it[SPLIT_ISLAND_ENABLED] = obj.getBoolean("splitIslandEnabled")
@@ -381,10 +456,11 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         }
     }
 
-    suspend fun setHorizontalCutoutMode(mode: HorizontalCutoutMode) = context.behaviourDataStore.edit {
-        it[HORIZONTAL_CUTOUT_MODE] = mode.name
-        it[HIDE_IN_LANDSCAPE] = (mode == HorizontalCutoutMode.HIDDEN)
-    }
+    suspend fun setHorizontalCutoutMode(mode: HorizontalCutoutMode) =
+        context.behaviourDataStore.edit {
+            it[HORIZONTAL_CUTOUT_MODE] = mode.name
+            it[HIDE_IN_LANDSCAPE] = (mode == HorizontalCutoutMode.HIDDEN)
+        }
 
     suspend fun setAnimationStyle(style: AnimationStyle) = context.behaviourDataStore.edit {
         it[ANIMATION_STYLE] = style.name
@@ -398,9 +474,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[ANIMATION_BOUNCE] = bounce.name
     }
 
-    suspend fun setActionButtonAnimation(animation: ActionButtonAnimation) = context.behaviourDataStore.edit {
-        it[ACTION_BUTTON_ANIMATION] = animation.name
-    }
+    suspend fun setActionButtonAnimation(animation: ActionButtonAnimation) =
+        context.behaviourDataStore.edit {
+            it[ACTION_BUTTON_ANIMATION] = animation.name
+        }
 
     suspend fun setAnimationDurationMs(ms: Int) = context.behaviourDataStore.edit {
         it[ANIMATION_DURATION_MS] = ms.coerceIn(
@@ -409,7 +486,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         )
     }
 
-     /** If enabled, dismiss notifications automatically */
+    /** If enabled, dismiss notifications automatically */
     suspend fun setDismissNotifications(enabled: Boolean) = context.behaviourDataStore.edit {
         it[DISMISS_NOTIFICATIONS] = enabled
     }
@@ -460,13 +537,15 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[SWIPE_TO_DISMISS] = enabled
     }
 
-    suspend fun setSwipeDismissDirection(direction: SwipeDismissDirection) = context.behaviourDataStore.edit {
-        it[SWIPE_DISMISS_DIRECTION] = direction.name
-    }
+    suspend fun setSwipeDismissDirection(direction: SwipeDismissDirection) =
+        context.behaviourDataStore.edit {
+            it[SWIPE_DISMISS_DIRECTION] = direction.name
+        }
 
-    suspend fun setSwipeDismissTarget(target: SwipeDismissTarget) = context.behaviourDataStore.edit {
-        it[SWIPE_DISMISS_TARGET] = target.name
-    }
+    suspend fun setSwipeDismissTarget(target: SwipeDismissTarget) =
+        context.behaviourDataStore.edit {
+            it[SWIPE_DISMISS_TARGET] = target.name
+        }
 
     suspend fun setShowsWhenEmpty(enabled: Boolean) = context.behaviourDataStore.edit {
         it[SHOWS_WHEN_EMPTY] = enabled
@@ -490,19 +569,22 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         else it[SHOWS_WHEN_EMPTY_ICON_COLOR] = color.serialize()
     }
 
-    suspend fun setShowsWhenEmptyClickAction(action: EmptyClickAction) = context.behaviourDataStore.edit {
-        it[SHOWS_WHEN_EMPTY_CLICK_ACTION] = action.name
-    }
+    suspend fun setShowsWhenEmptyClickAction(action: EmptyClickAction) =
+        context.behaviourDataStore.edit {
+            it[SHOWS_WHEN_EMPTY_CLICK_ACTION] = action.name
+        }
 
-    suspend fun setShowsWhenEmptyClickPackage(packageName: String?) = context.behaviourDataStore.edit {
-        if (packageName == null) it.remove(SHOWS_WHEN_EMPTY_CLICK_PACKAGE)
-        else it[SHOWS_WHEN_EMPTY_CLICK_PACKAGE] = packageName
-    }
+    suspend fun setShowsWhenEmptyClickPackage(packageName: String?) =
+        context.behaviourDataStore.edit {
+            if (packageName == null) it.remove(SHOWS_WHEN_EMPTY_CLICK_PACKAGE)
+            else it[SHOWS_WHEN_EMPTY_CLICK_PACKAGE] = packageName
+        }
 
     /** Persist the ordered set of shortcuts shown in the expanded "center". */
-    suspend fun setCenterShortcuts(shortcuts: List<CenterShortcut>) = context.behaviourDataStore.edit {
-        it[CENTER_SHORTCUTS] = CenterShortcut.encodeList(shortcuts)
-    }
+    suspend fun setCenterShortcuts(shortcuts: List<CenterShortcut>) =
+        context.behaviourDataStore.edit {
+            it[CENTER_SHORTCUTS] = CenterShortcut.encodeList(shortcuts)
+        }
 
     /** Whether each center shortcut shows its name beneath it. */
     suspend fun setCenterShowLabels(enabled: Boolean) = context.behaviourDataStore.edit {

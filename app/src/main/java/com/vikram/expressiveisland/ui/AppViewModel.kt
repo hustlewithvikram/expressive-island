@@ -57,7 +57,7 @@ import com.vikram.expressiveisland.data.TimerTileSettings
 import com.vikram.expressiveisland.data.SwipeDismissDirection
 import com.vikram.expressiveisland.data.SwipeDismissTarget
 import com.vikram.expressiveisland.data.ThemePreferences
-import com.vikram.expressiveisland.overlay.SatellitePosition
+import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.ui.theme.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted

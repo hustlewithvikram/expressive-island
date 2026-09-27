@@ -11,7 +11,7 @@ import com.vikram.expressiveisland.core.ForegroundAppBus
 import com.vikram.expressiveisland.core.IslandEventBus
 import com.vikram.expressiveisland.events.MediaPlaybackMonitor
 import com.vikram.expressiveisland.events.SystemEventMonitor
-import com.vikram.expressiveisland.overlay.IslandOverlayController
+import com.vikram.expressiveisland.overlay.island.IslandOverlayController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,7 +44,9 @@ class CutoutAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val ev = event ?: return
         val pkg = ev.packageName?.toString()?.takeIf { it.isNotBlank() } ?: return
-        if (ev.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) ForegroundAppBus.update(pkg)
+        if (ev.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) ForegroundAppBus.update(
+            pkg
+        )
 
         if (!isAssistantPackage(pkg)) {
             if (lastAssistantKey != null && ev.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
@@ -89,13 +91,15 @@ class CutoutAccessibilityService : AccessibilityService() {
         val key = "$pkg|$title|$responseText".take(MAX_KEY_LENGTH)
         if (key != lastAssistantKey) {
             lastAssistantKey = key
-            IslandEventBus.emit(CutoutSignal.Assistant(
-                packageName = pkg,
-                title = title,
-                text = responseText,
-                contentIntent = null,
-                active = true,
-            ))
+            IslandEventBus.emit(
+                CutoutSignal.Assistant(
+                    packageName = pkg,
+                    title = title,
+                    text = responseText,
+                    contentIntent = null,
+                    active = true,
+                )
+            )
         }
     }
 
@@ -135,8 +139,13 @@ class CutoutAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() = Unit
-    override fun onUnbind(intent: Intent?): Boolean { teardown(); return super.onUnbind(intent) }
-    override fun onDestroy() { teardown(); super.onDestroy() }
+    override fun onUnbind(intent: Intent?): Boolean {
+        teardown(); return super.onUnbind(intent)
+    }
+
+    override fun onDestroy() {
+        teardown(); super.onDestroy()
+    }
 
     private fun teardownComponents() {
         mediaPlayback?.stop(); mediaPlayback = null
@@ -174,6 +183,7 @@ class CutoutAccessibilityService : AccessibilityService() {
         private var instance: CutoutAccessibilityService? = null
         private val _bound = MutableStateFlow(false)
         val bound: StateFlow<Boolean> = _bound.asStateFlow()
-        fun performGlobal(action: Int): Boolean = runCatching { instance?.performGlobalAction(action) }.getOrNull() ?: false
+        fun performGlobal(action: Int): Boolean =
+            runCatching { instance?.performGlobalAction(action) }.getOrNull() ?: false
     }
 }

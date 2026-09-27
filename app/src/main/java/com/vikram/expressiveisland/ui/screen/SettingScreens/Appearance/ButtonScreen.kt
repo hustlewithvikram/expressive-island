@@ -56,15 +56,11 @@ import com.vikram.expressiveisland.data.ActionButtonStyle
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.ReplyInputStyle
 import com.vikram.expressiveisland.data.SentAlignment
-import com.vikram.expressiveisland.overlay.IslandAction
-import com.vikram.expressiveisland.overlay.IslandEvent
-import com.vikram.expressiveisland.overlay.IslandIcon
+import com.vikram.expressiveisland.overlay.island.IslandAction
+import com.vikram.expressiveisland.overlay.island.IslandEvent
+import com.vikram.expressiveisland.overlay.island.IslandIcon
 import com.vikram.expressiveisland.overlay.expandedActionsExtraDp
 import com.vikram.expressiveisland.ui.AppViewModel
-import com.vikram.expressiveisland.ui.screen.AdjustableSlider
-import com.vikram.expressiveisland.ui.screen.IslandPreviewPanel
-import com.vikram.expressiveisland.ui.screen.SettingsToggleCard
-import com.vikram.expressiveisland.ui.screen.rememberTopCutout
 import kotlin.math.roundToInt
 
 /** Accent used by the preview event, matching the accent shown on the sibling settings screens. */
@@ -122,7 +118,7 @@ internal fun ButtonScreen(
     // Mirror the real island: it grows by the chip row's height so the chips clear the camera hole —
     // but only when the chips are actually shown, matching the toggle below.
     val previewHeightDp = expanded.heightDp +
-        if (behaviour.showActionButtons) expandedActionsExtraDp(buttonHeight.roundToInt()) else 0
+            if (behaviour.showActionButtons) expandedActionsExtraDp(buttonHeight.roundToInt()) else 0
 
     Column(
         modifier = Modifier
@@ -239,7 +235,7 @@ internal fun ButtonScreen(
                     valueText = "${buttonHeight.roundToInt()} dp",
                     value = buttonHeight,
                     valueRange = AppearanceSettings.MIN_ACTION_BUTTON_HEIGHT_DP.toFloat()..
-                        AppearanceSettings.MAX_ACTION_BUTTON_HEIGHT_DP.toFloat(),
+                            AppearanceSettings.MAX_ACTION_BUTTON_HEIGHT_DP.toFloat(),
                     step = 2f,
                     onValueChange = { buttonHeight = it },
                     onCommit = { viewModel.setActionButtonHeight(buttonHeight.roundToInt()) },
@@ -492,8 +488,10 @@ private fun ReplyInputPreview(
     val segmented = inputStyle == ReplyInputStyle.SEGMENTED
     val cap = (heightDp / 2).dp
     val inner = 8.dp
-    val startCap = RoundedCornerShape(topStart = cap, bottomStart = cap, topEnd = inner, bottomEnd = inner)
-    val endCap = RoundedCornerShape(topStart = inner, bottomStart = inner, topEnd = cap, bottomEnd = cap)
+    val startCap =
+        RoundedCornerShape(topStart = cap, bottomStart = cap, topEnd = inner, bottomEnd = inner)
+    val endCap =
+        RoundedCornerShape(topStart = inner, bottomStart = inner, topEnd = cap, bottomEnd = cap)
     val fieldShape: Shape = when (inputStyle) {
         ReplyInputStyle.EXPRESSIVE -> CircleShape
         ReplyInputStyle.MATERIAL_YOU -> RoundedCornerShape(16.dp)
@@ -506,7 +504,11 @@ private fun ReplyInputPreview(
         Box(
             modifier = Modifier
                 .size(heightDp.dp)
-                .clip(if (segmented && cancelOnLeft) startCap else if (segmented) RoundedCornerShape(inner) else CircleShape)
+                .clip(
+                    if (segmented && cancelOnLeft) startCap else if (segmented) RoundedCornerShape(
+                        inner
+                    ) else CircleShape
+                )
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             contentAlignment = Alignment.Center,
         ) {

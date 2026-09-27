@@ -20,6 +20,14 @@ import com.vikram.expressiveisland.data.IconSource
 import com.vikram.expressiveisland.data.MusicTileSettings
 import com.vikram.expressiveisland.data.PhoneTileSettings
 import com.vikram.expressiveisland.data.TimerTileSettings
+import com.vikram.expressiveisland.overlay.island.AssistantTileOptions
+import com.vikram.expressiveisland.overlay.island.CallTileOptions
+import com.vikram.expressiveisland.overlay.island.IslandAction
+import com.vikram.expressiveisland.overlay.island.IslandEvent
+import com.vikram.expressiveisland.overlay.island.IslandIcon
+import com.vikram.expressiveisland.overlay.island.IslandReply
+import com.vikram.expressiveisland.overlay.island.MediaTileOptions
+import com.vikram.expressiveisland.overlay.island.TimerTileOptions
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -36,7 +44,7 @@ fun SystemEventType.animatedIcon(): IslandIcon.Lottie? = when (this) {
         clipEndFrame = 0,
         tint = true,
     )
-    
+
     // Play briskly and hold on the "open" frame (25 of 80): motion starts at frame 5 and reaches the
     // open paddle state at frame 25. Starting at frame 5 with speed 2f snaps the paddle open the instant
     // the phone unlocks without dead latency. Tinted to follow the badge glyph colour.
@@ -55,6 +63,7 @@ fun SystemEventType.animatedIcon(): IslandIcon.Lottie? = when (this) {
         scale = 4f,
         tint = true,
     )
+
     else -> null
 }
 
@@ -66,7 +75,7 @@ fun SystemEventType.animationLoopsByDefault(): Boolean =
     animatedIcon()?.iterations == LottieConstants.IterateForever
 
 /**
- * Turns a source-agnostic [CutoutSignal] into a renderable [IslandEvent], applying the user's icon
+ * Turns a source-agnostic [CutoutSignal] into a renderable [com.vikram.expressiveisland.overlay.island.IslandEvent], applying the user's icon
  * overrides and rasterising whatever art the signal carried. This is the one place that loads
  * drawables, the package manager, and the content resolver, so all the "impure" resolution lives
  * here. A notification's source package makes its launcher and adaptive icon available without
@@ -98,6 +107,7 @@ class IconResolver(private val context: Context) {
             dynamicEventColorOpacity,
             preferDynamicIconColor,
         )
+
         is CutoutSignal.System -> resolveSystem(
             signal.type,
             customIcons,
@@ -108,6 +118,7 @@ class IconResolver(private val context: Context) {
             animatedIconLoop,
             eventColorOverrides,
         )
+
         is CutoutSignal.Music -> resolveMusic(signal, musicSettings)
         is CutoutSignal.Call -> resolveCall(signal, phoneSettings)
         is CutoutSignal.Timer -> resolveTimer(signal, timerSettings)
@@ -172,7 +183,8 @@ class IconResolver(private val context: Context) {
         }.getOrNull()
 
         if (preferDynamicColor) {
-            smallIcon?.loadImageBitmapOrNull(context)?.let { return IslandIcon.Raster(it, tint = true) }
+            smallIcon?.loadImageBitmapOrNull(context)
+                ?.let { return IslandIcon.Raster(it, tint = true) }
 
             val monochrome = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 (appDrawable as? AdaptiveIconDrawable)?.monochrome
@@ -184,7 +196,8 @@ class IconResolver(private val context: Context) {
             largeIcon?.loadImageBitmapOrNull(context)?.let { return IslandIcon.Raster(it) }
         } else {
             largeIcon?.loadImageBitmapOrNull(context)?.let { return IslandIcon.Raster(it) }
-            smallIcon?.loadImageBitmapOrNull(context)?.let { return IslandIcon.Raster(it, tint = true) }
+            smallIcon?.loadImageBitmapOrNull(context)
+                ?.let { return IslandIcon.Raster(it, tint = true) }
             appDrawable?.let { return IslandIcon.Raster(it.toImageBitmap()) }
         }
         return null
@@ -283,7 +296,10 @@ class IconResolver(private val context: Context) {
         )
     }
 
-    private fun resolveAssistant(signal: CutoutSignal.Assistant, settings: AssistantTileSettings): IslandEvent {
+    private fun resolveAssistant(
+        signal: CutoutSignal.Assistant,
+        settings: AssistantTileSettings,
+    ): IslandEvent {
         val defaultLabel = context.getString(DynamicTile.ASSISTANT.labelRes)
         val rawTitle = signal.title?.takeIf { it.isNotBlank() }
         val rawText = signal.text?.takeIf { it.isNotBlank() }
@@ -398,7 +414,8 @@ class IconResolver(private val context: Context) {
         // Lower-cased substrings that mark a call's end/decline action. English-led (most dialers'
         // notifications localise to the device language, but English covers the common case); the
         // phrases avoid false hits like "send" that a bare "end" would catch.
-        val HANG_UP_KEYWORDS = listOf("hang up", "hangup", "hang-up", "end call", "decline", "reject")
+        val HANG_UP_KEYWORDS =
+            listOf("hang up", "hangup", "hang-up", "end call", "decline", "reject")
 
         // Lower-cased substrings marking an incoming call's answer/accept action, so the tile can
         // render it as the take-call button (mirrors HANG_UP_KEYWORDS; English covers the common case).

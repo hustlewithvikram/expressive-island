@@ -48,8 +48,8 @@ import androidx.compose.ui.unit.TextUnit
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.IslandLayout
-import com.vikram.expressiveisland.overlay.IslandEvent
-import com.vikram.expressiveisland.overlay.IslandPreview
+import com.vikram.expressiveisland.overlay.island.IslandEvent
+import com.vikram.expressiveisland.overlay.island.IslandPreview
 
 // Shared building blocks used by more than one settings sub-screen. Kept `internal` so each
 // screen file (same package, split across the SettingScreens/ folder) can reach them.

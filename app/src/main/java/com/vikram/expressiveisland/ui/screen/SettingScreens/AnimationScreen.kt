@@ -1,7 +1,6 @@
 package com.vikram.expressiveisland.ui.screen
 
 import android.annotation.SuppressLint
-import android.widget.Space
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -44,10 +43,9 @@ import com.vikram.expressiveisland.data.AnimationSpeed
 import com.vikram.expressiveisland.data.AnimationStyle
 import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.PageTransitionStyle
-import com.vikram.expressiveisland.overlay.IslandMotion
+import com.vikram.expressiveisland.overlay.island.IslandMotion
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
-import com.vikram.expressiveisland.ui.screen.AdjustableSlider
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 

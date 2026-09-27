@@ -1,10 +1,9 @@
-package com.vikram.expressiveisland.overlay
+package com.vikram.expressiveisland.overlay.island
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
@@ -22,9 +21,9 @@ import kotlin.math.sqrt
  * Shared by the overlay island and the Animations screen's example pills, so the example previews
  * exactly the motion the real cutout uses.
  *
- * [AnimationStyle.EXPRESSIVE] uses spatial springs based on the Material 3 expressive
+ * [com.vikram.expressiveisland.data.AnimationStyle.EXPRESSIVE] uses spatial springs based on the Material 3 expressive
  * `MotionScheme` tokens (the `MotionScheme` API itself needs material3 1.4+; see [spatialSpec] for
- * how the values here deviate). [AnimationStyle.EASE_IN_OUT] uses a standard ease-in-out tween
+ * how the values here deviate). [com.vikram.expressiveisland.data.AnimationStyle.EASE_IN_OUT] uses a standard ease-in-out tween
  * scaled by the duration slider.
  */
 internal class IslandMotion(
@@ -56,7 +55,11 @@ internal class IslandMotion(
      * by design, but still honours the speed knob and the duration slider.
      */
     fun dpSmooth(): AnimationSpec<Dp> =
-        if (expressive) spring(dampingRatio = 1f, stiffness = spatialStiffness(speed), visibilityThreshold = Dp.VisibilityThreshold)
+        if (expressive) spring(
+            dampingRatio = 1f,
+            stiffness = spatialStiffness(speed),
+            visibilityThreshold = Dp.VisibilityThreshold
+        )
         else tween(durationMillis = scaled(BASE_TRANSITION_MS), easing = EaseInOutEasing)
 
     /**
@@ -67,7 +70,11 @@ internal class IslandMotion(
      * Critically damped and stiff, so it stays immediate without springing past the resting scale.
      */
     fun boop(): AnimationSpec<Float> =
-        if (expressive) spring(dampingRatio = 1f, stiffness = boopStiffness(speed), visibilityThreshold = 0.0005f)
+        if (expressive) spring(
+            dampingRatio = 1f,
+            stiffness = boopStiffness(speed),
+            visibilityThreshold = 0.0005f
+        )
         else tween(durationMillis = scaled(140), easing = EaseInOutEasing)
 
     /**
@@ -92,12 +99,19 @@ internal class IslandMotion(
             val velocity = (peak - REST_SCALE) * sqrt(stiffness) / POP_PEAK_RATIO
             scale.animateTo(
                 targetValue = REST_SCALE,
-                animationSpec = spring(dampingRatio = POP_DAMPING, stiffness = stiffness, visibilityThreshold = 0.0005f),
+                animationSpec = spring(
+                    dampingRatio = POP_DAMPING,
+                    stiffness = stiffness,
+                    visibilityThreshold = 0.0005f
+                ),
                 initialVelocity = velocity,
             )
         } else {
             scale.animateTo(peak, tween(durationMillis = scaled(80), easing = EaseInOutEasing))
-            scale.animateTo(REST_SCALE, tween(durationMillis = scaled(160), easing = EaseInOutEasing))
+            scale.animateTo(
+                REST_SCALE,
+                tween(durationMillis = scaled(160), easing = EaseInOutEasing)
+            )
         }
     }
 
@@ -145,7 +159,11 @@ internal class IslandMotion(
                 AnimationBounce.NORMAL -> 0.6f
                 AnimationBounce.SMALL -> 0.8f
             }
-            return spring(dampingRatio = dampingRatio, stiffness = stiffness, visibilityThreshold = visibilityThreshold)
+            return spring(
+                dampingRatio = dampingRatio,
+                stiffness = stiffness,
+                visibilityThreshold = visibilityThreshold
+            )
         }
 
         /** The MotionScheme slow / default / fast stiffness tokens, shared by the spatial springs. */
