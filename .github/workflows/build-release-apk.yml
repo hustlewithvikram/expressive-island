@@ -23,13 +23,72 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Prepare release signing keystore
+        env:
+          EXPRESSIVE_RELEASE_STORE_FILE_B64: ${{ secrets.EXPRESSIVE_RELEASE_STORE_FILE }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${EXPRESSIVE_RELEASE_STORE_FILE_B64}" ]; then
+            echo "::error::EXPRESSIVE_RELEASE_STORE_FILE secret is not configured."
+            exit 1
+          fi
+
+          mkdir -p "${RUNNER_TEMP}/expressive-island-signing"
+          printf '%s' "${EXPRESSIVE_RELEASE_STORE_FILE_B64}" | base64 --decode > "${RUNNER_TEMP}/expressive-island-signing/expressive-island-release.jks"
+
+          if [ ! -s "${RUNNER_TEMP}/expressive-island-signing/expressive-island-release.jks" ]; then
+            echo "::error::The release keystore could not be decoded."
+            exit 1
+          fi
+
+          echo "EXPRESSIVE_RELEASE_STORE_PATH=${RUNNER_TEMP}/expressive-island-signing/expressive-island-release.jks" >> "${GITHUB_ENV}"
+
+      - name: Validate release signing configuration
+        env:
+          EXPRESSIVE_RELEASE_STORE_PASSWORD: ${{ secrets.EXPRESSIVE_RELEASE_STORE_PASSWORD }}
+          EXPRESSIVE_RELEASE_KEY_ALIAS: ${{ secrets.EXPRESSIVE_RELEASE_KEY_ALIAS }}
+          EXPRESSIVE_RELEASE_KEY_PASSWORD: ${{ secrets.EXPRESSIVE_RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for name in EXPRESSIVE_RELEASE_STORE_PASSWORD EXPRESSIVE_RELEASE_KEY_ALIAS EXPRESSIVE_RELEASE_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::${name} secret is not configured."
+              missing=1
+            fi
+          done
+
+          if [ "${missing}" -ne 0 ]; then
+            exit 1
+          fi
+
       - name: Build release APK
         env:
-          EXPRESSIVE_RELEASE_STORE_FILE: ${{ secrets.EXPRESSIVE_RELEASE_STORE_FILE }}
+          EXPRESSIVE_RELEASE_STORE_FILE: ${{ env.EXPRESSIVE_RELEASE_STORE_PATH }}
           EXPRESSIVE_RELEASE_STORE_PASSWORD: ${{ secrets.EXPRESSIVE_RELEASE_STORE_PASSWORD }}
           EXPRESSIVE_RELEASE_KEY_ALIAS: ${{ secrets.EXPRESSIVE_RELEASE_KEY_ALIAS }}
           EXPRESSIVE_RELEASE_KEY_PASSWORD: ${{ secrets.EXPRESSIVE_RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease --no-daemon
+
+      - name: Verify release APK signing
+        run: |
+          set -euo pipefail
+
+          apk="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          if [ -z "${apk}" ]; then
+            echo "::error::No release APK was produced."
+            exit 1
+          fi
+
+          apksigner="$(find "${ANDROID_HOME}/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          if [ -z "${apksigner}" ]; then
+            echo "::error::Android apksigner was not found."
+            exit 1
+          fi
+
+          "${apksigner}" verify --verbose "${apk}"
 
       - name: Upload release APK
         uses: actions/upload-artifact@v4
@@ -38,3 +97,7 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Clean up release signing keystore
+        if: always()
+        run: rm -rf "${RUNNER_TEMP}/expressive-island-signing"
