@@ -1,74 +1,10 @@
-name: Build
+name: Legacy Build (Disabled)
 
 on:
-  push:
-    branches:
-      - feat/music-background-settings-ui
   workflow_dispatch:
 
 jobs:
-  build:
+  disabled:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Fix music settings state collection
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("app/src/main/java/com/vikram/expressiveisland/overlay/DynamicIsland.kt")
-          s = p.read_text()
-          old = """    val musicPreferences = remember { MusicTilePreferences(LocalContext.current) }
-    val musicSettings by musicPreferences.settings.collectAsStateWithLifecycle()"""
-          new = """    val context = LocalContext.current
-    val musicPreferences = remember(context) { MusicTilePreferences(context) }
-    val musicSettings by musicPreferences.settings.collectAsStateWithLifecycle(
-        initialValue = MusicTileSettings(),
-    )"""
-          if old in s:
-              s = s.replace(old, new, 1)
-          elif "initialValue = MusicTileSettings()" not in s:
-              raise SystemExit("Expected music settings state block was not found")
-          if "import com.vikram.expressiveisland.data.MusicTileSettings" not in s:
-              marker = "import com.vikram.expressiveisland.data.MusicTilePreferences\n"
-              if marker not in s:
-                  raise SystemExit("MusicTilePreferences import not found")
-              s = s.replace(marker, marker + "import com.vikram.expressiveisland.data.MusicTileSettings\n", 1)
-          p.write_text(s)
-          PY
-
-      - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
-
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: expressive-cutout-debug-${{ github.sha }}
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Run lint
-        run: ./gradlew lintDebug --no-daemon
-
-      - name: Upload lint report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lint-report-${{ github.sha }}
-          path: app/build/reports/lint-results-debug.html
-          if-no-files-found: ignore
-
-      # Music settings build validation
+      - run: echo "Use build-debug-apk.yml for debug validation and build-release-apk.yml for release builds."
