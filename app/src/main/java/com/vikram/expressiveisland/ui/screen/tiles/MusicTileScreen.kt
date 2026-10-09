@@ -441,39 +441,7 @@ internal fun MusicTileScreen(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text("Button layout", style = MaterialTheme.typography.titleSmall)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    SeekButtonMode.entries.forEach { mode ->
-                        val selected = settings.seekButtonMode == mode
-                        Card(
-                            modifier = Modifier.weight(1f).clickable { viewModel.setMusicSeekButtonMode(mode) },
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-                            ),
-                        ) {
-                            Text(
-                                mode.label,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            )
-                        }
-                    }
-                }
-                Text(
-                    "Choose which seek buttons appear beside Play/Pause.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            if (settings.seekButtonMode != SeekButtonMode.RIGHT) {
-                SeekOptionRow(
+            SeekOptionRow(
                     title = "Seek backward",
                     description = "Show a button before Play/Pause",
                     enabled = settings.leftSeekEnabled,
@@ -481,9 +449,7 @@ internal fun MusicTileScreen(
                     onEnabledChange = viewModel::setMusicLeftSeekEnabled,
                     onTimeClick = { leftSeekTimeDialog = true },
                 )
-            }
-            if (settings.seekButtonMode != SeekButtonMode.LEFT) {
-                SeekOptionRow(
+            SeekOptionRow(
                     title = "Seek forward",
                     description = "Show a button after Play/Pause",
                     enabled = settings.rightSeekEnabled,
@@ -491,7 +457,6 @@ internal fun MusicTileScreen(
                     onEnabledChange = viewModel::setMusicRightSeekEnabled,
                     onTimeClick = { rightSeekTimeDialog = true },
                 )
-            }
         }
 
         SectionLabel("Music Visualizer")
