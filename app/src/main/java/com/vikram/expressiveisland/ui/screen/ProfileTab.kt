@@ -92,9 +92,11 @@ import com.vikram.expressiveisland.ui.theme.AppTheme
  */
 enum class ProfileRoute {
     List,
+    Access,
+    TestingTriggers,
+    About,
     Changelog,
     PermissionDetails,
-    Testing,
 }
 
 @Composable
@@ -102,6 +104,9 @@ fun ProfileTab(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
     route: ProfileRoute,
+    onOpenAccess: () -> Unit,
+    onOpenTestingTriggers: () -> Unit,
+    onOpenAbout: () -> Unit,
     onOpenChangelog: () -> Unit,
     onOpenPermissionDetails: () -> Unit,
     onExportSettings: () -> Unit,
@@ -125,10 +130,31 @@ fun ProfileTab(
                 ProfileList(
                     viewModel = viewModel,
                     contentPadding = contentPadding,
+                    onOpenAccess = onOpenAccess,
+                    onOpenTestingTriggers = onOpenTestingTriggers,
+                    onOpenAbout = onOpenAbout,
                     onOpenChangelog = onOpenChangelog,
                     onOpenPermissionDetails = onOpenPermissionDetails,
                     onExportSettings = onExportSettings,
                     onImportSettings = onImportSettings,
+                )
+            }
+
+            ProfileRoute.Access -> {
+                AccessSubpage(
+                    contentPadding = contentPadding,
+                    onOpenPermissionDetails = onOpenPermissionDetails,
+                )
+            }
+
+            ProfileRoute.TestingTriggers -> {
+                TestingTriggersSubpage(contentPadding)
+            }
+
+            ProfileRoute.About -> {
+                AboutSubpage(
+                    contentPadding = contentPadding,
+                    onOpenChangelog = onOpenChangelog,
                 )
             }
 
@@ -139,17 +165,6 @@ fun ProfileTab(
             ProfileRoute.PermissionDetails -> {
                 PermissionDetailsScreen(contentPadding)
             }
-
-            ProfileRoute.Testing -> {
-                /*
-                 * Kept for navigation compatibility.
-                 *
-                 * Testing controls are now directly available on the
-                 * Profile list, so this route does not need to be used
-                 * by the bottom navigation.
-                 */
-                TestingScreen(contentPadding)
-            }
         }
     }
 }
@@ -158,41 +173,15 @@ fun ProfileTab(
 private fun ProfileList(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
+    onOpenAccess: () -> Unit,
+    onOpenTestingTriggers: () -> Unit,
+    onOpenAbout: () -> Unit,
     onOpenChangelog: () -> Unit,
     onOpenPermissionDetails: () -> Unit,
     onExportSettings: () -> Unit,
     onImportSettings: () -> Unit,
 ) {
-    val context = LocalContext.current
-
     val theme by viewModel.theme.collectAsStateWithLifecycle()
-
-    val permissionStatus = rememberPermissionStatus()
-
-    val versionName = remember {
-        runCatching {
-            context.packageManager
-                .getPackageInfo(
-                    context.packageName,
-                    0,
-                )
-                .versionName
-        }.getOrNull() ?: "—"
-    }
-
-    val openUrl = remember(context) {
-        { url: String ->
-            context.startActivity(
-                Intent(
-                    Intent.ACTION_VIEW,
-                    android.net.Uri.parse(url),
-                ).addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK,
-                ),
-            )
-        }
-    }
-
     val haptics = LocalHapticFeedback.current
 
     Column(
@@ -230,45 +219,33 @@ private fun ProfileList(
         )
 
         // =====================================================================
-        // ACCESS
-        // =====================================================================
-
-        AccessSection(
-            status = permissionStatus,
-            context = context,
-            onOpenPermissionDetails = {
-                haptics.performHapticFeedback(
-                    HapticFeedbackType.TextHandleMove,
-                )
-                onOpenPermissionDetails()
-            },
-        )
-
-        // =====================================================================
-        // TESTING
-        // =====================================================================
-
-        TestingSection(
-            context = context,
-        )
-
-        // =====================================================================
-        // APP
+        // PROFILE SUBPAGES
         // =====================================================================
 
         SectionHeader(
-            title = "App",
-            description = "Version information and configuration tools.",
+            title = "Manage",
+            description = "Permissions, test tools, and project information.",
         )
 
-        VersionCard(
-            versionName = versionName,
-            onClick = {
-                haptics.performHapticFeedback(
-                    HapticFeedbackType.TextHandleMove,
-                )
-                onOpenChangelog()
-            },
+        ProfileDestinationCard(
+            icon = Icons.Rounded.Shield,
+            title = "Access",
+            description = "Manage system permissions and check access status.",
+            onClick = onOpenAccess,
+        )
+
+        ProfileDestinationCard(
+            icon = Icons.Rounded.Layers,
+            title = "Testing Triggers",
+            description = "Preview notifications, calls, and island edge cases.",
+            onClick = onOpenTestingTriggers,
+        )
+
+        ProfileDestinationCard(
+            icon = Icons.AutoMirrored.Rounded.OpenInNew,
+            title = "About",
+            description = "App version, changelog, repository, and developer.",
+            onClick = onOpenAbout,
         )
 
         // =====================================================================
@@ -285,59 +262,133 @@ private fun ProfileList(
             onImportSettings = onImportSettings,
         )
 
-        // =====================================================================
-        // PROJECT
-        // =====================================================================
-
-        SectionHeader(
-            title = "Project",
-            description = "Explore the project and its development.",
-        )
-
-        val githubProjectUrl =
-            stringResource(
-                R.string.profile_github_project_url,
-            )
-
-        val githubProfileUrl =
-            stringResource(
-                R.string.profile_github_url,
-            )
-
-        val coffeeUrl =
-            stringResource(
-                R.string.profile_coffee_url,
-            )
-
-        val linkedInUrl =
-            stringResource(
-                R.string.profile_linkedin_url,
-            )
-
-        GitHubCard(
-            onClick = {
-                haptics.performHapticFeedback(
-                    HapticFeedbackType.TextHandleMove,
-                )
-                openUrl(githubProjectUrl)
-            },
-        )
-
-        DevCard(
-            onOpenGitHub = {
-                openUrl(githubProfileUrl)
-            },
-            onOpenCoffee = {
-                openUrl(coffeeUrl)
-            },
-            onOpenLinkedIn = {
-                openUrl(linkedInUrl)
-            },
-        )
-
-        Spacer(
+remove project        Spacer(
             modifier = Modifier.height(8.dp),
         )
+    }
+}
+
+@Composable
+private fun ProfileDestinationCard(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(46.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(23.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(3.dp))
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.width(8.dp))
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun AccessSubpage(
+    contentPadding: PaddingValues,
+    onOpenPermissionDetails: () -> Unit,
+) {
+    val context = LocalContext.current
+    val status = rememberPermissionStatus()
+    val haptics = LocalHapticFeedback.current
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SectionHeader(title = "Access", description = "Manage the system access Expressive Island needs to operate.")
+        AccessSection(
+            status = status,
+            context = context,
+            onOpenPermissionDetails = {
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onOpenPermissionDetails()
+            },
+        )
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun TestingTriggersSubpage(contentPadding: PaddingValues) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SectionHeader(title = "Testing Triggers", description = "Send controlled events to verify notification, call, and island behaviour.")
+        TestingSection(context = context)
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun AboutSubpage(
+    contentPadding: PaddingValues,
+    onOpenChangelog: () -> Unit,
+) {
+    val context = LocalContext.current
+    val haptics = LocalHapticFeedback.current
+    val versionName = remember {
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "—"
+    }
+    val openUrl = remember(context) {
+        { url: String ->
+            runCatching {
+                context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        }
+    }
+    val githubProjectUrl = stringResource(R.string.profile_github_project_url)
+    val githubProfileUrl = stringResource(R.string.profile_github_url)
+    val coffeeUrl = stringResource(R.string.profile_coffee_url)
+    val linkedInUrl = stringResource(R.string.profile_linkedin_url)
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SectionHeader(title = "About", description = "Version details and links to the project and its developer.")
+        VersionCard(
+            versionName = versionName,
+            onClick = {
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onOpenChangelog()
+            },
+        )
+        GitHubCard(onClick = { openUrl(githubProjectUrl) })
+        DevCard(
+            onOpenGitHub = { openUrl(githubProfileUrl) },
+            onOpenCoffee = { openUrl(coffeeUrl) },
+            onOpenLinkedIn = { openUrl(linkedInUrl) },
+        )
+        Spacer(Modifier.height(8.dp))
     }
 }
 
