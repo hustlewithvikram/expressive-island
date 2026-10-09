@@ -36,6 +36,7 @@ private val Context.appearanceDataStore: DataStore<Preferences> by preferencesDa
  */
 data class AppearanceSettings(
     val shadowEnabled: Boolean = DEFAULT_SHADOW_ENABLED,
+    val shadowColor: CutoutColor = DEFAULT_SHADOW_COLOR,
     val strokeEnabled: Boolean = DEFAULT_STROKE_ENABLED,
     val strokeWidthDp: Int = DEFAULT_STROKE_WIDTH_DP,
     val strokeOpacity: Float = DEFAULT_STROKE_OPACITY,
@@ -60,6 +61,7 @@ data class AppearanceSettings(
 ) {
     companion object {
         const val DEFAULT_SHADOW_ENABLED = true
+        val DEFAULT_SHADOW_COLOR: CutoutColor = CutoutColor.Solid(0xFF000000L)
         const val DEFAULT_STROKE_ENABLED = false
         const val DEFAULT_STROKE_WIDTH_DP = 2
         const val MIN_STROKE_WIDTH_DP = 1
@@ -107,6 +109,7 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
     val settings: Flow<AppearanceSettings> = context.appearanceDataStore.data.map { prefs ->
         AppearanceSettings(
             shadowEnabled = prefs[SHADOW_ENABLED] ?: AppearanceSettings.DEFAULT_SHADOW_ENABLED,
+            shadowColor = CutoutColor.deserialize(prefs[SHADOW_COLOR]) ?: AppearanceSettings.DEFAULT_SHADOW_COLOR,
             strokeEnabled = prefs[STROKE_ENABLED] ?: AppearanceSettings.DEFAULT_STROKE_ENABLED,
             strokeWidthDp = (prefs[STROKE_WIDTH] ?: AppearanceSettings.DEFAULT_STROKE_WIDTH_DP)
                 .coerceIn(AppearanceSettings.MIN_STROKE_WIDTH_DP, AppearanceSettings.MAX_STROKE_WIDTH_DP),
@@ -149,6 +152,7 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
         val s = settings.first()
         return JSONObject().apply {
             put("shadowEnabled", s.shadowEnabled)
+            put("shadowColor", s.shadowColor.serialize())
             put("strokeEnabled", s.strokeEnabled)
             put("strokeWidthDp", s.strokeWidthDp)
             put("strokeOpacity", s.strokeOpacity.toDouble())
@@ -182,6 +186,9 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
         val obj = JSONObject(json)
         context.appearanceDataStore.edit {
             if (obj.has("shadowEnabled")) it[SHADOW_ENABLED] = obj.getBoolean("shadowEnabled")
+            if (obj.has("shadowColor") && !obj.isNull("shadowColor")) {
+                CutoutColor.deserialize(obj.optString("shadowColor"))?.let { c -> it[SHADOW_COLOR] = c.serialize() }
+            }
             if (obj.has("strokeEnabled")) it[STROKE_ENABLED] = obj.getBoolean("strokeEnabled")
             if (obj.has("strokeWidthDp")) it[STROKE_WIDTH] = obj.getInt("strokeWidthDp")
                 .coerceIn(AppearanceSettings.MIN_STROKE_WIDTH_DP, AppearanceSettings.MAX_STROKE_WIDTH_DP)
@@ -250,6 +257,10 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
 
     suspend fun setShadowEnabled(enabled: Boolean) = context.appearanceDataStore.edit {
         it[SHADOW_ENABLED] = enabled
+    }
+
+    suspend fun setShadowColor(color: CutoutColor) = context.appearanceDataStore.edit {
+        it[SHADOW_COLOR] = color.serialize()
     }
 
     suspend fun setStrokeEnabled(enabled: Boolean) = context.appearanceDataStore.edit {
@@ -360,6 +371,7 @@ class AppearancePreferences(private val context: Context) : JsonSerializable {
 
     private companion object {
         val SHADOW_ENABLED = booleanPreferencesKey("shadow_enabled")
+        val SHADOW_COLOR = stringPreferencesKey("shadow_color")
         val STROKE_ENABLED = booleanPreferencesKey("stroke_enabled")
         val STROKE_WIDTH = intPreferencesKey("stroke_width_dp")
         val STROKE_OPACITY = floatPreferencesKey("stroke_opacity")
