@@ -246,6 +246,9 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                             viewModel = viewModel,
                             contentPadding = contentPadding,
                             route = profileRoute,
+                            onOpenAccess = { profileRoute = ProfileRoute.Access },
+                            onOpenTestingTriggers = { profileRoute = ProfileRoute.TestingTriggers },
+                            onOpenAbout = { profileRoute = ProfileRoute.About },
                             onOpenChangelog = { profileRoute = ProfileRoute.Changelog },
                             onOpenPermissionDetails = {
                                 profileRoute = ProfileRoute.PermissionDetails
@@ -303,8 +306,12 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
             if (inSubScreen) {
                 val title = if (current == HomeTab.Profile) {
                     when (profileRoute) {
+                        ProfileRoute.Access -> "Access"
+                        ProfileRoute.TestingTriggers -> "Testing Triggers"
+                        ProfileRoute.About -> "About"
+                        ProfileRoute.Changelog -> stringResource(R.string.profile_version)
                         ProfileRoute.PermissionDetails -> stringResource(R.string.profile_permissions_title)
-                        else -> stringResource(R.string.profile_version)
+                        ProfileRoute.List -> stringResource(R.string.nav_profile)
                     }
                 } else when (settingsRoute) {
                     SettingsRoute.SizePosition -> stringResource(R.string.appearance_title)
