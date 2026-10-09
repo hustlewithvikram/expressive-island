@@ -22,8 +22,6 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
-import androidx.compose.material.icons.rounded.FastRewind
-import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,6 +43,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -430,13 +431,13 @@ fun MediaControls(
         )
         if (showLeft) {
             MediaButton(
-                icon = Icons.Rounded.FastRewind,
-                badgeText = "${leftSeekSeconds}s",
+                seekSeconds = leftSeekSeconds,
+                seekBackward = true,
                 contentDescription = "Seek backward ${leftSeekSeconds} seconds",
                 enabled = enabled,
                 heightDp = heightDp,
                 iconSize = 20.dp,
-                fill = (skipStyle.color?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.78f)).copy(alpha = skipStyle.opacity),
+                fill = (skipStyle.color?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHigh).copy(alpha = maxOf(skipStyle.opacity, 0.18f)),
                 cornerPercent = skipStyle.cornerPercent,
                 onClick = onSeekBackward,
                 weight = 0.85f,
@@ -457,8 +458,8 @@ fun MediaControls(
         )
         if (showRight) {
             MediaButton(
-                icon = Icons.Rounded.FastForward,
-                badgeText = "${rightSeekSeconds}s",
+                seekSeconds = rightSeekSeconds,
+                seekBackward = false,
                 contentDescription = "Seek forward ${rightSeekSeconds} seconds",
                 enabled = enabled,
                 heightDp = heightDp,
@@ -500,6 +501,32 @@ fun MusicButtonStyle.resolveFill(fallback: Color?): Color? {
  * rectangle — e.g. the 16:9 play/pause button.
  */
 @Composable
+private fun SeekDurationGlyph(seconds: Int, backward: Boolean, color: Color, modifier: Modifier = Modifier) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+            val strokeWidth = size.minDimension * 0.115f
+            val diameter = size.minDimension * 0.70f
+            drawArc(color = color, startAngle = if (backward) 215f else 35f,
+                sweepAngle = if (backward) 290f else -290f, useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.15f, size.height * 0.15f),
+                size = androidx.compose.ui.geometry.Size(diameter, diameter),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
+            val tipX = if (backward) size.width * 0.82f else size.width * 0.18f
+            val tipY = size.height * 0.20f
+            val direction = if (backward) -1f else 1f
+            val arrow = Path().apply {
+                moveTo(tipX, tipY)
+                lineTo(tipX - direction * size.width * 0.20f, tipY - size.height * 0.015f)
+                lineTo(tipX - direction * size.width * 0.19f, tipY + size.height * 0.20f)
+                close()
+            }
+            drawPath(arrow, color)
+        }
+        Text(text = seconds.toString(), color = color, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+    }
+}
+
+@Composable
 fun RowScope.MediaButton(
     icon: ImageVector,
     contentDescription: String,
@@ -512,6 +539,8 @@ fun RowScope.MediaButton(
     label: String? = null,
     showIcon: Boolean = true,
     badgeText: String? = null,
+    seekSeconds: Int? = null,
+    seekBackward: Boolean = true,
     widthDp: Int = heightDp,
     maxWidth: Boolean = false,
     weight: Float? = null,
@@ -597,25 +626,18 @@ fun RowScope.MediaButton(
                         maxLines = 1,
                     )
                 }
+            } else if (seekSeconds != null) {
+                SeekDurationGlyph(
+                    seconds = seekSeconds,
+                    backward = seekBackward,
+                    color = contentColor,
+                    modifier = Modifier.size(iconSize + 8.dp),
+                )
             } else if (badgeText != null) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(iconSize + 6.dp),
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = contentDescription,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                    Text(
-                        text = badgeText,
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        modifier = Modifier.align(Alignment.BottomCenter)
-                            .background(fill, shape = RoundedCornerShape(3.dp))
-                            .padding(horizontal = 1.dp),
-                    )
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(iconSize + 6.dp)) {
+                    Icon(imageVector = icon, contentDescription = contentDescription, modifier = Modifier.fillMaxSize())
+                    Text(text = badgeText, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+                        modifier = Modifier.align(Alignment.BottomCenter).background(fill, shape = RoundedCornerShape(3.dp)).padding(horizontal = 1.dp))
                 }
             } else if (showIcon) {
                 Icon(
