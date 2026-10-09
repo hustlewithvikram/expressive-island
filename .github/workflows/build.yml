@@ -3,12 +3,21 @@ name: Build
 on:
   push:
     branches:
-      - feat/music-background-settings-ui
+      - main
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: expressive-island-main-build
+  cancel-in-progress: true
 
 jobs:
   build:
+    name: Build and validate APKs
     runs-on: ubuntu-latest
+    timeout-minutes: 35
 
     steps:
       - name: Checkout
@@ -20,55 +29,107 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
+      - name: Set up Gradle and cache dependencies
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Fix music settings state collection
+      - name: Restore and verify release signing key
+        shell: bash
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.EXPRESSIVE_RELEASE_STORE_FILE }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.EXPRESSIVE_RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.EXPRESSIVE_RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.EXPRESSIVE_RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          for name in RELEASE_KEYSTORE_BASE64 RELEASE_STORE_PASSWORD RELEASE_KEY_ALIAS RELEASE_KEY_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Required GitHub Actions secret is missing: $name (check the EXPRESSIVE_RELEASE_* secrets)."
+              exit 1
+            fi
+          done
+
+          KEYSTORE_PATH="$RUNNER_TEMP/expressive-island-release.jks"
+          printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+
+          # Guard against accidentally signing updates with a different key.
+          EXPECTED_FINGERPRINT="9BF5F67D23E88501429324849CDA41D432825532272518392BDE431E5228A7EF"
+          ACTUAL_FINGERPRINT="$(
+            LC_ALL=C keytool -list -v \
+              -keystore "$KEYSTORE_PATH" \
+              -storepass "$RELEASE_STORE_PASSWORD" \
+              -alias "$RELEASE_KEY_ALIAS" 2>/dev/null |
+              awk -F': ' '/SHA256:/{gsub(":", "", $2); print toupper($2); exit}'
+          )"
+
+          if [[ "$ACTUAL_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then
+            echo "::error::Release keystore fingerprint does not match the established Expressive Island signing key."
+            exit 1
+          fi
+
+          {
+            echo "EXPRESSIVE_RELEASE_STORE_FILE=$KEYSTORE_PATH"
+            echo "EXPRESSIVE_RELEASE_STORE_PASSWORD=$RELEASE_STORE_PASSWORD"
+            echo "EXPRESSIVE_RELEASE_KEY_ALIAS=$RELEASE_KEY_ALIAS"
+            echo "EXPRESSIVE_RELEASE_KEY_PASSWORD=$RELEASE_KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+          echo "Release signing key verified."
+
+      - name: Build debug and signed release APKs
+        run: ./gradlew assembleDebug assembleRelease --build-cache --parallel --no-daemon
+
+      - name: Verify release APK signature
         shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("app/src/main/java/com/vikram/expressiveisland/overlay/DynamicIsland.kt")
-          s = p.read_text()
-          old = """    val musicPreferences = remember { MusicTilePreferences(LocalContext.current) }
-    val musicSettings by musicPreferences.settings.collectAsStateWithLifecycle()"""
-          new = """    val context = LocalContext.current
-    val musicPreferences = remember(context) { MusicTilePreferences(context) }
-    val musicSettings by musicPreferences.settings.collectAsStateWithLifecycle(
-        initialValue = MusicTileSettings(),
-    )"""
-          if old in s:
-              s = s.replace(old, new, 1)
-          elif "initialValue = MusicTileSettings()" not in s:
-              raise SystemExit("Expected music settings state block was not found")
-          if "import com.vikram.expressiveisland.data.MusicTileSettings" not in s:
-              marker = "import com.vikram.expressiveisland.data.MusicTilePreferences\n"
-              if marker not in s:
-                  raise SystemExit("MusicTilePreferences import not found")
-              s = s.replace(marker, marker + "import com.vikram.expressiveisland.data.MusicTileSettings\n", 1)
-          p.write_text(s)
-          PY
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          if [[ -z "$APKSIGNER" ]]; then
+            echo "::error::Could not locate Android apksigner."
+            exit 1
+          fi
 
-      - name: Upload debug APK
+          "$APKSIGNER" verify --verbose "$APK"
+          EXPECTED_FINGERPRINT="9BF5F67D23E88501429324849CDA41D432825532272518392BDE431E5228A7EF"
+          APK_FINGERPRINT="$(
+            "$APKSIGNER" verify --print-certs "$APK" |
+              awk -F': ' '/certificate SHA-256 digest:/{gsub(":", "", $2); print toupper($2); exit}'
+          )"
+
+          if [[ "$APK_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then
+            echo "::error::Release APK was not signed with the established Expressive Island signing key."
+            exit 1
+          fi
+
+          echo "Release APK signature and signing-key fingerprint verified."
+
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: expressive-cutout-debug-${{ github.sha }}
-          path: app/build/outputs/apk/debug/*.apk
+          name: expressive-island-apks-${{ github.sha }}
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 14
 
-      - name: Run lint
-        run: ./gradlew lintDebug --no-daemon
+      - name: Run Android lint
+        run: ./gradlew lintDebug --build-cache --parallel --no-daemon
 
       - name: Upload lint report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: lint-report-${{ github.sha }}
+          name: expressive-island-lint-${{ github.sha }}
           path: app/build/reports/lint-results-debug.html
           if-no-files-found: ignore
+          retention-days: 14
 
-      # Music settings build validation
+      - name: Remove temporary signing key
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/expressive-island-release.jks"
