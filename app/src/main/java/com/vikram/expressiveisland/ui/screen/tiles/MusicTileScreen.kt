@@ -1090,6 +1090,13 @@ private fun MusicButtonsPreview(
     rightSeekEnabled: Boolean,
     leftSeekSeconds: Int,
     rightSeekSeconds: Int,
+    showProgress: Boolean,
+    progressStyle: MusicProgressStyle,
+    showPlayPauseIcon: Boolean,
+    showPlayPauseText: Boolean,
+    skipIconColor: Color?,
+    playPauseIconColor: Color?,
+    seekIconColor: Color?,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1138,6 +1145,13 @@ private fun MusicButtonsPreview(
                 rightSeekEnabled = rightSeekEnabled,
                 leftSeekSeconds = leftSeekSeconds,
                 rightSeekSeconds = rightSeekSeconds,
+                showProgress = showProgress,
+                progressStyle = progressStyle,
+                showPlayPauseIcon = showPlayPauseIcon,
+                showPlayPauseText = showPlayPauseText,
+                skipIconColor = skipIconColor,
+                playPauseIconColor = playPauseIconColor,
+                seekIconColor = seekIconColor,
             )
         }
     }
@@ -1151,6 +1165,13 @@ private fun MusicControlsPreviewSurface(
     rightSeekEnabled: Boolean,
     leftSeekSeconds: Int,
     rightSeekSeconds: Int,
+    showProgress: Boolean,
+    progressStyle: MusicProgressStyle,
+    showPlayPauseIcon: Boolean,
+    showPlayPauseText: Boolean,
+    skipIconColor: Color?,
+    playPauseIconColor: Color?,
+    seekIconColor: Color?,
 ) {
     Box(
         modifier = Modifier
@@ -1176,8 +1197,21 @@ private fun MusicControlsPreviewSurface(
                     Text("Artist name · Album", color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.bodySmall, maxLines = 1)
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                androidx.compose.material3.LinearProgressIndicator(progress = { 0.42f }, modifier = Modifier.fillMaxWidth().height(3.dp), color = Color.White, trackColor = Color.White.copy(alpha = 0.20f))
+            if (showProgress) {
+                when (progressStyle) {
+                    MusicProgressStyle.WAVY -> com.vikram.expressiveisland.overlay.contents.WavyProgressIndicator(
+                        progress = 0.42f, modifier = Modifier.fillMaxWidth().height(12.dp),
+                        color = playPauseStyle.color?.resolve() ?: MusicAccent, trackColor = Color.White.copy(alpha = 0.20f))
+                    MusicProgressStyle.LINEAR -> LinearProgressIndicator(
+                        progress = { 0.42f }, modifier = Modifier.fillMaxWidth().height(5.dp),
+                        color = playPauseStyle.color?.resolve() ?: MusicAccent, trackColor = Color.White.copy(alpha = 0.20f))
+                    MusicProgressStyle.CIRCULAR, MusicProgressStyle.CIRCULAR_WAVY -> Row(
+                        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                        CircularProgressIndicator(progress = { 0.42f },
+                            strokeWidth = if (progressStyle == MusicProgressStyle.CIRCULAR_WAVY) 2.dp else 4.dp,
+                            color = playPauseStyle.color?.resolve() ?: MusicAccent, trackColor = Color.White.copy(alpha = 0.20f))
+                    }
+                }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("1:24", color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.labelSmall)
                     Text("3:32", color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.labelSmall)
@@ -1197,6 +1231,7 @@ private fun MusicControlsPreviewSurface(
                     fallback = null,
                 ),
                 cornerPercent = skipStyle.cornerPercent,
+                iconTint = skipIconColor,
                 modifier = Modifier.weight(1f),
             )
 
@@ -1206,6 +1241,7 @@ private fun MusicControlsPreviewSurface(
                     backward = true,
                     fill = skipStyle.previewFill(fallback = MaterialTheme.colorScheme.surfaceContainerHigh),
                     cornerPercent = skipStyle.cornerPercent,
+                    iconTint = seekIconColor,
                     modifier = Modifier.weight(0.85f),
                 )
             }
@@ -1216,6 +1252,9 @@ private fun MusicControlsPreviewSurface(
                     fallback = MusicAccent,
                 ),
                 cornerPercent = playPauseStyle.cornerPercent,
+                iconTint = playPauseIconColor,
+                showIcon = showPlayPauseIcon,
+                label = if (showPlayPauseText) "Play" else null,
                 widthDp = PREVIEW_BUTTON_HEIGHT_DP * 16 / 9,
             )
 
@@ -1225,6 +1264,7 @@ private fun MusicControlsPreviewSurface(
                     backward = false,
                     fill = skipStyle.previewFill(fallback = MaterialTheme.colorScheme.surfaceContainerHigh),
                     cornerPercent = skipStyle.cornerPercent,
+                    iconTint = seekIconColor,
                     modifier = Modifier.weight(0.85f),
                 )
             }
@@ -1235,6 +1275,7 @@ private fun MusicControlsPreviewSurface(
                     fallback = null,
                 ),
                 cornerPercent = skipStyle.cornerPercent,
+                iconTint = skipIconColor,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -1243,13 +1284,13 @@ private fun MusicControlsPreviewSurface(
 }
 
 @Composable
-private fun PreviewSeekButton(seconds: Int, backward: Boolean, fill: Color?, cornerPercent: Int, modifier: Modifier = Modifier) {
+private fun PreviewSeekButton(seconds: Int, backward: Boolean, fill: Color?, cornerPercent: Int, iconTint: Color?, modifier: Modifier = Modifier)
     Box(modifier = modifier.height(PREVIEW_BUTTON_HEIGHT_DP.dp)
         .clip(RoundedCornerShape((PREVIEW_BUTTON_HEIGHT_DP * cornerPercent / 100f).dp))
         .background(fill ?: MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
         Icon(imageVector = if (backward) Icons.Rounded.Replay5 else Icons.Rounded.Forward5,
             contentDescription = if (backward) "Seek backward" else "Seek forward",
-            tint = if (fill == null) Color.White else MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(30.dp))
+            tint = iconTint ?: if (fill == null) Color.White else MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(30.dp))
     }
 }
 
@@ -1278,6 +1319,9 @@ private fun PreviewButton(
     cornerPercent: Int,
     modifier: Modifier = Modifier,
     widthDp: Int = PREVIEW_BUTTON_HEIGHT_DP,
+    iconTint: Color? = null,
+    showIcon: Boolean = true,
+    label: String? = null,
 ) {
     var pressed by remember {
         mutableStateOf(false)
@@ -1328,28 +1372,23 @@ private fun PreviewButton(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = when {
-                fill == null -> {
-                    Color.White.copy(
-                        alpha = 0.90f,
-                    )
-                }
-
-                fill.luminance() > 0.5f -> {
-                    Color.Black
-                }
-
-                else -> {
-                    Color.White
-                }
-            },
-            modifier = Modifier.size(
-                26.dp,
-            ),
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (showIcon) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint ?: when {
+                        fill == null -> Color.White.copy(alpha = 0.90f)
+                        fill.luminance() > 0.5f -> Color.Black
+                        else -> Color.White
+                    },
+                    modifier = Modifier.size(26.dp),
+                )
+            }
+            if (label != null) {
+                Text(label, color = iconTint ?: Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+            }
+        }
     }
 
     LaunchedEffect(pressed) {
