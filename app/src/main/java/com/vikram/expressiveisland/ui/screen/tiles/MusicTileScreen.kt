@@ -59,6 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.MusicProgressStyle
+import com.vikram.expressiveisland.data.MusicVisualizerStyle
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.screen.AdjustableSlider
@@ -112,6 +113,7 @@ internal fun MusicTileScreen(
 ) {
     val settings by viewModel.musicTile.collectAsStateWithLifecycle()
     var progressStyleDialog by remember { mutableStateOf(false) }
+    var visualizerStyleDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -428,6 +430,69 @@ internal fun MusicTileScreen(
                 }
             }
         }
+
+        SectionLabel("Music Visualizer")
+
+        SettingsGroup {
+            SettingsToggleCard(
+                shape = groupShape(if (settings.showVisualizer) GroupPosition.FIRST else GroupPosition.ONLY),
+                title = "Show visualizer",
+                description = "Animate the music indicator in the collapsed island while music is playing.",
+                checked = settings.showVisualizer,
+                onCheckedChange = viewModel::setMusicShowVisualizer,
+            )
+            AnimatedVisibility(visible = settings.showVisualizer) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable { visualizerStyleDialog = true },
+                    shape = groupShape(GroupPosition.LAST),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Visualizer style", style = MaterialTheme.typography.titleSmall)
+                            Text(settings.visualizerStyle.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Icon(Icons.Rounded.Tune, contentDescription = "Choose visualizer style", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+        }
+    }
+
+    if (visualizerStyleDialog) {
+        AlertDialog(
+            onDismissRequest = { visualizerStyleDialog = false },
+            title = { Text("Music visualizer") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MusicVisualizerStyle.entries.forEach { style ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clickable { viewModel.setMusicVisualizerStyle(style) },
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (settings.visualizerStyle == style) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                            ),
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(style.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                                    if (settings.visualizerStyle == style) Icon(Icons.Rounded.PlayArrow, contentDescription = "Selected", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                }
+                                MusicVisualizerPreview(style = style)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { visualizerStyleDialog = false }) { Text("Done") },
+        )
     }
 
     if (progressStyleDialog) {
@@ -1136,6 +1201,34 @@ private fun ResetToDefaultButton(
                         horizontal = RESET_HORIZONTAL_PADDING,
                         vertical = RESET_VERTICAL_PADDING,
                     ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MusicVisualizerPreview(style: MusicVisualizerStyle) {
+    val primary = MaterialTheme.colorScheme.primary
+    val heights = when (style) {
+        MusicVisualizerStyle.BARS -> listOf(0.35f, 0.65f, 0.9f, 0.5f, 0.78f, 0.4f)
+        MusicVisualizerStyle.MIRRORED -> listOf(0.35f, 0.65f, 0.9f, 0.5f, 0.78f, 0.4f)
+        MusicVisualizerStyle.DOTS -> listOf(0.3f, 0.6f, 0.95f, 0.55f, 0.8f, 0.4f)
+        MusicVisualizerStyle.WAVE -> listOf(0.25f, 0.55f, 0.85f, 0.65f, 0.35f, 0.6f)
+        MusicVisualizerStyle.PULSE -> listOf(0.45f, 0.7f, 1f, 0.7f, 0.45f)
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().height(28.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        heights.forEachIndexed { index, height ->
+            val h = if (style == MusicVisualizerStyle.DOTS) 5.dp else (height * 24).dp
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(h)
+                    .clip(if (style == MusicVisualizerStyle.DOTS) androidx.compose.foundation.shape.CircleShape else RoundedCornerShape(4.dp))
+                    .background(primary.copy(alpha = if (style == MusicVisualizerStyle.PULSE && index % 2 == 0) 0.55f else 1f))
             )
         }
     }
