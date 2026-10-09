@@ -27,6 +27,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Replay5
+import androidx.compose.material.icons.rounded.Forward5
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Tune
@@ -1128,9 +1130,26 @@ private fun MusicControlsPreviewSurface(
                 vertical = 14.dp,
             ),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF3B4252)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.MusicNote, contentDescription = null, tint = Color.White, modifier = Modifier.size(30.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Now playing", color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                    Text("Artist name · Album", color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                androidx.compose.material3.LinearProgressIndicator(progress = { 0.42f }, modifier = Modifier.fillMaxWidth().height(3.dp), color = Color.White, trackColor = Color.White.copy(alpha = 0.20f))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("1:24", color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.labelSmall)
+                    Text("3:32", color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
                 10.dp,
             ),
             verticalAlignment = Alignment.CenterVertically,
@@ -1187,48 +1206,13 @@ private fun MusicControlsPreviewSurface(
 }
 
 @Composable
-private fun PreviewSeekButton(
-    seconds: Int,
-    backward: Boolean,
-    fill: Color?,
-    cornerPercent: Int,
-    modifier: Modifier = Modifier,
-) {
-    val contentColor = if (fill == null) Color.White else MaterialTheme.colorScheme.onSurface
-    Box(
-        modifier = modifier.height(PREVIEW_BUTTON_HEIGHT_DP.dp)
-            .clip(RoundedCornerShape((PREVIEW_BUTTON_HEIGHT_DP * cornerPercent / 100f).dp))
-            .background(fill ?: MaterialTheme.colorScheme.surfaceContainerHigh),
-        contentAlignment = Alignment.Center,
-    ) {
-        SeekDurationGlyph(seconds, backward, contentColor, Modifier.fillMaxSize().padding(5.dp))
-    }
-}
-
-@Composable
-private fun SeekDurationGlyph(seconds: Int, backward: Boolean, color: Color, modifier: Modifier = Modifier) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
-            val strokeWidth = size.minDimension * 0.115f
-            val diameter = size.minDimension * 0.70f
-            drawArc(color = color, startAngle = if (backward) 215f else 35f,
-                sweepAngle = if (backward) 290f else -290f, useCenter = false,
-                topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.15f, size.height * 0.15f),
-                size = androidx.compose.ui.geometry.Size(diameter, diameter),
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
-            val tipX = if (backward) size.width * 0.82f else size.width * 0.18f
-            val tipY = size.height * 0.20f
-            val direction = if (backward) -1f else 1f
-            val arrow = Path().apply {
-                moveTo(tipX, tipY)
-                lineTo(tipX - direction * size.width * 0.20f, tipY - size.height * 0.015f)
-                lineTo(tipX - direction * size.width * 0.19f, tipY + size.height * 0.20f)
-                close()
-            }
-            drawPath(arrow, color)
-        }
-        Text(text = seconds.toString(), color = color, style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold, maxLines = 1)
+private fun PreviewSeekButton(seconds: Int, backward: Boolean, fill: Color?, cornerPercent: Int, modifier: Modifier = Modifier) {
+    Box(modifier = modifier.height(PREVIEW_BUTTON_HEIGHT_DP.dp)
+        .clip(RoundedCornerShape((PREVIEW_BUTTON_HEIGHT_DP * cornerPercent / 100f).dp))
+        .background(fill ?: MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
+        Icon(imageVector = if (backward) Icons.Rounded.Replay5 else Icons.Rounded.Forward5,
+            contentDescription = if (backward) "Seek backward" else "Seek forward",
+            tint = if (fill == null) Color.White else MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(30.dp))
     }
 }
 
@@ -1424,6 +1408,11 @@ private fun SeekOptionRow(
     onEnabledChange: (Boolean) -> Unit,
     onTimeClick: () -> Unit,
 ) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1450,6 +1439,7 @@ private fun SeekOptionRow(
             }
         }
         androidx.compose.material3.Switch(checked = enabled, onCheckedChange = onEnabledChange)
+    }
     }
 }
 
