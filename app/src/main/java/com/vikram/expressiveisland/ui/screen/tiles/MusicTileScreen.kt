@@ -32,6 +32,9 @@ import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.CircularProgressIndicator
@@ -77,6 +80,11 @@ private enum class MusicSettingsTab(val label: String) {
     OTHER("Other"),
 }
 
+private enum class MusicButtonSettingsTab(val label: String) {
+    PLAY_PAUSE("Play/Pause"),
+    PREVIOUS_NEXT("Prev/Next"),
+}
+
 private val MusicAccent = Color(0xFFF472B6)
 
 private val MusicButtonFilledDefault = Color(0xFFE0E0E0)
@@ -120,6 +128,7 @@ internal fun MusicTileScreen(
 ) {
     val settings by viewModel.musicTile.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(MusicSettingsTab.SHRINKED) }
+    var selectedButtonSettingsTab by remember { mutableStateOf(MusicButtonSettingsTab.PLAY_PAUSE) }
     var progressStyleDialog by remember { mutableStateOf(false) }
     var visualizerStyleDialog by remember { mutableStateOf(false) }
     var leftSeekTimeDialog by remember { mutableStateOf(false) }
@@ -145,27 +154,14 @@ internal fun MusicTileScreen(
                 bottom = 0.dp,
             ),
         )
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            MusicSettingsTab.entries.forEach { tab ->
-                val selected = selectedTab == tab
-                Card(
-                    modifier = Modifier.weight(1f).clickable { selectedTab = tab },
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-                    ),
-                ) {
-                    Text(
-                        text = tab.label,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 12.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    )
-                }
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+            MusicSettingsTab.entries.forEachIndexed { index, tab ->
+                SegmentedButton(
+                    selected = selectedTab == tab,
+                    onClick = { selectedTab = tab },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = MusicSettingsTab.entries.size),
+                    label = { Text(tab.label, maxLines = 1) },
+                )
             }
         }
 
@@ -353,6 +349,18 @@ internal fun MusicTileScreen(
                     playPauseStyle = settings.playPauseButton,
                 )
 
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    MusicButtonSettingsTab.entries.forEachIndexed { index, tab ->
+                        SegmentedButton(
+                            selected = selectedButtonSettingsTab == tab,
+                            onClick = { selectedButtonSettingsTab = tab },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = MusicButtonSettingsTab.entries.size),
+                            label = { Text(tab.label, maxLines = 1) },
+                        )
+                    }
+                }
+
+                if (selectedButtonSettingsTab == MusicButtonSettingsTab.PREVIOUS_NEXT) {
                 // -------------------------------------------------------------
                 // SKIP BUTTONS
                 // -------------------------------------------------------------
@@ -394,6 +402,9 @@ internal fun MusicTileScreen(
                     )
                 }
 
+                }
+
+                if (selectedButtonSettingsTab == MusicButtonSettingsTab.PLAY_PAUSE) {
                 // -------------------------------------------------------------
                 // PLAY / PAUSE
                 // -------------------------------------------------------------
@@ -457,6 +468,8 @@ internal fun MusicTileScreen(
         }
         if (selectedTab == MusicSettingsTab.EXPANDED) {
         // =====================================================================
+                }
+
         // PLAYBACK DISPLAY
         // =====================================================================
 
