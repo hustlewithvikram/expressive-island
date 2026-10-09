@@ -462,6 +462,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         musicTilePreferences.setSkipColor(color)
     }
 
+    fun setMusicSkipIconColor(color: CutoutColor?) = viewModelScope.launch { musicTilePreferences.setSkipIconColor(color) }
+
+    fun setMusicPlayPauseIconColor(color: CutoutColor?) = viewModelScope.launch { musicTilePreferences.setPlayPauseIconColor(color) }
+
+    fun setMusicSeekIconColor(color: CutoutColor?) = viewModelScope.launch { musicTilePreferences.setSeekIconColor(color) }
+
     fun setMusicSkipOpacity(opacity: Float) = viewModelScope.launch {
         musicTilePreferences.setSkipOpacity(opacity)
     }
