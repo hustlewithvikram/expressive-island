@@ -307,6 +307,28 @@ class MediaPlaybackMonitor(private val context: Context) {
             runCatching { controller.transportControls.skipToPrevious() }
         }
 
+        override fun seekBackward(seconds: Int) {
+            runCatching {
+                val state = controller.playbackState ?: return
+                if ((state.actions and PlaybackState.ACTION_SEEK_TO) == 0L) return
+                val duration = controller.metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION)?.takeIf { it > 0L }
+                val current = state.position.coerceAtLeast(0L)
+                val target = (current - seconds.coerceAtLeast(1) * 1000L).coerceAtLeast(0L)
+                controller.transportControls.seekTo(duration?.let { target.coerceAtMost(it) } ?: target)
+            }
+        }
+
+        override fun seekForward(seconds: Int) {
+            runCatching {
+                val state = controller.playbackState ?: return
+                if (state.actions and PlaybackState.ACTION_SEEK_TO == 0L) return
+                val duration = controller.metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION)?.takeIf { it > 0L }
+                val current = state.position.coerceAtLeast(0L)
+                val target = current + seconds.coerceAtLeast(1) * 1000L
+                controller.transportControls.seekTo(duration?.let { target.coerceAtMost(it) } ?: target)
+            }
+        }
+
         override fun playPause() {
             runCatching {
                 if (controller.playbackState?.state == PlaybackState.STATE_PLAYING) {

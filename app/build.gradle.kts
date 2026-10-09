@@ -25,6 +25,11 @@ android {
     val releaseKeyPassword = providers.gradleProperty("releaseKeyPassword").orNull
         ?: System.getenv("EXPRESSIVE_RELEASE_KEY_PASSWORD")
 
+    val debugStoreFile = System.getenv("EXPRESSIVE_DEBUG_STORE_FILE")
+    val debugStorePassword = System.getenv("EXPRESSIVE_DEBUG_STORE_PASSWORD")
+    val debugKeyAlias = System.getenv("EXPRESSIVE_DEBUG_KEY_ALIAS")
+    val debugKeyPassword = System.getenv("EXPRESSIVE_DEBUG_KEY_PASSWORD")
+
     if (releaseStoreFile != null && releaseStorePassword != null &&
         releaseKeyAlias != null && releaseKeyPassword != null
     ) {
@@ -35,6 +40,19 @@ android {
                 keyAlias = releaseKeyAlias
                 keyPassword = releaseKeyPassword
             }
+        }
+    }
+
+    // CI can sign development APKs with a dedicated debug keystore from GitHub Secrets.
+    // Local debug builds keep Android's default debug signing when these values are absent.
+    if (debugStoreFile != null && debugStorePassword != null &&
+        debugKeyAlias != null && debugKeyPassword != null
+    ) {
+        signingConfigs.getByName("debug").apply {
+            storeFile = file(debugStoreFile)
+            storePassword = debugStorePassword
+            keyAlias = debugKeyAlias
+            keyPassword = debugKeyPassword
         }
     }
 

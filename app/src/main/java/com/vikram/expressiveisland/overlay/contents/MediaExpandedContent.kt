@@ -20,13 +20,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Replay5
+import androidx.compose.material.icons.rounded.Forward5
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.FastRewind
+import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,6 +67,8 @@ import com.vikram.expressiveisland.core.MediaProgress
 import com.vikram.expressiveisland.core.NowPlayingBus
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.MusicTilePreferences
+import com.vikram.expressiveisland.data.MusicProgressStyle
+import com.vikram.expressiveisland.data.SeekButtonMode
 import com.vikram.expressiveisland.data.MusicTileSettings
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.formatMediaTime
@@ -82,7 +90,7 @@ fun MediaExpandedContent(
     collapsedHeightDp: Int,
 ) {
     val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()
-    val albumArt = albumArtFor(event, nowPlaying)
+    val sourceAlbumArt = albumArtFor(event, nowPlaying)
     val context = LocalContext.current
 
     val musicPreferences = remember(context) {
@@ -94,9 +102,9 @@ fun MediaExpandedContent(
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (musicSettings.expandedBackground && albumArt != null) {
+        if (musicSettings.expandedBackground && sourceAlbumArt != null) {
             Image(
-                bitmap = albumArt,
+                bitmap = sourceAlbumArt,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -126,9 +134,9 @@ fun MediaExpandedContent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                if (albumArt != null) {
+                if (musicSettings.showAlbumArt && sourceAlbumArt != null) {
                     AlbumArt(
-                        bitmap = albumArt,
+                        bitmap = sourceAlbumArt,
                         size = 44.dp,
                         rotate = event.media?.rotateAlbumArt == true,
                         playing = nowPlaying?.isPlaying == true,
@@ -165,7 +173,7 @@ fun MediaExpandedContent(
                         .height(28.dp),
                 ) {
                     nowPlaying?.progress?.let { progress ->
-                        MediaProgressBar(progress = progress)
+                        MediaProgressBar(progress = progress, style = musicSettings.progressStyle)
                     }
                 }
             }
@@ -178,15 +186,20 @@ fun MediaExpandedContent(
                     heightDp = buttonHeightDp,
                     skipStyle = media.skipStyle,
                     playPauseStyle = media.playPauseStyle,
-                    onPrevious = {
-                        nowPlaying?.transport?.previous()
-                    },
-                    onPlayPause = {
-                        nowPlaying?.transport?.playPause()
-                    },
-                    onNext = {
-                        nowPlaying?.transport?.next()
-                    },
+                    skipIconColor = musicSettings.skipIconColor?.resolve(),
+                    playPauseIconColor = musicSettings.playPauseIconColor?.resolve(),
+                    seekIconColor = musicSettings.seekIconColor?.resolve(),
+                    showPlayPauseIcon = musicSettings.showPlayPauseIcon,
+                    showPlayPauseText = musicSettings.showPlayPauseText,
+                    leftSeekEnabled = musicSettings.leftSeekEnabled,
+                    rightSeekEnabled = musicSettings.rightSeekEnabled,
+                    leftSeekSeconds = musicSettings.leftSeekSeconds,
+                    rightSeekSeconds = musicSettings.rightSeekSeconds,
+                    onPrevious = { nowPlaying?.transport?.previous() },
+                    onSeekBackward = { nowPlaying?.transport?.seekBackward(musicSettings.leftSeekSeconds) },
+                    onPlayPause = { nowPlaying?.transport?.playPause() },
+                    onSeekForward = { nowPlaying?.transport?.seekForward(musicSettings.rightSeekSeconds) },
+                    onNext = { nowPlaying?.transport?.next() },
                 )
 
             }
@@ -201,7 +214,7 @@ fun MediaExpandedContent(
  * (a live stream) gets the indeterminate bar instead, matching the notification tile's.
  */
 @Composable
-fun MediaProgressBar(progress: MediaProgress?) {
+fun MediaProgressBar(progress: MediaProgress?, style: MusicProgressStyle = MusicProgressStyle.WAVY) {
     val duration = progress?.durationMs ?: return
 
     var fraction by remember(progress) {
@@ -250,35 +263,68 @@ fun MediaProgressBar(progress: MediaProgress?) {
             ?: fraction
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            text = formatMediaTime(positionMs),
-            color = LocalContentColor.current.copy(alpha = 0.65f),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-        )
-
-        WavyProgressIndicator(
-            progress = fraction,
-            modifier = Modifier
-                .weight(1f)
-                .height(12.dp),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.primaryContainer.copy(
-                alpha = 0.35f
-            ),
-        )
-
-        Text(
-            text = formatMediaTime(duration),
-            color = LocalContentColor.current.copy(alpha = 0.65f),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-        )
+    if (style == MusicProgressStyle.CIRCULAR || style == MusicProgressStyle.CIRCULAR_WAVY) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = formatMediaTime(positionMs),
+                color = LocalContentColor.current.copy(alpha = 0.65f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+            CircularProgressIndicator(
+                progress = { fraction },
+                modifier = Modifier.size(22.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                strokeWidth = if (style == MusicProgressStyle.CIRCULAR_WAVY) 2.dp else 3.dp,
+            )
+            androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+            Text(
+                text = formatMediaTime(duration),
+                color = LocalContentColor.current.copy(alpha = 0.65f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = formatMediaTime(positionMs),
+                color = LocalContentColor.current.copy(alpha = 0.65f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            if (style == MusicProgressStyle.LINEAR) {
+                LinearProgressIndicator(
+                    progress = { fraction },
+                    modifier = Modifier.weight(1f).height(4.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                )
+            } else {
+                WavyProgressIndicator(
+                    progress = fraction,
+                    modifier = Modifier.weight(1f).height(12.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                )
+            }
+            Text(
+                text = formatMediaTime(duration),
+                color = LocalContentColor.current.copy(alpha = 0.65f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
     }
 }
 
@@ -357,55 +403,95 @@ fun MediaControls(
     heightDp: Int,
     skipStyle: MusicButtonStyle,
     playPauseStyle: MusicButtonStyle,
+    skipIconColor: Color? = null,
+    playPauseIconColor: Color? = null,
+    seekIconColor: Color? = null,
+    showPlayPauseIcon: Boolean = true,
+    showPlayPauseText: Boolean = true,
+    leftSeekEnabled: Boolean = true,
+    rightSeekEnabled: Boolean = true,
+    leftSeekSeconds: Int = 5,
+    rightSeekSeconds: Int = 5,
     onPrevious: () -> Unit,
+    onSeekBackward: () -> Unit,
     onPlayPause: () -> Unit,
+    onSeekForward: () -> Unit,
     onNext: () -> Unit,
 ) {
+    val showLeft = leftSeekEnabled
+    val showRight = rightSeekEnabled
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Previous
         MediaButton(
             icon = Icons.Rounded.SkipPrevious,
             contentDescription = "Previous track",
             enabled = enabled,
             heightDp = heightDp,
-            iconSize = 26.dp,
+            iconSize = 22.dp,
             fill = skipStyle.resolveFill(fallback = null),
             cornerPercent = skipStyle.cornerPercent,
+            contentTint = skipIconColor,
             onClick = onPrevious,
             weight = 1f,
         )
-
-        // Play / Pause — wider center button
+        if (showLeft) {
+            MediaButton(
+                icon = Icons.Rounded.Replay5,
+                seekSeconds = leftSeekSeconds,
+                seekBackward = true,
+                contentDescription = "Seek backward ${leftSeekSeconds} seconds",
+                enabled = enabled,
+                heightDp = heightDp,
+                iconSize = 20.dp,
+                fill = (skipStyle.color?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHigh).copy(alpha = maxOf(skipStyle.opacity, 0.18f)),
+                cornerPercent = skipStyle.cornerPercent,
+                contentTint = seekIconColor,
+                onClick = onSeekBackward,
+                weight = 0.85f,
+            )
+        }
         MediaButton(
-            icon = if (isPlaying) {
-                Icons.Rounded.Pause
-            } else {
-                Icons.Rounded.PlayArrow
-            },
-            label = if (isPlaying) "Pause" else "Play",
+            icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+            showIcon = showPlayPauseIcon,
+            label = if (showPlayPauseText) (if (isPlaying) "Pause" else "Play") else null,
             contentDescription = if (isPlaying) "Pause" else "Play",
             enabled = enabled,
             heightDp = heightDp,
             iconSize = 22.dp,
             fill = playPauseStyle.resolveFill(fallback = accent),
             cornerPercent = playPauseStyle.cornerPercent,
+            contentTint = playPauseIconColor,
             onClick = onPlayPause,
-            weight = 1.8f,
+            weight = 1.25f,
         )
-
-        // Next
+        if (showRight) {
+            MediaButton(
+                icon = Icons.Rounded.Forward5,
+                seekSeconds = rightSeekSeconds,
+                seekBackward = false,
+                contentDescription = "Seek forward ${rightSeekSeconds} seconds",
+                enabled = enabled,
+                heightDp = heightDp,
+                iconSize = 20.dp,
+                fill = (skipStyle.color?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.78f)).copy(alpha = skipStyle.opacity),
+                cornerPercent = skipStyle.cornerPercent,
+                contentTint = seekIconColor,
+                onClick = onSeekForward,
+                weight = 0.85f,
+            )
+        }
         MediaButton(
             icon = Icons.Rounded.SkipNext,
             contentDescription = "Next track",
             enabled = enabled,
             heightDp = heightDp,
-            iconSize = 26.dp,
+            iconSize = 22.dp,
             fill = skipStyle.resolveFill(fallback = null),
             cornerPercent = skipStyle.cornerPercent,
+            contentTint = skipIconColor,
             onClick = onNext,
             weight = 1f,
         )
@@ -428,6 +514,7 @@ fun MusicButtonStyle.resolveFill(fallback: Color?): Color? {
  * auto-contrasting icon. [widthDp] defaults to [heightDp] (a square); a larger value makes a
  * rectangle — e.g. the 16:9 play/pause button.
  */
+
 @Composable
 fun RowScope.MediaButton(
     icon: ImageVector,
@@ -439,6 +526,11 @@ fun RowScope.MediaButton(
     cornerPercent: Int,
     onClick: () -> Unit,
     label: String? = null,
+    showIcon: Boolean = true,
+    contentTint: Color? = null,
+    badgeText: String? = null,
+    seekSeconds: Int? = null,
+    seekBackward: Boolean = true,
     widthDp: Int = heightDp,
     maxWidth: Boolean = false,
     weight: Float? = null,
@@ -480,7 +572,7 @@ fun RowScope.MediaButton(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = LocalContentColor.current,
+                tint = contentTint ?: LocalContentColor.current,
                 modifier = Modifier.size(iconSize),
             )
         }
@@ -494,11 +586,7 @@ fun RowScope.MediaButton(
             ),
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = fill,
-                contentColor = if (fill.luminance() > 0.5f) {
-                    PillTextColorDark
-                } else {
-                    PillTextColor
-                },
+                contentColor = contentTint ?: if (fill.luminance() > 0.5f) PillTextColorDark else PillTextColor,
                 disabledContainerColor = LocalContentColor.current.copy(alpha = 0.12f),
                 disabledContentColor = LocalContentColor.current.copy(alpha = 0.4f),
             ),
@@ -509,24 +597,47 @@ fun RowScope.MediaButton(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(iconSize),
-                    )
+                    if (showIcon) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(iconSize),
+                        )
+                    }
 
                     Text(
                         text = label,
+                        color = contentTint ?: LocalContentColor.current,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                     )
                 }
-            } else {
+            } else if (seekSeconds != null) {
+                Icon(
+                    imageVector = if (seekBackward) Icons.Rounded.Replay5 else Icons.Rounded.Forward5,
+                    contentDescription = contentDescription,
+                    tint = contentTint ?: if (fill.luminance() > 0.5f) PillTextColorDark else PillTextColor,
+                    modifier = Modifier.size(iconSize + 8.dp),
+                )
+            } else if (badgeText != null) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(iconSize + 6.dp)) {
+                    Icon(imageVector = icon, contentDescription = contentDescription, modifier = Modifier.fillMaxSize())
+                    Text(text = badgeText, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+                        modifier = Modifier.align(Alignment.BottomCenter).background(fill, shape = RoundedCornerShape(3.dp)).padding(horizontal = 1.dp))
+                }
+            } else if (showIcon) {
                 Icon(
                     imageVector = icon,
                     contentDescription = contentDescription,
                     modifier = Modifier.size(iconSize),
+                )
+            } else {
+                Text(
+                    text = if (contentDescription == "Pause") "Pause" else "Play",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
                 )
             }
         }

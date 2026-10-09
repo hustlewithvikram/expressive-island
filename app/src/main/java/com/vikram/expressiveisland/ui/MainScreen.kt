@@ -102,7 +102,16 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
 
     val navigateBack: () -> Unit = {
         if (current == HomeTab.Profile) {
-            profileRoute = ProfileRoute.List
+            profileRoute = when (profileRoute) {
+                // Nested profile screens return to the page that opened them.
+                ProfileRoute.PermissionDetails -> ProfileRoute.Access
+                ProfileRoute.Changelog -> ProfileRoute.About
+                // First-level profile pages return to the Profile list.
+                ProfileRoute.Access,
+                ProfileRoute.TestingTriggers,
+                ProfileRoute.About,
+                ProfileRoute.List -> ProfileRoute.List
+            }
         } else {
             settingsRoute = settingsRoute.parent
         }
@@ -146,6 +155,17 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let { viewModel.importSettingsFromUI(it) { result -> onSettingsImported(result) } } }
+
+    // The system save picker lets users choose the destination folder and rename the backup.
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        uri?.let {
+            viewModel.exportSettingsToUri(it) { success, path ->
+                onSettingsExported(success, path)
+            }
+        }
+    }
 
     PredictiveBackHandler(enabled = inSubScreen) { progress ->
         try {
@@ -246,17 +266,15 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                             viewModel = viewModel,
                             contentPadding = contentPadding,
                             route = profileRoute,
+                            onOpenAccess = { profileRoute = ProfileRoute.Access },
+                            onOpenTestingTriggers = { profileRoute = ProfileRoute.TestingTriggers },
+                            onOpenAbout = { profileRoute = ProfileRoute.About },
                             onOpenChangelog = { profileRoute = ProfileRoute.Changelog },
                             onOpenPermissionDetails = {
                                 profileRoute = ProfileRoute.PermissionDetails
                             },
                             onExportSettings = {
-                                viewModel.exportSettingsFromUI { s, p ->
-                                    onSettingsExported(
-                                        s,
-                                        p
-                                    )
-                                }
+                                exportLauncher.launch("expressive-island-backup.json")
                             },
                             onImportSettings = { importLauncher.launch(arrayOf("application/json")) },
                         )
@@ -303,8 +321,12 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
             if (inSubScreen) {
                 val title = if (current == HomeTab.Profile) {
                     when (profileRoute) {
+                        ProfileRoute.Access -> "Access"
+                        ProfileRoute.TestingTriggers -> "Testing Triggers"
+                        ProfileRoute.About -> "About"
+                        ProfileRoute.Changelog -> stringResource(R.string.profile_version)
                         ProfileRoute.PermissionDetails -> stringResource(R.string.profile_permissions_title)
-                        else -> stringResource(R.string.profile_version)
+                        ProfileRoute.List -> stringResource(R.string.nav_profile)
                     }
                 } else when (settingsRoute) {
                     SettingsRoute.SizePosition -> stringResource(R.string.appearance_title)

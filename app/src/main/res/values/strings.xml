@@ -235,8 +235,9 @@
 
     <!-- Appearance tab -->
     <string name="appearance_section_title">Appearance</string>
-    <string name="appearance_shadow_title">Shadow</string>
+    <string name="appearance_shadow_title">Show shadow</string>
     <string name="appearance_shadow_desc">Cast a soft shadow beneath the island.</string>
+    <string name="appearance_shadow_color">Shadow color</string>
     <string name="appearance_stroke_title">Stroke</string>
     <string name="appearance_stroke_desc">Draw an outline around the island.</string>
     <string name="appearance_stroke_width">Stroke width</string>

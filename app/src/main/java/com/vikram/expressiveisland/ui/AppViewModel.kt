@@ -1,10 +1,7 @@
 package com.vikram.expressiveisland.ui
 
 import android.app.Application
-import android.content.ContentValues
 import android.net.Uri
-import android.os.Environment
-import android.provider.MediaStore
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -43,6 +40,9 @@ import com.vikram.expressiveisland.data.LayoutPreferences
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.MusicTilePreferences
 import com.vikram.expressiveisland.data.MusicTileSettings
+import com.vikram.expressiveisland.data.MusicProgressStyle
+import com.vikram.expressiveisland.data.MusicVisualizerStyle
+import com.vikram.expressiveisland.data.SeekButtonMode
 import com.vikram.expressiveisland.data.PageTransitionStyle
 import com.vikram.expressiveisland.data.PermissionDotColors
 import com.vikram.expressiveisland.data.PermissionDotKinds
@@ -261,40 +261,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun getSettingsAsJsonString(): String = JsonSettings.export(jsonSections)
 
     /**
-     * This method uses exportSettingsToJson() but is not suspend and
-     * can be called from the UI.
-     * @param onReady - a callback that returns a SUCCESS (boolean) and a PATH (string)
+     * Writes settings to the user-selected document URI created by the system save picker.
+     * The caller supplies the destination, so the user can choose both the folder and filename.
      */
-    fun exportSettingsFromUI(onReady: (success: Boolean, path: String?) -> Unit) {
+    fun exportSettingsToUri(uri: Uri, onReady: (success: Boolean, path: String?) -> Unit) {
         viewModelScope.launch {
-            val ok = withContext(Dispatchers.IO) {
+            val result = withContext(Dispatchers.IO) {
                 try {
                     val json = getSettingsAsJsonString()
-                    val values = ContentValues().apply {
-                        put(MediaStore.Downloads.DISPLAY_NAME, "expressive-cutout-settings.json")
-                        put(MediaStore.Downloads.MIME_TYPE, "application/json")
-                        put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                        put(MediaStore.Downloads.IS_PENDING, 1)
-                    }
-
-                    val resolver = getApplication<Application>().contentResolver
-                    val collection =
-                        MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                    val uri =
-                        resolver.insert(collection, values) ?: throw IOException("Failed to insert")
-
-                    resolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
-                    values.clear()
-                    values.put(MediaStore.Downloads.IS_PENDING, 0)
-                    resolver.update(uri, values, null, null)
+                    getApplication<Application>().contentResolver.openOutputStream(uri, "wt")
+                        ?.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                        ?: throw IOException("Unable to open selected backup destination")
                     true
                 } catch (e: Exception) {
-                    Log.w("Error", "starting export ${e.message}")
+                    Log.w("Error", "Export failed: ${e.message}")
                     false
                 }
             }
-
-            onReady(ok, if (ok) Environment.DIRECTORY_DOWNLOADS else null)
+            onReady(result, if (result) uri.lastPathSegment else null)
         }
     }
 
@@ -478,6 +462,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         musicTilePreferences.setSkipColor(color)
     }
 
+    fun setMusicSkipIconColor(color: CutoutColor?) = viewModelScope.launch { musicTilePreferences.setSkipIconColor(color) }
+
+    fun setMusicPlayPauseIconColor(color: CutoutColor?) = viewModelScope.launch { musicTilePreferences.setPlayPauseIconColor(color) }
+
+    fun setMusicSeekIconColor(color: CutoutColor?) = viewModelScope.launch { musicTilePreferences.setSeekIconColor(color) }
+
     fun setMusicSkipOpacity(opacity: Float) = viewModelScope.launch {
         musicTilePreferences.setSkipOpacity(opacity)
     }
@@ -660,6 +650,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setShadowEnabled(enabled: Boolean) = viewModelScope.launch {
         appearancePreferences.setShadowEnabled(enabled)
+    }
+
+    fun setShadowColor(color: CutoutColor) = viewModelScope.launch {
+        appearancePreferences.setShadowColor(color)
     }
 
     /**
@@ -867,6 +861,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setMusicShowProgress(enabled: Boolean) = viewModelScope.launch {
         musicTilePreferences.setShowProgress(enabled)
     }
+
+    fun setMusicProgressStyle(style: MusicProgressStyle) = viewModelScope.launch {
+        musicTilePreferences.setProgressStyle(style)
+    }
+
+    fun setMusicShowVisualizer(enabled: Boolean) = viewModelScope.launch {
+        musicTilePreferences.setShowVisualizer(enabled)
+    }
+
+    fun setMusicVisualizerStyle(style: MusicVisualizerStyle) = viewModelScope.launch {
+        musicTilePreferences.setVisualizerStyle(style)
+    }
+
+    fun setMusicShowPlayPauseIcon(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setShowPlayPauseIcon(enabled) }
+    fun setMusicShowPlayPauseText(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setShowPlayPauseText(enabled) }
+    fun setMusicLeftSeekEnabled(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setLeftSeekEnabled(enabled) }
+    fun setMusicRightSeekEnabled(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setRightSeekEnabled(enabled) }
+    fun setMusicLeftSeekSeconds(seconds: Int) = viewModelScope.launch { musicTilePreferences.setLeftSeekSeconds(seconds) }
+    fun setMusicRightSeekSeconds(seconds: Int) = viewModelScope.launch { musicTilePreferences.setRightSeekSeconds(seconds) }
 
     fun setMusicExpandedBackground(enabled: Boolean) = viewModelScope.launch {
         musicTilePreferences.setExpandedBackground(enabled)

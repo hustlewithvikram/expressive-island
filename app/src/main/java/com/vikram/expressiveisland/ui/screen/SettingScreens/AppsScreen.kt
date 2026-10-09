@@ -52,6 +52,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -149,6 +151,7 @@ internal fun AppsScreen(
             AppSort.Z_TO_A -> matching.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.label })
         }
     }
+    val allEnabled = loaded.isNotEmpty() && loaded.all { it.packageName !in disabled }
     val lastIndex = filtered.lastIndex
 
     LazyColumn(
@@ -189,7 +192,14 @@ internal fun AppsScreen(
                         onValueChange = { query = it },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        shape = RoundedCornerShape(percent = 50),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                            unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                        ),
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Rounded.Search,
@@ -215,16 +225,46 @@ internal fun AppsScreen(
 
                     IconButton(
                         onClick = { sortDialogVisible = true },
-                        modifier = Modifier.size(52.dp),
+                        modifier = Modifier.size(54.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ),
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.SortByAlpha,
-                            contentDescription = "Sort apps",
+                            imageVector = Icons.Rounded.FilterList,
+                            contentDescription = "Filter and sort apps",
                         )
                     }
                 }
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(if (allEnabled) "Disable all" else "Enable all", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                if (allEnabled) "All apps can reach the cutout" else "Allow every app to reach the cutout",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = allEnabled,
+                            onCheckedChange = { enable -> loaded.forEach { viewModel.setAppEnabled(it.packageName, enable) } },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
 
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -292,11 +332,25 @@ internal fun AppsScreen(
     if (sortDialogVisible) {
         AlertDialog(
             onDismissRequest = { sortDialogVisible = false },
-            title = { Text("Sort apps") },
+            title = { Text("Filter and sort") },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
+                    Text("Show apps", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                    AppFilter.entries.forEach { option ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                                .clickable { filter = option }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(option.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                            if (filter == option) Icon(Icons.Rounded.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                    HorizontalDivider()
+                    Text("Sort by", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                     AppSort.entries.forEach { option ->
                         Row(
                             modifier = Modifier
@@ -304,7 +358,6 @@ internal fun AppsScreen(
                                 .clip(RoundedCornerShape(16.dp))
                                 .clickable {
                                     sortOrder = option
-                                    sortDialogVisible = false
                                 }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -326,7 +379,9 @@ internal fun AppsScreen(
                     }
                 }
             },
-            confirmButton = {},
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { sortDialogVisible = false }) { Text("Done") }
+            },
         )
     }
 }
@@ -498,6 +553,7 @@ private fun AppStatusBadge(
     enabled: Boolean,
     normalOnly: Boolean,
 ) {
+    if (enabled && !normalOnly) return
     val label = when {
         !enabled -> "Disabled"
         normalOnly -> "Normal only"

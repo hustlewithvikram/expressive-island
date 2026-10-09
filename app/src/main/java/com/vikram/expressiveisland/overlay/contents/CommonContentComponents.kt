@@ -94,6 +94,7 @@ import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.MusicButtonStyle
+import com.vikram.expressiveisland.data.MusicVisualizerStyle
 import com.vikram.expressiveisland.overlay.CenterShortcutCatalog
 import com.vikram.expressiveisland.overlay.DynamicIsland
 import com.vikram.expressiveisland.overlay.island.IslandAction
@@ -809,6 +810,8 @@ fun IslandSurface(
     )
 
     val contentColor = if (repColor.luminance() > 0.5f) PillTextColorDark else PillTextColor
+    // Resolve the configurable shadow colour in composition; graphicsLayer is not composable.
+    val shadowColor = appearance.shadowColor.resolve(appColor, adaptiveColor)
     val border = if (appearance.strokeEnabled) {
         BorderStroke(
             appearance.strokeWidthDp.dp,
@@ -819,11 +822,18 @@ fun IslandSurface(
     }
 
     Surface(
-        modifier = modifier,
+        modifier = modifier.graphicsLayer {
+            // Draw the elevation shadow using the user-selected colour, rather than the default black.
+            shadowElevation = if (appearance.shadowEnabled) 6.dp.toPx() else 0f
+            this.shape = shape
+            clip = false
+            spotShadowColor = shadowColor
+            ambientShadowColor = shadowColor
+        },
         shape = shape,
         color = Color.Transparent,
         contentColor = contentColor,
-        shadowElevation = if (appearance.shadowEnabled) 6.dp else 0.dp,
+        shadowElevation = 0.dp,
         tonalElevation = 0.dp,
         border = border,
     ) {
@@ -846,62 +856,53 @@ fun IslandSurface(
     }
 }
 
-/* The visualizer for the music player on the right side of the pill */
+/* Compact music visualizers used on the trailing edge of the collapsed island. */
 @Composable
 fun MusicVisualizer(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
+    style: MusicVisualizerStyle = MusicVisualizerStyle.BARS,
 ) {
-    val transition = rememberInfiniteTransition(
-        label = "musicVisualizer",
-    )
-
-    val bars = listOf(
-        0.35f to 1350,
-        0.55f to 1140,
-        0.25f to 1575,
-        0.45f to 1260,
-        0.30f to 1470,
-        0.40f to 1050,
-    )
-
+    val transition = rememberInfiniteTransition(label = "musicVisualizer")
+    val bars = listOf(0.35f to 1350, 0.55f to 1140, 0.25f to 1575, 0.45f to 1260, 0.30f to 1470, 0.40f to 1050)
+    val color = MaterialTheme.colorScheme.primary
     Row(
-        modifier = modifier
-            .width(24.dp)
-            .height(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(1.2.dp),
+        modifier = modifier.width(if (style == MusicVisualizerStyle.PULSE) 22.dp else 28.dp).height(18.dp),
+        horizontalArrangement = Arrangement.spacedBy(1.5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         bars.forEachIndexed { index, (minHeight, duration) ->
-
-            val height by transition.animateFloat(
+            val animated by transition.animateFloat(
                 initialValue = minHeight,
-                targetValue = when (index % 3) {
-                    0 -> 0.75f
-                    1 -> 0.95f
-                    else -> 0.65f
-                },
+                targetValue = when (index % 3) { 0 -> 0.75f; 1 -> 0.95f; else -> 0.65f },
                 animationSpec = infiniteRepeatable(
-                    animation = tween(
-                        durationMillis = duration,
-                        easing = FastOutSlowInEasing,
-                    ),
+                    animation = tween(durationMillis = duration, easing = FastOutSlowInEasing),
                     repeatMode = RepeatMode.Reverse,
                 ),
                 label = "visualizerBar$index",
             )
-
-            Box(
-                modifier = Modifier
-                    .width(2.2.dp)
-                    .fillMaxHeight(
-                        if (isPlaying) height else 0.20f
-                    )
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(
-                        MaterialTheme.colorScheme.primary
-                    )
-            )
+            val fraction = if (isPlaying) animated else 0.2f
+            when (style) {
+                MusicVisualizerStyle.BARS -> Box(
+                    Modifier.width(2.5.dp).fillMaxHeight(fraction).clip(RoundedCornerShape(3.dp)).background(color)
+                )
+                MusicVisualizerStyle.MIRRORED -> Box(
+                    Modifier.width(2.5.dp).fillMaxHeight(fraction).clip(RoundedCornerShape(3.dp))
+                        .background(color).graphicsLayer { scaleY = -1f }
+                )
+                MusicVisualizerStyle.DOTS -> Box(
+                    Modifier.size(if (isPlaying) (3.dp + (animated * 4).dp) else 3.dp)
+                        .clip(CircleShape).background(color)
+                )
+                MusicVisualizerStyle.WAVE -> Box(
+                    Modifier.width(2.dp).fillMaxHeight(if (isPlaying) (0.25f + 0.7f * kotlin.math.abs(kotlin.math.sin(index * 0.9f + animated * 2f))) else 0.2f)
+                        .clip(RoundedCornerShape(2.dp)).background(color)
+                )
+                MusicVisualizerStyle.PULSE -> Box(
+                    Modifier.size(if (isPlaying) (4.dp + (animated * 5).dp) else 4.dp)
+                        .clip(CircleShape).background(color.copy(alpha = if (isPlaying) 0.55f + animated * 0.45f else 0.5f))
+                )
+            }
         }
     }
 }

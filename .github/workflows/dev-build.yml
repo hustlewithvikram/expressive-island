@@ -1,0 +1,98 @@
+name: Development Build
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: read
+
+concurrency:
+  group: expressive-island-dev-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build signed debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle and cache dependencies
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Configure debug signing key
+        shell: bash
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.EXPRESSIVE_DEBUG_STORE_FILE }}
+          DEBUG_STORE_PASSWORD: ${{ secrets.EXPRESSIVE_DEBUG_STORE_PASSWORD }}
+          DEBUG_KEY_ALIAS: ${{ secrets.EXPRESSIVE_DEBUG_KEY_ALIAS }}
+          DEBUG_KEY_PASSWORD: ${{ secrets.EXPRESSIVE_DEBUG_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          for name in DEBUG_KEYSTORE_BASE64 DEBUG_STORE_PASSWORD DEBUG_KEY_ALIAS DEBUG_KEY_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Required debug signing secret is missing: $name."
+              exit 1
+            fi
+          done
+
+          KEYSTORE_PATH="$RUNNER_TEMP/expressive-island-debug.jks"
+          printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+
+          {
+            echo "EXPRESSIVE_DEBUG_STORE_FILE=$KEYSTORE_PATH"
+            echo "EXPRESSIVE_DEBUG_STORE_PASSWORD=$DEBUG_STORE_PASSWORD"
+            echo "EXPRESSIVE_DEBUG_KEY_ALIAS=$DEBUG_KEY_ALIAS"
+            echo "EXPRESSIVE_DEBUG_KEY_PASSWORD=$DEBUG_KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Build signed debug APK
+        run: ./gradlew assembleDebug --build-cache --parallel --no-daemon
+
+      - name: Prepare debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          APK_FILES=(app/build/outputs/apk/debug/*.apk)
+
+          if [[ ${#APK_FILES[@]} -ne 1 ]]; then
+            echo "::error::Expected exactly one debug APK, found ${#APK_FILES[@]}."
+            printf '%s\n' "${APK_FILES[@]}"
+            exit 1
+          fi
+
+          mkdir -p "$RUNNER_TEMP/debug-artifact"
+          cp "${APK_FILES[0]}" "$RUNNER_TEMP/debug-artifact/expressive-island-debug.apk"
+          test -s "$RUNNER_TEMP/debug-artifact/expressive-island-debug.apk"
+
+      - name: Verify APK signature
+        run: |
+          set -euo pipefail
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner" verify --verbose "$RUNNER_TEMP/debug-artifact/expressive-island-debug.apk"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: expressive-island-debug-${{ github.sha }}
+          path: ${{ runner.temp }}/debug-artifact/expressive-island-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove temporary signing key
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/expressive-island-debug.jks"

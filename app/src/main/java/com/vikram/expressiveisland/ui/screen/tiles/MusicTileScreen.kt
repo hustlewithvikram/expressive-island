@@ -27,10 +27,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Replay5
+import androidx.compose.material.icons.rounded.Forward5
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,14 +56,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.MusicButtonStyle
+import com.vikram.expressiveisland.data.MusicProgressStyle
+import com.vikram.expressiveisland.data.MusicVisualizerStyle
+import com.vikram.expressiveisland.data.SeekButtonMode
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.screen.AdjustableSlider
@@ -62,6 +80,18 @@ import com.vikram.expressiveisland.ui.screen.SettingsToggleCard
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
+
+private enum class MusicSettingsTab(val label: String) {
+    SHRINKED("Shrinked"),
+    EXPANDED("Expanded"),
+    OTHER("Other"),
+}
+
+private enum class MusicButtonSettingsTab(val label: String) {
+    PLAY_PAUSE("Play/Pause"),
+    PREVIOUS_NEXT("Prev/Next"),
+    SEEK("Seek"),
+}
 
 private val MusicAccent = Color(0xFFF472B6)
 
@@ -105,6 +135,12 @@ internal fun MusicTileScreen(
     contentPadding: PaddingValues,
 ) {
     val settings by viewModel.musicTile.collectAsStateWithLifecycle()
+    var selectedTab by remember { mutableStateOf(MusicSettingsTab.SHRINKED) }
+    var selectedButtonSettingsTab by remember { mutableStateOf(MusicButtonSettingsTab.PLAY_PAUSE) }
+    var progressStyleDialog by remember { mutableStateOf(false) }
+    var visualizerStyleDialog by remember { mutableStateOf(false) }
+    var leftSeekTimeDialog by remember { mutableStateOf(false) }
+    var rightSeekTimeDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -126,11 +162,38 @@ internal fun MusicTileScreen(
                 bottom = 0.dp,
             ),
         )
+        MusicButtonsPreview(
+            skipStyle = settings.skipButton,
+            playPauseStyle = settings.playPauseButton,
+            leftSeekEnabled = settings.leftSeekEnabled,
+            rightSeekEnabled = settings.rightSeekEnabled,
+            leftSeekSeconds = settings.leftSeekSeconds,
+            rightSeekSeconds = settings.rightSeekSeconds,
+            showProgress = settings.showProgress,
+            progressStyle = settings.progressStyle,
+            showPlayPauseIcon = settings.showPlayPauseIcon,
+            showPlayPauseText = settings.showPlayPauseText,
+            skipIconColor = settings.skipIconColor?.resolve(),
+            playPauseIconColor = settings.playPauseIconColor?.resolve(),
+            seekIconColor = settings.seekIconColor?.resolve(),
+        )
+
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+            MusicSettingsTab.entries.forEachIndexed { index, tab ->
+                SegmentedButton(
+                    selected = selectedTab == tab,
+                    onClick = { selectedTab = tab },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = MusicSettingsTab.entries.size),
+                    label = { Text(tab.label, maxLines = 1) },
+                )
+            }
+        }
 
         // =====================================================================
         // ALBUM ART
         // =====================================================================
 
+        if (selectedTab == MusicSettingsTab.SHRINKED) {
         SectionLabel("Album Art")
 
         SettingsGroup {
@@ -203,6 +266,9 @@ internal fun MusicTileScreen(
         // ALBUM COVER BACKGROUND
         // =====================================================================
 
+
+        }
+        if (selectedTab == MusicSettingsTab.EXPANDED) {
         SectionLabel("Album Cover Background")
 
         SettingsGroup {
@@ -240,6 +306,9 @@ internal fun MusicTileScreen(
         // BEHAVIOR
         // =====================================================================
 
+
+        }
+        if (selectedTab == MusicSettingsTab.OTHER) {
         SectionLabel("Behavior")
 
         SettingsGroup {
@@ -281,6 +350,9 @@ internal fun MusicTileScreen(
             )
         }
 
+
+        }
+        if (selectedTab == MusicSettingsTab.EXPANDED) {
         // =====================================================================
         // PLAYBACK CONTROLS
         // =====================================================================
@@ -292,32 +364,59 @@ internal fun MusicTileScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
 
-                SectionLabel(
-                    stringResource(R.string.music_buttons_title),
-                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    MusicButtonSettingsTab.entries.forEachIndexed { index, tab ->
+                        SegmentedButton(
+                            selected = selectedButtonSettingsTab == tab,
+                            onClick = { selectedButtonSettingsTab = tab },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = MusicButtonSettingsTab.entries.size),
+                            label = { Text(tab.label, maxLines = 1) },
+                        )
+                    }
+                }
 
-                MusicButtonsPreview(
-                    skipStyle = settings.skipButton,
-                    playPauseStyle = settings.playPauseButton,
-                )
+                if (selectedButtonSettingsTab == MusicButtonSettingsTab.SEEK) {
+                    SettingsGroup {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            SeekOptionRow(
+                                title = "Seek backward",
+                                description = "Show a button before Play/Pause",
+                                enabled = settings.leftSeekEnabled,
+                                seconds = settings.leftSeekSeconds,
+                                onEnabledChange = viewModel::setMusicLeftSeekEnabled,
+                                onTimeClick = { leftSeekTimeDialog = true },
+                            )
+                            SeekOptionRow(
+                                title = "Seek forward",
+                                description = "Show a button after Play/Pause",
+                                enabled = settings.rightSeekEnabled,
+                                seconds = settings.rightSeekSeconds,
+                                onEnabledChange = viewModel::setMusicRightSeekEnabled,
+                                onTimeClick = { rightSeekTimeDialog = true },
+                            )
+                        }
+                    }
+                    SettingsGroup {
+                        ColorPickerCard(
+                            label = "Seek icon and text color",
+                            selected = settings.seekIconColor,
+                            onSelect = viewModel::setMusicSeekIconColor,
+                            defaultLabel = "Automatic",
+                            defaultColor = MaterialTheme.colorScheme.onSurface,
+                            shape = groupShape(GroupPosition.ONLY),
+                        )
+                    }
+                }
 
+                if (selectedButtonSettingsTab == MusicButtonSettingsTab.PREVIOUS_NEXT) {
                 // -------------------------------------------------------------
                 // SKIP BUTTONS
                 // -------------------------------------------------------------
 
-                SectionLabel(
-                    stringResource(R.string.music_skip_buttons_title),
-                )
-
                 SettingsGroup {
-
-                    ButtonPresetRow(
-                        current = settings.skipButton,
-                        sampleFill = settings.skipButton.previewFill(
-                            fallback = null,
-                        ) ?: MusicButtonFilledDefault,
-                        onApply = viewModel::applyMusicSkipPreset,
-                    )
 
                     ColorPickerCard(
                         label = stringResource(
@@ -334,6 +433,15 @@ internal fun MusicTileScreen(
                         shape = groupShape(GroupPosition.MIDDLE),
                     )
 
+                    ColorPickerCard(
+                        label = "Previous/Next icon color",
+                        selected = settings.skipIconColor,
+                        onSelect = viewModel::setMusicSkipIconColor,
+                        defaultLabel = "Automatic",
+                        defaultColor = MaterialTheme.colorScheme.onSurface,
+                        shape = groupShape(GroupPosition.MIDDLE),
+                    )
+
                     ButtonShapeCard(
                         style = settings.skipButton,
                         shape = groupShape(GroupPosition.LAST),
@@ -342,25 +450,14 @@ internal fun MusicTileScreen(
                     )
                 }
 
+                }
+
+                if (selectedButtonSettingsTab == MusicButtonSettingsTab.PLAY_PAUSE) {
                 // -------------------------------------------------------------
                 // PLAY / PAUSE
                 // -------------------------------------------------------------
 
-                SectionLabel(
-                    stringResource(
-                        R.string.music_playpause_button_title,
-                    ),
-                )
-
                 SettingsGroup {
-
-                    ButtonPresetRow(
-                        current = settings.playPauseButton,
-                        sampleFill = settings.playPauseButton.previewFill(
-                            fallback = MusicAccent,
-                        ) ?: MusicAccent,
-                        onApply = viewModel::applyMusicPlayPausePreset,
-                    )
 
                     ColorPickerCard(
                         label = stringResource(
@@ -375,17 +472,47 @@ internal fun MusicTileScreen(
                         shape = groupShape(GroupPosition.MIDDLE),
                     )
 
+                    ColorPickerCard(
+                        label = "Play/Pause icon and text color",
+                        selected = settings.playPauseIconColor,
+                        onSelect = viewModel::setMusicPlayPauseIconColor,
+                        defaultLabel = "Automatic",
+                        defaultColor = MaterialTheme.colorScheme.onSurface,
+                        shape = groupShape(GroupPosition.MIDDLE),
+                    )
+
                     ButtonShapeCard(
                         style = settings.playPauseButton,
-                        shape = groupShape(GroupPosition.LAST),
+                        shape = groupShape(GroupPosition.MIDDLE),
                         onOpacityCommit = viewModel::setMusicPlayPauseOpacity,
                         onCornerCommit = viewModel::setMusicPlayPauseCornerPercent,
+                    )
+
+                    SettingsToggleCard(
+                        shape = groupShape(GroupPosition.MIDDLE),
+                        title = "Show play/pause icon",
+                        description = "Display the play or pause symbol on the button.",
+                        checked = settings.showPlayPauseIcon,
+                        onCheckedChange = viewModel::setMusicShowPlayPauseIcon,
+                    )
+
+                    SettingsToggleCard(
+                        shape = groupShape(GroupPosition.LAST),
+                        title = "Show play/pause text",
+                        description = "Display Play or Pause text beside the symbol.",
+                        checked = settings.showPlayPauseText,
+                        onCheckedChange = viewModel::setMusicShowPlayPauseText,
                     )
                 }
             }
         }
 
+
+        }
+        if (selectedTab == MusicSettingsTab.EXPANDED) {
         // =====================================================================
+                }
+
         // PLAYBACK DISPLAY
         // =====================================================================
 
@@ -394,25 +521,165 @@ internal fun MusicTileScreen(
         SettingsGroup {
 
             SettingsToggleCard(
-                shape = groupShape(GroupPosition.ONLY),
-                title = stringResource(
-                    R.string.music_progress_title,
-                ),
-                description = stringResource(
-                    R.string.music_progress_description,
-                ),
+                shape = groupShape(if (settings.showProgress) GroupPosition.FIRST else GroupPosition.ONLY),
+                title = stringResource(R.string.music_progress_title),
+                description = stringResource(R.string.music_progress_description),
                 checked = settings.showProgress,
                 onCheckedChange = viewModel::setMusicShowProgress,
             )
 
-            /*
-             * Keep Expanded Background here as well as in the dedicated
-             * Album Cover Background section? No.
-             *
-             * The actual setting belongs to Album Cover Background.
-             * Therefore this section only contains the progress setting.
-             */
+            AnimatedVisibility(visible = settings.showProgress) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable { progressStyleDialog = true },
+                    shape = groupShape(GroupPosition.LAST),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Progress bar style", style = MaterialTheme.typography.titleSmall)
+                            Text(settings.progressStyle.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Icon(Icons.Rounded.Tune, contentDescription = "Choose progress style", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
         }
+
+
+        }
+        if (selectedTab == MusicSettingsTab.SHRINKED) {
+        SectionLabel("Music Visualizer")
+
+        SettingsGroup {
+            SettingsToggleCard(
+                shape = groupShape(if (settings.showVisualizer) GroupPosition.FIRST else GroupPosition.ONLY),
+                title = "Show visualizer",
+                description = "Animate the music indicator in the collapsed island while music is playing.",
+                checked = settings.showVisualizer,
+                onCheckedChange = viewModel::setMusicShowVisualizer,
+            )
+            AnimatedVisibility(visible = settings.showVisualizer) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable { visualizerStyleDialog = true },
+                    shape = groupShape(GroupPosition.LAST),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Visualizer style", style = MaterialTheme.typography.titleSmall)
+                            Text(settings.visualizerStyle.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Icon(Icons.Rounded.Tune, contentDescription = "Choose visualizer style", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+        }
+        }
+
+    }
+
+    if (leftSeekTimeDialog) {
+        SeekDurationDialog(
+            title = "Seek backward by",
+            selectedSeconds = settings.leftSeekSeconds,
+            onSelect = viewModel::setMusicLeftSeekSeconds,
+            onDismiss = { leftSeekTimeDialog = false },
+        )
+    }
+    if (rightSeekTimeDialog) {
+        SeekDurationDialog(
+            title = "Seek forward by",
+            selectedSeconds = settings.rightSeekSeconds,
+            onSelect = viewModel::setMusicRightSeekSeconds,
+            onDismiss = { rightSeekTimeDialog = false },
+        )
+    }
+
+    if (visualizerStyleDialog) {
+        AlertDialog(
+            onDismissRequest = { visualizerStyleDialog = false },
+            title = { Text("Music visualizer") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MusicVisualizerStyle.entries.forEach { style ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clickable { viewModel.setMusicVisualizerStyle(style) },
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (settings.visualizerStyle == style) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                            ),
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(style.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                                    if (settings.visualizerStyle == style) Icon(Icons.Rounded.PlayArrow, contentDescription = "Selected", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                }
+                                MusicVisualizerPreview(style = style)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { visualizerStyleDialog = false }) { Text("Done") } },
+        )
+    }
+
+    if (progressStyleDialog) {
+        AlertDialog(
+            onDismissRequest = { progressStyleDialog = false },
+            title = { Text("Progress bar style") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MusicProgressStyle.entries.forEach { style ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clickable { viewModel.setMusicProgressStyle(style) },
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (settings.progressStyle == style) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                            ),
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(style.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                                    if (settings.progressStyle == style) Icon(Icons.Rounded.PlayArrow, contentDescription = "Selected", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                }
+                                when (style) {
+                                    MusicProgressStyle.WAVY -> com.vikram.expressiveisland.overlay.contents.WavyProgressIndicator(
+                                        progress = 0.68f, modifier = Modifier.fillMaxWidth().height(14.dp),
+                                        color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer,
+                                    )
+                                    MusicProgressStyle.LINEAR -> LinearProgressIndicator(
+                                        progress = { 0.68f }, modifier = Modifier.fillMaxWidth().height(6.dp),
+                                        color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer,
+                                    )
+                                    MusicProgressStyle.CIRCULAR -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                        CircularProgressIndicator(progress = { 0.68f }, strokeWidth = 4.dp)
+                                    }
+                                    MusicProgressStyle.CIRCULAR_WAVY -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                        CircularProgressIndicator(progress = { 0.68f }, strokeWidth = 2.dp, trackColor = MaterialTheme.colorScheme.primaryContainer)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { progressStyleDialog = false }) { Text("Done") } },
+        )
     }
 }
 
@@ -819,6 +1086,17 @@ private fun ButtonShapeCard(
 private fun MusicButtonsPreview(
     skipStyle: MusicButtonStyle,
     playPauseStyle: MusicButtonStyle,
+    leftSeekEnabled: Boolean,
+    rightSeekEnabled: Boolean,
+    leftSeekSeconds: Int,
+    rightSeekSeconds: Int,
+    showProgress: Boolean,
+    progressStyle: MusicProgressStyle,
+    showPlayPauseIcon: Boolean,
+    showPlayPauseText: Boolean,
+    skipIconColor: Color?,
+    playPauseIconColor: Color?,
+    seekIconColor: Color?,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -863,6 +1141,17 @@ private fun MusicButtonsPreview(
             MusicControlsPreviewSurface(
                 skipStyle = skipStyle,
                 playPauseStyle = playPauseStyle,
+                leftSeekEnabled = leftSeekEnabled,
+                rightSeekEnabled = rightSeekEnabled,
+                leftSeekSeconds = leftSeekSeconds,
+                rightSeekSeconds = rightSeekSeconds,
+                showProgress = showProgress,
+                progressStyle = progressStyle,
+                showPlayPauseIcon = showPlayPauseIcon,
+                showPlayPauseText = showPlayPauseText,
+                skipIconColor = skipIconColor,
+                playPauseIconColor = playPauseIconColor,
+                seekIconColor = seekIconColor,
             )
         }
     }
@@ -872,6 +1161,17 @@ private fun MusicButtonsPreview(
 private fun MusicControlsPreviewSurface(
     skipStyle: MusicButtonStyle,
     playPauseStyle: MusicButtonStyle,
+    leftSeekEnabled: Boolean,
+    rightSeekEnabled: Boolean,
+    leftSeekSeconds: Int,
+    rightSeekSeconds: Int,
+    showProgress: Boolean,
+    progressStyle: MusicProgressStyle,
+    showPlayPauseIcon: Boolean,
+    showPlayPauseText: Boolean,
+    skipIconColor: Color?,
+    playPauseIconColor: Color?,
+    seekIconColor: Color?,
 ) {
     Box(
         modifier = Modifier
@@ -887,9 +1187,39 @@ private fun MusicControlsPreviewSurface(
                 vertical = 14.dp,
             ),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF3B4252)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.MusicNote, contentDescription = null, tint = Color.White, modifier = Modifier.size(30.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Now playing", color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                    Text("Artist name · Album", color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                }
+            }
+            if (showProgress) {
+                when (progressStyle) {
+                    MusicProgressStyle.WAVY -> com.vikram.expressiveisland.overlay.contents.WavyProgressIndicator(
+                        progress = 0.42f, modifier = Modifier.fillMaxWidth().height(12.dp),
+                        color = playPauseStyle.color?.resolve() ?: MusicAccent, trackColor = Color.White.copy(alpha = 0.20f))
+                    MusicProgressStyle.LINEAR -> LinearProgressIndicator(
+                        progress = { 0.42f }, modifier = Modifier.fillMaxWidth().height(5.dp),
+                        color = playPauseStyle.color?.resolve() ?: MusicAccent, trackColor = Color.White.copy(alpha = 0.20f))
+                    MusicProgressStyle.CIRCULAR, MusicProgressStyle.CIRCULAR_WAVY -> Row(
+                        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                        CircularProgressIndicator(progress = { 0.42f },
+                            strokeWidth = if (progressStyle == MusicProgressStyle.CIRCULAR_WAVY) 2.dp else 4.dp,
+                            color = playPauseStyle.color?.resolve() ?: MusicAccent, trackColor = Color.White.copy(alpha = 0.20f))
+                    }
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("1:24", color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.labelSmall)
+                    Text("3:32", color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
                 10.dp,
             ),
             verticalAlignment = Alignment.CenterVertically,
@@ -901,8 +1231,20 @@ private fun MusicControlsPreviewSurface(
                     fallback = null,
                 ),
                 cornerPercent = skipStyle.cornerPercent,
+                iconTint = skipIconColor,
                 modifier = Modifier.weight(1f),
             )
+
+            if (leftSeekEnabled) {
+                PreviewSeekButton(
+                    seconds = leftSeekSeconds,
+                    backward = true,
+                    fill = skipStyle.previewFill(fallback = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    cornerPercent = skipStyle.cornerPercent,
+                    iconTint = seekIconColor,
+                    modifier = Modifier.weight(0.85f),
+                )
+            }
 
             PreviewButton(
                 icon = Icons.Rounded.PlayArrow,
@@ -910,8 +1252,22 @@ private fun MusicControlsPreviewSurface(
                     fallback = MusicAccent,
                 ),
                 cornerPercent = playPauseStyle.cornerPercent,
+                iconTint = playPauseIconColor,
+                showIcon = showPlayPauseIcon,
+                label = if (showPlayPauseText) "Play" else null,
                 widthDp = PREVIEW_BUTTON_HEIGHT_DP * 16 / 9,
             )
+
+            if (rightSeekEnabled) {
+                PreviewSeekButton(
+                    seconds = rightSeekSeconds,
+                    backward = false,
+                    fill = skipStyle.previewFill(fallback = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    cornerPercent = skipStyle.cornerPercent,
+                    iconTint = seekIconColor,
+                    modifier = Modifier.weight(0.85f),
+                )
+            }
 
             PreviewButton(
                 icon = Icons.Rounded.SkipNext,
@@ -919,9 +1275,36 @@ private fun MusicControlsPreviewSurface(
                     fallback = null,
                 ),
                 cornerPercent = skipStyle.cornerPercent,
+                iconTint = skipIconColor,
                 modifier = Modifier.weight(1f),
             )
         }
+    }
+}
+}
+
+@Composable
+private fun PreviewSeekButton(
+    seconds: Int,
+    backward: Boolean,
+    fill: Color?,
+    cornerPercent: Int,
+    iconTint: Color?,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .height(PREVIEW_BUTTON_HEIGHT_DP.dp)
+            .clip(RoundedCornerShape((PREVIEW_BUTTON_HEIGHT_DP * cornerPercent / 100f).dp))
+            .background(fill ?: MaterialTheme.colorScheme.surfaceContainerHigh),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (backward) Icons.Rounded.Replay5 else Icons.Rounded.Forward5,
+            contentDescription = if (backward) "Seek backward $seconds seconds" else "Seek forward $seconds seconds",
+            tint = iconTint ?: if (fill == null) Color.White else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(30.dp),
+        )
     }
 }
 
@@ -950,6 +1333,9 @@ private fun PreviewButton(
     cornerPercent: Int,
     modifier: Modifier = Modifier,
     widthDp: Int = PREVIEW_BUTTON_HEIGHT_DP,
+    iconTint: Color? = null,
+    showIcon: Boolean = true,
+    label: String? = null,
 ) {
     var pressed by remember {
         mutableStateOf(false)
@@ -1000,28 +1386,23 @@ private fun PreviewButton(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = when {
-                fill == null -> {
-                    Color.White.copy(
-                        alpha = 0.90f,
-                    )
-                }
-
-                fill.luminance() > 0.5f -> {
-                    Color.Black
-                }
-
-                else -> {
-                    Color.White
-                }
-            },
-            modifier = Modifier.size(
-                26.dp,
-            ),
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (showIcon) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint ?: when {
+                        fill == null -> Color.White.copy(alpha = 0.90f)
+                        fill.luminance() > 0.5f -> Color.Black
+                        else -> Color.White
+                    },
+                    modifier = Modifier.size(26.dp),
+                )
+            }
+            if (label != null) {
+                Text(label, color = iconTint ?: Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+            }
+        }
     }
 
     LaunchedEffect(pressed) {
@@ -1077,4 +1458,106 @@ private fun ResetToDefaultButton(
             )
         }
     }
+}
+
+@Composable
+private fun MusicVisualizerPreview(style: MusicVisualizerStyle) {
+    val primary = MaterialTheme.colorScheme.primary
+    val heights = when (style) {
+        MusicVisualizerStyle.BARS -> listOf(0.35f, 0.65f, 0.9f, 0.5f, 0.78f, 0.4f)
+        MusicVisualizerStyle.MIRRORED -> listOf(0.35f, 0.65f, 0.9f, 0.5f, 0.78f, 0.4f)
+        MusicVisualizerStyle.DOTS -> listOf(0.3f, 0.6f, 0.95f, 0.55f, 0.8f, 0.4f)
+        MusicVisualizerStyle.WAVE -> listOf(0.25f, 0.55f, 0.85f, 0.65f, 0.35f, 0.6f)
+        MusicVisualizerStyle.PULSE -> listOf(0.45f, 0.7f, 1f, 0.7f, 0.45f)
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().height(28.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        heights.forEachIndexed { index, height ->
+            val h = if (style == MusicVisualizerStyle.DOTS) 5.dp else (height * 24).dp
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(h)
+                    .clip(if (style == MusicVisualizerStyle.DOTS) androidx.compose.foundation.shape.CircleShape else RoundedCornerShape(4.dp))
+                    .background(primary.copy(alpha = if (style == MusicVisualizerStyle.PULSE && index % 2 == 0) 0.55f else 1f))
+            )
+        }
+    }
+}
+
+
+@Composable
+private fun SeekOptionRow(
+    title: String,
+    description: String,
+    enabled: Boolean,
+    seconds: Int,
+    onEnabledChange: (Boolean) -> Unit,
+    onTimeClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            androidx.compose.animation.AnimatedVisibility(visible = enabled) {
+                Card(
+                    modifier = Modifier.padding(top = 6.dp).clickable(onClick = onTimeClick),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text("Seek time: ${seconds}s", style = MaterialTheme.typography.labelLarge)
+                        Icon(Icons.Rounded.Tune, contentDescription = "Choose seek time", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+        androidx.compose.material3.Switch(checked = enabled, onCheckedChange = onEnabledChange)
+    }
+    }
+}
+
+@Composable
+private fun SeekDurationDialog(
+    title: String,
+    selectedSeconds: Int,
+    onSelect: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf(5, 10, 15, 20, 30, 45, 60).forEach { seconds ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                            .clickable { onSelect(seconds); onDismiss() }
+                            .padding(horizontal = 12.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("${seconds} seconds", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        if (selectedSeconds == seconds) Icon(Icons.Rounded.PlayArrow, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+    )
 }
