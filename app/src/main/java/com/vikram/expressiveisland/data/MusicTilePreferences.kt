@@ -37,6 +37,8 @@ data class MusicButtonStyle(
     }
 }
 
+enum class SeekButtonMode(val label: String) { LEFT("Left button"), RIGHT("Right button"), BOTH("Both buttons") }
+
 enum class MusicProgressStyle(val label: String) {
     WAVY("Wavy"),
     LINEAR("Linear"),
@@ -65,6 +67,11 @@ data class MusicTileSettings(
     val showProgress: Boolean = DEFAULT_SHOW_PROGRESS,
     val progressStyle: MusicProgressStyle = MusicProgressStyle.WAVY,
     val showVisualizer: Boolean = true,
+    val seekButtonMode: SeekButtonMode = SeekButtonMode.BOTH,
+    val leftSeekEnabled: Boolean = true,
+    val rightSeekEnabled: Boolean = true,
+    val leftSeekSeconds: Int = 5,
+    val rightSeekSeconds: Int = 5,
     val visualizerStyle: MusicVisualizerStyle = MusicVisualizerStyle.BARS,
     val expandedBackground: Boolean = DEFAULT_EXPANDED_BACKGROUND,
     val expandedBackgroundBlur: Float = DEFAULT_EXPANDED_BACKGROUND_BLUR,
@@ -109,6 +116,11 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             showProgress = prefs[SHOW_PROGRESS] ?: MusicTileSettings.DEFAULT_SHOW_PROGRESS,
             progressStyle = runCatching { MusicProgressStyle.valueOf(prefs[PROGRESS_STYLE] ?: MusicProgressStyle.WAVY.name) }.getOrDefault(MusicProgressStyle.WAVY),
             showVisualizer = prefs[SHOW_VISUALIZER] ?: true,
+            seekButtonMode = runCatching { SeekButtonMode.valueOf(prefs[SEEK_BUTTON_MODE] ?: SeekButtonMode.BOTH.name) }.getOrDefault(SeekButtonMode.BOTH),
+            leftSeekEnabled = prefs[LEFT_SEEK_ENABLED] ?: true,
+            rightSeekEnabled = prefs[RIGHT_SEEK_ENABLED] ?: true,
+            leftSeekSeconds = (prefs[LEFT_SEEK_SECONDS] ?: 5).coerceIn(5, 60),
+            rightSeekSeconds = (prefs[RIGHT_SEEK_SECONDS] ?: 5).coerceIn(5, 60),
             visualizerStyle = runCatching { MusicVisualizerStyle.valueOf(prefs[VISUALIZER_STYLE] ?: MusicVisualizerStyle.BARS.name) }.getOrDefault(MusicVisualizerStyle.BARS),
             expandedBackground = prefs[EXPANDED_BACKGROUND] ?: MusicTileSettings.DEFAULT_EXPANDED_BACKGROUND,
             expandedBackgroundBlur = (prefs[EXPANDED_BACKGROUND_BLUR]
@@ -135,6 +147,11 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             put("showProgress", s.showProgress)
             put("progressStyle", s.progressStyle.name)
             put("showVisualizer", s.showVisualizer)
+            put("seekButtonMode", s.seekButtonMode.name)
+            put("leftSeekEnabled", s.leftSeekEnabled)
+            put("rightSeekEnabled", s.rightSeekEnabled)
+            put("leftSeekSeconds", s.leftSeekSeconds)
+            put("rightSeekSeconds", s.rightSeekSeconds)
             put("visualizerStyle", s.visualizerStyle.name)
             put("expandedBackground", s.expandedBackground)
             put("expandedBackgroundBlur", s.expandedBackgroundBlur.toDouble())
@@ -160,6 +177,11 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             if (obj.has("showProgress")) prefs[SHOW_PROGRESS] = obj.getBoolean("showProgress")
             if (obj.has("progressStyle")) prefs[PROGRESS_STYLE] = runCatching { MusicProgressStyle.valueOf(obj.getString("progressStyle")).name }.getOrDefault(MusicProgressStyle.WAVY.name)
             if (obj.has("showVisualizer")) prefs[SHOW_VISUALIZER] = obj.getBoolean("showVisualizer")
+            if (obj.has("seekButtonMode")) prefs[SEEK_BUTTON_MODE] = runCatching { SeekButtonMode.valueOf(obj.getString("seekButtonMode")).name }.getOrDefault(SeekButtonMode.BOTH.name)
+            if (obj.has("leftSeekEnabled")) prefs[LEFT_SEEK_ENABLED] = obj.getBoolean("leftSeekEnabled")
+            if (obj.has("rightSeekEnabled")) prefs[RIGHT_SEEK_ENABLED] = obj.getBoolean("rightSeekEnabled")
+            if (obj.has("leftSeekSeconds")) prefs[LEFT_SEEK_SECONDS] = obj.getInt("leftSeekSeconds").coerceIn(5, 60)
+            if (obj.has("rightSeekSeconds")) prefs[RIGHT_SEEK_SECONDS] = obj.getInt("rightSeekSeconds").coerceIn(5, 60)
             if (obj.has("visualizerStyle")) prefs[VISUALIZER_STYLE] = runCatching { MusicVisualizerStyle.valueOf(obj.getString("visualizerStyle")).name }.getOrDefault(MusicVisualizerStyle.BARS.name)
             if (obj.has("expandedBackground")) prefs[EXPANDED_BACKGROUND] = obj.getBoolean("expandedBackground")
             if (obj.has("expandedBackgroundBlur")) {
@@ -203,6 +225,11 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
     suspend fun setShowProgress(enabled: Boolean) = context.musicTileDataStore.edit { it[SHOW_PROGRESS] = enabled }
     suspend fun setProgressStyle(style: MusicProgressStyle) = context.musicTileDataStore.edit { it[PROGRESS_STYLE] = style.name }
     suspend fun setShowVisualizer(enabled: Boolean) = context.musicTileDataStore.edit { it[SHOW_VISUALIZER] = enabled }
+    suspend fun setSeekButtonMode(mode: SeekButtonMode) = context.musicTileDataStore.edit { it[SEEK_BUTTON_MODE] = mode.name }
+    suspend fun setLeftSeekEnabled(enabled: Boolean) = context.musicTileDataStore.edit { it[LEFT_SEEK_ENABLED] = enabled }
+    suspend fun setRightSeekEnabled(enabled: Boolean) = context.musicTileDataStore.edit { it[RIGHT_SEEK_ENABLED] = enabled }
+    suspend fun setLeftSeekSeconds(seconds: Int) = context.musicTileDataStore.edit { it[LEFT_SEEK_SECONDS] = seconds.coerceIn(5, 60) }
+    suspend fun setRightSeekSeconds(seconds: Int) = context.musicTileDataStore.edit { it[RIGHT_SEEK_SECONDS] = seconds.coerceIn(5, 60) }
     suspend fun setVisualizerStyle(style: MusicVisualizerStyle) = context.musicTileDataStore.edit { it[VISUALIZER_STYLE] = style.name }
     suspend fun setExpandedBackground(enabled: Boolean) = context.musicTileDataStore.edit { it[EXPANDED_BACKGROUND] = enabled }
     suspend fun setExpandedBackgroundBlur(blurDp: Float) = context.musicTileDataStore.edit { it[EXPANDED_BACKGROUND_BLUR] = blurDp.coerceIn(0f, 40f) }
@@ -238,6 +265,11 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
         val SHOW_PROGRESS = booleanPreferencesKey("show_current_progress")
         val PROGRESS_STYLE = stringPreferencesKey("music_progress_style")
         val SHOW_VISUALIZER = booleanPreferencesKey("show_music_visualizer")
+        val SEEK_BUTTON_MODE = stringPreferencesKey("music_seek_button_mode")
+        val LEFT_SEEK_ENABLED = booleanPreferencesKey("music_left_seek_enabled")
+        val RIGHT_SEEK_ENABLED = booleanPreferencesKey("music_right_seek_enabled")
+        val LEFT_SEEK_SECONDS = intPreferencesKey("music_left_seek_seconds")
+        val RIGHT_SEEK_SECONDS = intPreferencesKey("music_right_seek_seconds")
         val VISUALIZER_STYLE = stringPreferencesKey("music_visualizer_style")
         val EXPANDED_BACKGROUND = booleanPreferencesKey("expanded_background")
         val EXPANDED_BACKGROUND_BLUR = floatPreferencesKey("expanded_background_blur")
