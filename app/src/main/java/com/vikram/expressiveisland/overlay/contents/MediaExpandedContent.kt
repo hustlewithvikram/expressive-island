@@ -22,6 +22,8 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.FastRewind
+import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,6 +66,7 @@ import com.vikram.expressiveisland.core.NowPlayingBus
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.MusicTilePreferences
 import com.vikram.expressiveisland.data.MusicProgressStyle
+import com.vikram.expressiveisland.data.SeekButtonMode
 import com.vikram.expressiveisland.data.MusicTileSettings
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.formatMediaTime
@@ -181,14 +184,19 @@ fun MediaExpandedContent(
                     heightDp = buttonHeightDp,
                     skipStyle = media.skipStyle,
                     playPauseStyle = media.playPauseStyle,
-                    onPrevious = {
-                        nowPlaying?.transport?.previous()
+                    seekButtonMode = musicSettings.seekButtonMode,
+                    leftSeekEnabled = musicSettings.leftSeekEnabled,
+                    rightSeekEnabled = musicSettings.rightSeekEnabled,
+                    leftSeekSeconds = musicSettings.leftSeekSeconds,
+                    rightSeekSeconds = musicSettings.rightSeekSeconds,
+                    onSeekBackward = {
+                        nowPlaying?.transport?.seekBackward(musicSettings.leftSeekSeconds)
                     },
                     onPlayPause = {
                         nowPlaying?.transport?.playPause()
                     },
-                    onNext = {
-                        nowPlaying?.transport?.next()
+                    onSeekForward = {
+                        nowPlaying?.transport?.seekForward(musicSettings.rightSeekSeconds)
                     },
                 )
 
@@ -393,35 +401,37 @@ fun MediaControls(
     heightDp: Int,
     skipStyle: MusicButtonStyle,
     playPauseStyle: MusicButtonStyle,
-    onPrevious: () -> Unit,
+    seekButtonMode: SeekButtonMode = SeekButtonMode.BOTH,
+    leftSeekEnabled: Boolean = true,
+    rightSeekEnabled: Boolean = true,
+    leftSeekSeconds: Int = 5,
+    rightSeekSeconds: Int = 5,
+    onSeekBackward: () -> Unit,
     onPlayPause: () -> Unit,
-    onNext: () -> Unit,
+    onSeekForward: () -> Unit,
 ) {
+    val showLeft = seekButtonMode != SeekButtonMode.RIGHT && leftSeekEnabled
+    val showRight = seekButtonMode != SeekButtonMode.LEFT && rightSeekEnabled
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Previous
+        if (showLeft) {
+            MediaButton(
+                icon = Icons.Rounded.FastRewind,
+                contentDescription = "Seek backward ${leftSeekSeconds} seconds",
+                enabled = enabled,
+                heightDp = heightDp,
+                iconSize = 24.dp,
+                fill = skipStyle.resolveFill(fallback = null),
+                cornerPercent = skipStyle.cornerPercent,
+                onClick = onSeekBackward,
+                weight = 1f,
+            )
+        }
         MediaButton(
-            icon = Icons.Rounded.SkipPrevious,
-            contentDescription = "Previous track",
-            enabled = enabled,
-            heightDp = heightDp,
-            iconSize = 26.dp,
-            fill = skipStyle.resolveFill(fallback = null),
-            cornerPercent = skipStyle.cornerPercent,
-            onClick = onPrevious,
-            weight = 1f,
-        )
-
-        // Play / Pause — wider center button
-        MediaButton(
-            icon = if (isPlaying) {
-                Icons.Rounded.Pause
-            } else {
-                Icons.Rounded.PlayArrow
-            },
+            icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
             label = if (isPlaying) "Pause" else "Play",
             contentDescription = if (isPlaying) "Pause" else "Play",
             enabled = enabled,
@@ -432,19 +442,19 @@ fun MediaControls(
             onClick = onPlayPause,
             weight = 1.8f,
         )
-
-        // Next
-        MediaButton(
-            icon = Icons.Rounded.SkipNext,
-            contentDescription = "Next track",
-            enabled = enabled,
-            heightDp = heightDp,
-            iconSize = 26.dp,
-            fill = skipStyle.resolveFill(fallback = null),
-            cornerPercent = skipStyle.cornerPercent,
-            onClick = onNext,
-            weight = 1f,
-        )
+        if (showRight) {
+            MediaButton(
+                icon = Icons.Rounded.FastForward,
+                contentDescription = "Seek forward ${rightSeekSeconds} seconds",
+                enabled = enabled,
+                heightDp = heightDp,
+                iconSize = 24.dp,
+                fill = skipStyle.resolveFill(fallback = null),
+                cornerPercent = skipStyle.cornerPercent,
+                onClick = onSeekForward,
+                weight = 1f,
+            )
+        }
     }
 }
 
