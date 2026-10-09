@@ -40,6 +40,7 @@ import com.vikram.expressiveisland.data.LayoutPreferences
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.MusicTilePreferences
 import com.vikram.expressiveisland.data.MusicTileSettings
+import com.vikram.expressiveisland.data.MusicProgressStyle
 import com.vikram.expressiveisland.data.PageTransitionStyle
 import com.vikram.expressiveisland.data.PermissionDotColors
 import com.vikram.expressiveisland.data.PermissionDotKinds
@@ -851,6 +852,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setMusicShowProgress(enabled: Boolean) = viewModelScope.launch {
         musicTilePreferences.setShowProgress(enabled)
+    }
+
+    fun setMusicProgressStyle(style: MusicProgressStyle) = viewModelScope.launch {
+        musicTilePreferences.setProgressStyle(style)
     }
 
     fun setMusicExpandedBackground(enabled: Boolean) = viewModelScope.launch {
