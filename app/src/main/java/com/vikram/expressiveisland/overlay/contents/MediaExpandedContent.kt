@@ -189,15 +189,11 @@ fun MediaExpandedContent(
                     rightSeekEnabled = musicSettings.rightSeekEnabled,
                     leftSeekSeconds = musicSettings.leftSeekSeconds,
                     rightSeekSeconds = musicSettings.rightSeekSeconds,
-                    onSeekBackward = {
-                        nowPlaying?.transport?.seekBackward(musicSettings.leftSeekSeconds)
-                    },
-                    onPlayPause = {
-                        nowPlaying?.transport?.playPause()
-                    },
-                    onSeekForward = {
-                        nowPlaying?.transport?.seekForward(musicSettings.rightSeekSeconds)
-                    },
+                    onPrevious = { nowPlaying?.transport?.previous() },
+                    onSeekBackward = { nowPlaying?.transport?.seekBackward(musicSettings.leftSeekSeconds) },
+                    onPlayPause = { nowPlaying?.transport?.playPause() },
+                    onSeekForward = { nowPlaying?.transport?.seekForward(musicSettings.rightSeekSeconds) },
+                    onNext = { nowPlaying?.transport?.next() },
                 )
 
             }
@@ -406,28 +402,41 @@ fun MediaControls(
     rightSeekEnabled: Boolean = true,
     leftSeekSeconds: Int = 5,
     rightSeekSeconds: Int = 5,
+    onPrevious: () -> Unit,
     onSeekBackward: () -> Unit,
     onPlayPause: () -> Unit,
     onSeekForward: () -> Unit,
+    onNext: () -> Unit,
 ) {
     val showLeft = seekButtonMode != SeekButtonMode.RIGHT && leftSeekEnabled
     val showRight = seekButtonMode != SeekButtonMode.LEFT && rightSeekEnabled
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        MediaButton(
+            icon = Icons.Rounded.SkipPrevious,
+            contentDescription = "Previous track",
+            enabled = enabled,
+            heightDp = heightDp,
+            iconSize = 22.dp,
+            fill = skipStyle.resolveFill(fallback = null),
+            cornerPercent = skipStyle.cornerPercent,
+            onClick = onPrevious,
+            weight = 1f,
+        )
         if (showLeft) {
             MediaButton(
                 icon = Icons.Rounded.FastRewind,
                 contentDescription = "Seek backward ${leftSeekSeconds} seconds",
                 enabled = enabled,
                 heightDp = heightDp,
-                iconSize = 24.dp,
+                iconSize = 20.dp,
                 fill = skipStyle.resolveFill(fallback = null),
                 cornerPercent = skipStyle.cornerPercent,
                 onClick = onSeekBackward,
-                weight = 1f,
+                weight = 0.85f,
             )
         }
         MediaButton(
@@ -440,7 +449,7 @@ fun MediaControls(
             fill = playPauseStyle.resolveFill(fallback = accent),
             cornerPercent = playPauseStyle.cornerPercent,
             onClick = onPlayPause,
-            weight = 1.8f,
+            weight = 1.25f,
         )
         if (showRight) {
             MediaButton(
@@ -448,13 +457,24 @@ fun MediaControls(
                 contentDescription = "Seek forward ${rightSeekSeconds} seconds",
                 enabled = enabled,
                 heightDp = heightDp,
-                iconSize = 24.dp,
+                iconSize = 20.dp,
                 fill = skipStyle.resolveFill(fallback = null),
                 cornerPercent = skipStyle.cornerPercent,
                 onClick = onSeekForward,
-                weight = 1f,
+                weight = 0.85f,
             )
         }
+        MediaButton(
+            icon = Icons.Rounded.SkipNext,
+            contentDescription = "Next track",
+            enabled = enabled,
+            heightDp = heightDp,
+            iconSize = 22.dp,
+            fill = skipStyle.resolveFill(fallback = null),
+            cornerPercent = skipStyle.cornerPercent,
+            onClick = onNext,
+            weight = 1f,
+        )
     }
 }
 
