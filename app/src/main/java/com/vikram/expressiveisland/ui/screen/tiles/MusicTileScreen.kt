@@ -60,6 +60,7 @@ import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.MusicProgressStyle
 import com.vikram.expressiveisland.data.MusicVisualizerStyle
+import com.vikram.expressiveisland.data.SeekButtonMode
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.screen.AdjustableSlider
@@ -114,6 +115,8 @@ internal fun MusicTileScreen(
     val settings by viewModel.musicTile.collectAsStateWithLifecycle()
     var progressStyleDialog by remember { mutableStateOf(false) }
     var visualizerStyleDialog by remember { mutableStateOf(false) }
+    var leftSeekTimeDialog by remember { mutableStateOf(false) }
+    var rightSeekTimeDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -431,6 +434,66 @@ internal fun MusicTileScreen(
             }
         }
 
+        SectionLabel("Seek Controls")
+
+        SettingsGroup {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text("Button layout", style = MaterialTheme.typography.titleSmall)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    SeekButtonMode.entries.forEach { mode ->
+                        val selected = settings.seekButtonMode == mode
+                        Card(
+                            modifier = Modifier.weight(1f).clickable { viewModel.setMusicSeekButtonMode(mode) },
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                            ),
+                        ) {
+                            Text(
+                                mode.label,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+                Text(
+                    "Choose which seek buttons appear beside Play/Pause.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (settings.seekButtonMode != SeekButtonMode.RIGHT) {
+                SeekOptionRow(
+                    title = "Seek backward",
+                    description = "Show a button before Play/Pause",
+                    enabled = settings.leftSeekEnabled,
+                    seconds = settings.leftSeekSeconds,
+                    onEnabledChange = viewModel::setMusicLeftSeekEnabled,
+                    onTimeClick = { leftSeekTimeDialog = true },
+                )
+            }
+            if (settings.seekButtonMode != SeekButtonMode.LEFT) {
+                SeekOptionRow(
+                    title = "Seek forward",
+                    description = "Show a button after Play/Pause",
+                    enabled = settings.rightSeekEnabled,
+                    seconds = settings.rightSeekSeconds,
+                    onEnabledChange = viewModel::setMusicRightSeekEnabled,
+                    onTimeClick = { rightSeekTimeDialog = true },
+                )
+            }
+        }
+
         SectionLabel("Music Visualizer")
 
         SettingsGroup {
@@ -461,6 +524,23 @@ internal fun MusicTileScreen(
                 }
             }
         }
+    }
+
+    if (leftSeekTimeDialog) {
+        SeekDurationDialog(
+            title = "Seek backward by",
+            selectedSeconds = settings.leftSeekSeconds,
+            onSelect = viewModel::setMusicLeftSeekSeconds,
+            onDismiss = { leftSeekTimeDialog = false },
+        )
+    }
+    if (rightSeekTimeDialog) {
+        SeekDurationDialog(
+            title = "Seek forward by",
+            selectedSeconds = settings.rightSeekSeconds,
+            onSelect = viewModel::setMusicRightSeekSeconds,
+            onDismiss = { rightSeekTimeDialog = false },
+        )
     }
 
     if (visualizerStyleDialog) {
@@ -1232,4 +1312,72 @@ private fun MusicVisualizerPreview(style: MusicVisualizerStyle) {
             )
         }
     }
+}
+
+
+@Composable
+private fun SeekOptionRow(
+    title: String,
+    description: String,
+    enabled: Boolean,
+    seconds: Int,
+    onEnabledChange: (Boolean) -> Unit,
+    onTimeClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            androidx.compose.animation.AnimatedVisibility(visible = enabled) {
+                Card(
+                    modifier = Modifier.padding(top = 6.dp).clickable(onClick = onTimeClick),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text("Seek time: ${seconds}s", style = MaterialTheme.typography.labelLarge)
+                        Icon(Icons.Rounded.Tune, contentDescription = "Choose seek time", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+        androidx.compose.material3.Switch(checked = enabled, onCheckedChange = onEnabledChange)
+    }
+}
+
+@Composable
+private fun SeekDurationDialog(
+    title: String,
+    selectedSeconds: Int,
+    onSelect: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf(5, 10, 15, 20, 30, 45, 60).forEach { seconds ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                            .clickable { onSelect(seconds); onDismiss() }
+                            .padding(horizontal = 12.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("${seconds} seconds", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        if (selectedSeconds == seconds) Icon(Icons.Rounded.PlayArrow, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+    )
 }
