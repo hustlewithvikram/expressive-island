@@ -44,6 +44,14 @@ enum class MusicProgressStyle(val label: String) {
     CIRCULAR_WAVY("Wavy circular"),
 }
 
+enum class MusicVisualizerStyle(val label: String) {
+    BARS("Classic bars"),
+    MIRRORED("Mirrored bars"),
+    DOTS("Dancing dots"),
+    WAVE("Waveform"),
+    PULSE("Pulse"),
+}
+
 data class MusicTileSettings(
     val showAlbumArt: Boolean = DEFAULT_SHOW_ALBUM_ART,
     val rotateAlbumArt: Boolean = DEFAULT_ROTATE_ALBUM_ART,
@@ -56,6 +64,8 @@ data class MusicTileSettings(
     val playPauseButton: MusicButtonStyle = MusicButtonStyle.DEFAULT,
     val showProgress: Boolean = DEFAULT_SHOW_PROGRESS,
     val progressStyle: MusicProgressStyle = MusicProgressStyle.WAVY,
+    val showVisualizer: Boolean = true,
+    val visualizerStyle: MusicVisualizerStyle = MusicVisualizerStyle.BARS,
     val expandedBackground: Boolean = DEFAULT_EXPANDED_BACKGROUND,
     val expandedBackgroundBlur: Float = DEFAULT_EXPANDED_BACKGROUND_BLUR,
 ) {
@@ -98,6 +108,8 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             ),
             showProgress = prefs[SHOW_PROGRESS] ?: MusicTileSettings.DEFAULT_SHOW_PROGRESS,
             progressStyle = runCatching { MusicProgressStyle.valueOf(prefs[PROGRESS_STYLE] ?: MusicProgressStyle.WAVY.name) }.getOrDefault(MusicProgressStyle.WAVY),
+            showVisualizer = prefs[SHOW_VISUALIZER] ?: true,
+            visualizerStyle = runCatching { MusicVisualizerStyle.valueOf(prefs[VISUALIZER_STYLE] ?: MusicVisualizerStyle.BARS.name) }.getOrDefault(MusicVisualizerStyle.BARS),
             expandedBackground = prefs[EXPANDED_BACKGROUND] ?: MusicTileSettings.DEFAULT_EXPANDED_BACKGROUND,
             expandedBackgroundBlur = (prefs[EXPANDED_BACKGROUND_BLUR]
                 ?: MusicTileSettings.DEFAULT_EXPANDED_BACKGROUND_BLUR).coerceIn(0f, 40f),
@@ -122,6 +134,8 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             put("showControls", s.showControls)
             put("showProgress", s.showProgress)
             put("progressStyle", s.progressStyle.name)
+            put("showVisualizer", s.showVisualizer)
+            put("visualizerStyle", s.visualizerStyle.name)
             put("expandedBackground", s.expandedBackground)
             put("expandedBackgroundBlur", s.expandedBackgroundBlur.toDouble())
             put("skipButton", s.skipButton.toJsonObject())
@@ -145,6 +159,8 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             if (obj.has("showControls")) prefs[SHOW_CONTROLS] = obj.getBoolean("showControls")
             if (obj.has("showProgress")) prefs[SHOW_PROGRESS] = obj.getBoolean("showProgress")
             if (obj.has("progressStyle")) prefs[PROGRESS_STYLE] = runCatching { MusicProgressStyle.valueOf(obj.getString("progressStyle")).name }.getOrDefault(MusicProgressStyle.WAVY.name)
+            if (obj.has("showVisualizer")) prefs[SHOW_VISUALIZER] = obj.getBoolean("showVisualizer")
+            if (obj.has("visualizerStyle")) prefs[VISUALIZER_STYLE] = runCatching { MusicVisualizerStyle.valueOf(obj.getString("visualizerStyle")).name }.getOrDefault(MusicVisualizerStyle.BARS.name)
             if (obj.has("expandedBackground")) prefs[EXPANDED_BACKGROUND] = obj.getBoolean("expandedBackground")
             if (obj.has("expandedBackgroundBlur")) {
                 prefs[EXPANDED_BACKGROUND_BLUR] = obj.getDouble("expandedBackgroundBlur").toFloat().coerceIn(0f, 40f)
@@ -186,6 +202,8 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
     suspend fun setPlayPauseOpacity(opacity: Float) = context.musicTileDataStore.edit { it[PLAY_PAUSE_OPACITY] = opacity.coerceIn(0f, 1f) }
     suspend fun setShowProgress(enabled: Boolean) = context.musicTileDataStore.edit { it[SHOW_PROGRESS] = enabled }
     suspend fun setProgressStyle(style: MusicProgressStyle) = context.musicTileDataStore.edit { it[PROGRESS_STYLE] = style.name }
+    suspend fun setShowVisualizer(enabled: Boolean) = context.musicTileDataStore.edit { it[SHOW_VISUALIZER] = enabled }
+    suspend fun setVisualizerStyle(style: MusicVisualizerStyle) = context.musicTileDataStore.edit { it[VISUALIZER_STYLE] = style.name }
     suspend fun setExpandedBackground(enabled: Boolean) = context.musicTileDataStore.edit { it[EXPANDED_BACKGROUND] = enabled }
     suspend fun setExpandedBackgroundBlur(blurDp: Float) = context.musicTileDataStore.edit { it[EXPANDED_BACKGROUND_BLUR] = blurDp.coerceIn(0f, 40f) }
     suspend fun setPlayPauseCornerPercent(percent: Int) = context.musicTileDataStore.edit { it[PLAY_PAUSE_CORNER] = percent.coerceIn(MusicButtonStyle.MIN_CORNER_PERCENT, MusicButtonStyle.MAX_CORNER_PERCENT) }
@@ -219,6 +237,8 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
         val PLAY_PAUSE_FILLED = booleanPreferencesKey("play_pause_button_filled")
         val SHOW_PROGRESS = booleanPreferencesKey("show_current_progress")
         val PROGRESS_STYLE = stringPreferencesKey("music_progress_style")
+        val SHOW_VISUALIZER = booleanPreferencesKey("show_music_visualizer")
+        val VISUALIZER_STYLE = stringPreferencesKey("music_visualizer_style")
         val EXPANDED_BACKGROUND = booleanPreferencesKey("expanded_background")
         val EXPANDED_BACKGROUND_BLUR = floatPreferencesKey("expanded_background_blur")
     }
