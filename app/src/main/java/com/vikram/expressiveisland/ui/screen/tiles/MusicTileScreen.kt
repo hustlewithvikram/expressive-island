@@ -1044,6 +1044,10 @@ private fun ButtonShapeCard(
 private fun MusicButtonsPreview(
     skipStyle: MusicButtonStyle,
     playPauseStyle: MusicButtonStyle,
+    leftSeekEnabled: Boolean,
+    rightSeekEnabled: Boolean,
+    leftSeekSeconds: Int,
+    rightSeekSeconds: Int,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1088,6 +1092,10 @@ private fun MusicButtonsPreview(
             MusicControlsPreviewSurface(
                 skipStyle = skipStyle,
                 playPauseStyle = playPauseStyle,
+                leftSeekEnabled = leftSeekEnabled,
+                rightSeekEnabled = rightSeekEnabled,
+                leftSeekSeconds = leftSeekSeconds,
+                rightSeekSeconds = rightSeekSeconds,
             )
         }
     }
@@ -1097,6 +1105,10 @@ private fun MusicButtonsPreview(
 private fun MusicControlsPreviewSurface(
     skipStyle: MusicButtonStyle,
     playPauseStyle: MusicButtonStyle,
+    leftSeekEnabled: Boolean,
+    rightSeekEnabled: Boolean,
+    leftSeekSeconds: Int,
+    rightSeekSeconds: Int,
 ) {
     Box(
         modifier = Modifier
@@ -1129,6 +1141,16 @@ private fun MusicControlsPreviewSurface(
                 modifier = Modifier.weight(1f),
             )
 
+            if (leftSeekEnabled) {
+                PreviewSeekButton(
+                    icon = Icons.Rounded.FastRewind,
+                    seconds = leftSeekSeconds,
+                    fill = skipStyle.previewFill(fallback = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    cornerPercent = skipStyle.cornerPercent,
+                    modifier = Modifier.weight(0.85f),
+                )
+            }
+
             PreviewButton(
                 icon = Icons.Rounded.PlayArrow,
                 fill = playPauseStyle.previewFill(
@@ -1137,6 +1159,16 @@ private fun MusicControlsPreviewSurface(
                 cornerPercent = playPauseStyle.cornerPercent,
                 widthDp = PREVIEW_BUTTON_HEIGHT_DP * 16 / 9,
             )
+
+            if (rightSeekEnabled) {
+                PreviewSeekButton(
+                    icon = Icons.Rounded.FastForward,
+                    seconds = rightSeekSeconds,
+                    fill = skipStyle.previewFill(fallback = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    cornerPercent = skipStyle.cornerPercent,
+                    modifier = Modifier.weight(0.85f),
+                )
+            }
 
             PreviewButton(
                 icon = Icons.Rounded.SkipNext,
@@ -1147,6 +1179,37 @@ private fun MusicControlsPreviewSurface(
                 modifier = Modifier.weight(1f),
             )
         }
+    }
+}
+
+@Composable
+private fun PreviewSeekButton(
+    icon: ImageVector,
+    seconds: Int,
+    fill: Color?,
+    cornerPercent: Int,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .height(PREVIEW_BUTTON_HEIGHT_DP.dp)
+            .clip(RoundedCornerShape((PREVIEW_BUTTON_HEIGHT_DP * cornerPercent / 100f).dp))
+            .background(fill ?: Color.White.copy(alpha = 0.10f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (fill == null) Color.White else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(22.dp),
+        )
+        Text(
+            text = "${seconds}s",
+            color = if (fill == null) Color.White else MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp),
+        )
     }
 }
 
