@@ -102,7 +102,16 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
 
     val navigateBack: () -> Unit = {
         if (current == HomeTab.Profile) {
-            profileRoute = ProfileRoute.List
+            profileRoute = when (profileRoute) {
+                // Nested profile screens return to the page that opened them.
+                ProfileRoute.PermissionDetails -> ProfileRoute.Access
+                ProfileRoute.Changelog -> ProfileRoute.About
+                // First-level profile pages return to the Profile list.
+                ProfileRoute.Access,
+                ProfileRoute.TestingTriggers,
+                ProfileRoute.About,
+                ProfileRoute.List -> ProfileRoute.List
+            }
         } else {
             settingsRoute = settingsRoute.parent
         }
