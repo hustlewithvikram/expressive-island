@@ -1,10 +1,7 @@
 package com.vikram.expressiveisland.ui
 
 import android.app.Application
-import android.content.ContentValues
 import android.net.Uri
-import android.os.Environment
-import android.provider.MediaStore
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -261,40 +258,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun getSettingsAsJsonString(): String = JsonSettings.export(jsonSections)
 
     /**
-     * This method uses exportSettingsToJson() but is not suspend and
-     * can be called from the UI.
-     * @param onReady - a callback that returns a SUCCESS (boolean) and a PATH (string)
+     * Writes settings to the user-selected document URI created by the system save picker.
+     * The caller supplies the destination, so the user can choose both the folder and filename.
      */
-    fun exportSettingsFromUI(onReady: (success: Boolean, path: String?) -> Unit) {
+    fun exportSettingsToUri(uri: Uri, onReady: (success: Boolean, path: String?) -> Unit) {
         viewModelScope.launch {
-            val ok = withContext(Dispatchers.IO) {
+            val result = withContext(Dispatchers.IO) {
                 try {
                     val json = getSettingsAsJsonString()
-                    val values = ContentValues().apply {
-                        put(MediaStore.Downloads.DISPLAY_NAME, "expressive-cutout-settings.json")
-                        put(MediaStore.Downloads.MIME_TYPE, "application/json")
-                        put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                        put(MediaStore.Downloads.IS_PENDING, 1)
-                    }
-
-                    val resolver = getApplication<Application>().contentResolver
-                    val collection =
-                        MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                    val uri =
-                        resolver.insert(collection, values) ?: throw IOException("Failed to insert")
-
-                    resolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
-                    values.clear()
-                    values.put(MediaStore.Downloads.IS_PENDING, 0)
-                    resolver.update(uri, values, null, null)
+                    getApplication<Application>().contentResolver.openOutputStream(uri, "wt")
+                        ?.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                        ?: throw IOException("Unable to open selected backup destination")
                     true
                 } catch (e: Exception) {
-                    Log.w("Error", "starting export ${e.message}")
+                    Log.w("Error", "Export failed: ${e.message}")
                     false
                 }
             }
-
-            onReady(ok, if (ok) Environment.DIRECTORY_DOWNLOADS else null)
+            onReady(result, if (result) uri.lastPathSegment else null)
         }
     }
 
