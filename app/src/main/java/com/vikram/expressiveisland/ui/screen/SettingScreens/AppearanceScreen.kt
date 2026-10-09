@@ -124,6 +124,18 @@ internal fun AppearanceScreen(
             onCheckedChange = viewModel::setShadowEnabled,
         )
 
+        AnimatedVisibility(visible = appearance.shadowEnabled) {
+            ColorPickerCard(
+                label = stringResource(R.string.appearance_shadow_color),
+                selected = appearance.shadowColor,
+                onSelect = { it?.let(viewModel::setShadowColor) },
+                shape = RoundedCornerShape(
+                    bottomStart = 24.dp,
+                    bottomEnd = 24.dp,
+                ),
+            )
+        }
+
         SettingsToggleCard(
             shape = RoundedCornerShape(0.dp),
             title = stringResource(R.string.appearance_stroke_title),
