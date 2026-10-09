@@ -71,6 +71,12 @@ import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
+private enum class MusicSettingsTab(val label: String) {
+    SHRINKED("Shrinked"),
+    EXPANDED("Expanded"),
+    OTHER("Other"),
+}
+
 private val MusicAccent = Color(0xFFF472B6)
 
 private val MusicButtonFilledDefault = Color(0xFFE0E0E0)
@@ -113,6 +119,7 @@ internal fun MusicTileScreen(
     contentPadding: PaddingValues,
 ) {
     val settings by viewModel.musicTile.collectAsStateWithLifecycle()
+    var selectedTab by remember { mutableStateOf(MusicSettingsTab.SHRINKED) }
     var progressStyleDialog by remember { mutableStateOf(false) }
     var visualizerStyleDialog by remember { mutableStateOf(false) }
     var leftSeekTimeDialog by remember { mutableStateOf(false) }
@@ -138,11 +145,35 @@ internal fun MusicTileScreen(
                 bottom = 0.dp,
             ),
         )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            MusicSettingsTab.entries.forEach { tab ->
+                val selected = selectedTab == tab
+                Card(
+                    modifier = Modifier.weight(1f).clickable { selectedTab = tab },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                    ),
+                ) {
+                    Text(
+                        text = tab.label,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 12.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                }
+            }
+        }
 
         // =====================================================================
         // ALBUM ART
         // =====================================================================
 
+        if (selectedTab == MusicSettingsTab.SHRINKED) {
         SectionLabel("Album Art")
 
         SettingsGroup {
@@ -215,6 +246,9 @@ internal fun MusicTileScreen(
         // ALBUM COVER BACKGROUND
         // =====================================================================
 
+
+        }
+        if (selectedTab == MusicSettingsTab.EXPANDED) {
         SectionLabel("Album Cover Background")
 
         SettingsGroup {
@@ -252,6 +286,9 @@ internal fun MusicTileScreen(
         // BEHAVIOR
         // =====================================================================
 
+
+        }
+        if (selectedTab == MusicSettingsTab.OTHER) {
         SectionLabel("Behavior")
 
         SettingsGroup {
@@ -293,6 +330,9 @@ internal fun MusicTileScreen(
             )
         }
 
+
+        }
+        if (selectedTab == MusicSettingsTab.EXPANDED) {
         // =====================================================================
         // PLAYBACK CONTROLS
         // =====================================================================
@@ -413,6 +453,9 @@ internal fun MusicTileScreen(
             }
         }
 
+
+        }
+        if (selectedTab == MusicSettingsTab.EXPANDED) {
         // =====================================================================
         // PLAYBACK DISPLAY
         // =====================================================================
@@ -450,6 +493,9 @@ internal fun MusicTileScreen(
             }
         }
 
+
+        }
+        if (selectedTab == MusicSettingsTab.EXPANDED) {
         SectionLabel("Seek Controls")
 
         SettingsGroup {
@@ -476,6 +522,9 @@ internal fun MusicTileScreen(
             }
         }
 
+
+        }
+        if (selectedTab == MusicSettingsTab.SHRINKED) {
         SectionLabel("Music Visualizer")
 
         SettingsGroup {
@@ -506,6 +555,8 @@ internal fun MusicTileScreen(
                 }
             }
         }
+        }
+
     }
 
     if (leftSeekTimeDialog) {
