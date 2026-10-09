@@ -29,8 +29,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -53,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.MusicButtonStyle
+import com.vikram.expressiveisland.data.MusicProgressStyle
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.screen.AdjustableSlider
@@ -105,6 +111,7 @@ internal fun MusicTileScreen(
     contentPadding: PaddingValues,
 ) {
     val settings by viewModel.musicTile.collectAsStateWithLifecycle()
+    var progressStyleDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -394,25 +401,80 @@ internal fun MusicTileScreen(
         SettingsGroup {
 
             SettingsToggleCard(
-                shape = groupShape(GroupPosition.ONLY),
-                title = stringResource(
-                    R.string.music_progress_title,
-                ),
-                description = stringResource(
-                    R.string.music_progress_description,
-                ),
+                shape = groupShape(if (settings.showProgress) GroupPosition.FIRST else GroupPosition.ONLY),
+                title = stringResource(R.string.music_progress_title),
+                description = stringResource(R.string.music_progress_description),
                 checked = settings.showProgress,
                 onCheckedChange = viewModel::setMusicShowProgress,
             )
 
-            /*
-             * Keep Expanded Background here as well as in the dedicated
-             * Album Cover Background section? No.
-             *
-             * The actual setting belongs to Album Cover Background.
-             * Therefore this section only contains the progress setting.
-             */
+            AnimatedVisibility(visible = settings.showProgress) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable { progressStyleDialog = true },
+                    shape = groupShape(GroupPosition.LAST),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Progress bar style", style = MaterialTheme.typography.titleSmall)
+                            Text(settings.progressStyle.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Icon(Icons.Rounded.Tune, contentDescription = "Choose progress style", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
         }
+    }
+
+    if (progressStyleDialog) {
+        AlertDialog(
+            onDismissRequest = { progressStyleDialog = false },
+            title = { Text("Progress bar style") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MusicProgressStyle.entries.forEach { style ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clickable { viewModel.setMusicProgressStyle(style) },
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (settings.progressStyle == style) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                            ),
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(style.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                                    if (settings.progressStyle == style) Icon(Icons.Rounded.PlayArrow, contentDescription = "Selected", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                }
+                                when (style) {
+                                    MusicProgressStyle.WAVY -> com.vikram.expressiveisland.overlay.contents.WavyProgressIndicator(
+                                        progress = 0.68f, modifier = Modifier.fillMaxWidth().height(14.dp),
+                                        color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer,
+                                    )
+                                    MusicProgressStyle.LINEAR -> LinearProgressIndicator(
+                                        progress = { 0.68f }, modifier = Modifier.fillMaxWidth().height(6.dp),
+                                        color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer,
+                                    )
+                                    MusicProgressStyle.CIRCULAR -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                        CircularProgressIndicator(progress = { 0.68f }, strokeWidth = 4.dp)
+                                    }
+                                    MusicProgressStyle.CIRCULAR_WAVY -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                        CircularProgressIndicator(progress = { 0.68f }, strokeWidth = 2.dp, trackColor = MaterialTheme.colorScheme.primaryContainer)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { progressStyleDialog = false }) { Text("Done") } },
+        )
     }
 }
 
