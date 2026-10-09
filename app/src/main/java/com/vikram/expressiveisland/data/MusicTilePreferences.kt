@@ -72,6 +72,8 @@ data class MusicTileSettings(
     val rightSeekEnabled: Boolean = true,
     val leftSeekSeconds: Int = 5,
     val rightSeekSeconds: Int = 5,
+    val showPlayPauseIcon: Boolean = true,
+    val showPlayPauseText: Boolean = true,
     val visualizerStyle: MusicVisualizerStyle = MusicVisualizerStyle.BARS,
     val expandedBackground: Boolean = DEFAULT_EXPANDED_BACKGROUND,
     val expandedBackgroundBlur: Float = DEFAULT_EXPANDED_BACKGROUND_BLUR,
@@ -121,6 +123,8 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             rightSeekEnabled = prefs[RIGHT_SEEK_ENABLED] ?: true,
             leftSeekSeconds = (prefs[LEFT_SEEK_SECONDS] ?: 5).coerceIn(5, 60),
             rightSeekSeconds = (prefs[RIGHT_SEEK_SECONDS] ?: 5).coerceIn(5, 60),
+            showPlayPauseIcon = prefs[SHOW_PLAY_PAUSE_ICON] ?: true,
+            showPlayPauseText = prefs[SHOW_PLAY_PAUSE_TEXT] ?: true,
             visualizerStyle = runCatching { MusicVisualizerStyle.valueOf(prefs[VISUALIZER_STYLE] ?: MusicVisualizerStyle.BARS.name) }.getOrDefault(MusicVisualizerStyle.BARS),
             expandedBackground = prefs[EXPANDED_BACKGROUND] ?: MusicTileSettings.DEFAULT_EXPANDED_BACKGROUND,
             expandedBackgroundBlur = (prefs[EXPANDED_BACKGROUND_BLUR]
@@ -152,6 +156,8 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             put("rightSeekEnabled", s.rightSeekEnabled)
             put("leftSeekSeconds", s.leftSeekSeconds)
             put("rightSeekSeconds", s.rightSeekSeconds)
+            put("showPlayPauseIcon", s.showPlayPauseIcon)
+            put("showPlayPauseText", s.showPlayPauseText)
             put("visualizerStyle", s.visualizerStyle.name)
             put("expandedBackground", s.expandedBackground)
             put("expandedBackgroundBlur", s.expandedBackgroundBlur.toDouble())
@@ -182,6 +188,8 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             if (obj.has("rightSeekEnabled")) prefs[RIGHT_SEEK_ENABLED] = obj.getBoolean("rightSeekEnabled")
             if (obj.has("leftSeekSeconds")) prefs[LEFT_SEEK_SECONDS] = obj.getInt("leftSeekSeconds").coerceIn(5, 60)
             if (obj.has("rightSeekSeconds")) prefs[RIGHT_SEEK_SECONDS] = obj.getInt("rightSeekSeconds").coerceIn(5, 60)
+            if (obj.has("showPlayPauseIcon")) prefs[SHOW_PLAY_PAUSE_ICON] = obj.getBoolean("showPlayPauseIcon")
+            if (obj.has("showPlayPauseText")) prefs[SHOW_PLAY_PAUSE_TEXT] = obj.getBoolean("showPlayPauseText")
             if (obj.has("visualizerStyle")) prefs[VISUALIZER_STYLE] = runCatching { MusicVisualizerStyle.valueOf(obj.getString("visualizerStyle")).name }.getOrDefault(MusicVisualizerStyle.BARS.name)
             if (obj.has("expandedBackground")) prefs[EXPANDED_BACKGROUND] = obj.getBoolean("expandedBackground")
             if (obj.has("expandedBackgroundBlur")) {
@@ -230,6 +238,8 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
     suspend fun setRightSeekEnabled(enabled: Boolean) = context.musicTileDataStore.edit { it[RIGHT_SEEK_ENABLED] = enabled }
     suspend fun setLeftSeekSeconds(seconds: Int) = context.musicTileDataStore.edit { it[LEFT_SEEK_SECONDS] = seconds.coerceIn(5, 60) }
     suspend fun setRightSeekSeconds(seconds: Int) = context.musicTileDataStore.edit { it[RIGHT_SEEK_SECONDS] = seconds.coerceIn(5, 60) }
+    suspend fun setShowPlayPauseIcon(enabled: Boolean) = context.musicTileDataStore.edit { it[SHOW_PLAY_PAUSE_ICON] = enabled }
+    suspend fun setShowPlayPauseText(enabled: Boolean) = context.musicTileDataStore.edit { it[SHOW_PLAY_PAUSE_TEXT] = enabled }
     suspend fun setVisualizerStyle(style: MusicVisualizerStyle) = context.musicTileDataStore.edit { it[VISUALIZER_STYLE] = style.name }
     suspend fun setExpandedBackground(enabled: Boolean) = context.musicTileDataStore.edit { it[EXPANDED_BACKGROUND] = enabled }
     suspend fun setExpandedBackgroundBlur(blurDp: Float) = context.musicTileDataStore.edit { it[EXPANDED_BACKGROUND_BLUR] = blurDp.coerceIn(0f, 40f) }
@@ -265,6 +275,8 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
         val SHOW_PROGRESS = booleanPreferencesKey("show_current_progress")
         val PROGRESS_STYLE = stringPreferencesKey("music_progress_style")
         val SHOW_VISUALIZER = booleanPreferencesKey("show_music_visualizer")
+        val SHOW_PLAY_PAUSE_ICON = booleanPreferencesKey("music_show_play_pause_icon")
+        val SHOW_PLAY_PAUSE_TEXT = booleanPreferencesKey("music_show_play_pause_text")
         val SEEK_BUTTON_MODE = stringPreferencesKey("music_seek_button_mode")
         val LEFT_SEEK_ENABLED = booleanPreferencesKey("music_left_seek_enabled")
         val RIGHT_SEEK_ENABLED = booleanPreferencesKey("music_right_seek_enabled")
