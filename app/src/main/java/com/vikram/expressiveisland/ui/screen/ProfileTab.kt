@@ -323,7 +323,6 @@ private fun AccessSubpage(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SectionHeader(title = "Access", description = "Manage the system access Expressive Island needs to operate.")
         AccessSection(
             status = status,
             context = context,
@@ -867,7 +866,7 @@ private fun TestingSection(
     }
 
     SectionHeader(
-        title = "Testing",
+        title = "Testing Triggers",
         description = "Test how Expressive Island responds to notifications and calls.",
     )
 
