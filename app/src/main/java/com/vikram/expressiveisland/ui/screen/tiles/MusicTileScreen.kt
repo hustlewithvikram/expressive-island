@@ -429,7 +429,7 @@ internal fun MusicTileScreen(
 
                     ButtonShapeCard(
                         style = settings.playPauseButton,
-                        shape = groupShape(GroupPosition.LAST),
+                        shape = groupShape(GroupPosition.MIDDLE),
                         onOpacityCommit = viewModel::setMusicPlayPauseOpacity,
                         onCornerCommit = viewModel::setMusicPlayPauseCornerPercent,
                     )
