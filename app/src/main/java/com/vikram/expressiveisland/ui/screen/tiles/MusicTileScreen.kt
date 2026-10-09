@@ -491,7 +491,7 @@ internal fun MusicTileScreen(
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { visualizerStyleDialog = false }) { Text("Done") },
+            confirmButton = { TextButton(onClick = { visualizerStyleDialog = false }) { Text("Done") } },
         )
     }
 
