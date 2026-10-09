@@ -64,26 +64,34 @@ jobs:
       - name: Build signed release APK
         run: ./gradlew assembleRelease --build-cache --parallel --no-daemon
 
+      - name: Prepare release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          APK_FILES=(app/build/outputs/apk/release/*.apk)
+
+          if [[ ${#APK_FILES[@]} -ne 1 ]]; then
+            echo "::error::Expected exactly one release APK, found ${#APK_FILES[@]}."
+            printf '%s\n' "${APK_FILES[@]}"
+            exit 1
+          fi
+
+          mkdir -p "$RUNNER_TEMP/release-artifact"
+          cp "${APK_FILES[0]}" "$RUNNER_TEMP/release-artifact/expressive-island-release.apk"
+          test -s "$RUNNER_TEMP/release-artifact/expressive-island-release.apk"
+
       - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
           name: expressive-island-release-${{ github.sha }}
-          path: app/build/outputs/apk/release/*.apk
+          path: ${{ runner.temp }}/release-artifact/expressive-island-release.apk
           if-no-files-found: error
           retention-days: 14
 
       - name: Run Android lint
         if: always()
         run: ./gradlew lintDebug --build-cache --parallel --no-daemon
-
-      - name: Upload lint report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: expressive-island-lint-${{ github.sha }}
-          path: app/build/reports/lint-results-debug.html
-          if-no-files-found: ignore
-          retention-days: 14
 
       - name: Remove temporary signing key
         if: always()
