@@ -630,7 +630,7 @@ fun RowScope.MediaButton(
                 SeekDurationGlyph(
                     seconds = seekSeconds,
                     backward = seekBackward,
-                    color = contentColor,
+                    color = if (fill.luminance() > 0.5f) PillTextColorDark else PillTextColor,
                     modifier = Modifier.size(iconSize + 8.dp),
                 )
             } else if (badgeText != null) {
