@@ -819,11 +819,18 @@ fun IslandSurface(
     }
 
     Surface(
-        modifier = modifier,
+        modifier = modifier.graphicsLayer {
+            // Draw the elevation shadow using the user-selected colour, rather than the default black.
+            shadowElevation = if (appearance.shadowEnabled) 6.dp.toPx() else 0f
+            this.shape = shape
+            clip = false
+            spotShadowColor = appearance.shadowColor.resolve(appColor, adaptiveColor)
+            ambientShadowColor = appearance.shadowColor.resolve(appColor, adaptiveColor)
+        },
         shape = shape,
         color = Color.Transparent,
         contentColor = contentColor,
-        shadowElevation = if (appearance.shadowEnabled) 6.dp else 0.dp,
+        shadowElevation = 0.dp,
         tonalElevation = 0.dp,
         border = border,
     ) {
