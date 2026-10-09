@@ -1284,13 +1284,27 @@ private fun MusicControlsPreviewSurface(
 }
 
 @Composable
-private fun PreviewSeekButton(seconds: Int, backward: Boolean, fill: Color?, cornerPercent: Int, iconTint: Color?, modifier: Modifier = Modifier)
-    Box(modifier = modifier.height(PREVIEW_BUTTON_HEIGHT_DP.dp)
-        .clip(RoundedCornerShape((PREVIEW_BUTTON_HEIGHT_DP * cornerPercent / 100f).dp))
-        .background(fill ?: MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
-        Icon(imageVector = if (backward) Icons.Rounded.Replay5 else Icons.Rounded.Forward5,
-            contentDescription = if (backward) "Seek backward" else "Seek forward",
-            tint = iconTint ?: if (fill == null) Color.White else MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(30.dp))
+private fun PreviewSeekButton(
+    seconds: Int,
+    backward: Boolean,
+    fill: Color?,
+    cornerPercent: Int,
+    iconTint: Color?,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .height(PREVIEW_BUTTON_HEIGHT_DP.dp)
+            .clip(RoundedCornerShape((PREVIEW_BUTTON_HEIGHT_DP * cornerPercent / 100f).dp))
+            .background(fill ?: MaterialTheme.colorScheme.surfaceContainerHigh),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (backward) Icons.Rounded.Replay5 else Icons.Rounded.Forward5,
+            contentDescription = if (backward) "Seek backward $seconds seconds" else "Seek forward $seconds seconds",
+            tint = iconTint ?: if (fill == null) Color.White else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(30.dp),
+        )
     }
 }
 
