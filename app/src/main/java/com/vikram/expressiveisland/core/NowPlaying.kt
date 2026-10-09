@@ -69,6 +69,8 @@ data class MediaProgress(
 @Stable
 interface MediaTransport {
     fun previous()
+    fun seekBackward(seconds: Int)
+    fun seekForward(seconds: Int)
     fun playPause()
     fun next()
 }
