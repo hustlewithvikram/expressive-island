@@ -643,6 +643,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         appearancePreferences.setShadowEnabled(enabled)
     }
 
+    fun setShadowColor(color: CutoutColor) = viewModelScope.launch {
+        appearancePreferences.setShadowColor(color)
+    }
+
     /**
      * Whether the user wants the system status bar's notification icons hidden. Saved even while
      * Shizuku is unreachable; `StatusBarIconController` applies it as soon as the bridge is back.
