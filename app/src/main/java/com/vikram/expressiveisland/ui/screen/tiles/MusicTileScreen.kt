@@ -473,6 +473,7 @@ internal fun MusicTileScreen(
                     onEnabledChange = viewModel::setMusicRightSeekEnabled,
                     onTimeClick = { rightSeekTimeDialog = true },
                 )
+            }
         }
 
         SectionLabel("Music Visualizer")
