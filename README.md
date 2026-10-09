@@ -95,13 +95,13 @@ Swipe horizontally to explore the app screenshots.
 
 <table>
   <tr>
-    <td><img width="220" alt="Expressive Island screenshot 1" src="https://github.com/user-attachments/assets/9f7e4724-bd91-4486-8f0e-9500906024d2" /></td>
-    <td><img width="220" alt="Expressive Island screenshot 2" src="https://github.com/user-attachments/assets/e803d2a2-8e9b-41e0-8688-54affaefa355" /></td>
-    <td><img width="220" alt="Expressive Island screenshot 3" src="https://github.com/user-attachments/assets/84f40ce3-7ef0-41b4-9d89-3790008de5bc" /></td>
-    <td><img width="220" alt="Expressive Island screenshot 4" src="https://github.com/user-attachments/assets/7c4b132c-54ec-471b-a4c3-bf7ddc7d8846" /></td>
-    <td><img width="220" alt="Expressive Island screenshot 5" src="https://github.com/user-attachments/assets/1d59ac95-0dfb-4b4b-9b8c-2814eb436da1" /></td>
-    <td><img width="220" alt="Expressive Island screenshot 6" src="https://github.com/user-attachments/assets/33542dec-9d6b-456a-bc14-c779c1d07a00" /></td>
-    <td><img width="220" alt="Expressive Island screenshot 7" src="https://github.com/user-attachments/assets/e33224c9-fe29-4fa2-b580-e0e8a10c7237" /></td>
+    <td><img width="360" alt="Expressive Island screenshot 1" src="https://github.com/user-attachments/assets/9f7e4724-bd91-4486-8f0e-9500906024d2" /></td>
+    <td><img width="360" alt="Expressive Island screenshot 2" src="https://github.com/user-attachments/assets/e803d2a2-8e9b-41e0-8688-54affaefa355" /></td>
+    <td><img width="360" alt="Expressive Island screenshot 3" src="https://github.com/user-attachments/assets/84f40ce3-7ef0-41b4-9d89-3790008de5bc" /></td>
+    <td><img width="360" alt="Expressive Island screenshot 4" src="https://github.com/user-attachments/assets/7c4b132c-54ec-471b-a4c3-bf7ddc7d8846" /></td>
+    <td><img width="360" alt="Expressive Island screenshot 5" src="https://github.com/user-attachments/assets/1d59ac95-0dfb-4b4b-9b8c-2814eb436da1" /></td>
+    <td><img width="360" alt="Expressive Island screenshot 6" src="https://github.com/user-attachments/assets/33542dec-9d6b-456a-bc14-c779c1d07a00" /></td>
+    <td><img width="360" alt="Expressive Island screenshot 7" src="https://github.com/user-attachments/assets/e33224c9-fe29-4fa2-b580-e0e8a10c7237" /></td>
   </tr>
 </table>
 
