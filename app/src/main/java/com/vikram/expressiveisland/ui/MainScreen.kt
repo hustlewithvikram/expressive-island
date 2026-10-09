@@ -156,6 +156,17 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
         ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let { viewModel.importSettingsFromUI(it) { result -> onSettingsImported(result) } } }
 
+    // The system save picker lets users choose the destination folder and rename the backup.
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        uri?.let {
+            viewModel.exportSettingsToUri(it) { success, path ->
+                onSettingsExported(success, path)
+            }
+        }
+    }
+
     PredictiveBackHandler(enabled = inSubScreen) { progress ->
         try {
             progress.collect { event ->
@@ -263,12 +274,7 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                                 profileRoute = ProfileRoute.PermissionDetails
                             },
                             onExportSettings = {
-                                viewModel.exportSettingsFromUI { s, p ->
-                                    onSettingsExported(
-                                        s,
-                                        p
-                                    )
-                                }
+                                exportLauncher.launch("expressive-island-backup.json")
                             },
                             onImportSettings = { importLauncher.launch(arrayOf("application/json")) },
                         )
