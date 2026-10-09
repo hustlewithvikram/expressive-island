@@ -64,6 +64,9 @@ data class MusicTileSettings(
     val showControls: Boolean = DEFAULT_SHOW_CONTROLS,
     val skipButton: MusicButtonStyle = MusicButtonStyle.DEFAULT,
     val playPauseButton: MusicButtonStyle = MusicButtonStyle.DEFAULT,
+    val skipIconColor: CutoutColor? = null,
+    val playPauseIconColor: CutoutColor? = null,
+    val seekIconColor: CutoutColor? = null,
     val showProgress: Boolean = DEFAULT_SHOW_PROGRESS,
     val progressStyle: MusicProgressStyle = MusicProgressStyle.WAVY,
     val showVisualizer: Boolean = true,
@@ -115,6 +118,9 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
                     .coerceIn(MusicButtonStyle.MIN_CORNER_PERCENT, MusicButtonStyle.MAX_CORNER_PERCENT),
                 filled = prefs[PLAY_PAUSE_FILLED] ?: MusicButtonStyle.DEFAULT_FILLED,
             ),
+            skipIconColor = CutoutColor.deserialize(prefs[SKIP_ICON_COLOR]),
+            playPauseIconColor = CutoutColor.deserialize(prefs[PLAY_PAUSE_ICON_COLOR]),
+            seekIconColor = CutoutColor.deserialize(prefs[SEEK_ICON_COLOR]),
             showProgress = prefs[SHOW_PROGRESS] ?: MusicTileSettings.DEFAULT_SHOW_PROGRESS,
             progressStyle = runCatching { MusicProgressStyle.valueOf(prefs[PROGRESS_STYLE] ?: MusicProgressStyle.WAVY.name) }.getOrDefault(MusicProgressStyle.WAVY),
             showVisualizer = prefs[SHOW_VISUALIZER] ?: true,
@@ -163,6 +169,9 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             put("expandedBackgroundBlur", s.expandedBackgroundBlur.toDouble())
             put("skipButton", s.skipButton.toJsonObject())
             put("playPauseButton", s.playPauseButton.toJsonObject())
+            put("skipIconColor", s.skipIconColor?.serialize() ?: JSONObject.NULL)
+            put("playPauseIconColor", s.playPauseIconColor?.serialize() ?: JSONObject.NULL)
+            put("seekIconColor", s.seekIconColor?.serialize() ?: JSONObject.NULL)
         }.toString()
     }
 
@@ -197,6 +206,16 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             }
             obj.optJSONObject("skipButton")?.applyButton(prefs, SKIP_COLOR, SKIP_OPACITY, SKIP_CORNER, SKIP_FILLED)
             obj.optJSONObject("playPauseButton")?.applyButton(prefs, PLAY_PAUSE_COLOR, PLAY_PAUSE_OPACITY, PLAY_PAUSE_CORNER, PLAY_PAUSE_FILLED)
+            fun applyOptionalColor(name: String, key: Preferences.Key<String>) {
+                if (obj.has(name)) {
+                    val raw = if (obj.isNull(name)) null else obj.optString(name)
+                    val color = CutoutColor.deserialize(raw)
+                    if (color == null) prefs.remove(key) else prefs[key] = color.serialize()
+                }
+            }
+            applyOptionalColor("skipIconColor", SKIP_ICON_COLOR)
+            applyOptionalColor("playPauseIconColor", PLAY_PAUSE_ICON_COLOR)
+            applyOptionalColor("seekIconColor", SEEK_ICON_COLOR)
         }
     }
 
@@ -225,6 +244,9 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
     suspend fun setVisibleInPlayerApp(enabled: Boolean) = context.musicTileDataStore.edit { it[VISIBLE_IN_PLAYER_APP] = enabled }
     suspend fun setShowControls(enabled: Boolean) = context.musicTileDataStore.edit { it[SHOW_CONTROLS] = enabled }
     suspend fun setSkipColor(color: CutoutColor?) = context.musicTileDataStore.edit { if (color == null) it.remove(SKIP_COLOR) else it[SKIP_COLOR] = color.serialize() }
+    suspend fun setSkipIconColor(color: CutoutColor?) = context.musicTileDataStore.edit { if (color == null) it.remove(SKIP_ICON_COLOR) else it[SKIP_ICON_COLOR] = color.serialize() }
+    suspend fun setPlayPauseIconColor(color: CutoutColor?) = context.musicTileDataStore.edit { if (color == null) it.remove(PLAY_PAUSE_ICON_COLOR) else it[PLAY_PAUSE_ICON_COLOR] = color.serialize() }
+    suspend fun setSeekIconColor(color: CutoutColor?) = context.musicTileDataStore.edit { if (color == null) it.remove(SEEK_ICON_COLOR) else it[SEEK_ICON_COLOR] = color.serialize() }
     suspend fun setSkipOpacity(opacity: Float) = context.musicTileDataStore.edit { it[SKIP_OPACITY] = opacity.coerceIn(0f, 1f) }
     suspend fun setSkipCornerPercent(percent: Int) = context.musicTileDataStore.edit { it[SKIP_CORNER] = percent.coerceIn(MusicButtonStyle.MIN_CORNER_PERCENT, MusicButtonStyle.MAX_CORNER_PERCENT) }
     suspend fun setSkipFilled(filled: Boolean) = context.musicTileDataStore.edit { it[SKIP_FILLED] = filled }
@@ -268,6 +290,9 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
         val SKIP_OPACITY = floatPreferencesKey("skip_button_opacity")
         val SKIP_CORNER = intPreferencesKey("skip_button_corner_percent")
         val SKIP_FILLED = booleanPreferencesKey("skip_button_filled")
+        val SKIP_ICON_COLOR = stringPreferencesKey("skip_button_icon_color")
+        val PLAY_PAUSE_ICON_COLOR = stringPreferencesKey("play_pause_button_icon_color")
+        val SEEK_ICON_COLOR = stringPreferencesKey("seek_button_icon_color")
         val PLAY_PAUSE_COLOR = stringPreferencesKey("play_pause_button_color")
         val PLAY_PAUSE_OPACITY = floatPreferencesKey("play_pause_button_opacity")
         val PLAY_PAUSE_CORNER = intPreferencesKey("play_pause_button_corner_percent")
