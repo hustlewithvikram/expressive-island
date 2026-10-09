@@ -868,7 +868,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         musicTilePreferences.setVisualizerStyle(style)
     }
 
-    fun setMusicSeekButtonMode(mode: SeekButtonMode) = viewModelScope.launch { musicTilePreferences.setSeekButtonMode(mode) }
+    fun setMusicShowPlayPauseIcon(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setShowPlayPauseIcon(enabled) }
+    fun setMusicShowPlayPauseText(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setShowPlayPauseText(enabled) }
     fun setMusicLeftSeekEnabled(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setLeftSeekEnabled(enabled) }
     fun setMusicRightSeekEnabled(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setRightSeekEnabled(enabled) }
     fun setMusicLeftSeekSeconds(seconds: Int) = viewModelScope.launch { musicTilePreferences.setLeftSeekSeconds(seconds) }
