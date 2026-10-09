@@ -809,6 +809,8 @@ fun IslandSurface(
     )
 
     val contentColor = if (repColor.luminance() > 0.5f) PillTextColorDark else PillTextColor
+    // Resolve the configurable shadow colour in composition; graphicsLayer is not composable.
+    val shadowColor = appearance.shadowColor.resolve(appColor, adaptiveColor)
     val border = if (appearance.strokeEnabled) {
         BorderStroke(
             appearance.strokeWidthDp.dp,
@@ -824,8 +826,8 @@ fun IslandSurface(
             shadowElevation = if (appearance.shadowEnabled) 6.dp.toPx() else 0f
             this.shape = shape
             clip = false
-            spotShadowColor = appearance.shadowColor.resolve(appColor, adaptiveColor)
-            ambientShadowColor = appearance.shadowColor.resolve(appColor, adaptiveColor)
+            spotShadowColor = shadowColor
+            ambientShadowColor = shadowColor
         },
         shape = shape,
         color = Color.Transparent,
