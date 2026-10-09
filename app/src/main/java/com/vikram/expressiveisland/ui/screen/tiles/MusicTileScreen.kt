@@ -83,6 +83,7 @@ private enum class MusicSettingsTab(val label: String) {
 private enum class MusicButtonSettingsTab(val label: String) {
     PLAY_PAUSE("Play/Pause"),
     PREVIOUS_NEXT("Prev/Next"),
+    SEEK("Seek"),
 }
 
 private val MusicAccent = Color(0xFFF472B6)
@@ -340,13 +341,13 @@ internal fun MusicTileScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
 
-                SectionLabel(
-                    stringResource(R.string.music_buttons_title),
-                )
-
                 MusicButtonsPreview(
                     skipStyle = settings.skipButton,
                     playPauseStyle = settings.playPauseButton,
+                    leftSeekEnabled = settings.leftSeekEnabled,
+                    rightSeekEnabled = settings.rightSeekEnabled,
+                    leftSeekSeconds = settings.leftSeekSeconds,
+                    rightSeekSeconds = settings.rightSeekSeconds,
                 )
 
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
@@ -360,24 +361,38 @@ internal fun MusicTileScreen(
                     }
                 }
 
+                if (selectedButtonSettingsTab == MusicButtonSettingsTab.SEEK) {
+                    SettingsGroup {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            SeekOptionRow(
+                                title = "Seek backward",
+                                description = "Show a button before Play/Pause",
+                                enabled = settings.leftSeekEnabled,
+                                seconds = settings.leftSeekSeconds,
+                                onEnabledChange = viewModel::setMusicLeftSeekEnabled,
+                                onTimeClick = { leftSeekTimeDialog = true },
+                            )
+                            SeekOptionRow(
+                                title = "Seek forward",
+                                description = "Show a button after Play/Pause",
+                                enabled = settings.rightSeekEnabled,
+                                seconds = settings.rightSeekSeconds,
+                                onEnabledChange = viewModel::setMusicRightSeekEnabled,
+                                onTimeClick = { rightSeekTimeDialog = true },
+                            )
+                        }
+                    }
+                }
+
                 if (selectedButtonSettingsTab == MusicButtonSettingsTab.PREVIOUS_NEXT) {
                 // -------------------------------------------------------------
                 // SKIP BUTTONS
                 // -------------------------------------------------------------
 
-                SectionLabel(
-                    stringResource(R.string.music_skip_buttons_title),
-                )
-
                 SettingsGroup {
-
-                    ButtonPresetRow(
-                        current = settings.skipButton,
-                        sampleFill = settings.skipButton.previewFill(
-                            fallback = null,
-                        ) ?: MusicButtonFilledDefault,
-                        onApply = viewModel::applyMusicSkipPreset,
-                    )
 
                     ColorPickerCard(
                         label = stringResource(
@@ -409,21 +424,7 @@ internal fun MusicTileScreen(
                 // PLAY / PAUSE
                 // -------------------------------------------------------------
 
-                SectionLabel(
-                    stringResource(
-                        R.string.music_playpause_button_title,
-                    ),
-                )
-
                 SettingsGroup {
-
-                    ButtonPresetRow(
-                        current = settings.playPauseButton,
-                        sampleFill = settings.playPauseButton.previewFill(
-                            fallback = MusicAccent,
-                        ) ?: MusicAccent,
-                        onApply = viewModel::applyMusicPlayPausePreset,
-                    )
 
                     ColorPickerCard(
                         label = stringResource(
@@ -503,35 +504,6 @@ internal fun MusicTileScreen(
                         Icon(Icons.Rounded.Tune, contentDescription = "Choose progress style", tint = MaterialTheme.colorScheme.primary)
                     }
                 }
-            }
-        }
-
-
-        }
-        if (selectedTab == MusicSettingsTab.EXPANDED) {
-        SectionLabel("Seek Controls")
-
-        SettingsGroup {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-            SeekOptionRow(
-                    title = "Seek backward",
-                    description = "Show a button before Play/Pause",
-                    enabled = settings.leftSeekEnabled,
-                    seconds = settings.leftSeekSeconds,
-                    onEnabledChange = viewModel::setMusicLeftSeekEnabled,
-                    onTimeClick = { leftSeekTimeDialog = true },
-                )
-            SeekOptionRow(
-                    title = "Seek forward",
-                    description = "Show a button after Play/Pause",
-                    enabled = settings.rightSeekEnabled,
-                    seconds = settings.rightSeekSeconds,
-                    onEnabledChange = viewModel::setMusicRightSeekEnabled,
-                    onTimeClick = { rightSeekTimeDialog = true },
-                )
             }
         }
 
