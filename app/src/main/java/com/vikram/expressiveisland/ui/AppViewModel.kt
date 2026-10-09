@@ -42,6 +42,7 @@ import com.vikram.expressiveisland.data.MusicTilePreferences
 import com.vikram.expressiveisland.data.MusicTileSettings
 import com.vikram.expressiveisland.data.MusicProgressStyle
 import com.vikram.expressiveisland.data.MusicVisualizerStyle
+import com.vikram.expressiveisland.data.SeekButtonMode
 import com.vikram.expressiveisland.data.PageTransitionStyle
 import com.vikram.expressiveisland.data.PermissionDotColors
 import com.vikram.expressiveisland.data.PermissionDotKinds
@@ -866,6 +867,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setMusicVisualizerStyle(style: MusicVisualizerStyle) = viewModelScope.launch {
         musicTilePreferences.setVisualizerStyle(style)
     }
+
+    fun setMusicSeekButtonMode(mode: SeekButtonMode) = viewModelScope.launch { musicTilePreferences.setSeekButtonMode(mode) }
+    fun setMusicLeftSeekEnabled(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setLeftSeekEnabled(enabled) }
+    fun setMusicRightSeekEnabled(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setRightSeekEnabled(enabled) }
+    fun setMusicLeftSeekSeconds(seconds: Int) = viewModelScope.launch { musicTilePreferences.setLeftSeekSeconds(seconds) }
+    fun setMusicRightSeekSeconds(seconds: Int) = viewModelScope.launch { musicTilePreferences.setRightSeekSeconds(seconds) }
 
     fun setMusicExpandedBackground(enabled: Boolean) = viewModelScope.launch {
         musicTilePreferences.setExpandedBackground(enabled)
