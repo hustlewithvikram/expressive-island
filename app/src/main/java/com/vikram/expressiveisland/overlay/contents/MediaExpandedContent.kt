@@ -184,7 +184,8 @@ fun MediaExpandedContent(
                     heightDp = buttonHeightDp,
                     skipStyle = media.skipStyle,
                     playPauseStyle = media.playPauseStyle,
-                    seekButtonMode = musicSettings.seekButtonMode,
+                    showPlayPauseIcon = musicSettings.showPlayPauseIcon,
+                    showPlayPauseText = musicSettings.showPlayPauseText,
                     leftSeekEnabled = musicSettings.leftSeekEnabled,
                     rightSeekEnabled = musicSettings.rightSeekEnabled,
                     leftSeekSeconds = musicSettings.leftSeekSeconds,
@@ -397,7 +398,8 @@ fun MediaControls(
     heightDp: Int,
     skipStyle: MusicButtonStyle,
     playPauseStyle: MusicButtonStyle,
-    seekButtonMode: SeekButtonMode = SeekButtonMode.BOTH,
+    showPlayPauseIcon: Boolean = true,
+    showPlayPauseText: Boolean = true,
     leftSeekEnabled: Boolean = true,
     rightSeekEnabled: Boolean = true,
     leftSeekSeconds: Int = 5,
@@ -408,8 +410,8 @@ fun MediaControls(
     onSeekForward: () -> Unit,
     onNext: () -> Unit,
 ) {
-    val showLeft = seekButtonMode != SeekButtonMode.RIGHT && leftSeekEnabled
-    val showRight = seekButtonMode != SeekButtonMode.LEFT && rightSeekEnabled
+    val showLeft = leftSeekEnabled
+    val showRight = rightSeekEnabled
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -441,7 +443,8 @@ fun MediaControls(
         }
         MediaButton(
             icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-            label = if (isPlaying) "Pause" else "Play",
+            showIcon = showPlayPauseIcon,
+            label = if (showPlayPauseText) (if (isPlaying) "Pause" else "Play") else null,
             contentDescription = if (isPlaying) "Pause" else "Play",
             enabled = enabled,
             heightDp = heightDp,
@@ -505,6 +508,7 @@ fun RowScope.MediaButton(
     cornerPercent: Int,
     onClick: () -> Unit,
     label: String? = null,
+    showIcon: Boolean = true,
     widthDp: Int = heightDp,
     maxWidth: Boolean = false,
     weight: Float? = null,
@@ -575,11 +579,13 @@ fun RowScope.MediaButton(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(iconSize),
-                    )
+                    if (showIcon) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(iconSize),
+                        )
+                    }
 
                     Text(
                         text = label,
