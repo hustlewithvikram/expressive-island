@@ -18,6 +18,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatterySaver
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.BluetoothSearching
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Lock
@@ -126,6 +129,83 @@ private val PermissionDocs: List<PermissionDoc> = listOf(
             "not ask for.",
         uses = listOf(
             "Post the sample notification, call and reply used to preview the island without waiting for a real one",
+        ),
+        optional = true,
+    ),
+    PermissionDoc(
+        icon = Icons.Rounded.Wifi,
+        title = "Wi-Fi state",
+        manifestName = "ACCESS_WIFI_STATE",
+        summary = "Allows the app to read the device's current Wi-Fi state. It does not grant " +
+            "internet access or let the app connect to networks by itself.",
+        uses = listOf(
+            "Recognise Wi-Fi state changes and show the relevant island event",
+            "Read the connected Wi-Fi network details needed by the Wi-Fi event tile",
+        ),
+    ),
+    PermissionDoc(
+        icon = Icons.Rounded.Wifi,
+        title = "Nearby Wi-Fi devices",
+        manifestName = "NEARBY_WIFI_DEVICES",
+        summary = "Declared for Android 13 and later Wi-Fi APIs. It is marked neverForLocation, " +
+            "so this permission is not used to derive the device's location.",
+        uses = listOf(
+            "Support Wi-Fi device/state APIs on Android versions that require nearby-device access",
+        ),
+        optional = true,
+    ),
+    PermissionDoc(
+        icon = Icons.Rounded.Bluetooth,
+        title = "Bluetooth connection",
+        manifestName = "BLUETOOTH_CONNECT",
+        summary = "On Android 12 and later, this permission allows access to Bluetooth connection " +
+            "state for connected-device events.",
+        uses = listOf(
+            "Detect Bluetooth connection and disconnection events for the island",
+        ),
+        optional = true,
+    ),
+    PermissionDoc(
+        icon = Icons.Rounded.BluetoothSearching,
+        title = "Bluetooth scan",
+        manifestName = "BLUETOOTH_SCAN",
+        summary = "Declared for Android 12 and later Bluetooth APIs and marked neverForLocation. " +
+            "The permission declaration does not mean the app uses Bluetooth scans to track location.",
+        uses = listOf(
+            "Support Bluetooth device-state APIs used by system connection broadcasts",
+        ),
+        optional = true,
+    ),
+    PermissionDoc(
+        icon = Icons.Rounded.LocationOn,
+        title = "Fine location",
+        manifestName = "ACCESS_FINE_LOCATION",
+        summary = "A legacy compatibility permission retained for Wi-Fi APIs on older Android " +
+            "versions. The app does not use it to build a location history or track where you go.",
+        uses = listOf(
+            "Compatibility with older Android Wi-Fi APIs that require location permission",
+        ),
+        optional = true,
+    ),
+    PermissionDoc(
+        icon = Icons.Rounded.LocationOn,
+        title = "Approximate location",
+        manifestName = "ACCESS_COARSE_LOCATION",
+        summary = "A legacy compatibility permission retained for Wi-Fi APIs on older Android " +
+            "versions. It is not used to record your location.",
+        uses = listOf(
+            "Compatibility with older Android Wi-Fi APIs that require coarse location permission",
+        ),
+        optional = true,
+    ),
+    PermissionDoc(
+        icon = Icons.Rounded.Layers,
+        title = "Shizuku integration",
+        manifestName = "moe.shizuku.manager.permission.API_V23",
+        summary = "Used for optional integration with Shizuku, which can provide elevated access " +
+            "for supported system-level features. Shizuku must be installed and started separately.",
+        uses = listOf(
+            "Declare the app's Shizuku API integration for compatible Shizuku versions",
         ),
         optional = true,
     ),
