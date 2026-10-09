@@ -594,11 +594,18 @@ fun RowScope.MediaButton(
                         maxLines = 1,
                     )
                 }
-            } else {
+            } else if (showIcon) {
                 Icon(
                     imageVector = icon,
                     contentDescription = contentDescription,
                     modifier = Modifier.size(iconSize),
+                )
+            } else {
+                Text(
+                    text = if (contentDescription == "Pause") "Pause" else "Play",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
                 )
             }
         }
