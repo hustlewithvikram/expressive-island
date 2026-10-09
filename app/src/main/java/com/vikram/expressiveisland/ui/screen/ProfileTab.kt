@@ -262,7 +262,7 @@ private fun ProfileList(
             onImportSettings = onImportSettings,
         )
 
-remove project        Spacer(
+        Spacer(
             modifier = Modifier.height(8.dp),
         )
     }
