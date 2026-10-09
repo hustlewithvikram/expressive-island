@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Replay5
+import androidx.compose.material.icons.rounded.Forward5
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.FastRewind
@@ -45,9 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -88,7 +87,7 @@ fun MediaExpandedContent(
     collapsedHeightDp: Int,
 ) {
     val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()
-    val albumArt = albumArtFor(event, nowPlaying)
+    val sourceAlbumArt = albumArtFor(event, nowPlaying)
     val context = LocalContext.current
 
     val musicPreferences = remember(context) {
@@ -100,9 +99,9 @@ fun MediaExpandedContent(
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (musicSettings.expandedBackground && albumArt != null) {
+        if (musicSettings.expandedBackground && sourceAlbumArt != null) {
             Image(
-                bitmap = albumArt,
+                bitmap = sourceAlbumArt,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -132,9 +131,9 @@ fun MediaExpandedContent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                if (albumArt != null) {
+                if (musicSettings.showAlbumArt && sourceAlbumArt != null) {
                     AlbumArt(
-                        bitmap = albumArt,
+                        bitmap = sourceAlbumArt,
                         size = 44.dp,
                         rotate = event.media?.rotateAlbumArt == true,
                         playing = nowPlaying?.isPlaying == true,
@@ -501,31 +500,6 @@ fun MusicButtonStyle.resolveFill(fallback: Color?): Color? {
  * auto-contrasting icon. [widthDp] defaults to [heightDp] (a square); a larger value makes a
  * rectangle — e.g. the 16:9 play/pause button.
  */
-@Composable
-private fun SeekDurationGlyph(seconds: Int, backward: Boolean, color: Color, modifier: Modifier = Modifier) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
-            val strokeWidth = size.minDimension * 0.115f
-            val diameter = size.minDimension * 0.70f
-            drawArc(color = color, startAngle = if (backward) 215f else 35f,
-                sweepAngle = if (backward) 290f else -290f, useCenter = false,
-                topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.15f, size.height * 0.15f),
-                size = androidx.compose.ui.geometry.Size(diameter, diameter),
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
-            val tipX = if (backward) size.width * 0.82f else size.width * 0.18f
-            val tipY = size.height * 0.20f
-            val direction = if (backward) -1f else 1f
-            val arrow = Path().apply {
-                moveTo(tipX, tipY)
-                lineTo(tipX - direction * size.width * 0.20f, tipY - size.height * 0.015f)
-                lineTo(tipX - direction * size.width * 0.19f, tipY + size.height * 0.20f)
-                close()
-            }
-            drawPath(arrow, color)
-        }
-        Text(text = seconds.toString(), color = color, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-    }
-}
 
 @Composable
 fun RowScope.MediaButton(
@@ -628,10 +602,10 @@ fun RowScope.MediaButton(
                     )
                 }
             } else if (seekSeconds != null) {
-                SeekDurationGlyph(
-                    seconds = seekSeconds,
-                    backward = seekBackward,
-                    color = if (fill.luminance() > 0.5f) PillTextColorDark else PillTextColor,
+                Icon(
+                    imageVector = if (seekBackward) Icons.Rounded.Replay5 else Icons.Rounded.Forward5,
+                    contentDescription = contentDescription,
+                    tint = if (fill.luminance() > 0.5f) PillTextColorDark else PillTextColor,
                     modifier = Modifier.size(iconSize + 8.dp),
                 )
             } else if (badgeText != null) {
