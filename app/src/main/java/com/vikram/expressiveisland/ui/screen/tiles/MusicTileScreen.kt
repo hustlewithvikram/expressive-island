@@ -27,8 +27,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.FastRewind
-import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Tune
@@ -55,6 +53,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -1146,8 +1147,8 @@ private fun MusicControlsPreviewSurface(
 
             if (leftSeekEnabled) {
                 PreviewSeekButton(
-                    icon = Icons.Rounded.FastRewind,
                     seconds = leftSeekSeconds,
+                    backward = true,
                     fill = skipStyle.previewFill(fallback = MaterialTheme.colorScheme.surfaceContainerHigh),
                     cornerPercent = skipStyle.cornerPercent,
                     modifier = Modifier.weight(0.85f),
@@ -1165,8 +1166,8 @@ private fun MusicControlsPreviewSurface(
 
             if (rightSeekEnabled) {
                 PreviewSeekButton(
-                    icon = Icons.Rounded.FastForward,
                     seconds = rightSeekSeconds,
+                    backward = false,
                     fill = skipStyle.previewFill(fallback = MaterialTheme.colorScheme.surfaceContainerHigh),
                     cornerPercent = skipStyle.cornerPercent,
                     modifier = Modifier.weight(0.85f),
@@ -1187,32 +1188,47 @@ private fun MusicControlsPreviewSurface(
 
 @Composable
 private fun PreviewSeekButton(
-    icon: ImageVector,
     seconds: Int,
+    backward: Boolean,
     fill: Color?,
     cornerPercent: Int,
     modifier: Modifier = Modifier,
 ) {
+    val contentColor = if (fill == null) Color.White else MaterialTheme.colorScheme.onSurface
     Box(
-        modifier = modifier
-            .height(PREVIEW_BUTTON_HEIGHT_DP.dp)
+        modifier = modifier.height(PREVIEW_BUTTON_HEIGHT_DP.dp)
             .clip(RoundedCornerShape((PREVIEW_BUTTON_HEIGHT_DP * cornerPercent / 100f).dp))
-            .background(fill ?: Color.White.copy(alpha = 0.10f)),
+            .background(fill ?: MaterialTheme.colorScheme.surfaceContainerHigh),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (fill == null) Color.White else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(22.dp),
-        )
-        Text(
-            text = "${seconds}s",
-            color = if (fill == null) Color.White else MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp),
-        )
+        SeekDurationGlyph(seconds, backward, contentColor, Modifier.fillMaxSize().padding(5.dp))
+    }
+}
+
+@Composable
+private fun SeekDurationGlyph(seconds: Int, backward: Boolean, color: Color, modifier: Modifier = Modifier) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+            val strokeWidth = size.minDimension * 0.115f
+            val diameter = size.minDimension * 0.70f
+            drawArc(color = color, startAngle = if (backward) 215f else 35f,
+                sweepAngle = if (backward) 290f else -290f, useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.15f, size.height * 0.15f),
+                size = androidx.compose.ui.geometry.Size(diameter, diameter),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
+            val tipX = if (backward) size.width * 0.82f else size.width * 0.18f
+            val tipY = size.height * 0.20f
+            val direction = if (backward) -1f else 1f
+            val arrow = Path().apply {
+                moveTo(tipX, tipY)
+                lineTo(tipX - direction * size.width * 0.20f, tipY - size.height * 0.015f)
+                lineTo(tipX - direction * size.width * 0.19f, tipY + size.height * 0.20f)
+                close()
+            }
+            drawPath(arrow, color)
+        }
+        Text(text = seconds.toString(), color = color, style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }
 
