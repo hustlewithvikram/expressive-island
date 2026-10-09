@@ -38,6 +38,7 @@ import androidx.compose.material.icons.rounded.Coffee
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Downloading
 import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsNone
@@ -219,6 +220,20 @@ private fun ProfileList(
         )
 
         // =====================================================================
+        // BACKUP & RESTORE
+        // =====================================================================
+
+        SectionHeader(
+            title = "Backup & Restore",
+            description = "Save your Expressive Island settings or restore them later.",
+        )
+
+        ExportSettingsCard(
+            onExportSettings = onExportSettings,
+            onImportSettings = onImportSettings,
+        )
+
+        // =====================================================================
         // PROFILE SUBPAGES
         // =====================================================================
 
@@ -242,24 +257,10 @@ private fun ProfileList(
         )
 
         ProfileDestinationCard(
-            icon = Icons.AutoMirrored.Rounded.OpenInNew,
+            icon = Icons.Rounded.Info,
             title = "About",
             description = "App version, changelog, repository, and developer.",
             onClick = onOpenAbout,
-        )
-
-        // =====================================================================
-        // BACKUP & RESTORE
-        // =====================================================================
-
-        SectionHeader(
-            title = "Backup & Restore",
-            description = "Save your Expressive Island settings or restore them later.",
-        )
-
-        ExportSettingsCard(
-            onExportSettings = onExportSettings,
-            onImportSettings = onImportSettings,
         )
 
         Spacer(
@@ -342,7 +343,6 @@ private fun TestingTriggersSubpage(contentPadding: PaddingValues) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SectionHeader(title = "Testing Triggers", description = "Send controlled events to verify notification, call, and island behaviour.")
         TestingSection(context = context)
         Spacer(Modifier.height(8.dp))
     }
