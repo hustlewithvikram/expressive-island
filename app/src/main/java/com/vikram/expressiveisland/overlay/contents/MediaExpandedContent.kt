@@ -431,6 +431,7 @@ fun MediaControls(
         if (showLeft) {
             MediaButton(
                 icon = Icons.Rounded.FastRewind,
+                badgeText = "${leftSeekSeconds}s",
                 contentDescription = "Seek backward ${leftSeekSeconds} seconds",
                 enabled = enabled,
                 heightDp = heightDp,
@@ -457,6 +458,7 @@ fun MediaControls(
         if (showRight) {
             MediaButton(
                 icon = Icons.Rounded.FastForward,
+                badgeText = "${rightSeekSeconds}s",
                 contentDescription = "Seek forward ${rightSeekSeconds} seconds",
                 enabled = enabled,
                 heightDp = heightDp,
@@ -509,6 +511,7 @@ fun RowScope.MediaButton(
     onClick: () -> Unit,
     label: String? = null,
     showIcon: Boolean = true,
+    badgeText: String? = null,
     widthDp: Int = heightDp,
     maxWidth: Boolean = false,
     weight: Float? = null,
@@ -592,6 +595,26 @@ fun RowScope.MediaButton(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
+                    )
+                }
+            } else if (badgeText != null) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(iconSize + 6.dp),
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = contentDescription,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    Text(
+                        text = badgeText,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                            .background(fill, shape = RoundedCornerShape(3.dp))
+                            .padding(horizontal = 1.dp),
                     )
                 }
             } else if (showIcon) {
