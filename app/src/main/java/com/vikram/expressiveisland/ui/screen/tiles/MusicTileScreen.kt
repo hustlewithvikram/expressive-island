@@ -1205,6 +1205,7 @@ private fun MusicControlsPreviewSurface(
         }
     }
 }
+}
 
 @Composable
 private fun PreviewSeekButton(seconds: Int, backward: Boolean, fill: Color?, cornerPercent: Int, modifier: Modifier = Modifier) {
