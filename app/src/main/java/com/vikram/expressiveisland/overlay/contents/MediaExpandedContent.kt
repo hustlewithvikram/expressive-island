@@ -27,6 +27,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,6 +63,7 @@ import com.vikram.expressiveisland.core.MediaProgress
 import com.vikram.expressiveisland.core.NowPlayingBus
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.MusicTilePreferences
+import com.vikram.expressiveisland.data.MusicProgressStyle
 import com.vikram.expressiveisland.data.MusicTileSettings
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.formatMediaTime
@@ -165,7 +168,7 @@ fun MediaExpandedContent(
                         .height(28.dp),
                 ) {
                     nowPlaying?.progress?.let { progress ->
-                        MediaProgressBar(progress = progress)
+                        MediaProgressBar(progress = progress, style = musicSettings.progressStyle)
                     }
                 }
             }
@@ -201,7 +204,7 @@ fun MediaExpandedContent(
  * (a live stream) gets the indeterminate bar instead, matching the notification tile's.
  */
 @Composable
-fun MediaProgressBar(progress: MediaProgress?) {
+fun MediaProgressBar(progress: MediaProgress?, style: MusicProgressStyle = MusicProgressStyle.WAVY) {
     val duration = progress?.durationMs ?: return
 
     var fraction by remember(progress) {
@@ -250,35 +253,68 @@ fun MediaProgressBar(progress: MediaProgress?) {
             ?: fraction
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            text = formatMediaTime(positionMs),
-            color = LocalContentColor.current.copy(alpha = 0.65f),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-        )
-
-        WavyProgressIndicator(
-            progress = fraction,
-            modifier = Modifier
-                .weight(1f)
-                .height(12.dp),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.primaryContainer.copy(
-                alpha = 0.35f
-            ),
-        )
-
-        Text(
-            text = formatMediaTime(duration),
-            color = LocalContentColor.current.copy(alpha = 0.65f),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-        )
+    if (style == MusicProgressStyle.CIRCULAR || style == MusicProgressStyle.CIRCULAR_WAVY) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = formatMediaTime(positionMs),
+                color = LocalContentColor.current.copy(alpha = 0.65f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+            CircularProgressIndicator(
+                progress = { fraction },
+                modifier = Modifier.size(22.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                strokeWidth = if (style == MusicProgressStyle.CIRCULAR_WAVY) 2.dp else 3.dp,
+            )
+            androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+            Text(
+                text = formatMediaTime(duration),
+                color = LocalContentColor.current.copy(alpha = 0.65f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = formatMediaTime(positionMs),
+                color = LocalContentColor.current.copy(alpha = 0.65f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            if (style == MusicProgressStyle.LINEAR) {
+                LinearProgressIndicator(
+                    progress = { fraction },
+                    modifier = Modifier.weight(1f).height(4.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                )
+            } else {
+                WavyProgressIndicator(
+                    progress = fraction,
+                    modifier = Modifier.weight(1f).height(12.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                )
+            }
+            Text(
+                text = formatMediaTime(duration),
+                color = LocalContentColor.current.copy(alpha = 0.65f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
     }
 }
 
