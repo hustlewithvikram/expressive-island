@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Replay5
 import androidx.compose.material.icons.rounded.Forward5
 import androidx.compose.material.icons.rounded.SkipNext
@@ -161,6 +162,15 @@ internal fun MusicTileScreen(
                 bottom = 0.dp,
             ),
         )
+        MusicButtonsPreview(
+            skipStyle = settings.skipButton,
+            playPauseStyle = settings.playPauseButton,
+            leftSeekEnabled = settings.leftSeekEnabled,
+            rightSeekEnabled = settings.rightSeekEnabled,
+            leftSeekSeconds = settings.leftSeekSeconds,
+            rightSeekSeconds = settings.rightSeekSeconds,
+        )
+
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
             MusicSettingsTab.entries.forEachIndexed { index, tab ->
                 SegmentedButton(
@@ -346,15 +356,6 @@ internal fun MusicTileScreen(
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-
-                MusicButtonsPreview(
-                    skipStyle = settings.skipButton,
-                    playPauseStyle = settings.playPauseButton,
-                    leftSeekEnabled = settings.leftSeekEnabled,
-                    rightSeekEnabled = settings.rightSeekEnabled,
-                    leftSeekSeconds = settings.leftSeekSeconds,
-                    rightSeekSeconds = settings.rightSeekSeconds,
-                )
 
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     MusicButtonSettingsTab.entries.forEachIndexed { index, tab ->
