@@ -169,6 +169,13 @@ internal fun MusicTileScreen(
             rightSeekEnabled = settings.rightSeekEnabled,
             leftSeekSeconds = settings.leftSeekSeconds,
             rightSeekSeconds = settings.rightSeekSeconds,
+            showProgress = settings.showProgress,
+            progressStyle = settings.progressStyle,
+            showPlayPauseIcon = settings.showPlayPauseIcon,
+            showPlayPauseText = settings.showPlayPauseText,
+            skipIconColor = settings.skipIconColor?.resolve(),
+            playPauseIconColor = settings.playPauseIconColor?.resolve(),
+            seekIconColor = settings.seekIconColor?.resolve(),
         )
 
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
@@ -392,6 +399,16 @@ internal fun MusicTileScreen(
                             )
                         }
                     }
+                    SettingsGroup {
+                        ColorPickerCard(
+                            label = "Seek icon and text color",
+                            selected = settings.seekIconColor,
+                            onSelect = viewModel::setMusicSeekIconColor,
+                            defaultLabel = "Automatic",
+                            defaultColor = MaterialTheme.colorScheme.onSurface,
+                            shape = groupShape(GroupPosition.ONLY),
+                        )
+                    }
                 }
 
                 if (selectedButtonSettingsTab == MusicButtonSettingsTab.PREVIOUS_NEXT) {
@@ -413,6 +430,15 @@ internal fun MusicTileScreen(
                         defaultColor = MaterialTheme
                             .colorScheme
                             .onSurfaceVariant,
+                        shape = groupShape(GroupPosition.MIDDLE),
+                    )
+
+                    ColorPickerCard(
+                        label = "Previous/Next icon color",
+                        selected = settings.skipIconColor,
+                        onSelect = viewModel::setMusicSkipIconColor,
+                        defaultLabel = "Automatic",
+                        defaultColor = MaterialTheme.colorScheme.onSurface,
                         shape = groupShape(GroupPosition.MIDDLE),
                     )
 
@@ -443,6 +469,15 @@ internal fun MusicTileScreen(
                             R.string.music_default_accent,
                         ),
                         defaultColor = MusicAccent,
+                        shape = groupShape(GroupPosition.MIDDLE),
+                    )
+
+                    ColorPickerCard(
+                        label = "Play/Pause icon and text color",
+                        selected = settings.playPauseIconColor,
+                        onSelect = viewModel::setMusicPlayPauseIconColor,
+                        defaultLabel = "Automatic",
+                        defaultColor = MaterialTheme.colorScheme.onSurface,
                         shape = groupShape(GroupPosition.MIDDLE),
                     )
 
