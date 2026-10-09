@@ -186,6 +186,9 @@ fun MediaExpandedContent(
                     heightDp = buttonHeightDp,
                     skipStyle = media.skipStyle,
                     playPauseStyle = media.playPauseStyle,
+                    skipIconColor = musicSettings.skipIconColor?.resolve(),
+                    playPauseIconColor = musicSettings.playPauseIconColor?.resolve(),
+                    seekIconColor = musicSettings.seekIconColor?.resolve(),
                     showPlayPauseIcon = musicSettings.showPlayPauseIcon,
                     showPlayPauseText = musicSettings.showPlayPauseText,
                     leftSeekEnabled = musicSettings.leftSeekEnabled,
@@ -400,6 +403,9 @@ fun MediaControls(
     heightDp: Int,
     skipStyle: MusicButtonStyle,
     playPauseStyle: MusicButtonStyle,
+    skipIconColor: Color? = null,
+    playPauseIconColor: Color? = null,
+    seekIconColor: Color? = null,
     showPlayPauseIcon: Boolean = true,
     showPlayPauseText: Boolean = true,
     leftSeekEnabled: Boolean = true,
@@ -427,12 +433,13 @@ fun MediaControls(
             iconSize = 22.dp,
             fill = skipStyle.resolveFill(fallback = null),
             cornerPercent = skipStyle.cornerPercent,
+            contentTint = skipIconColor,
             onClick = onPrevious,
             weight = 1f,
         )
         if (showLeft) {
             MediaButton(
-                icon = Icons.Rounded.FastRewind,
+                icon = Icons.Rounded.Replay5,
                 seekSeconds = leftSeekSeconds,
                 seekBackward = true,
                 contentDescription = "Seek backward ${leftSeekSeconds} seconds",
@@ -441,6 +448,7 @@ fun MediaControls(
                 iconSize = 20.dp,
                 fill = (skipStyle.color?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHigh).copy(alpha = maxOf(skipStyle.opacity, 0.18f)),
                 cornerPercent = skipStyle.cornerPercent,
+                contentTint = seekIconColor,
                 onClick = onSeekBackward,
                 weight = 0.85f,
             )
@@ -455,12 +463,13 @@ fun MediaControls(
             iconSize = 22.dp,
             fill = playPauseStyle.resolveFill(fallback = accent),
             cornerPercent = playPauseStyle.cornerPercent,
+            contentTint = playPauseIconColor,
             onClick = onPlayPause,
             weight = 1.25f,
         )
         if (showRight) {
             MediaButton(
-                icon = Icons.Rounded.FastForward,
+                icon = Icons.Rounded.Forward5,
                 seekSeconds = rightSeekSeconds,
                 seekBackward = false,
                 contentDescription = "Seek forward ${rightSeekSeconds} seconds",
@@ -469,6 +478,7 @@ fun MediaControls(
                 iconSize = 20.dp,
                 fill = (skipStyle.color?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.78f)).copy(alpha = skipStyle.opacity),
                 cornerPercent = skipStyle.cornerPercent,
+                contentTint = seekIconColor,
                 onClick = onSeekForward,
                 weight = 0.85f,
             )
@@ -481,6 +491,7 @@ fun MediaControls(
             iconSize = 22.dp,
             fill = skipStyle.resolveFill(fallback = null),
             cornerPercent = skipStyle.cornerPercent,
+            contentTint = skipIconColor,
             onClick = onNext,
             weight = 1f,
         )
@@ -516,6 +527,7 @@ fun RowScope.MediaButton(
     onClick: () -> Unit,
     label: String? = null,
     showIcon: Boolean = true,
+    contentTint: Color? = null,
     badgeText: String? = null,
     seekSeconds: Int? = null,
     seekBackward: Boolean = true,
@@ -560,7 +572,7 @@ fun RowScope.MediaButton(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = LocalContentColor.current,
+                tint = contentTint ?: LocalContentColor.current,
                 modifier = Modifier.size(iconSize),
             )
         }
@@ -574,11 +586,7 @@ fun RowScope.MediaButton(
             ),
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = fill,
-                contentColor = if (fill.luminance() > 0.5f) {
-                    PillTextColorDark
-                } else {
-                    PillTextColor
-                },
+                contentColor = contentTint ?: if (fill.luminance() > 0.5f) PillTextColorDark else PillTextColor,
                 disabledContainerColor = LocalContentColor.current.copy(alpha = 0.12f),
                 disabledContentColor = LocalContentColor.current.copy(alpha = 0.4f),
             ),
@@ -599,6 +607,7 @@ fun RowScope.MediaButton(
 
                     Text(
                         text = label,
+                        color = contentTint ?: LocalContentColor.current,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
@@ -608,7 +617,7 @@ fun RowScope.MediaButton(
                 Icon(
                     imageVector = if (seekBackward) Icons.Rounded.Replay5 else Icons.Rounded.Forward5,
                     contentDescription = contentDescription,
-                    tint = if (fill.luminance() > 0.5f) PillTextColorDark else PillTextColor,
+                    tint = contentTint ?: if (fill.luminance() > 0.5f) PillTextColorDark else PillTextColor,
                     modifier = Modifier.size(iconSize + 8.dp),
                 )
             } else if (badgeText != null) {
