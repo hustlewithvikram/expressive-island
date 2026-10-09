@@ -22,6 +22,8 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.FastRewind
+import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -431,6 +433,7 @@ fun MediaControls(
         )
         if (showLeft) {
             MediaButton(
+                icon = Icons.Rounded.FastRewind,
                 seekSeconds = leftSeekSeconds,
                 seekBackward = true,
                 contentDescription = "Seek backward ${leftSeekSeconds} seconds",
@@ -458,6 +461,7 @@ fun MediaControls(
         )
         if (showRight) {
             MediaButton(
+                icon = Icons.Rounded.FastForward,
                 seekSeconds = rightSeekSeconds,
                 seekBackward = false,
                 contentDescription = "Seek forward ${rightSeekSeconds} seconds",
