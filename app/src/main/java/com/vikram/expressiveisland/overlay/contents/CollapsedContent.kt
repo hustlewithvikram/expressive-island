@@ -17,9 +17,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.core.NowPlayingBus
 import com.vikram.expressiveisland.core.OnCallBus
+import com.vikram.expressiveisland.data.MusicTilePreferences
+import com.vikram.expressiveisland.data.MusicTileSettings
+import androidx.compose.ui.platform.LocalContext
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 
 @Composable
@@ -31,6 +37,9 @@ fun CollapsedContent(
 ) {
     // The music tile shows album art, the phone tile the caller's photo, on the normal cutout.
     val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val musicPreferences = remember(context) { MusicTilePreferences(context) }
+    val musicSettings by musicPreferences.settings.collectAsState(initial = MusicTileSettings())
     val onCall by OnCallBus.state.collectAsStateWithLifecycle()
     val albumArt = albumArtFor(event, nowPlaying)
     val callPhoto = event.call?.takeIf { it.showPhoto }?.let { onCall?.photo }
@@ -70,10 +79,12 @@ fun CollapsedContent(
         if (
             event.media != null &&
             nowPlaying?.isPlaying == true &&
+            musicSettings.showVisualizer &&
             !isStickToCamera
         ) {
             MusicVisualizer(
                 isPlaying = true,
+                style = musicSettings.visualizerStyle,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .padding(
