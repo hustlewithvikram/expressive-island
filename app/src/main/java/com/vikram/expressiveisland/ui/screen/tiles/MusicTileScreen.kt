@@ -393,6 +393,22 @@ internal fun MusicTileScreen(
                         onOpacityCommit = viewModel::setMusicPlayPauseOpacity,
                         onCornerCommit = viewModel::setMusicPlayPauseCornerPercent,
                     )
+
+                    SettingsToggleCard(
+                        shape = groupShape(GroupPosition.MIDDLE),
+                        title = "Show play/pause icon",
+                        description = "Display the play or pause symbol on the button.",
+                        checked = settings.showPlayPauseIcon,
+                        onCheckedChange = viewModel::setMusicShowPlayPauseIcon,
+                    )
+
+                    SettingsToggleCard(
+                        shape = groupShape(GroupPosition.LAST),
+                        title = "Show play/pause text",
+                        description = "Display Play or Pause text beside the symbol.",
+                        checked = settings.showPlayPauseText,
+                        onCheckedChange = viewModel::setMusicShowPlayPauseText,
+                    )
                 }
             }
         }
