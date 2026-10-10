@@ -90,14 +90,7 @@ fun AssistantExpandedContent(
             ) {
                 IconBadge(event = event, badgeSize = 36.dp, iconSize = 22.dp)
                 Spacer(Modifier.width(10.dp))
-                Text(
-                    text = event.label,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = contentColor,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                TileTitle(title = event.label)
             }
 
             // Answer content text displayed below title header
