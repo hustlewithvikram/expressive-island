@@ -129,6 +129,8 @@ class IslandOverlayController(private val context: Context) {
         DISCARD,
     }
 
+    private data class ParkedSatelliteEvent(val event: IslandEvent, val deadlineMs: Long?)
+
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val windowManager = requireNotNull(context.getSystemService<WindowManager>())
     private val keyguardManager = context.getSystemService<KeyguardManager>()
@@ -175,8 +177,9 @@ class IslandOverlayController(private val context: Context) {
 
     private val currentEvent = MutableStateFlow<IslandEvent?>(null)
 
-    // Secondary event shown as the small bubble beside the main pill. Capacity is one.
+    // One visible satellite plus a queue for other active persistent tiles.
     private val satelliteEvent = MutableStateFlow<IslandEvent?>(null)
+    private val waitingSatelliteEvents = mutableListOf<ParkedSatelliteEvent>()
     private var satelliteDismissJob: Job? = null
     private var currentDeadlineMs: Long? = null
     private var satelliteDeadlineMs: Long? = null
@@ -485,13 +488,20 @@ class IslandOverlayController(private val context: Context) {
      */
     fun onOrientationChanged(orientation: Int) {
         if (orientation == currentOrientation) return
-        if (orientation == Configuration.ORIENTATION_LANDSCAPE) clearSatellite()
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            satelliteEvent.value?.let { if (isPersistentTileEvent(it) && isPersistentTileActive(it)) enqueueWaitingSatellite(it, satelliteDeadlineMs) }
+            clearSatellite()
+        }
         currentOrientation = orientation
         orientationState.value = orientation
         displayWidthPx = computeDisplayWidthPx()
         displayWidthDp.value = (displayWidthPx / density).toInt()
         applyLockVisibility()
         if (overlayHidden) return
+        if (orientation != Configuration.ORIENTATION_LANDSCAPE) {
+            pruneSatellite()
+            promoteNextWaitingToSatellite()
+        }
         syncWindowSize()
     }
 
@@ -694,7 +704,10 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeTilePreferences() = scope.launch {
-        dynamicTilePreferences.enabled.collect { tileEnabled = it }
+        dynamicTilePreferences.enabled.collect {
+            tileEnabled = it
+            pruneSatellite()
+        }
     }
 
     private fun observeAppPreferences() {
@@ -913,7 +926,16 @@ class IslandOverlayController(private val context: Context) {
     private fun observeLayout() = scope.launch {
         layoutPreferences.layout.collect { layout ->
             layoutState.value = layout
-            if (satelliteEvent.value != null && satelliteSplitDp() == 0) clearSatellite()
+            if (satelliteEvent.value != null && satelliteSplitDp() == 0) {
+                satelliteEvent.value?.let { event ->
+                    if (isPersistentTileEvent(event) && isPersistentTileActive(event)) {
+                        enqueueWaitingSatellite(event, satelliteDeadlineMs)
+                    }
+                }
+                clearSatellite()
+            } else {
+                promoteNextWaitingToSatellite()
+            }
             syncWindowSize()
         }
     }
@@ -1201,11 +1223,11 @@ class IslandOverlayController(private val context: Context) {
     private fun satelliteAllowed(displaced: IslandEvent, incoming: IslandEvent): Boolean {
         if (!behaviourState.value.splitIslandEnabled) return false
         if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) return false
+        // Calls keep their existing exclusive layout and action handling.
         if (displaced.call != null || incoming.call != null) return false
-        if (displaced.assistant != null || incoming.assistant != null) return false
         if (isTwoRowCall()) return false
         if (displaced.notificationKey != null && displaced.notificationKey == incoming.notificationKey) return false
-        if (displaced.id == incoming.id) return false
+        if (isSameActivity(displaced, incoming)) return false
         return satelliteFitsWidth()
     }
 
@@ -1229,19 +1251,73 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun parkInSatellite(event: IslandEvent, deadlineMs: Long?) {
-        satelliteDismissJob?.cancel()
         val previous = satelliteEvent.value
-        if (previous != null && previous.id != event.id) {
-            previous.notificationKey?.let(CutoutNotificationListenerService::release)
+        val previousDeadline = satelliteDeadlineMs
+        satelliteDismissJob?.cancel()
+        satelliteDismissJob = null
+        if (previous != null && !isSameActivity(previous, event)) {
+            if (isPersistentTileEvent(previous) && isPersistentTileActive(previous)) {
+                enqueueWaitingSatellite(previous, previousDeadline)
+            } else previous.notificationKey?.let(CutoutNotificationListenerService::release)
         }
-        satelliteEvent.value = event
-        satelliteDeadlineMs = deadlineMs
-        if (deadlineMs != null) {
-            satelliteDismissJob = scope.launch {
-                val remaining = deadlineMs - System.currentTimeMillis()
-                if (remaining > 0) delay(remaining)
-                if (satelliteEvent.value?.id == event.id) clearSatellite()
-            }
+        val index = waitingSatelliteEvents.indexOfFirst { isSameActivity(it.event, event) }
+        val sameVisible = previous != null && isSameActivity(previous, event)
+        val shown = if (sameVisible) event.copy(id = previous!!.id) else event
+        if (index >= 0) waitingSatelliteEvents.removeAt(index)
+        satelliteEvent.value = shown
+        satelliteDeadlineMs = if (sameVisible) previousDeadline else deadlineMs
+        armSatelliteDeadline(shown, satelliteDeadlineMs)
+    }
+
+    private fun armSatelliteDeadline(event: IslandEvent, deadlineMs: Long?) {
+        satelliteDismissJob?.cancel()
+        satelliteDismissJob = null
+        if (deadlineMs == null) return
+        satelliteDismissJob = scope.launch {
+            val remaining = deadlineMs - System.currentTimeMillis()
+            if (remaining > 0) delay(remaining)
+            if (satelliteEvent.value?.id == event.id) clearSatellite(promoteWaiting = true)
+        }
+    }
+
+    private fun isPersistentTileEvent(event: IslandEvent): Boolean =
+        event.media != null || event.call != null || event.timer != null || event.assistant != null
+
+    private fun isSameActivity(a: IslandEvent, b: IslandEvent): Boolean =
+        a.id == b.id || isSameTile(a, b) ||
+            (a.notificationKey != null && a.notificationKey == b.notificationKey)
+
+    private fun isPersistentTileActive(event: IslandEvent): Boolean = when {
+        event.media != null -> musicPlaying && tileEnabled[DynamicTile.MUSIC] != false && !shouldHideForPlayerApp()
+        event.call != null -> callActive && tileEnabled[DynamicTile.PHONE] != false &&
+            OnCallBus.state.value?.packageName !in disabledApps && !shouldHideForPhoneApp()
+        event.timer != null -> timerActive && tileEnabled[DynamicTile.TIMER] != false
+        event.assistant != null -> assistantActive && tileEnabled[DynamicTile.ASSISTANT] != false
+        else -> false
+    }
+
+    private fun enqueueWaitingSatellite(event: IslandEvent, deadlineMs: Long?) {
+        if (!isPersistentTileEvent(event) || !isPersistentTileActive(event)) return
+        if (deadlineMs != null && deadlineMs <= System.currentTimeMillis()) return
+        val index = waitingSatelliteEvents.indexOfFirst { isSameActivity(it.event, event) }
+        if (index >= 0) {
+            val old = waitingSatelliteEvents[index]
+            waitingSatelliteEvents[index] = old.copy(event = event.copy(id = old.event.id))
+        } else waitingSatelliteEvents.add(ParkedSatelliteEvent(event, deadlineMs))
+    }
+
+    private fun promoteNextWaitingToSatellite() {
+        if (satelliteEvent.value != null || expanded ||
+            currentOrientation == Configuration.ORIENTATION_LANDSCAPE ||
+            !behaviourState.value.splitIslandEnabled
+        ) return
+        while (waitingSatelliteEvents.isNotEmpty()) {
+            val next = waitingSatelliteEvents.removeAt(0)
+            if (next.deadlineMs != null && next.deadlineMs <= System.currentTimeMillis()) continue
+            if (!isPersistentTileActive(next.event)) continue
+            parkInSatellite(next.event.copy(initiallyExpanded = false), next.deadlineMs)
+            syncWindowSize()
+            return
         }
     }
 
@@ -1257,6 +1333,11 @@ class IslandOverlayController(private val context: Context) {
         }
 
         if (displaced == null || !satelliteAllowed(displaced, incoming)) {
+            satelliteEvent.value?.let { event ->
+                if (isPersistentTileEvent(event) && isPersistentTileActive(event)) {
+                    enqueueWaitingSatellite(event, satelliteDeadlineMs)
+                }
+            }
             clearSatellite()
             return
         }
@@ -1264,30 +1345,28 @@ class IslandOverlayController(private val context: Context) {
         parkInSatellite(displaced, deadlineMs)
     }
 
-    private fun clearSatellite(releaseNotification: Boolean = true) {
+    private fun clearSatellite(releaseNotification: Boolean = true, promoteWaiting: Boolean = false) {
         satelliteDismissJob?.cancel()
         satelliteDismissJob = null
         satelliteDeadlineMs = null
         val satellite = satelliteEvent.value
         if (satellite != null) {
-            if (releaseNotification) {
-                satellite.notificationKey?.let(CutoutNotificationListenerService::release)
-            }
+            if (releaseNotification) satellite.notificationKey?.let(CutoutNotificationListenerService::release)
             satelliteEvent.value = null
             syncWindowSize()
         }
+        if (promoteWaiting) promoteNextWaitingToSatellite()
     }
 
     private fun pruneSatellite() {
-        val bubble = satelliteEvent.value ?: return
-        val stale = when {
-            bubble.media != null -> !musicPlaying
-            bubble.call != null -> !callActive
-            bubble.timer != null -> !timerActive
-            bubble.assistant != null -> !assistantActive
-            else -> false
+        waitingSatelliteEvents.removeAll { parked ->
+            (parked.deadlineMs != null && parked.deadlineMs <= System.currentTimeMillis()) ||
+                !isPersistentTileActive(parked.event)
         }
-        if (stale) clearSatellite()
+        val bubble = satelliteEvent.value
+        if (bubble != null && isPersistentTileEvent(bubble) && !isPersistentTileActive(bubble)) {
+            clearSatellite(promoteWaiting = true)
+        } else if (bubble == null) promoteNextWaitingToSatellite()
     }
 
     private fun armPillDismiss(deadlineMs: Long?) {
@@ -1317,6 +1396,7 @@ class IslandOverlayController(private val context: Context) {
         currentDeadlineMs = deadline
         collapseRequest.value++
         armPillDismiss(deadline)
+        promoteNextWaitingToSatellite()
         syncWindowSize()
         return true
     }
@@ -1341,7 +1421,7 @@ class IslandOverlayController(private val context: Context) {
         if (pill != null && satelliteAllowed(pill, bubble)) {
             parkInSatellite(pill.copy(initiallyExpanded = false), pillDeadline)
             restoreSlotsOnCollapse = true
-        }
+        } else promoteNextWaitingToSatellite()
         syncWindowSize()
     }
 
@@ -1588,6 +1668,22 @@ class IslandOverlayController(private val context: Context) {
             if (!behaviourState.value.cutoutEnabled) return@collect
 
             val existing = currentEvent.value
+            // Refresh a parked tile in place; updates must not swap the main and satellite slots.
+            val parkedSatellite = satelliteEvent.value
+            if (parkedSatellite != null && isSameTile(parkedSatellite, resolvedEvent)) {
+                updateLiveTileSnapshot(signal, resolvedEvent)
+                satelliteEvent.value = resolvedEvent.copy(id = parkedSatellite.id)
+                syncWindowSize()
+                return@collect
+            }
+            val waitingIndex = waitingSatelliteEvents.indexOfFirst { isSameTile(it.event, resolvedEvent) }
+            if (waitingIndex >= 0) {
+                updateLiveTileSnapshot(signal, resolvedEvent)
+                val parked = waitingSatelliteEvents[waitingIndex]
+                waitingSatelliteEvents[waitingIndex] = parked.copy(event = resolvedEvent.copy(id = parked.event.id))
+                return@collect
+            }
+
             if (signal is CutoutSignal.Notification && signal.key != null &&
                 existing != null && existing.notificationKey == signal.key
             ) {
@@ -1612,9 +1708,10 @@ class IslandOverlayController(private val context: Context) {
                         )
 
             if (sameSystemFamily) {
-                // Same system-event family means this is a state transition.
-                // Replace the existing event instead of keeping both states alive.
-                clearSatellite()
+                // Preserve a live persistent satellite activity across related system-state updates.
+                if (satelliteEvent.value?.let(::isPersistentTileEvent) != true) {
+                    clearSatellite(promoteWaiting = true)
+                }
 
                 dismissJob?.cancel()
                 currentDeadlineMs = null
@@ -1683,6 +1780,16 @@ class IslandOverlayController(private val context: Context) {
                 currentEvent.value = null
                 syncWindowSize()
             }
+        }
+    }
+
+    private fun updateLiveTileSnapshot(signal: CutoutSignal, event: IslandEvent) {
+        when (signal) {
+            is CutoutSignal.Music -> { musicPlaying = true; lastMusicEvent = event }
+            is CutoutSignal.Call -> { callActive = true; lastCallEvent = event }
+            is CutoutSignal.Timer -> { timerActive = true; lastTimerEvent = event }
+            is CutoutSignal.Assistant -> { assistantActive = signal.active; lastAssistantEvent = event }
+            else -> Unit
         }
     }
 
@@ -1921,7 +2028,7 @@ class IslandOverlayController(private val context: Context) {
         isLiveTileEvent(currentEvent.value) || isLiveTileEvent(satelliteEvent.value)
 
     private fun isLiveTileEvent(event: IslandEvent?): Boolean = event?.let {
-        it.media != null || it.call != null || it.timer != null
+        it.media != null || it.call != null || it.timer != null || it.assistant != null
     } == true
 
     /**

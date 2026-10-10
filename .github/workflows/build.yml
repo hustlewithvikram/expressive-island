@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - main
+      - feat/multi-persistent-tiles
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: expressive-island-main-build
+  group: expressive-island-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
