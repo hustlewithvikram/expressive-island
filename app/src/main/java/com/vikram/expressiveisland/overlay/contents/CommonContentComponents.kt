@@ -476,7 +476,6 @@ fun ContactPhoto(bitmap: ImageBitmap, size: Dp, modifier: Modifier = Modifier) {
  * card stay in sync), while a paused timer shows its frozen remainder without ticking. Seconds are
  * rounded up so a fresh 5:00 timer reads "5:00", and it lands on "0:00" exactly at zero.
  */
-@Composable
 /**
  * Shared title treatment for expanded dynamic tiles.
  *
@@ -510,6 +509,10 @@ fun TileTitle(
     }
 }
 
+/**
+ * Returns the formatted remaining time for the active timer, if one exists.
+ */
+@Composable
 fun timerRemainingText(): String? {
     val timer by RunningTimerBus.state.collectAsStateWithLifecycle()
     val t = timer ?: return null
