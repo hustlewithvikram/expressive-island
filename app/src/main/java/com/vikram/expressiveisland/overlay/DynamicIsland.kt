@@ -462,7 +462,7 @@ internal fun DynamicIsland(
 
     var lastSatellite by remember { mutableStateOf<IslandEvent?>(null) }
     if (satellite != null) lastSatellite = satellite
-    val satelliteShown = satelliteSharing && present
+    val satelliteShown = satellite != null && present && !isCall && !isStickToCamera
     val satelliteReveal = remember { Animatable(0f) }
     LaunchedEffect(satelliteShown) {
         satelliteReveal.animateTo(
