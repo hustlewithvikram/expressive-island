@@ -1718,15 +1718,23 @@ class IslandOverlayController(private val context: Context) {
             // the user collapses the expanded content.
             if (expanded && existing != null && isPersistentTileEvent(existing)) {
                 val incomingSystemType = (signal as? CutoutSignal.System)?.type
-                if (isPersistentTileEvent(resolvedEvent)) {
+                if (isPersistentTileEvent(resolvedEvent) && resolvedEvent.call == null) {
                     updateLiveTileSnapshot(signal, resolvedEvent)
-                    if (satelliteEvent.value == null) {
-                        parkInSatellite(resolvedEvent.copy(initiallyExpanded = false), null)
+                    if (satelliteAllowed(existing, resolvedEvent)) {
+                        if (satelliteEvent.value == null) {
+                            parkInSatellite(resolvedEvent.copy(initiallyExpanded = false), null)
+                        } else {
+                            enqueueWaitingSatellite(resolvedEvent.copy(initiallyExpanded = false), null)
+                        }
                     } else {
-                        enqueueWaitingSatellite(resolvedEvent.copy(initiallyExpanded = false), null)
+                        // If split layout cannot safely host another bubble, preserve the event
+                        // and show it after collapse rather than violating the layout constraints.
+                        enqueueDeferredExpandedEvent(resolvedEvent, incomingSystemType)
                     }
-                } else {
+                } else if (!isPersistentTileEvent(resolvedEvent)) {
                     enqueueDeferredExpandedEvent(resolvedEvent, incomingSystemType)
+                } else {
+                    // Calls retain their established exclusive/urgent layout behavior.
                 }
                 return@collect
             }
