@@ -1698,6 +1698,12 @@ class IslandOverlayController(private val context: Context) {
             ) {
                 val refreshed = resolvedEvent.copy(id = parkedSatellite.id, initiallyExpanded = false)
                 satelliteEvent.value = refreshed
+                if (signal is CutoutSignal.Notification && parkedSatellite.notificationKey == signal.key) {
+                    // Ongoing progress updates keep the bubble alive while the source keeps reporting progress.
+                    satelliteDeadlineMs = System.currentTimeMillis() +
+                        behaviourState.value.normalDurationSeconds * 1_000L
+                    armSatelliteDeadline(refreshed, satelliteDeadlineMs)
+                }
                 updateLiveTileSnapshot(signal, resolvedEvent)
                 syncWindowSize()
                 return@collect
