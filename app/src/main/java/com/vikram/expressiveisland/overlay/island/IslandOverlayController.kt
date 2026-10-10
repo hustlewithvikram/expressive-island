@@ -130,6 +130,10 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private data class ParkedSatelliteEvent(val event: IslandEvent, val deadlineMs: Long?)
+    private data class DeferredOverlayEvent(
+        val event: IslandEvent,
+        val systemEventType: SystemEventType?,
+    )
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val windowManager = requireNotNull(context.getSystemService<WindowManager>())
@@ -180,6 +184,9 @@ class IslandOverlayController(private val context: Context) {
     // One visible satellite plus a queue for other active persistent tiles.
     private val satelliteEvent = MutableStateFlow<IslandEvent?>(null)
     private val waitingSatelliteEvents = mutableListOf<ParkedSatelliteEvent>()
+    // Interrupting notifications/system events wait here while a persistent tile is expanded.
+    // They are shown after the user finishes interacting, rather than replacing the expanded tile.
+    private val deferredExpandedEvents = mutableListOf<DeferredOverlayEvent>()
     private var satelliteDismissJob: Job? = null
     private var currentDeadlineMs: Long? = null
     private var satelliteDeadlineMs: Long? = null
@@ -1668,6 +1675,19 @@ class IslandOverlayController(private val context: Context) {
             if (!behaviourState.value.cutoutEnabled) return@collect
 
             val existing = currentEvent.value
+            // Live-tile refreshes often arrive with a new event ID. Keep the visible slot identity
+            // and expansion state stable so playback/timer updates cannot collapse an expanded tile.
+            if (existing != null && isSameTile(existing, resolvedEvent)) {
+                updateLiveTileSnapshot(signal, resolvedEvent)
+                currentEvent.value = resolvedEvent.copy(
+                    id = existing.id,
+                    initiallyExpanded = existing.initiallyExpanded,
+                )
+                if (isPinnedLiveTile()) dismissJob?.cancel()
+                syncWindowSize()
+                return@collect
+            }
+
             // Refresh a parked tile in place; updates must not swap the main and satellite slots.
             val parkedSatellite = satelliteEvent.value
             if (parkedSatellite != null && isSameTile(parkedSatellite, resolvedEvent)) {
@@ -1690,6 +1710,24 @@ class IslandOverlayController(private val context: Context) {
                 currentEvent.value = resolvedEvent.copy(id = existing.id)
                 syncWindowSize()
                 scheduleDismiss()
+                return@collect
+            }
+
+            // While a persistent tile is expanded, unrelated events must not replace it. Keep
+            // additional live tiles in the satellite/queue and defer transient interruptions until
+            // the user collapses the expanded content.
+            if (expanded && existing != null && isPersistentTileEvent(existing)) {
+                val incomingSystemType = (signal as? CutoutSignal.System)?.type
+                if (isPersistentTileEvent(resolvedEvent)) {
+                    updateLiveTileSnapshot(signal, resolvedEvent)
+                    if (satelliteEvent.value == null) {
+                        parkInSatellite(resolvedEvent.copy(initiallyExpanded = false), null)
+                    } else {
+                        enqueueWaitingSatellite(resolvedEvent.copy(initiallyExpanded = false), null)
+                    }
+                } else {
+                    enqueueDeferredExpandedEvent(resolvedEvent, incomingSystemType)
+                }
                 return@collect
             }
 
@@ -1793,6 +1831,32 @@ class IslandOverlayController(private val context: Context) {
         }
     }
 
+    private fun enqueueDeferredExpandedEvent(
+        event: IslandEvent,
+        systemEventType: SystemEventType?,
+    ) {
+        val index = deferredExpandedEvents.indexOfFirst { queued ->
+            (event.notificationKey != null && queued.event.notificationKey == event.notificationKey) ||
+                (systemEventType != null && queued.systemEventType != null &&
+                    isSameSystemEventFamily(queued.systemEventType, systemEventType))
+        }
+        val deferred = DeferredOverlayEvent(event, systemEventType)
+        if (index >= 0) deferredExpandedEvents[index] = deferred else deferredExpandedEvents.add(deferred)
+    }
+
+    /** Show a deferred interruption only after the expanded content has had time to collapse. */
+    private fun showNextDeferredExpandedEvent(): Boolean {
+        if (expanded || overlayHidden || deferredExpandedEvents.isEmpty()) return false
+        val deferred = deferredExpandedEvents.removeAt(0)
+        forcedExpanded.value = null
+        expanded = false
+        currentSystemEventType = deferred.systemEventType
+        currentEvent.value = deferred.event.copy(initiallyExpanded = false)
+        syncWindowSize()
+        scheduleDismiss()
+        return true
+    }
+
     /** Pause auto-dismiss while expanded; on collapse either hide or return to the normal cutout. */
     private fun onExpandedChanged(isExpanded: Boolean) {
         val isNoExpandLandscape = currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
@@ -1819,6 +1883,13 @@ class IslandOverlayController(private val context: Context) {
             } else {
                 restoreSlots()
             }
+            // The slot restoration is immediate, but transient interruptions still wait until the
+            // collapse animation has finished before taking over the main pill.
+            windowResizeJob?.cancel()
+            windowResizeJob = scope.launch {
+                delay(WINDOW_SHRINK_DELAY_MS.milliseconds)
+                showNextDeferredExpandedEvent()
+            }
             return
         }
 
@@ -1837,7 +1908,7 @@ class IslandOverlayController(private val context: Context) {
                     delay(WINDOW_SHRINK_DELAY_MS.milliseconds)
 
                     if (!expanded && !overlayHidden) {
-                        syncWindowSize()
+                        if (!showNextDeferredExpandedEvent()) syncWindowSize()
                     }
                 }
 
