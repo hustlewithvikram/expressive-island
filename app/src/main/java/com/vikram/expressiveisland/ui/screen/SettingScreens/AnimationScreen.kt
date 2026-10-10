@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
@@ -86,34 +86,12 @@ internal fun AnimationScreen(
             .padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Row(
+        ExpressiveSegmentedRow(
+            options = listOf("Animations", "Transitions"),
+            selectedIndex = selectedTab,
+            onSelect = { selectedTab = it },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            listOf("Animations", "Transitions").forEachIndexed { index, tab ->
-                val selected = selectedTab == index
-                Card(
-                    modifier = Modifier.weight(1f).clickable { selectedTab = index },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = tab,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        }
+        )
 
         if (selectedTab == 0) {
         // Preview
@@ -149,19 +127,18 @@ internal fun AnimationScreen(
                 .clip(RoundedCornerShape(28.dp)),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            AnimationSegmentedRow(
-                shape = groupedShape(
-                    isFirst = true,
-                    isLast = expressive.not(),
+            AnimationChoiceCard(
+                title = stringResource(R.string.animation_style),
+                options = listOf(
+                    "Expressive",
+                    "Ease In-Out",
+                    "Spring",
+                    "Bouncy",
+                    "Smooth",
+                    "Snappy",
                 ),
-                label = stringResource(R.string.animation_style),
-                options = listOf("Expressive", "Ease In-Out", "Spring", "Bouncy", "Smooth", "Snappy"),
                 selectedIndex = behaviour.animationStyle.ordinal,
-                onSelect = {
-                    viewModel.setAnimationStyle(
-                        AnimationStyle.entries[it]
-                    )
-                },
+                onSelect = { viewModel.setAnimationStyle(AnimationStyle.entries[it]) },
             )
 
             AnimatedVisibility(visible = expressive) {
@@ -265,20 +242,112 @@ internal fun AnimationScreen(
             ),
         )
 
-        AnimationSegmentedRow(
-            shape = RoundedCornerShape(28.dp),
-            label = stringResource(R.string.appearance_page_transition_title),
+        AnimationChoiceCard(
+            title = stringResource(R.string.appearance_page_transition_title),
             description = stringResource(R.string.appearance_page_transition_desc),
-            options = listOf("Fade", "Slide", "Shared Axis", "Fade Through", "Scale + Fade", "Slide + Fade"),
+            options = listOf(
+                "Fade",
+                "Slide",
+                "Shared Axis",
+                "Fade Through",
+                "Scale + Fade",
+                "Slide + Fade",
+            ),
             selectedIndex = appearance.pageTransitionStyle.ordinal,
-            onSelect = { index ->
-                viewModel.setPageTransitionStyle(
-                    PageTransitionStyle.entries[index]
-                )
-            },
+            onSelect = { viewModel.setPageTransitionStyle(PageTransitionStyle.entries[it]) },
         )
 
         Spacer(modifier = Modifier.height(4.dp))
+        }
+    }
+}
+
+/**
+ * Two-column choice cards keep every animation/transition name readable on narrow screens.
+ * The selected card uses the Material 3 primary container instead of truncating labels in a
+ * six-item segmented control.
+ */
+@Composable
+private fun AnimationChoiceCard(
+    title: String,
+    options: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    description: String = "",
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            if (description.isNotBlank()) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            options.chunked(2).forEachIndexed { rowIndex, rowOptions ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    rowOptions.forEachIndexed { columnIndex, option ->
+                        val index = rowIndex * 2 + columnIndex
+                        val selected = index == selectedIndex
+                        Card(
+                            onClick = { onSelect(index) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (selected) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainerLow
+                                },
+                            ),
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(76.dp)
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Text(
+                                    text = option,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                                    color = if (selected) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                                )
+                                if (selected) {
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text(
+                                        text = "Selected",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (rowOptions.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
         }
     }
 }
