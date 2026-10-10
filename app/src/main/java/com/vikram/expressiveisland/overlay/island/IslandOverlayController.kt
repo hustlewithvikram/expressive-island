@@ -1223,8 +1223,9 @@ class IslandOverlayController(private val context: Context) {
     private fun satelliteAllowed(displaced: IslandEvent, incoming: IslandEvent): Boolean {
         if (!behaviourState.value.splitIslandEnabled) return false
         if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) return false
-        // Calls remain in the main slot because answer and hang-up actions are time-critical.
-        if (displaced.call != null || incoming.call != null) return false
+        // A call being displaced stays exclusive; an incoming call can take the main slot
+        // while the previous persistent tile moves into the satellite.
+        if (displaced.call != null) return false
         if (isTwoRowCall()) return false
         if (displaced.notificationKey != null && displaced.notificationKey == incoming.notificationKey) return false
         if (isSameActivity(displaced, incoming)) return false
@@ -1690,6 +1691,18 @@ class IslandOverlayController(private val context: Context) {
                 currentEvent.value = resolvedEvent.copy(id = existing.id)
                 syncWindowSize()
                 scheduleDismiss()
+                return@collect
+            }
+
+            // An active call owns the main slot. New persistent activities can still occupy
+            // the satellite, but must not replace the call's answer / hang-up controls.
+            if (existing?.call != null && callActive && isPersistentTileEvent(resolvedEvent) &&
+                signal !is CutoutSignal.Call
+            ) {
+                if (behaviourState.value.splitIslandEnabled && satelliteFitsWidth()) {
+                    parkInSatellite(resolvedEvent.copy(initiallyExpanded = false), null)
+                    syncWindowSize()
+                }
                 return@collect
             }
 
