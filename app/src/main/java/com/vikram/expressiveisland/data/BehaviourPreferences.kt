@@ -36,7 +36,7 @@ enum class SwipeDismissTarget { EXPANDED, BOTH, NORMAL }
  * standard ease-in-out tween whose length is the animation-duration slider. Ordered to match the
  * settings selector so the ordinal doubles as the segment index.
  */
-enum class AnimationStyle { EXPRESSIVE, EASE_IN_OUT }
+enum class AnimationStyle { EXPRESSIVE, EASE_IN_OUT, SPRING, BOUNCY, SMOOTH, SNAPPY }
 
 /**
  * The spatial-spring speed used when [AnimationStyle.EXPRESSIVE] is active, mirroring MotionScheme's

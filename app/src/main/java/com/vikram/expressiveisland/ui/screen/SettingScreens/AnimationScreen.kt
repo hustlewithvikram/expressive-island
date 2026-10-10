@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -68,6 +69,8 @@ internal fun AnimationScreen(
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
 
+    var selectedTab by remember { mutableStateOf(0) }
+
     var animationMs by remember(behaviour.animationDurationMs) {
         mutableStateOf(behaviour.animationDurationMs.toFloat())
     }
@@ -83,6 +86,36 @@ internal fun AnimationScreen(
             .padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            listOf("Animations", "Transitions").forEachIndexed { index, tab ->
+                val selected = selectedTab == index
+                Card(
+                    modifier = Modifier.weight(1f).clickable { selectedTab = index },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = tab,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+
+        if (selectedTab == 0) {
         // Preview
         CardSectionHeader(
             text = "Preview",
@@ -94,6 +127,7 @@ internal fun AnimationScreen(
 
         AnimationExampleCard(
             shape = RoundedCornerShape(28.dp),
+            style = behaviour.animationStyle,
             speed = behaviour.animationSpeed,
             bounce = behaviour.animationBounce,
             durationMs = behaviour.animationDurationMs,
@@ -121,10 +155,7 @@ internal fun AnimationScreen(
                     isLast = expressive.not(),
                 ),
                 label = stringResource(R.string.animation_style),
-                options = listOf(
-                    stringResource(R.string.animation_style_expressive),
-                    stringResource(R.string.animation_style_ease),
-                ),
+                options = listOf("Expressive", "Ease In-Out", "Spring", "Bouncy", "Smooth", "Snappy"),
                 selectedIndex = behaviour.animationStyle.ordinal,
                 onSelect = {
                     viewModel.setAnimationStyle(
@@ -221,6 +252,9 @@ internal fun AnimationScreen(
             },
         )
 
+
+        Spacer(modifier = Modifier.height(4.dp))
+        } else {
         // Page transition
         CardSectionHeader(
             text = "Page transition",
@@ -235,10 +269,7 @@ internal fun AnimationScreen(
             shape = RoundedCornerShape(28.dp),
             label = stringResource(R.string.appearance_page_transition_title),
             description = stringResource(R.string.appearance_page_transition_desc),
-            options = listOf(
-                stringResource(R.string.appearance_page_transition_fade),
-                stringResource(R.string.appearance_page_transition_slide),
-            ),
+            options = listOf("Fade", "Slide", "Shared Axis", "Fade Through", "Scale + Fade", "Slide + Fade"),
             selectedIndex = appearance.pageTransitionStyle.ordinal,
             onSelect = { index ->
                 viewModel.setPageTransitionStyle(
@@ -248,6 +279,7 @@ internal fun AnimationScreen(
         )
 
         Spacer(modifier = Modifier.height(4.dp))
+        }
     }
 }
 
@@ -356,6 +388,7 @@ private val ExampleExpandedSize = DpSize(
 @Composable
 private fun AnimationExampleCard(
     shape: Shape,
+    style: AnimationStyle,
     speed: AnimationSpeed,
     bounce: AnimationBounce,
     durationMs: Int,
@@ -371,27 +404,8 @@ private fun AnimationExampleCard(
         }
     }
 
-    val expressiveMotion = remember(
-        speed,
-        bounce,
-    ) {
-        IslandMotion(
-            AnimationStyle.EXPRESSIVE,
-            speed,
-            bounce,
-            BehaviourSettings.DEFAULT_ANIMATION_DURATION_MS,
-        )
-    }
-
-    val easeMotion = remember(
-        durationMs,
-    ) {
-        IslandMotion(
-            AnimationStyle.EASE_IN_OUT,
-            AnimationSpeed.DEFAULT,
-            AnimationBounce.NORMAL,
-            durationMs,
-        )
+    val selectedMotion = remember(style, speed, bounce, durationMs) {
+        IslandMotion(style, speed, bounce, durationMs)
     }
 
     Card(
@@ -424,22 +438,22 @@ private fun AnimationExampleCard(
             }
 
             ExamplePill(
-                label = stringResource(
-                    R.string.animation_style_expressive
-                ),
-                motion = expressiveMotion,
-                expanded = expanded,
-            )
-
-            ExamplePill(
-                label = stringResource(
-                    R.string.animation_style_ease
-                ),
-                motion = easeMotion,
+                label = style.displayLabel(),
+                motion = selectedMotion,
                 expanded = expanded,
             )
         }
     }
+}
+
+@Composable
+private fun AnimationStyle.displayLabel(): String = when (this) {
+    AnimationStyle.EXPRESSIVE -> "Expressive"
+    AnimationStyle.EASE_IN_OUT -> "Ease In-Out"
+    AnimationStyle.SPRING -> "Spring"
+    AnimationStyle.BOUNCY -> "Bouncy"
+    AnimationStyle.SMOOTH -> "Smooth"
+    AnimationStyle.SNAPPY -> "Snappy"
 }
 
 @Composable
