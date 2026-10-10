@@ -926,7 +926,16 @@ class IslandOverlayController(private val context: Context) {
     private fun observeLayout() = scope.launch {
         layoutPreferences.layout.collect { layout ->
             layoutState.value = layout
-            if (satelliteEvent.value != null && satelliteSplitDp() == 0) clearSatellite()
+            if (satelliteEvent.value != null && satelliteSplitDp() == 0) {
+                satelliteEvent.value?.let { event ->
+                    if (isPersistentTileEvent(event) && isPersistentTileActive(event)) {
+                        enqueueWaitingSatellite(event, satelliteDeadlineMs)
+                    }
+                }
+                clearSatellite()
+            } else {
+                promoteNextWaitingToSatellite()
+            }
             syncWindowSize()
         }
     }
@@ -1324,6 +1333,11 @@ class IslandOverlayController(private val context: Context) {
         }
 
         if (displaced == null || !satelliteAllowed(displaced, incoming)) {
+            satelliteEvent.value?.let { event ->
+                if (isPersistentTileEvent(event) && isPersistentTileActive(event)) {
+                    enqueueWaitingSatellite(event, satelliteDeadlineMs)
+                }
+            }
             clearSatellite()
             return
         }
