@@ -21,13 +21,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,6 +63,7 @@ private fun groupedShape(
     bottomEnd = if (isLast) 28.dp else 6.dp,
 )
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 internal fun AnimationScreen(
@@ -92,36 +90,21 @@ internal fun AnimationScreen(
             .padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        SingleChoiceSegmentedButtonRow(
+        ButtonGroup(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp, vertical = 4.dp),
-            space = 0.dp,
+            overflowIndicator = {},
         ) {
             listOf("Animations", "Transitions").forEachIndexed { index, tab ->
-                SegmentedButton(
-                    selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = 2,
-                        baseShape = RoundedCornerShape(28.dp),
-                    ),
-                    icon = {
-                        if (selectedTab == index) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                            )
-                        }
+                toggleableItem(
+                    checked = selectedTab == index,
+                    onCheckedChange = { checked ->
+                        if (checked) selectedTab = index
                     },
-                ) {
-                    Text(
-                        text = tab,
-                        maxLines = 1,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
+                    label = tab,
+                    weight = 1f,
+                )
             }
         }
 
