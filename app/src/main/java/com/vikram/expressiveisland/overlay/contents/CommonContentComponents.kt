@@ -477,6 +477,39 @@ fun ContactPhoto(bitmap: ImageBitmap, size: Dp, modifier: Modifier = Modifier) {
  * rounded up so a fresh 5:00 timer reads "5:00", and it lands on "0:00" exactly at zero.
  */
 @Composable
+/**
+ * Shared title treatment for expanded dynamic tiles.
+ *
+ * Keeps the headline and optional supporting label consistent across Music, Phone,
+ * Timer, and Assistant while allowing each tile to provide its own text.
+ */
+@Composable
+fun TileTitle(
+    title: String,
+    subtitle: String? = null,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = title,
+            color = LocalContentColor.current,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        subtitle?.let { supportingText ->
+            Text(
+                text = supportingText,
+                color = LocalContentColor.current.copy(alpha = 0.70f),
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
 fun timerRemainingText(): String? {
     val timer by RunningTimerBus.state.collectAsStateWithLifecycle()
     val t = timer ?: return null
