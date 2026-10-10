@@ -2028,7 +2028,7 @@ class IslandOverlayController(private val context: Context) {
         isLiveTileEvent(currentEvent.value) || isLiveTileEvent(satelliteEvent.value)
 
     private fun isLiveTileEvent(event: IslandEvent?): Boolean = event?.let {
-        it.media != null || it.call != null || it.timer != null
+        it.media != null || it.call != null || it.timer != null || it.assistant != null
     } == true
 
     /**
