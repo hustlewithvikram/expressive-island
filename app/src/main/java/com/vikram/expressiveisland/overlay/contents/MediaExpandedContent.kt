@@ -145,25 +145,11 @@ fun MediaExpandedContent(
                 } else {
                     IconBadge(event = event, badgeSize = 44.dp, iconSize = 26.dp)
                 }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = event.label,
-                        color = LocalContentColor.current,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    event.detail?.let { detail ->
-                        Text(
-                            text = detail,
-                            color = LocalContentColor.current.copy(alpha = 0.70f),
-                            fontSize = 12.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
+                TileTitle(
+                    title = event.label,
+                    subtitle = event.detail,
+                    modifier = Modifier.weight(1f),
+                )
             }
 
             event.media?.takeIf { it.showProgress }?.let {
