@@ -27,25 +27,57 @@ import kotlin.math.sqrt
  * scaled by the duration slider.
  */
 internal class IslandMotion(
-    style: AnimationStyle,
+    private val style: AnimationStyle,
     private val speed: AnimationSpeed,
     private val bounce: AnimationBounce,
     animationDurationMs: Int,
 ) {
     private val animScale = animationDurationMs / BASE_TRANSITION_MS.toFloat()
     private val expressive = style == AnimationStyle.EXPRESSIVE
+    private val springMotion = style == AnimationStyle.EXPRESSIVE ||
+        style == AnimationStyle.SPRING || style == AnimationStyle.BOUNCY
+
+    private val easing = when (style) {
+        AnimationStyle.EXPRESSIVE, AnimationStyle.SPRING, AnimationStyle.BOUNCY -> EaseInOutEasing
+        AnimationStyle.EASE_IN_OUT -> EaseInOutEasing
+        AnimationStyle.SMOOTH -> SmoothEasing
+        AnimationStyle.SNAPPY -> SnappyEasing
+    }
+
+    private fun springDamping() = when (style) {
+        AnimationStyle.BOUNCY -> 0.38f
+        AnimationStyle.SPRING -> 0.78f
+        else -> when (bounce) {
+            AnimationBounce.BIG -> 0.45f
+            AnimationBounce.NORMAL -> 0.6f
+            AnimationBounce.SMALL -> 0.8f
+        }
+    }
+
+    private fun <T> selectedSpring(threshold: T? = null): SpringSpec<T> =
+        spring(
+            dampingRatio = springDamping(),
+            stiffness = spatialStiffness(speed),
+            visibilityThreshold = threshold
+        )
 
     private fun scaled(baseMs: Int) = (baseMs * animScale).roundToInt()
 
     /** Spatial motion on a 0–1 fraction (the reveal). Springs may overshoot past 1; clamp consumers. */
     fun float(baseMs: Int = BASE_TRANSITION_MS): AnimationSpec<Float> =
-        if (expressive) spatialSpec(speed, bounce, visibilityThreshold = 0.001f)
-        else tween(durationMillis = scaled(baseMs), easing = EaseInOutEasing)
+        when {
+            expressive -> spatialSpec(speed, bounce, visibilityThreshold = 0.001f)
+            springMotion -> selectedSpring(0.001f)
+            else -> tween(durationMillis = scaled(baseMs), easing = easing)
+        }
 
     /** Spatial motion on sizes, offsets and corner radii. */
     fun dp(): AnimationSpec<Dp> =
-        if (expressive) spatialSpec(speed, bounce, visibilityThreshold = Dp.VisibilityThreshold)
-        else tween(durationMillis = scaled(BASE_TRANSITION_MS), easing = EaseInOutEasing)
+        when {
+            expressive -> spatialSpec(speed, bounce, visibilityThreshold = Dp.VisibilityThreshold)
+            springMotion -> selectedSpring(Dp.VisibilityThreshold)
+            else -> tween(durationMillis = scaled(BASE_TRANSITION_MS), easing = easing)
+        }
 
     /**
      * Like [dp] but critically damped (no overshoot), for a size that grows incrementally rather than
@@ -60,7 +92,8 @@ internal class IslandMotion(
             stiffness = spatialStiffness(speed),
             visibilityThreshold = Dp.VisibilityThreshold
         )
-        else tween(durationMillis = scaled(BASE_TRANSITION_MS), easing = EaseInOutEasing)
+        else if (springMotion) selectedSpring(Dp.VisibilityThreshold)
+        else tween(durationMillis = scaled(BASE_TRANSITION_MS), easing = easing)
 
     /**
      * The normal cutout's tap "boop" — the scale dip under a finger and the settle back on release.
@@ -70,12 +103,12 @@ internal class IslandMotion(
      * Critically damped and stiff, so it stays immediate without springing past the resting scale.
      */
     fun boop(): AnimationSpec<Float> =
-        if (expressive) spring(
-            dampingRatio = 1f,
+        if (springMotion) spring(
+            dampingRatio = if (style == AnimationStyle.BOUNCY) 0.55f else 1f,
             stiffness = boopStiffness(speed),
             visibilityThreshold = 0.0005f
         )
-        else tween(durationMillis = scaled(140), easing = EaseInOutEasing)
+        else tween(durationMillis = scaled(140), easing = easing)
 
     /**
      * Runs the expanded island's tap "pop" on [scale]: a swell out to [peak] and back to rest.
@@ -117,8 +150,8 @@ internal class IslandMotion(
 
     /** Alpha / colour motion: critically damped (no overshoot), so fades never over-brighten. */
     fun fade(): AnimationSpec<Float> =
-        if (expressive) effectsSpec(speed)
-        else tween(durationMillis = scaled(BASE_TRANSITION_MS), easing = EaseInOutEasing)
+        if (springMotion) effectsSpec(speed)
+        else tween(durationMillis = scaled(BASE_TRANSITION_MS), easing = easing)
 
     companion object {
         // The tuned baseline for the island's primary expand/collapse transition. Every tween-based
@@ -127,6 +160,8 @@ internal class IslandMotion(
 
         // Standard ease-in-out — cubic-bezier(0.42, 0.0, 0.58, 1.0) — for AnimationStyle.EASE_IN_OUT.
         private val EaseInOutEasing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
+        private val SmoothEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+        private val SnappyEasing = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)
 
         // The island's resting scale, i.e. the one the boop and the pop depart from and return to.
         private const val REST_SCALE = 1f

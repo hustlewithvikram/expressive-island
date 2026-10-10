@@ -35,9 +35,6 @@ import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.CircularProgressIndicator
@@ -73,6 +70,7 @@ import com.vikram.expressiveisland.data.MusicVisualizerStyle
 import com.vikram.expressiveisland.data.SeekButtonMode
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
+import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 import com.vikram.expressiveisland.ui.screen.AdjustableSlider
 import com.vikram.expressiveisland.ui.screen.CardSectionHeader
 import com.vikram.expressiveisland.ui.screen.ColorPickerCard
@@ -178,16 +176,14 @@ internal fun MusicTileScreen(
             seekIconColor = settings.seekIconColor?.resolve(),
         )
 
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-            MusicSettingsTab.entries.forEachIndexed { index, tab ->
-                SegmentedButton(
-                    selected = selectedTab == tab,
-                    onClick = { selectedTab = tab },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = MusicSettingsTab.entries.size),
-                    label = { Text(tab.label, maxLines = 1) },
-                )
-            }
-        }
+        ExpressiveSegmentedRow(
+            options = MusicSettingsTab.entries.map { it.label },
+            selectedIndex = MusicSettingsTab.entries.indexOf(selectedTab),
+            onSelect = { selectedTab = MusicSettingsTab.entries[it] },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+        )
 
         // =====================================================================
         // ALBUM ART
@@ -364,16 +360,12 @@ internal fun MusicTileScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
 
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    MusicButtonSettingsTab.entries.forEachIndexed { index, tab ->
-                        SegmentedButton(
-                            selected = selectedButtonSettingsTab == tab,
-                            onClick = { selectedButtonSettingsTab = tab },
-                            shape = SegmentedButtonDefaults.itemShape(index = index, count = MusicButtonSettingsTab.entries.size),
-                            label = { Text(tab.label, maxLines = 1) },
-                        )
-                    }
-                }
+                ExpressiveSegmentedRow(
+                    options = MusicButtonSettingsTab.entries.map { it.label },
+                    selectedIndex = MusicButtonSettingsTab.entries.indexOf(selectedButtonSettingsTab),
+                    onSelect = { selectedButtonSettingsTab = MusicButtonSettingsTab.entries[it] },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
                 if (selectedButtonSettingsTab == MusicButtonSettingsTab.SEEK) {
                     SettingsGroup {

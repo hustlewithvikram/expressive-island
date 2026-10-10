@@ -56,24 +56,12 @@ fun TimerExpandedContent(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 IconBadge(event = event, badgeSize = 44.dp, iconSize = 26.dp)
-                Column(modifier = Modifier.weight(1f)) {
-                    // The remaining time is the headline; the timer's name (or "Timer") sits beneath.
-                    Text(
-                        text = timerRemainingText() ?: event.label,
-                        color = LocalContentColor.current,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = event.label,
-                        color = LocalContentColor.current.copy(alpha = 0.70f),
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                // The remaining time is the headline; the timer name sits beneath.
+                TileTitle(
+                    title = timerRemainingText() ?: event.label,
+                    subtitle = event.label,
+                    modifier = Modifier.weight(1f),
+                )
             }
             if (timer.showActions && event.actions.isNotEmpty()) {
                 // A reset / stop button gets its own colour; every other button shares the second.
