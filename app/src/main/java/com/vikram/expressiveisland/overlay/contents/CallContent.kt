@@ -80,14 +80,9 @@ fun IncomingCallExpandedContent(
             } else {
                 IconBadge(event = event, badgeSize = CALL_INCOMING_AVATAR_DP.dp, iconSize = 24.dp)
             }
-            Text(
-                text = event.label,
+            TileTitle(
+                title = event.label,
                 modifier = Modifier.weight(1f),
-                color = LocalContentColor.current,
-                fontSize = CALL_NAME_SIZE_SP.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
         // A flexible gap pushes the button row down to the bottom edge.
@@ -166,14 +161,7 @@ fun CallSingleRowContent(
                     CallStatus(onCall = onCall)
                 }
             }
-            Text(
-                text = event.label,
-                color = LocalContentColor.current,
-                fontSize = CALL_NAME_SIZE_SP.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            TileTitle(title = event.label)
         }
         if (call.showActions) {
             if (incoming) {
