@@ -1688,28 +1688,56 @@ class IslandOverlayController(private val context: Context) {
                 return@collect
             }
 
-            // Refresh a parked tile in place; updates must not swap the main and satellite slots.
+            // Refresh an already-visible satellite notification/tile in place. Progress updates
+            // must not promote a download into the pill or reset its slot identity.
             val parkedSatellite = satelliteEvent.value
-            if (parkedSatellite != null && isSameTile(parkedSatellite, resolvedEvent)) {
+            if (parkedSatellite != null &&
+                ((signal is CutoutSignal.Notification && signal.key != null &&
+                    parkedSatellite.notificationKey == signal.key) ||
+                    isSameTile(parkedSatellite, resolvedEvent))
+            ) {
+                val refreshed = resolvedEvent.copy(id = parkedSatellite.id, initiallyExpanded = false)
+                satelliteEvent.value = refreshed
                 updateLiveTileSnapshot(signal, resolvedEvent)
-                satelliteEvent.value = resolvedEvent.copy(id = parkedSatellite.id)
                 syncWindowSize()
                 return@collect
             }
-            val waitingIndex = waitingSatelliteEvents.indexOfFirst { isSameTile(it.event, resolvedEvent) }
+
+            val waitingIndex = waitingSatelliteEvents.indexOfFirst {
+                isSameTile(it.event, resolvedEvent) ||
+                    (signal is CutoutSignal.Notification && signal.key != null &&
+                        it.event.notificationKey == signal.key)
+            }
             if (waitingIndex >= 0) {
                 updateLiveTileSnapshot(signal, resolvedEvent)
                 val parked = waitingSatelliteEvents[waitingIndex]
-                waitingSatelliteEvents[waitingIndex] = parked.copy(event = resolvedEvent.copy(id = parked.event.id))
+                waitingSatelliteEvents[waitingIndex] = parked.copy(
+                    event = resolvedEvent.copy(id = parked.event.id, initiallyExpanded = false)
+                )
                 return@collect
             }
 
+            // A notification update for the main pill keeps its identity and slot.
             if (signal is CutoutSignal.Notification && signal.key != null &&
                 existing != null && existing.notificationKey == signal.key
             ) {
                 currentEvent.value = resolvedEvent.copy(id = existing.id)
                 syncWindowSize()
                 scheduleDismiss()
+                return@collect
+            }
+
+            // Priority policy: calls remain exclusive; otherwise active persistent tiles own the
+            // main pill. Transient notifications use the satellite when the split layout can host it.
+            val incomingIsTransient = !isPersistentTileEvent(resolvedEvent)
+            if (existing != null && isPersistentTileEvent(existing) && existing.call == null &&
+                incomingIsTransient && satelliteAllowed(existing, resolvedEvent)
+            ) {
+                val deadline = if (signal is CutoutSignal.Notification) {
+                    System.currentTimeMillis() + behaviourState.value.normalDurationSeconds * 1_000L
+                } else null
+                parkInSatellite(resolvedEvent.copy(initiallyExpanded = false), deadline)
+                syncWindowSize()
                 return@collect
             }
 
