@@ -20,9 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -90,23 +87,14 @@ internal fun AnimationScreen(
             .padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        SingleChoiceSegmentedButtonRow(
+        ExpressiveSegmentedRow(
+            options = listOf("Animations", "Transitions"),
+            selectedIndex = selectedTab,
+            onSelect = { selectedTab = it },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp, vertical = 4.dp),
-        ) {
-            listOf("Animations", "Transitions").forEachIndexed { index, tab ->
-                SegmentedButton(
-                    selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = 2,
-                    ),
-                    label = { Text(tab) },
-                )
-            }
-        }
+        )
 
         if (selectedTab == 0) {
         // Preview
