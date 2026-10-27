@@ -22,7 +22,7 @@ private val Context.dynamicTileDataStore: DataStore<Preferences> by preferencesD
 class DynamicTilePreferences(private val context: Context) : JsonSerializable {
 
     val enabled: Flow<Map<DynamicTile, Boolean>> = context.dynamicTileDataStore.data.map { prefs ->
-        DynamicTile.entries.associateWith { tile -> prefs[tile.key] ?: true }
+        DynamicTile.entries.associateWith { tile -> prefs[tile.key] ?: tile.defaultEnabled }
     }
 
     suspend fun setEnabled(tile: DynamicTile, enabled: Boolean) = context.dynamicTileDataStore.edit {
@@ -49,10 +49,13 @@ class DynamicTilePreferences(private val context: Context) : JsonSerializable {
         val enabledObj = JSONObject(json).optJSONObject("enabled") ?: return
         context.dynamicTileDataStore.edit { prefs ->
             DynamicTile.entries.forEach { tile ->
-                prefs[tile.key] = enabledObj.optBoolean(tile.name, true)
+                prefs[tile.key] = enabledObj.optBoolean(tile.name, tile.defaultEnabled)
             }
         }
     }
+
+    private val DynamicTile.defaultEnabled: Boolean
+        get() = this != DynamicTile.ASSISTANT
 
     private val DynamicTile.key: Preferences.Key<Boolean>
         get() = booleanPreferencesKey("tile_enabled_$name")
