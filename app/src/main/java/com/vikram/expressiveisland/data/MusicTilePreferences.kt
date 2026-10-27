@@ -31,6 +31,8 @@ data class MusicButtonStyle(
         const val DEFAULT_FILLED = false
         const val ROUNDED_CORNER_PERCENT = 30
         val DEFAULT = MusicButtonStyle(null, DEFAULT_OPACITY, DEFAULT_CORNER_PERCENT, DEFAULT_FILLED)
+        val DEFAULT_SKIP_BUTTON = MusicButtonStyle(CutoutColor.Dynamic(DynamicRole.TERTIARY), DEFAULT_OPACITY, DEFAULT_CORNER_PERCENT, DEFAULT_FILLED)
+        val DEFAULT_PLAY_PAUSE_BUTTON = MusicButtonStyle(CutoutColor.Dynamic(DynamicRole.PRIMARY), DEFAULT_OPACITY, DEFAULT_CORNER_PERCENT, DEFAULT_FILLED)
         val ROUNDED = MusicButtonStyle(null, DEFAULT_OPACITY, ROUNDED_CORNER_PERCENT, true)
         val PILL = MusicButtonStyle(null, DEFAULT_OPACITY, MAX_CORNER_PERCENT, true)
         val PRESETS = listOf(ROUNDED, PILL)
@@ -62,11 +64,11 @@ data class MusicTileSettings(
     val expandOnPlay: Boolean = DEFAULT_EXPAND_ON_PLAY,
     val visibleInPlayerApp: Boolean = DEFAULT_VISIBLE_IN_PLAYER_APP,
     val showControls: Boolean = DEFAULT_SHOW_CONTROLS,
-    val skipButton: MusicButtonStyle = MusicButtonStyle.DEFAULT,
-    val playPauseButton: MusicButtonStyle = MusicButtonStyle.DEFAULT,
+    val skipButton: MusicButtonStyle = MusicButtonStyle.DEFAULT_SKIP_BUTTON,
+    val playPauseButton: MusicButtonStyle = MusicButtonStyle.DEFAULT_PLAY_PAUSE_BUTTON,
     val skipIconColor: CutoutColor? = null,
-    val playPauseIconColor: CutoutColor? = null,
-    val seekIconColor: CutoutColor? = null,
+    val playPauseIconColor: CutoutColor? = DEFAULT_CONTROL_ICON_COLOR,
+    val seekIconColor: CutoutColor? = DEFAULT_CONTROL_ICON_COLOR,
     val showProgress: Boolean = DEFAULT_SHOW_PROGRESS,
     val progressStyle: MusicProgressStyle = MusicProgressStyle.WAVY,
     val showVisualizer: Boolean = true,
@@ -76,7 +78,7 @@ data class MusicTileSettings(
     val leftSeekSeconds: Int = 5,
     val rightSeekSeconds: Int = 5,
     val showPlayPauseIcon: Boolean = true,
-    val showPlayPauseText: Boolean = true,
+    val showPlayPauseText: Boolean = false,
     val visualizerStyle: MusicVisualizerStyle = MusicVisualizerStyle.BARS,
     val expandedBackground: Boolean = DEFAULT_EXPANDED_BACKGROUND,
     val expandedBackgroundBlur: Float = DEFAULT_EXPANDED_BACKGROUND_BLUR,
@@ -88,7 +90,8 @@ data class MusicTileSettings(
         const val DEFAULT_EXPAND_ON_PLAY = true
         const val DEFAULT_VISIBLE_IN_PLAYER_APP = true
         const val DEFAULT_SHOW_CONTROLS = true
-        const val DEFAULT_SHOW_PROGRESS = false
+        const val DEFAULT_SHOW_PROGRESS = true
+        val DEFAULT_CONTROL_ICON_COLOR: CutoutColor = CutoutColor.Solid(0xFF0A0A0AL)
         const val DEFAULT_EXPANDED_BACKGROUND = false
         const val DEFAULT_EXPANDED_BACKGROUND_BLUR = 24f
     }
@@ -105,22 +108,22 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             visibleInPlayerApp = prefs[VISIBLE_IN_PLAYER_APP] ?: MusicTileSettings.DEFAULT_VISIBLE_IN_PLAYER_APP,
             showControls = prefs[SHOW_CONTROLS] ?: MusicTileSettings.DEFAULT_SHOW_CONTROLS,
             skipButton = MusicButtonStyle(
-                color = CutoutColor.deserialize(prefs[SKIP_COLOR]),
+                color = CutoutColor.deserialize(prefs[SKIP_COLOR]) ?: MusicButtonStyle.DEFAULT_SKIP_BUTTON.color,
                 opacity = (prefs[SKIP_OPACITY] ?: MusicButtonStyle.DEFAULT_OPACITY).coerceIn(0f, 1f),
                 cornerPercent = (prefs[SKIP_CORNER] ?: MusicButtonStyle.DEFAULT_CORNER_PERCENT)
                     .coerceIn(MusicButtonStyle.MIN_CORNER_PERCENT, MusicButtonStyle.MAX_CORNER_PERCENT),
                 filled = prefs[SKIP_FILLED] ?: MusicButtonStyle.DEFAULT_FILLED,
             ),
             playPauseButton = MusicButtonStyle(
-                color = CutoutColor.deserialize(prefs[PLAY_PAUSE_COLOR]),
+                color = CutoutColor.deserialize(prefs[PLAY_PAUSE_COLOR]) ?: MusicButtonStyle.DEFAULT_PLAY_PAUSE_BUTTON.color,
                 opacity = (prefs[PLAY_PAUSE_OPACITY] ?: MusicButtonStyle.DEFAULT_OPACITY).coerceIn(0f, 1f),
                 cornerPercent = (prefs[PLAY_PAUSE_CORNER] ?: MusicButtonStyle.DEFAULT_CORNER_PERCENT)
                     .coerceIn(MusicButtonStyle.MIN_CORNER_PERCENT, MusicButtonStyle.MAX_CORNER_PERCENT),
                 filled = prefs[PLAY_PAUSE_FILLED] ?: MusicButtonStyle.DEFAULT_FILLED,
             ),
             skipIconColor = CutoutColor.deserialize(prefs[SKIP_ICON_COLOR]),
-            playPauseIconColor = CutoutColor.deserialize(prefs[PLAY_PAUSE_ICON_COLOR]),
-            seekIconColor = CutoutColor.deserialize(prefs[SEEK_ICON_COLOR]),
+            playPauseIconColor = CutoutColor.deserialize(prefs[PLAY_PAUSE_ICON_COLOR]) ?: MusicTileSettings.DEFAULT_CONTROL_ICON_COLOR,
+            seekIconColor = CutoutColor.deserialize(prefs[SEEK_ICON_COLOR]) ?: MusicTileSettings.DEFAULT_CONTROL_ICON_COLOR,
             showProgress = prefs[SHOW_PROGRESS] ?: MusicTileSettings.DEFAULT_SHOW_PROGRESS,
             progressStyle = runCatching { MusicProgressStyle.valueOf(prefs[PROGRESS_STYLE] ?: MusicProgressStyle.WAVY.name) }.getOrDefault(MusicProgressStyle.WAVY),
             showVisualizer = prefs[SHOW_VISUALIZER] ?: true,
@@ -130,7 +133,7 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             leftSeekSeconds = (prefs[LEFT_SEEK_SECONDS] ?: 5).coerceIn(5, 60),
             rightSeekSeconds = (prefs[RIGHT_SEEK_SECONDS] ?: 5).coerceIn(5, 60),
             showPlayPauseIcon = prefs[SHOW_PLAY_PAUSE_ICON] ?: true,
-            showPlayPauseText = prefs[SHOW_PLAY_PAUSE_TEXT] ?: true,
+            showPlayPauseText = prefs[SHOW_PLAY_PAUSE_TEXT] ?: false,
             visualizerStyle = runCatching { MusicVisualizerStyle.valueOf(prefs[VISUALIZER_STYLE] ?: MusicVisualizerStyle.BARS.name) }.getOrDefault(MusicVisualizerStyle.BARS),
             expandedBackground = prefs[EXPANDED_BACKGROUND] ?: MusicTileSettings.DEFAULT_EXPANDED_BACKGROUND,
             expandedBackgroundBlur = (prefs[EXPANDED_BACKGROUND_BLUR]
