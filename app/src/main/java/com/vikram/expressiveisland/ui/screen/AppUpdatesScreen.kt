@@ -43,6 +43,7 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
     var downloading by remember { mutableStateOf(false) }
     var progress by remember { mutableStateOf(0f) }
     var latest by remember { mutableStateOf<UpdateInfo?>(null) }
+    var downloadedUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
     var apk by remember { mutableStateOf<File?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var installDialog by remember { mutableStateOf(false) }
@@ -51,13 +52,15 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
     var downloadJob by remember { mutableStateOf<Job?>(null) }
 
     fun checkUpdates() {
-        if (checking || downloading || apk != null) return
-        checking = true; error = null; latest = null
+        if (checking || downloading) return
+        checking = true; error = null
         scope.launch {
             try {
                 latest = withContext(Dispatchers.IO) { fetchUpdate(isDebug) }
                 if (latest?.apkUrl.isNullOrBlank()) error = "No APK is attached to the latest $channel build."
                 else if (latest?.commit?.isNotBlank() == true && installedCommit.isNotBlank() && latest?.commit == installedCommit) error = "You are already running the latest $channel build."
+                else if (apk != null && latest?.commit == downloadedUpdate?.commit) error = "The latest update is downloaded and ready to install."
+                else if (apk != null) error = "A newer build is available. Download it to replace the saved APK."
             } catch (e: Exception) {
                 error = when {
                     e is SecurityException || e.message?.contains("permission",true)==true ->
@@ -97,70 +100,103 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
                     } finally { conn.disconnect() }
                 }
                 if(!target.exists() || target.length()==0L) error("Downloaded APK is empty.")
-                apk=target; installDialog=true
+                apk=target; downloadedUpdate=info; installDialog=true
             } catch(e: CancellationException) { target.delete(); throw e
             } catch(e: Exception) { target.delete(); error=e.message ?: "Download failed."
             } finally { downloading=false; downloadJob=null }
         }
     }
-    fun discardDownloadedApk() { apk?.delete(); apk = null; installDialog = false; error = null }
+    fun discardDownloadedApk() { apk?.delete(); apk = null; downloadedUpdate = null; installDialog = false; error = null }
     fun openSettings() {
         context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:${context.packageName}")))
     }
     LaunchedEffect(Unit) { checkUpdates() }
 
-    Column(Modifier.fillMaxWidth().padding(contentPadding),verticalArrangement=Arrangement.spacedBy(14.dp)) {
-        Column(Modifier.padding(start=8.dp,top=10.dp,bottom=4.dp)) {
-            Text("App Updates",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.SemiBold)
-            Text("Updates for the ${channel.lowercase()} channel.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+    val newerDownloaded = apk != null && latest != null && latest!!.commit.isNotBlank() &&
+        latest!!.commit != downloadedUpdate?.commit && latest!!.commit != installedCommit
+    val statusContainer = when {
+        error?.startsWith("You are already running") == true || error?.startsWith("The latest update is downloaded") == true -> MaterialTheme.colorScheme.primaryContainer
+        error?.startsWith("A newer build") == true -> MaterialTheme.colorScheme.tertiaryContainer
+        error != null && !error!!.startsWith("No APK is attached") -> MaterialTheme.colorScheme.errorContainer
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh
+    }
+    val statusInk = when {
+        error?.startsWith("You are already running") == true || error?.startsWith("The latest update is downloaded") == true -> MaterialTheme.colorScheme.onPrimaryContainer
+        error?.startsWith("A newer build") == true -> MaterialTheme.colorScheme.onTertiaryContainer
+        error != null && !error!!.startsWith("No APK is attached") -> MaterialTheme.colorScheme.onErrorContainer
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    Column(Modifier.fillMaxWidth().padding(contentPadding).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.padding(top = 10.dp, bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("App Updates", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+            Text("Keep Expressive Island up to date.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceContainerLow)) {
-            Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment=Alignment.CenterVertically) {
-                    Surface(shape=RoundedCornerShape(16.dp),color=MaterialTheme.colorScheme.secondaryContainer) {
-                        Icon(Icons.Rounded.SystemUpdate,null,tint=MaterialTheme.colorScheme.onSecondaryContainer,modifier=Modifier.padding(12.dp))
+        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+                        Icon(Icons.Rounded.GraphicEq, null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(52.dp).padding(11.dp))
                     }
-                    Column(Modifier.weight(1f).padding(start=12.dp)) {
-                        Text("Expressive Island",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.SemiBold)
-                        Text("Installed version: $installedVersion",color=MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Channel: $channel",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.primary)
-                        Text("Package: ${context.packageName}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text("Expressive Island", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                        Text(context.packageName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Text(when { checking -> "Checking for $channel updates…"; downloading -> "Downloading update…"; error!=null -> error!!; latest!=null -> "Latest build: ${latest!!.version}"; else -> "Check for the latest build." },
-                    color=if(error!=null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
-                if(checking) LoadingIndicator(Modifier.size(32.dp))
-                if(downloading) {
-                    LinearProgressIndicator(progress={progress},modifier=Modifier.fillMaxWidth())
-                    Text("${(progress*100).toInt()}% downloaded",color=MaterialTheme.colorScheme.onSurfaceVariant)
-                    OutlinedButton(onClick={cancelDialog=true},modifier=Modifier.fillMaxWidth()) { Icon(Icons.Rounded.Close,null); Spacer(Modifier.width(8.dp)); Text("Cancel download") }
-                } else if(apk!=null) {
-                    Button(onClick={installDialog=true},modifier=Modifier.fillMaxWidth()) { Icon(Icons.Rounded.SystemUpdate,null); Spacer(Modifier.width(8.dp)); Text("Install update") }
-                    OutlinedButton(onClick={discardDialog=true},modifier=Modifier.fillMaxWidth()) { Icon(Icons.Rounded.DeleteOutline,null); Spacer(Modifier.width(8.dp)); Text("Discard downloaded APK") }
-                } else if(latest!=null && error==null) {
-                    Button(onClick={startDownload()},modifier=Modifier.fillMaxWidth()) { Icon(Icons.Rounded.Download,null); Spacer(Modifier.width(8.dp)); Text("Download update") }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Text("Channel: $channel", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                    BuildSummaryCard("Installed App", installedBranch, installedRunNumber, installedCommit, Modifier.weight(1f))
+                    BuildSummaryCard("Latest App", latest?.branch ?: if (checking) "Checking…" else "—", latest?.runNumber ?: "—", latest?.commit ?: "", Modifier.weight(1f))
                 }
-                if (apk == null && !downloading && (error != null || latest == null || (latest != null && latest?.commit != installedCommit))) {
-                    FilledTonalButton(onClick={checkUpdates()},enabled=!checking,modifier=Modifier.fillMaxWidth()) { Icon(Icons.Rounded.Refresh,null); Spacer(Modifier.width(8.dp)); Text(if(checking) "Checking…" else "Check for updates") }
+                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = statusContainer) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(when {
+                            error?.startsWith("You are already running") == true || error?.startsWith("The latest update is downloaded") == true -> Icons.Rounded.CheckCircle
+                            error?.startsWith("A newer build") == true -> Icons.Rounded.WarningAmber
+                            error != null && !error!!.startsWith("No APK is attached") -> Icons.Rounded.ErrorOutline
+                            else -> Icons.Rounded.Info
+                        }, null, tint = statusInk)
+                        Text(when { checking -> "Checking for $channel updates…"; downloading -> "Downloading update…"; error != null -> error!!; latest != null -> "Latest build: " + latest!!.version; else -> "Check for the latest build." },
+                            Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = statusInk)
+                    }
                 }
-                if(error!=null) OutlinedButton(onClick={openSettings()},modifier=Modifier.fillMaxWidth()) { Icon(Icons.Rounded.Settings,null); Spacer(Modifier.width(8.dp)); Text("Open app settings") }
-            }
-        }
-        latest?.let { info ->
-            Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceContainerLow)) {
-                Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                    Text("Build information",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
-                    Text("Channel: ${info.channel}")
-                    Text("Installed branch: ${installedBranch.ifBlank { "Not available" }}")
-                    Text("Installed workflow run: ${installedRunNumber.ifBlank { "Not embedded" }}")
-                    Text("Installed run ID: ${installedRunId.ifBlank { "Not embedded" }}")
-                    Text("Installed commit: ${installedCommit.takeIf { it.isNotBlank() }?.take(12) ?: "Not embedded"}")
-                    Text("Latest workflow run: ${info.runNumber.ifBlank { "Not available" }}")
-                    Text("Branch: ${info.branch.ifBlank{"Not available"}}")
-                    Text("Workflow run ID: ${info.runId.ifBlank{"Not available"}}")
-                    Text("Commit: ${info.commit.ifBlank{"Not available"}}")
-                    if(info.runId.isNotBlank()) TextButton(onClick={context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://github.com/hustlewithvikram/expressive-island/actions/runs/${info.runId}")))}) { Text("Open workflow run") }
-                    if(info.notes.isNotBlank()) { Spacer(Modifier.height(4.dp)); Text("Build notes",style=MaterialTheme.typography.titleSmall); Text(info.notes,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+                if (downloading) {
+                    LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                    Text((progress * 100).toInt().toString() + "% downloaded", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedButton(onClick = { cancelDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.Close, null); Spacer(Modifier.width(8.dp)); Text("Cancel download")
+                    }
+                } else if (apk != null) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedButton(onClick = { discardDialog = true }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Rounded.DeleteOutline, null); Spacer(Modifier.width(5.dp)); Text("Discard APK")
+                        }
+                        Button(onClick = { installDialog = true }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Rounded.SystemUpdate, null); Spacer(Modifier.width(5.dp)); Text("Install App")
+                        }
+                    }
+                    if (newerDownloaded) {
+                        Button(onClick = { startDownload() }, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Rounded.Download, null); Spacer(Modifier.width(8.dp))
+                            Text("Download Update " + latest!!.branch + "-#" + latest!!.runNumber)
+                        }
+                    } else {
+                        FilledTonalButton(onClick = { checkUpdates() }, enabled = !checking, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Rounded.Refresh, null); Spacer(Modifier.width(8.dp)); Text(if (checking) "Checking…" else "Check again")
+                        }
+                    }
+                } else if (latest != null && error == null && latest!!.commit.isNotBlank() && latest!!.commit != installedCommit) {
+                    Button(onClick = { startDownload() }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.Download, null); Spacer(Modifier.width(8.dp))
+                        Text("Download Update " + latest!!.branch.ifBlank { channel } + "-#" + latest!!.runNumber.ifBlank { "?" })
+                    }
+                    FilledTonalButton(onClick = { checkUpdates() }, enabled = !checking, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.Refresh, null); Spacer(Modifier.width(8.dp)); Text("Check again")
+                    }
+                } else {
+                    FilledTonalButton(onClick = { checkUpdates() }, enabled = !checking, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.Refresh, null); Spacer(Modifier.width(8.dp)); Text(if (checking) "Checking…" else "Check again")
+                    }
                 }
             }
         }
@@ -183,6 +219,26 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
                 context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri,"application/vnd.android.package-archive").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))
             } catch(e:Exception) { error="Unable to open installer: ${e.message ?: "unknown error"}" }
         }) { Text("Install") }},dismissButton={TextButton(onClick={installDialog=false}) { Text("Later") }})
+}
+
+
+@Composable
+private fun BuildSummaryCard(title: String, branch: String, run: String, commit: String, modifier: Modifier = Modifier) {
+    Card(modifier, shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            BuildDetail("Branch", branch.takeIf { it.isNotBlank() && it != "local" } ?: "—")
+            BuildDetail("Run", run.takeIf { it.isNotBlank() && it != "local" } ?: "—")
+            BuildDetail("Commit", commit.takeIf { it.isNotBlank() }?.take(8) ?: "—")
+        }
+    }
+}
+@Composable
+private fun BuildDetail(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1)
+    }
 }
 
 private fun fetchUpdate(debug:Boolean): UpdateInfo {
