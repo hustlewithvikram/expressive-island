@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +27,7 @@ private const val UPDATE_API = "https://api.github.com/repos/hustlewithvikram/ex
 private const val DEBUG_RELEASE_TAG = "expressive-island-debug-latest-build"
 private data class UpdateInfo(val version:String,val notes:String,val runNumber:String,val runId:String,val commit:String,val branch:String,val apkUrl:String,val channel:String)
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppUpdatesScreen(contentPadding: PaddingValues) {
     val context = LocalContext.current
@@ -44,6 +46,7 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
     var apk by remember { mutableStateOf<File?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var installDialog by remember { mutableStateOf(false) }
+    var discardDialog by remember { mutableStateOf(false) }
     var cancelDialog by remember { mutableStateOf(false) }
     var downloadJob by remember { mutableStateOf<Job?>(null) }
 
