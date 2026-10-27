@@ -3,6 +3,7 @@ package com.vikram.expressiveisland.ui.screen
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import android.widget.ImageView
 import androidx.core.content.FileProvider
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,8 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.vikram.expressiveisland.BuildConfig
@@ -137,7 +137,15 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                        androidx.compose.foundation.Image(painter = painterResource(id = com.vikram.expressiveisland.R.mipmap.ic_launcher), contentDescription = "Expressive Island icon", modifier = Modifier.size(48.dp))
+                        AndroidView(
+                            factory = { viewContext ->
+                                ImageView(viewContext).apply {
+                                    setImageDrawable(viewContext.packageManager.getApplicationIcon(viewContext.packageName))
+                                    contentDescription = "Expressive Island icon"
+                                }
+                            },
+                            modifier = Modifier.size(48.dp)
+                        )
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Text("Expressive Island", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
