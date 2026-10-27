@@ -1106,19 +1106,17 @@ private fun AppHeader() {
                 .size(104.dp)
                 .clip(CircleShape)
                 .background(
-                    MaterialTheme.colorScheme.primaryContainer,
+                    MaterialTheme.colorScheme.surfaceContainerHighest,
                 ),
         ) {
-            Icon(
-                painter =
-                    painterResource(
-                        R.drawable.ic_launcher_monochrome,
-                    ),
-                contentDescription =
-                    stringResource(
-                        R.string.app_icon_description,
-                    ),
-                tint = MaterialTheme.colorScheme.primary,
+            Image(
+                painter = painterResource(
+                    R.drawable.ic_launcher_foreground,
+                ),
+                contentDescription = stringResource(
+                    R.string.app_icon_description,
+                ),
+                contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
             )
         }
