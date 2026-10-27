@@ -1,24 +1,20 @@
-name: Build
+name: Build Play Store APK and AAB (Signed)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: expressive-island-main-build
+  group: expressive-island-playstore
   cancel-in-progress: true
 
 jobs:
   build:
-    name: Build signed release APK and run lint
+    name: Build signed Play Store APK and AAB
     runs-on: ubuntu-latest
-    timeout-minutes: 35
-
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,8 +25,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle and cache dependencies
-        id: setup-gradle
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Configure release signing key
@@ -42,18 +37,15 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.EXPRESSIVE_RELEASE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-
           for name in RELEASE_KEYSTORE_BASE64 RELEASE_STORE_PASSWORD RELEASE_KEY_ALIAS RELEASE_KEY_PASSWORD; do
             if [[ -z "${!name:-}" ]]; then
               echo "::error::Required release signing secret is missing: $name."
               exit 1
             fi
           done
-
-          KEYSTORE_PATH="$RUNNER_TEMP/expressive-island-release.jks"
+          KEYSTORE_PATH="$RUNNER_TEMP/expressive-island-playstore.jks"
           printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
           test -s "$KEYSTORE_PATH"
-
           {
             echo "EXPRESSIVE_RELEASE_STORE_FILE=$KEYSTORE_PATH"
             echo "EXPRESSIVE_RELEASE_STORE_PASSWORD=$RELEASE_STORE_PASSWORD"
@@ -61,39 +53,44 @@ jobs:
             echo "EXPRESSIVE_RELEASE_KEY_PASSWORD=$RELEASE_KEY_PASSWORD"
           } >> "$GITHUB_ENV"
 
-      - name: Build signed release APK
-        run: ./gradlew assembleRelease --build-cache --parallel --no-daemon
+      - name: Build signed release APK and Android App Bundle
+        run: ./gradlew assembleRelease bundleRelease --build-cache --parallel --no-daemon
 
-      - name: Prepare release APK
+      - name: Prepare and verify APK
         shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
           APK_FILES=(app/build/outputs/apk/release/*.apk)
-
           if [[ ${#APK_FILES[@]} -ne 1 ]]; then
             echo "::error::Expected exactly one release APK, found ${#APK_FILES[@]}."
             printf '%s\n' "${APK_FILES[@]}"
             exit 1
           fi
+          AAB_FILES=(app/build/outputs/bundle/release/*.aab)
+          if [[ ${#AAB_FILES[@]} -ne 1 ]]; then
+            echo "::error::Expected exactly one release AAB, found ${#AAB_FILES[@]}."
+            printf '%s\n' "${AAB_FILES[@]}"
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/playstore-artifact"
+          cp "${APK_FILES[0]}" "$RUNNER_TEMP/playstore-artifact/expressive-island-playstore.apk"
+          cp "${AAB_FILES[0]}" "$RUNNER_TEMP/playstore-artifact/expressive-island-playstore.aab"
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
+          "$APKSIGNER" verify --verbose "$RUNNER_TEMP/playstore-artifact/expressive-island-playstore.apk"
+          jarsigner -verify "$RUNNER_TEMP/playstore-artifact/expressive-island-playstore.aab"
 
-          mkdir -p "$RUNNER_TEMP/release-artifact"
-          cp "${APK_FILES[0]}" "$RUNNER_TEMP/release-artifact/expressive-island-release.apk"
-          test -s "$RUNNER_TEMP/release-artifact/expressive-island-release.apk"
-
-      - name: Upload release APK
+      - name: Upload signed Play Store APK and AAB
         uses: actions/upload-artifact@v4
         with:
-          name: expressive-island-release-${{ github.sha }}
-          path: ${{ runner.temp }}/release-artifact/expressive-island-release.apk
+          name: expressive-island-playstore
+          path: |
+            ${{ runner.temp }}/playstore-artifact/expressive-island-playstore.apk
+            ${{ runner.temp }}/playstore-artifact/expressive-island-playstore.aab
           if-no-files-found: error
-          retention-days: 14
-
-      - name: Run Android lint
-        if: always()
-        run: ./gradlew lintDebug --build-cache --parallel --no-daemon
+          retention-days: 30
 
       - name: Remove temporary signing key
         if: always()
         shell: bash
-        run: rm -f "$RUNNER_TEMP/expressive-island-release.jks"
+        run: rm -f "$RUNNER_TEMP/expressive-island-playstore.jks"
