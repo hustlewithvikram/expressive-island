@@ -106,6 +106,7 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                 // Nested profile screens return to the page that opened them.
                 ProfileRoute.PermissionDetails -> ProfileRoute.Access
                 ProfileRoute.Changelog -> ProfileRoute.About
+                ProfileRoute.AppUpdates -> ProfileRoute.List
                 // First-level profile pages return to the Profile list.
                 ProfileRoute.Access,
                 ProfileRoute.TestingTriggers,
@@ -269,6 +270,7 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                             onOpenAccess = { profileRoute = ProfileRoute.Access },
                             onOpenTestingTriggers = { profileRoute = ProfileRoute.TestingTriggers },
                             onOpenAbout = { profileRoute = ProfileRoute.About },
+                            onOpenUpdates = { profileRoute = ProfileRoute.AppUpdates },
                             onOpenChangelog = { profileRoute = ProfileRoute.Changelog },
                             onOpenPermissionDetails = {
                                 profileRoute = ProfileRoute.PermissionDetails
@@ -324,6 +326,7 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                         ProfileRoute.Access -> "Access"
                         ProfileRoute.TestingTriggers -> "Testing Triggers"
                         ProfileRoute.About -> "About"
+                        ProfileRoute.AppUpdates -> "App Updates"
                         ProfileRoute.Changelog -> stringResource(R.string.profile_version)
                         ProfileRoute.PermissionDetails -> stringResource(R.string.profile_permissions_title)
                         ProfileRoute.List -> stringResource(R.string.nav_profile)
