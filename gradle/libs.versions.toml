@@ -1,10 +1,10 @@
 [versions]
-agp = "8.7.3"
-kotlin = "2.1.0"
+agp = "9.1.1"
+kotlin = "2.2.10"
 coreKtx = "1.15.0"
 lifecycle = "2.8.7"
 activityCompose = "1.9.3"
-composeBom = "2024.12.01"
+composeBom = "2026.09.00"
 datastore = "1.1.1"
 savedstate = "1.2.1"
 lottie = "6.6.2"
@@ -36,5 +36,4 @@ hiddenapibypass = { group = "org.lsposed.hiddenapibypass", name = "hiddenapibypa
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
