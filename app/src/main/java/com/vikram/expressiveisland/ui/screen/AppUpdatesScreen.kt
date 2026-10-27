@@ -2,230 +2,185 @@ package com.vikram.expressiveisland.ui.screen
 
 import android.content.Intent
 import android.net.Uri
-import android.content.pm.PackageManager
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import android.provider.Settings
+import androidx.core.content.FileProvider
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.SystemUpdate
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.vikram.expressiveisland.BuildConfig
+import kotlinx.coroutines.*
 import org.json.JSONObject
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-private const val EXPRESSIVE_RELEASES_API =
-    "https://api.github.com/repos/hustlewithvikram/expressive-island/releases/latest"
+private const val UPDATE_API = "https://api.github.com/repos/hustlewithvikram/expressive-island"
+private const val DEBUG_RELEASE_TAG = "expressive-island-debug-latest-build"
+private data class UpdateInfo(val version:String,val notes:String,val runId:String,val commit:String,val branch:String,val apkUrl:String,val channel:String)
 
 @Composable
-fun AppUpdatesScreen(contentPadding: androidx.compose.foundation.layout.PaddingValues) {
+fun AppUpdatesScreen(contentPadding: PaddingValues) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val installedVersion = remember {
-        runCatching {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
-        }.getOrDefault("Unknown")
-    }
+    val isDebug = BuildConfig.DEBUG
+    val channel = if (isDebug) "Development" else "Production"
+    val installedVersion = remember { runCatching { context.packageManager.getPackageInfo(context.packageName,0).versionName ?: "Unknown" }.getOrDefault("Unknown") }
     var checking by remember { mutableStateOf(false) }
-    var latestVersion by remember { mutableStateOf<String?>(null) }
-    var releaseUrl by remember { mutableStateOf<String?>(null) }
-    var releaseNotes by remember { mutableStateOf<String?>(null) }
+    var downloading by remember { mutableStateOf(false) }
+    var progress by remember { mutableStateOf(0f) }
+    var latest by remember { mutableStateOf<UpdateInfo?>(null) }
+    var apk by remember { mutableStateOf<File?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
-    var checked by remember { mutableStateOf(false) }
+    var installDialog by remember { mutableStateOf(false) }
+    var cancelDialog by remember { mutableStateOf(false) }
+    var downloadJob by remember { mutableStateOf<Job?>(null) }
 
-    fun checkForUpdates() {
-        if (checking) return
-        checking = true
-        error = null
+    fun checkUpdates() {
+        if (checking || downloading) return
+        checking = true; error = null; latest = null
         scope.launch {
             try {
-                val release = withContext(Dispatchers.IO) {
-                    val connection = (URL(EXPRESSIVE_RELEASES_API).openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 10000
-                        readTimeout = 10000
-                        requestMethod = "GET"
-                        setRequestProperty("Accept", "application/vnd.github+json")
-                        setRequestProperty("User-Agent", "Expressive-Island-Android")
+                latest = withContext(Dispatchers.IO) { fetchUpdate(isDebug) }
+                if (latest?.apkUrl.isNullOrBlank()) error = "No APK is attached to the latest $channel build."
+            } catch (e: Exception) {
+                error = when {
+                    e is SecurityException || e.message?.contains("permission",true)==true ->
+                        "Network access failed. Check app settings and allow network access if restricted."
+                    else -> e.message ?: "Could not check for updates. Check your connection."
+                }
+            } finally { checking = false }
+        }
+    }
+    fun startDownload() {
+        val info = latest ?: return
+        downloading = true; progress = 0f; error = null
+        downloadJob = scope.launch {
+            val target = File(context.cacheDir,"updates/expressive-island-update.apk")
+            try {
+                withContext(Dispatchers.IO) {
+                    target.parentFile?.mkdirs(); target.delete()
+                    val conn = (URL(info.apkUrl).openConnection() as HttpURLConnection).apply {
+                        connectTimeout=15000; readTimeout=30000
+                        setRequestProperty("User-Agent","Expressive-Island-Android")
                     }
                     try {
-                        if (connection.responseCode !in 200..299) {
-                            error("GitHub returned HTTP ${connection.responseCode}")
+                        if (conn.responseCode !in 200..299) error("Download failed (HTTP ${conn.responseCode}).")
+                        val total = conn.contentLengthLong
+                        conn.inputStream.use { input ->
+                            target.outputStream().buffered().use { output ->
+                                val buffer=ByteArray(16384)
+                                while (true) {
+                                    currentCoroutineContext().ensureActive()
+                                    val n=input.read(buffer); if(n<0) break
+                                    if(n==0) continue
+                                    output.write(buffer,0,n)
+                                    if(total>0) progress=(target.length().toFloat()/total).coerceIn(0f,1f)
+                                }
+                            }
                         }
-                        JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
-                    } finally {
-                        connection.disconnect()
+                    } finally { conn.disconnect() }
+                }
+                if(!target.exists() || target.length()==0L) error("Downloaded APK is empty.")
+                apk=target; installDialog=true
+            } catch(e: CancellationException) { target.delete(); throw e
+            } catch(e: Exception) { target.delete(); error=e.message ?: "Download failed."
+            } finally { downloading=false; downloadJob=null }
+        }
+    }
+    fun openSettings() {
+        context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:${context.packageName}")))
+    }
+    LaunchedEffect(Unit) { checkUpdates() }
+
+    Column(Modifier.fillMaxWidth().padding(contentPadding),verticalArrangement=Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.padding(start=8.dp,top=10.dp,bottom=4.dp)) {
+            Text("App Updates",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.SemiBold)
+            Text("Updates for the ${channel.lowercase()} channel.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceContainerLow)) {
+            Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment=Alignment.CenterVertically) {
+                    Surface(shape=RoundedCornerShape(16.dp),color=MaterialTheme.colorScheme.secondaryContainer) {
+                        Icon(Icons.Rounded.SystemUpdate,null,tint=MaterialTheme.colorScheme.onSecondaryContainer,modifier=Modifier.padding(12.dp))
+                    }
+                    Column(Modifier.weight(1f).padding(start=12.dp)) {
+                        Text("Expressive Island",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.SemiBold)
+                        Text("Installed version: $installedVersion",color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Channel: $channel",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.primary)
                     }
                 }
-                latestVersion = release.optString("tag_name").removePrefix("v").ifBlank { null }
-                releaseUrl = release.optString("html_url").ifBlank { null }
-                releaseNotes = release.optString("body").takeIf { it.isNotBlank() }
-                if (latestVersion == null) error = "The latest release did not include a version tag."
-                checked = true
-            } catch (e: Exception) {
-                error = e.message ?: "Unable to check for updates. Check your internet connection."
-                checked = true
-            } finally {
-                checking = false
+                Text(when { checking -> "Checking for $channel updates…"; downloading -> "Downloading update…"; error!=null -> error!!; latest!=null -> "Latest build: ${latest!!.version}"; else -> "Check for the latest build." },
+                    color=if(error!=null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+                if(checking) CircularProgressIndicator(Modifier.size(28.dp))
+                if(downloading) {
+                    LinearProgressIndicator(progress={progress},modifier=Modifier.fillMaxWidth())
+                    Text("${(progress*100).toInt()}% downloaded",color=MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedButton(onClick={cancelDialog=true},modifier=Modifier.fillMaxWidth()) { Icon(Icons.Rounded.Close,null); Spacer(Modifier.width(8.dp)); Text("Cancel download") }
+                } else if(apk!=null) {
+                    Button(onClick={installDialog=true},modifier=Modifier.fillMaxWidth()) { Icon(Icons.Rounded.SystemUpdate,null); Spacer(Modifier.width(8.dp)); Text("Install update") }
+                } else if(latest!=null && error==null) {
+                    Button(onClick={startDownload()},modifier=Modifier.fillMaxWidth()) { Icon(Icons.Rounded.Download,null); Spacer(Modifier.width(8.dp)); Text("Download update") }
+                }
+                Button(onClick={checkUpdates()},enabled=!checking&&!downloading,modifier=Modifier.fillMaxWidth()) { Icon(Icons.Rounded.Refresh,null); Spacer(Modifier.width(8.dp)); Text(if(checking) "Checking…" else "Check for updates") }
+                if(error!=null) OutlinedButton(onClick={openSettings()},modifier=Modifier.fillMaxWidth()) { Icon(Icons.Rounded.Settings,null); Spacer(Modifier.width(8.dp)); Text("Open app settings") }
+            }
+        }
+        latest?.let { info ->
+            Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceContainerLow)) {
+                Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                    Text("Build information",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
+                    Text("Channel: ${info.channel}")
+                    Text("Branch: ${info.branch.ifBlank{"Not available"}}")
+                    Text("Workflow run ID: ${info.runId.ifBlank{"Not available"}}")
+                    Text("Commit: ${info.commit.ifBlank{"Not available"}}")
+                    if(info.runId.isNotBlank()) TextButton(onClick={context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://github.com/hustlewithvikram/expressive-island/actions/runs/${info.runId}")))}) { Text("Open workflow run") }
+                    if(info.notes.isNotBlank()) { Spacer(Modifier.height(4.dp)); Text("Build notes",style=MaterialTheme.typography.titleSmall); Text(info.notes,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
             }
         }
     }
-
-    LaunchedEffect(Unit) {
-        checkForUpdates()
-    }
-
-    val isUpdateAvailable = latestVersion?.let { compareVersions(it, installedVersion) > 0 } == true
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Column(modifier = Modifier.padding(start = 8.dp, top = 10.dp, bottom = 4.dp)) {
-            Text("App Updates", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-            Text(
-                "Check for the latest Expressive Island release.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                    ) {
-                        Icon(
-                            Icons.Rounded.SystemUpdate,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(12.dp),
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                        Text("Expressive Island", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                        Text("Installed version: $installedVersion", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = when {
-                        checking -> "Checking GitHub for the latest release…"
-                        error != null -> error!!
-                        isUpdateAvailable -> "Version ${latestVersion} is available."
-                        latestVersion != null -> "You're up to date."
-                        else -> "Check for updates to see the latest version."
-                    },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                )
-                if (checking) {
-                    CircularProgressIndicator()
-                } else if (checked && error == null && !isUpdateAvailable) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text(" Latest: ${latestVersion ?: "—"}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-
-                Button(
-                    onClick = { checkForUpdates() },
-                    enabled = !checking,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(Icons.Rounded.Refresh, contentDescription = null)
-                    Text(if (checking) "Checking…" else "Check for updates")
-                }
-
-                if (isUpdateAvailable && releaseUrl != null) {
-                    Button(
-                        onClick = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(releaseUrl)))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(Icons.Rounded.Download, contentDescription = null)
-                        Text("View and download update")
-                    }
-                }
-            }
-        }
-
-        if (!releaseNotes.isNullOrBlank()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text("Release notes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(8.dp))
-                    Text(releaseNotes!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-
-        if (error != null) {
-            OutlinedButton(
-                onClick = { checkForUpdates() },
-                enabled = !checking,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(Icons.Rounded.Refresh, contentDescription = null)
-                Text("Try again")
-            }
-        }
-    }
+    if(cancelDialog) AlertDialog(onDismissRequest={cancelDialog=false},title={Text("Cancel download?")},text={Text("The partial APK will be deleted.")},
+        confirmButton={TextButton(onClick={cancelDialog=false;downloadJob?.cancel()}) { Text("Cancel download") }},
+        dismissButton={TextButton(onClick={cancelDialog=false}) { Text("Keep downloading") }})
+    if(installDialog) AlertDialog(onDismissRequest={installDialog=false},title={Text("Install update?")},text={Text("The APK is ready. Android will ask you to confirm installation.")},
+        confirmButton={TextButton(onClick={
+            installDialog=false
+            val file=apk ?: return@TextButton
+            try {
+                val uri=FileProvider.getUriForFile(context,"${context.packageName}.fileprovider",file)
+                context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri,"application/vnd.android.package-archive").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch(e:Exception) { error="Unable to open installer: ${e.message ?: "unknown error"}" }
+        }) { Text("Install") }},dismissButton={TextButton(onClick={installDialog=false}) { Text("Later") }})
 }
 
-private fun compareVersions(latest: String, installed: String): Int {
-    val latestParts = latest.split(Regex("[^0-9]+")).filter { it.isNotBlank() }.map { it.toIntOrNull() ?: 0 }
-    val installedParts = installed.split(Regex("[^0-9]+")).filter { it.isNotBlank() }.map { it.toIntOrNull() ?: 0 }
-    for (i in 0 until maxOf(latestParts.size, installedParts.size)) {
-        val a = latestParts.getOrElse(i) { 0 }
-        val b = installedParts.getOrElse(i) { 0 }
-        if (a != b) return a.compareTo(b)
+private fun fetchUpdate(debug:Boolean): UpdateInfo {
+    val endpoint=if(debug) "$UPDATE_API/releases/tags/$DEBUG_RELEASE_TAG" else "$UPDATE_API/releases/latest"
+    val conn=(URL(endpoint).openConnection() as HttpURLConnection).apply {
+        connectTimeout=12000; readTimeout=12000
+        setRequestProperty("Accept","application/vnd.github+json")
+        setRequestProperty("User-Agent","Expressive-Island-Android")
     }
-    return 0
+    val json=try {
+        if(conn.responseCode !in 200..299) error("GitHub returned HTTP ${conn.responseCode}.")
+        JSONObject(conn.inputStream.bufferedReader().use{it.readText()})
+    } finally { conn.disconnect() }
+    var apkUrl=""
+    json.optJSONArray("assets")?.let { assets -> for(i in 0 until assets.length()) {
+        val asset=assets.optJSONObject(i) ?: continue
+        if(asset.optString("name").endsWith(".apk",true)) { apkUrl=asset.optString("browser_download_url"); break }
+    } }
+    val notes=json.optString("body")
+    val run=Regex("(?i)(?:Run ID|Workflow run ID):?\\s*([0-9]{5,})").find(notes)?.groupValues?.get(1).orEmpty()
+    val commit=(Regex("https://github.com/[^/]+/[^/]+/commit/([0-9a-f]{7,40})").find(notes)?.groupValues?.get(1)
+        ?: Regex("(?i)Commit:?\\s*[^\\n]*?([0-9a-f]{7,40})").find(notes)?.groupValues?.get(1)).orEmpty()
+    val branch=Regex("(?i)Branch:?\\s*[`]?([\\w./-]+)").find(notes)?.groupValues?.get(1).orEmpty()
+    return UpdateInfo(json.optString("tag_name").removePrefix("v").ifBlank{"Unknown"},notes,run,commit,branch,apkUrl,if(debug)"Development" else "Production")
 }
