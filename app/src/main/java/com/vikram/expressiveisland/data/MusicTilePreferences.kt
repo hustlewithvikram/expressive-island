@@ -54,6 +54,7 @@ enum class MusicVisualizerStyle(val label: String) {
     DOTS("Dancing dots"),
     WAVE("Waveform"),
     PULSE("Pulse"),
+    EXPRESSIVE_LOADING("Expressive loading indicator"),
 }
 
 data class MusicTileSettings(

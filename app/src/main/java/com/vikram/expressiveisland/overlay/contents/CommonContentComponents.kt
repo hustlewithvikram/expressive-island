@@ -39,6 +39,8 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -893,6 +895,7 @@ fun IslandSurface(
 }
 
 /* Compact music visualizers used on the trailing edge of the collapsed island. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MusicVisualizer(
     isPlaying: Boolean,
@@ -902,6 +905,22 @@ fun MusicVisualizer(
     val transition = rememberInfiniteTransition(label = "musicVisualizer")
     val bars = listOf(0.35f to 1350, 0.55f to 1140, 0.25f to 1575, 0.45f to 1260, 0.30f to 1470, 0.40f to 1050)
     val color = MaterialTheme.colorScheme.primary
+    if (style == MusicVisualizerStyle.EXPRESSIVE_LOADING) {
+        val rotation by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 4800, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "expressiveLoadingRotation",
+        )
+        LoadingIndicator(
+            modifier = modifier.size(18.dp).graphicsLayer { rotationZ = if (isPlaying) rotation else 0f },
+            color = color,
+        )
+        return
+    }
     Row(
         modifier = modifier.width(if (style == MusicVisualizerStyle.PULSE) 22.dp else 28.dp).height(18.dp),
         horizontalArrangement = Arrangement.spacedBy(1.5.dp),
@@ -938,6 +957,7 @@ fun MusicVisualizer(
                     Modifier.size(if (isPlaying) (4.dp + (animated * 5).dp) else 4.dp)
                         .clip(CircleShape).background(color.copy(alpha = if (isPlaying) 0.55f + animated * 0.45f else 0.5f))
                 )
+                MusicVisualizerStyle.EXPRESSIVE_LOADING -> Unit
             }
         }
     }

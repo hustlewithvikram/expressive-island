@@ -4,6 +4,12 @@ import android.R.attr.checked
 import android.R.attr.description
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
@@ -38,6 +44,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -1453,14 +1461,38 @@ private fun ResetToDefaultButton(
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 private fun MusicVisualizerPreview(style: MusicVisualizerStyle) {
     val primary = MaterialTheme.colorScheme.primary
+    if (style == MusicVisualizerStyle.EXPRESSIVE_LOADING) {
+        val transition = rememberInfiniteTransition(label = "expressiveLoadingPreview")
+        val rotation by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 4800, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "expressiveLoadingPreviewRotation",
+        )
+        Box(
+            modifier = Modifier.fillMaxWidth().height(28.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            LoadingIndicator(
+                modifier = Modifier.size(24.dp).graphicsLayer { rotationZ = rotation },
+                color = primary,
+            )
+        }
+        return
+    }
     val heights = when (style) {
         MusicVisualizerStyle.BARS -> listOf(0.35f, 0.65f, 0.9f, 0.5f, 0.78f, 0.4f)
         MusicVisualizerStyle.MIRRORED -> listOf(0.35f, 0.65f, 0.9f, 0.5f, 0.78f, 0.4f)
         MusicVisualizerStyle.DOTS -> listOf(0.3f, 0.6f, 0.95f, 0.55f, 0.8f, 0.4f)
         MusicVisualizerStyle.WAVE -> listOf(0.25f, 0.55f, 0.85f, 0.65f, 0.35f, 0.6f)
         MusicVisualizerStyle.PULSE -> listOf(0.45f, 0.7f, 1f, 0.7f, 0.45f)
+        MusicVisualizerStyle.EXPRESSIVE_LOADING -> emptyList()
     }
     Row(
         modifier = Modifier.fillMaxWidth().height(28.dp),
