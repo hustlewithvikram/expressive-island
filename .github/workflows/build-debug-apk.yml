@@ -1,16 +1,13 @@
 name: Build Debug APK (Signed)
 
 on:
-  push:
-    branches:
-      - dev
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: expressive-island-debug-${{ github.ref }}
+  group: expressive-island-debug
   cancel-in-progress: true
 
 jobs:
