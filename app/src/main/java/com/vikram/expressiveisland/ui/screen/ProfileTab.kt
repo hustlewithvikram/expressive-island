@@ -110,6 +110,7 @@ fun ProfileTab(
     onOpenAccess: () -> Unit,
     onOpenTestingTriggers: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenUpdates: () -> Unit,
     onOpenChangelog: () -> Unit,
     onOpenPermissionDetails: () -> Unit,
     onExportSettings: () -> Unit,
@@ -136,6 +137,7 @@ fun ProfileTab(
                     onOpenAccess = onOpenAccess,
                     onOpenTestingTriggers = onOpenTestingTriggers,
                     onOpenAbout = onOpenAbout,
+                    onOpenUpdates = onOpenUpdates,
                     onOpenChangelog = onOpenChangelog,
                     onOpenPermissionDetails = onOpenPermissionDetails,
                     onExportSettings = onExportSettings,
@@ -183,6 +185,7 @@ private fun ProfileList(
     onOpenAccess: () -> Unit,
     onOpenTestingTriggers: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenUpdates: () -> Unit,
     onOpenChangelog: () -> Unit,
     onOpenPermissionDetails: () -> Unit,
     onExportSettings: () -> Unit,
@@ -267,6 +270,13 @@ private fun ProfileList(
             title = "About",
             description = "App version, changelog, repository, and developer.",
             onClick = onOpenAbout,
+        )
+
+        ProfileDestinationCard(
+            icon = Icons.Rounded.SystemUpdate,
+            title = "Updater",
+            description = "Check for updates and install the latest version.",
+            onClick = onOpenUpdates,
         )
 
         Spacer(
