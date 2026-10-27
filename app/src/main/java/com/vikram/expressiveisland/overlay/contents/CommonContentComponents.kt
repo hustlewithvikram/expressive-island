@@ -39,8 +39,6 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.LoadingIndicator
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -894,8 +892,17 @@ fun IslandSurface(
     }
 }
 
+@Composable
+private fun ExpressiveLoadingMark(modifier: Modifier = Modifier, color: androidx.compose.ui.graphics.Color, phase: Float) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(1.dp), verticalAlignment = Alignment.CenterVertically) {
+        repeat(4) { index ->
+            val wave = kotlin.math.abs(kotlin.math.sin(Math.toRadians((phase + index * 72f).toDouble()))).toFloat()
+            Box(Modifier.width(3.dp).height((5f + wave * 8f).dp).clip(RoundedCornerShape(50)).background(color))
+        }
+    }
+}
+
 /* Compact music visualizers used on the trailing edge of the collapsed island. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MusicVisualizer(
     isPlaying: Boolean,
@@ -915,9 +922,10 @@ fun MusicVisualizer(
             ),
             label = "expressiveLoadingRotation",
         )
-        LoadingIndicator(
+        ExpressiveLoadingMark(
             modifier = modifier.size(18.dp).graphicsLayer { rotationZ = if (isPlaying) rotation else 0f },
             color = color,
+            phase = rotation,
         )
         return
     }
