@@ -56,6 +56,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Keep development and production installs side-by-side without sharing app data.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+
         release {
             // Keep release builds optimized without embedding signing credentials in source.
             isMinifyEnabled = true
