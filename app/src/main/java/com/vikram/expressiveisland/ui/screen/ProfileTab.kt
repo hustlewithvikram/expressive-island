@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsNone
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -161,6 +162,10 @@ fun ProfileTab(
 
             ProfileRoute.Changelog -> {
                 ChangelogScreen(contentPadding)
+            }
+
+            ProfileRoute.AppUpdates -> {
+                AppUpdatesScreen(contentPadding = contentPadding)
             }
 
             ProfileRoute.PermissionDetails -> {
