@@ -39,6 +39,8 @@ import androidx.compose.material.icons.rounded.Forward5
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
@@ -1458,14 +1460,13 @@ private fun ResetToDefaultButton(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ExpressiveLoadingPreviewMark(modifier: Modifier = Modifier, color: androidx.compose.ui.graphics.Color, phase: Float) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(1.5.dp), verticalAlignment = Alignment.CenterVertically) {
-        repeat(4) { index ->
-            val wave = kotlin.math.abs(kotlin.math.sin(Math.toRadians((phase + index * 72f).toDouble()))).toFloat()
-            Box(Modifier.width(4.dp).height((6f + wave * 13f).dp).clip(RoundedCornerShape(50)).background(color))
-        }
-    }
+private fun ExpressiveLoadingPreviewMark(modifier: Modifier = Modifier, color: Color) {
+    androidx.compose.material3.LoadingIndicator(
+        modifier = modifier,
+        color = color,
+    )
 }
 
 @Composable
@@ -1489,7 +1490,6 @@ private fun MusicVisualizerPreview(style: MusicVisualizerStyle) {
             ExpressiveLoadingPreviewMark(
                 modifier = Modifier.size(24.dp).graphicsLayer { rotationZ = rotation },
                 color = primary,
-                phase = rotation,
             )
         }
         return
