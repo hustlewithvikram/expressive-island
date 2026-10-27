@@ -99,6 +99,7 @@ enum class ProfileRoute {
     About,
     Changelog,
     PermissionDetails,
+    AppUpdates,
 }
 
 @Composable
