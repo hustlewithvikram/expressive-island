@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.vikram.expressiveisland.BuildConfig
@@ -135,8 +136,8 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
         Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
-                        Icon(Icons.Rounded.GraphicEq, null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(52.dp).padding(11.dp))
+                    Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                        androidx.compose.foundation.Image(painter = painterResource(id = com.vikram.expressiveisland.R.mipmap.ic_launcher), contentDescription = "Expressive Island icon", modifier = Modifier.size(48.dp))
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Text("Expressive Island", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -145,7 +146,7 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Text("Channel: $channel", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
                     BuildSummaryCard("Installed App", installedBranch, installedRunNumber, installedCommit, Modifier.weight(1f))
                     BuildSummaryCard("Latest App", latest?.branch ?: if (checking) "Checking…" else "—", latest?.runNumber ?: "—", latest?.commit ?: "", Modifier.weight(1f))
                 }
@@ -225,8 +226,8 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
 
 @Composable
 private fun BuildSummaryCard(title: String, branch: String, run: String, commit: String, modifier: Modifier = Modifier) {
-    Card(modifier, shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Card(modifier, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+        Column(Modifier.padding(9.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             BuildDetail("Branch", branch.takeIf { it.isNotBlank() && it != "local" } ?: "—")
             BuildDetail("Run", run.takeIf { it.isNotBlank() && it != "local" } ?: "—")
@@ -238,7 +239,7 @@ private fun BuildSummaryCard(title: String, branch: String, run: String, commit:
 private fun BuildDetail(label: String, value: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1)
+        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, maxLines = 1)
     }
 }
 
