@@ -61,6 +61,10 @@ class MediaPlaybackMonitor(private val context: Context) {
     // The track last surfaced as a "show" signal, so we don't re-pop on every state tick.
     private var lastShownKey: String? = null
 
+    // Artwork must survive playback-position callbacks. Many players publish a new PlaybackState
+    // every second; decoding the same cover again and publishing null first makes the tile flicker.
+    private var requestedArtworkKey: String? = null
+
     //
     private var showJob: Job? = null
 
@@ -194,32 +198,41 @@ class MediaPlaybackMonitor(private val context: Context) {
             return
         }
 
-        // Publish the lightweight media state immediately. Bitmap/content-provider access can
-        // block the callback thread, so artwork is decoded separately on IO and only applied if the
-        // same session/track is still current when the decode completes.
+        // Playback-state callbacks can arrive every second. Preserve the existing cover for the
+        // same track and decode artwork only once per track, rather than clearing/reloading it on
+        // every position update (which visibly refreshes the music tile).
         val transport = ControllerTransport(primary)
         val progress = primary.progress(metadata, playing)
         val mediaKey = "${primary.packageName}|$title|$artist"
+        val current = NowPlayingBus.state.value
+        val sameTrack = current != null &&
+            "${current.packageName}|${current.title}|${current.artist}" == mediaKey
+        val existingArt = current?.takeIf { sameTrack }?.albumArt
+
         NowPlayingBus.update(
             NowPlaying(
                 packageName = primary.packageName,
                 title = title,
                 artist = artist,
-                albumArt = null,
+                albumArt = existingArt,
                 isPlaying = playing,
                 transport = transport,
                 progress = progress,
             ),
         )
-        metadata?.let { currentMetadata ->
+
+        if (metadata != null && existingArt == null && requestedArtworkKey != mediaKey) {
+            requestedArtworkKey = mediaKey
+            val currentMetadata = metadata
             scope.launch(Dispatchers.IO) {
                 val art = currentMetadata.albumArt() ?: return@launch
                 scope.launch(Dispatchers.Main.immediate) {
-                    val current = NowPlayingBus.state.value
-                    if (current != null &&
-                        "${current.packageName}|${current.title}|${current.artist}" == mediaKey
+                    val latest = NowPlayingBus.state.value
+                    if (latest != null &&
+                        "${latest.packageName}|${latest.title}|${latest.artist}" == mediaKey &&
+                        latest.albumArt == null
                     ) {
-                        NowPlayingBus.update(current.copy(albumArt = art))
+                        NowPlayingBus.update(latest.copy(albumArt = art))
                     }
                 }
             }
