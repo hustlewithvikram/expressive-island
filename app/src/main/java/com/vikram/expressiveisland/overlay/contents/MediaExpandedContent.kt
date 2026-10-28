@@ -42,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -203,7 +204,11 @@ fun MediaExpandedContent(
 fun MediaProgressBar(progress: MediaProgress?, style: MusicProgressStyle = MusicProgressStyle.WAVY) {
     val duration = progress?.durationMs ?: return
 
-    var fraction by remember(progress) {
+    // PlaybackState snapshots can arrive every second. Keep the newest anchor available to
+    // the ticker without keying/restarting its coroutine on every snapshot.
+    val latestProgress by rememberUpdatedState(progress)
+
+    var fraction by remember(duration) {
         mutableFloatStateOf(
             progress.fractionAt(SystemClock.elapsedRealtime())
                 ?.coerceIn(0f, 1f)
@@ -211,42 +216,34 @@ fun MediaProgressBar(progress: MediaProgress?, style: MusicProgressStyle = Music
         )
     }
 
-    var positionMs by remember(progress) {
+    var positionMs by remember(duration) {
         mutableLongStateOf(
             progress.positionAt(SystemClock.elapsedRealtime())
                 .coerceIn(0L, duration)
         )
     }
 
-    LaunchedEffect(progress) {
-        while (progress.speed > 0f && positionMs < duration) {
-            delay(PROGRESS_TICK_MS.milliseconds)
-
+    LaunchedEffect(duration, progress.speed > 0f) {
+        while (true) {
+            val current = latestProgress ?: break
             val now = SystemClock.elapsedRealtime()
 
-            positionMs = progress
-                .positionAt(now)
-                .coerceIn(0L, duration)
+            positionMs = current.positionAt(now).coerceIn(0L, duration)
+            fraction = current.fractionAt(now)?.coerceIn(0f, 1f) ?: fraction
 
-            fraction = progress
-                .fractionAt(now)
-                ?.coerceIn(0f, 1f)
-                ?: fraction
+            if (current.speed <= 0f || positionMs >= duration) break
+            delay(PROGRESS_TICK_MS.milliseconds)
         }
     }
 
-    // Keep the displayed position correct even while paused.
+    // When paused, still reflect an explicit seek or position correction immediately.
     LaunchedEffect(progress.positionMs, progress.speed) {
+        if (progress.speed > 0f) return@LaunchedEffect
+
+        val current = latestProgress ?: return@LaunchedEffect
         val now = SystemClock.elapsedRealtime()
-
-        positionMs = progress
-            .positionAt(now)
-            .coerceIn(0L, duration)
-
-        fraction = progress
-            .fractionAt(now)
-            ?.coerceIn(0f, 1f)
-            ?: fraction
+        positionMs = current.positionAt(now).coerceIn(0L, duration)
+        fraction = current.fractionAt(now)?.coerceIn(0f, 1f) ?: fraction
     }
 
     if (style == MusicProgressStyle.CIRCULAR || style == MusicProgressStyle.CIRCULAR_WAVY) {
