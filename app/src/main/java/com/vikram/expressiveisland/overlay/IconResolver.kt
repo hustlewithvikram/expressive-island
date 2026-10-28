@@ -396,6 +396,7 @@ class IconResolver(private val context: Context) {
             themeColorRole = dynamicEventColorRole,
             themeColorOpacity = dynamicEventColorOpacity,
             colorOverride = eventColorOverrides[type],
+            systemEventType = type,
         )
     }
 
