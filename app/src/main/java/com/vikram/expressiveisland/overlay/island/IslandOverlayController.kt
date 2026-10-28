@@ -1560,7 +1560,16 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeSignals() = scope.launch {
+        // IslandEventBus intentionally replays recent signals so collectors can recover after
+        // lifecycle changes. System events are transitions, though: replaying an old DEVICE_LOCKED
+        // after the service reconnects can create a second stale lock pill. Snapshot the sequence
+        // before collecting and ignore only system events that predate this collector.
+        val startupSystemEventId = IslandEventBus.currentSystemEventId
         IslandEventBus.signals.collect { signal ->
+            if (signal is CutoutSignal.System && signal.eventId <= startupSystemEventId) {
+                Log.d(TAG, "Ignoring replayed system event ${signal.type} (id=${signal.eventId})")
+                return@collect
+            }
             if (signal is CutoutSignal.System) {
                 Log.d(
                     "SystemEventDebug",

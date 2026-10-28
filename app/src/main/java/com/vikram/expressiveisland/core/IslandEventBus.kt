@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.core
 
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -20,6 +21,12 @@ object IslandEventBus {
     private const val REPLAY_COUNT = 8
     private const val BUFFER_CAPACITY = 64
 
+    private val systemEventSequence = AtomicLong(0L)
+
+    /** Latest system-event ID, used by a newly started collector to ignore stale replayed events. */
+    val currentSystemEventId: Long
+        get() = systemEventSequence.get()
+
     private val mutableSignals = MutableSharedFlow<CutoutSignal>(
         replay = REPLAY_COUNT,
         extraBufferCapacity = BUFFER_CAPACITY,
@@ -32,5 +39,14 @@ object IslandEventBus {
      * Emit without blocking the framework callback thread. Returns false only when the stream could
      * not accept the signal; callers must not perform retries from notification/system callbacks.
      */
-    fun emit(signal: CutoutSignal): Boolean = mutableSignals.tryEmit(signal)
+    fun emit(signal: CutoutSignal): Boolean {
+        // System events describe one-time transitions, not durable state. Give each emission an ID
+        // so a collector recreated during service reconnect can ignore the bus's stale replay buffer.
+        val emittedSignal = if (signal is CutoutSignal.System) {
+            signal.copy(eventId = systemEventSequence.incrementAndGet())
+        } else {
+            signal
+        }
+        return mutableSignals.tryEmit(emittedSignal)
+    }
 }
