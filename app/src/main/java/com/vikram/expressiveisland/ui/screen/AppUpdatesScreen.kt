@@ -291,12 +291,12 @@ private fun fetchUpdate(debug:Boolean): UpdateInfo {
     } }
     val notes=json.optString("body")
     // Release notes use Markdown bold labels such as **Build:** #123.
-    val run=Regex("(?i)(?:Run ID|Workflow run ID):\\\\*{0,2}\\\\s*`?([0-9]{5,})").find(notes)?.groupValues?.get(1).orEmpty()
-    val runNumber=(Regex("(?i)(?:Build|Run number):\\\\*{0,2}\\\\s*#?([0-9]+)").find(notes)?.groupValues?.get(1)
-        ?: Regex("(?i)Build\\\\s*#([0-9]+)").find(json.optString("name"))?.groupValues?.get(1)).orEmpty()
+    val run=Regex("(?i)(?:Run ID|Workflow run ID):\\*{0,2}\\s*`?([0-9]{5,})").find(notes)?.groupValues?.get(1).orEmpty()
+    val runNumber=(Regex("(?i)(?:Build|Run number):\\*{0,2}\\s*#?([0-9]+)").find(notes)?.groupValues?.get(1)
+        ?: Regex("(?i)Build\\s*#([0-9]+)").find(json.optString("name"))?.groupValues?.get(1)).orEmpty()
     val commit=(Regex("https://github.com/[^/]+/[^/]+/commit/([0-9a-f]{7,40})").find(notes)?.groupValues?.get(1)
-        ?: Regex("(?i)Commit:?\\\\*{0,2}\\\\s*[^\\\\n]*?([0-9a-f]{7,40})").find(notes)?.groupValues?.get(1)).orEmpty()
-    val branch=(Regex("(?i)Branch:\\\\*{0,2}\\\\s*`?([\\\\w./-]+)").find(notes)?.groupValues?.get(1)
-        ?: Regex("\\\\((?:[^)]*?\\\\s)?([\\\\w./-]+)\\\\s*[·|]").find(json.optString("name"))?.groupValues?.get(1)).orEmpty()
+        ?: Regex("(?i)Commit:?\\*{0,2}\\s*[^\\n]*?([0-9a-f]{7,40})").find(notes)?.groupValues?.get(1)).orEmpty()
+    val branch=(Regex("(?i)Branch:\\*{0,2}\\s*`?([\\w./-]+)").find(notes)?.groupValues?.get(1)
+        ?: Regex("\\((?:[^)]*?\\s)?([\\w./-]+)\\s*[·|]").find(json.optString("name"))?.groupValues?.get(1)).orEmpty()
     return UpdateInfo(json.optString("tag_name").removePrefix("v").ifBlank{"Unknown"},notes,runNumber,run,commit,branch,apkUrl,if(debug)"Development" else "Production")
 }
