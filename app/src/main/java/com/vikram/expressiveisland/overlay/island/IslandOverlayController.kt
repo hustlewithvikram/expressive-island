@@ -1683,6 +1683,28 @@ class IslandOverlayController(private val context: Context) {
 
             if (!behaviourState.value.cutoutEnabled) return@collect
 
+            val incomingSystemEventType = (signal as? CutoutSignal.System)?.type
+            if (incomingSystemEventType != null) {
+                // Opposite states of one system-event family are replacements, not separate
+                // interruptions. Remove an older state from every secondary slot before routing.
+                waitingSatelliteEvents.removeAll { queued ->
+                    queued.event.systemEventType?.let {
+                        isSameSystemEventFamily(it, incomingSystemEventType)
+                    } == true
+                }
+                deferredExpandedEvents.removeAll { queued ->
+                    queued.systemEventType?.let {
+                        isSameSystemEventFamily(it, incomingSystemEventType)
+                    } == true
+                }
+                if (satelliteEvent.value?.systemEventType?.let {
+                        isSameSystemEventFamily(it, incomingSystemEventType)
+                    } == true
+                ) {
+                    clearSatellite()
+                }
+            }
+
             val existing = currentEvent.value
             // Live-tile refreshes often arrive with a new event ID. Keep the visible slot identity
             // and expansion state stable so playback/timer updates cannot collapse an expanded tile.
@@ -1787,12 +1809,14 @@ class IslandOverlayController(private val context: Context) {
             val incomingSystemEventType =
                 (signal as? CutoutSignal.System)?.type
 
+            val existingSystemEventType =
+                existing?.systemEventType ?: currentSystemEventType
             val sameSystemFamily =
                 existing != null &&
-                        currentSystemEventType != null &&
+                        existingSystemEventType != null &&
                         incomingSystemEventType != null &&
                         isSameSystemEventFamily(
-                            currentSystemEventType,
+                            existingSystemEventType,
                             incomingSystemEventType,
                         )
 
