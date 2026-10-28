@@ -59,9 +59,10 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
         scope.launch {
             try {
                 latest = withContext(Dispatchers.IO) { fetchUpdate(isDebug) }
-                if (latest?.apkUrl.isNullOrBlank()) error = "No APK is attached to the latest $channel build."
-                else if (latest?.commit?.isNotBlank() == true && installedCommit.isNotBlank() && latest?.commit == installedCommit) error = "You are already running the latest $channel build."
-                else if (apk != null && latest?.commit == downloadedUpdate?.commit) error = "The latest update is downloaded and ready to install."
+                val latestInfo = latest
+                if (latestInfo?.apkUrl.isNullOrBlank()) error = "No APK is attached to the latest $channel build."
+                else if (latestInfo != null && isSameBuild(latestInfo, installedRunId, installedCommit)) error = "You are already running the latest $channel build."
+                else if (apk != null && latestInfo != null && downloadedUpdate != null && isSameBuild(latestInfo, downloadedUpdate!!.runId, downloadedUpdate!!.commit)) error = "The latest update is downloaded and ready to install."
                 else if (apk != null) error = "A newer build is available. Download it to replace the saved APK."
             } catch (e: Exception) {
                 error = when {
@@ -114,8 +115,11 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
     }
     LaunchedEffect(Unit) { checkUpdates() }
 
-    val newerDownloaded = apk != null && latest != null && latest!!.commit.isNotBlank() &&
-        latest!!.commit != downloadedUpdate?.commit && latest!!.commit != installedCommit
+    val latestDiffersFromInstalled = latest?.let { !isSameBuild(it, installedRunId, installedCommit) } == true
+    val latestDiffersFromDownloaded = latest?.let { info ->
+        downloadedUpdate == null || !isSameBuild(info, downloadedUpdate!!.runId, downloadedUpdate!!.commit)
+    } == true
+    val newerDownloaded = apk != null && latestDiffersFromDownloaded && latestDiffersFromInstalled
     val statusContainer = when {
         error?.startsWith("You are already running") == true || error?.startsWith("The latest update is downloaded") == true -> MaterialTheme.colorScheme.primaryContainer
         error?.startsWith("A newer build") == true -> MaterialTheme.colorScheme.tertiaryContainer
@@ -206,7 +210,7 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
                             Icon(Icons.Rounded.Refresh, null); Spacer(Modifier.width(8.dp)); Text(if (checking) "Checking…" else "Check again")
                         }
                     }
-                } else if (latest != null && error == null && latest!!.commit.isNotBlank() && latest!!.commit != installedCommit) {
+                } else if (latest != null && error == null && latestDiffersFromInstalled) {
                     Button(onClick = { startDownload() }, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Download, null); Spacer(Modifier.width(8.dp))
                         Text("Download Update " + latest!!.branch.ifBlank { channel } + "-#" + latest!!.runNumber.ifBlank { "?" })
@@ -262,6 +266,13 @@ private fun BuildDetail(label: String, value: String) {
     }
 }
 
+private fun isSameBuild(info: UpdateInfo, installedRunId: String, installedCommit: String): Boolean {
+    // A workflow rerun can create a new APK for the same commit; prefer run identity when available.
+    if (info.runId.isNotBlank() && installedRunId.isNotBlank()) return info.runId == installedRunId
+    return info.commit.isNotBlank() && installedCommit.isNotBlank() &&
+        info.commit.equals(installedCommit, ignoreCase = true)
+}
+
 private fun fetchUpdate(debug:Boolean): UpdateInfo {
     val endpoint=if(debug) "$UPDATE_API/releases/tags/$DEBUG_RELEASE_TAG" else "$UPDATE_API/releases/latest"
     val conn=(URL(endpoint).openConnection() as HttpURLConnection).apply {
@@ -279,10 +290,13 @@ private fun fetchUpdate(debug:Boolean): UpdateInfo {
         if(asset.optString("name").endsWith(".apk",true)) { apkUrl=asset.optString("browser_download_url"); break }
     } }
     val notes=json.optString("body")
-    val run=Regex("(?i)(?:Run ID|Workflow run ID):?\\s*([0-9]{5,})").find(notes)?.groupValues?.get(1).orEmpty()
-    val runNumber=Regex("(?i)(?:Build|Run number):?\\s*#?([0-9]+)").find(notes)?.groupValues?.get(1).orEmpty()
+    // Release notes use Markdown bold labels such as **Build:** #123.
+    val run=Regex("(?i)(?:Run ID|Workflow run ID):\\\\*{0,2}\\\\s*`?([0-9]{5,})").find(notes)?.groupValues?.get(1).orEmpty()
+    val runNumber=(Regex("(?i)(?:Build|Run number):\\\\*{0,2}\\\\s*#?([0-9]+)").find(notes)?.groupValues?.get(1)
+        ?: Regex("(?i)Build\\\\s*#([0-9]+)").find(json.optString("name"))?.groupValues?.get(1)).orEmpty()
     val commit=(Regex("https://github.com/[^/]+/[^/]+/commit/([0-9a-f]{7,40})").find(notes)?.groupValues?.get(1)
-        ?: Regex("(?i)Commit:?\\s*[^\\n]*?([0-9a-f]{7,40})").find(notes)?.groupValues?.get(1)).orEmpty()
-    val branch=Regex("(?i)Branch:?\\s*[`]?([\\w./-]+)").find(notes)?.groupValues?.get(1).orEmpty()
+        ?: Regex("(?i)Commit:?\\\\*{0,2}\\\\s*[^\\\\n]*?([0-9a-f]{7,40})").find(notes)?.groupValues?.get(1)).orEmpty()
+    val branch=(Regex("(?i)Branch:\\\\*{0,2}\\\\s*`?([\\\\w./-]+)").find(notes)?.groupValues?.get(1)
+        ?: Regex("\\\\((?:[^)]*?\\\\s)?([\\\\w./-]+)\\\\s*[·|]").find(json.optString("name"))?.groupValues?.get(1)).orEmpty()
     return UpdateInfo(json.optString("tag_name").removePrefix("v").ifBlank{"Unknown"},notes,runNumber,run,commit,branch,apkUrl,if(debug)"Development" else "Production")
 }
