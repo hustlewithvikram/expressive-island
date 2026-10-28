@@ -1683,22 +1683,22 @@ class IslandOverlayController(private val context: Context) {
 
             if (!behaviourState.value.cutoutEnabled) return@collect
 
-            val incomingSystemEventType = (signal as? CutoutSignal.System)?.type
-            if (incomingSystemEventType != null) {
+            val incomingSystemTypeForCoalescing = (signal as? CutoutSignal.System)?.type
+            if (incomingSystemTypeForCoalescing != null) {
                 // Opposite states of one system-event family are replacements, not separate
                 // interruptions. Remove an older state from every secondary slot before routing.
                 waitingSatelliteEvents.removeAll { queued ->
                     queued.event.systemEventType?.let {
-                        isSameSystemEventFamily(it, incomingSystemEventType)
+                        isSameSystemEventFamily(it, incomingSystemTypeForCoalescing)
                     } == true
                 }
                 deferredExpandedEvents.removeAll { queued ->
                     queued.systemEventType?.let {
-                        isSameSystemEventFamily(it, incomingSystemEventType)
+                        isSameSystemEventFamily(it, incomingSystemTypeForCoalescing)
                     } == true
                 }
                 if (satelliteEvent.value?.systemEventType?.let {
-                        isSameSystemEventFamily(it, incomingSystemEventType)
+                        isSameSystemEventFamily(it, incomingSystemTypeForCoalescing)
                     } == true
                 ) {
                     clearSatellite()
