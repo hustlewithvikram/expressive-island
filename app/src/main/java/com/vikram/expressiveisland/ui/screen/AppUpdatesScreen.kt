@@ -140,8 +140,19 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
                         AndroidView(
                             factory = { viewContext ->
                                 ImageView(viewContext).apply {
-                                    setImageDrawable(viewContext.packageManager.getApplicationIcon(viewContext.packageName))
                                     contentDescription = "Expressive Island icon"
+                                    // Launcher icons can be AdaptiveIconDrawable on newer Android
+                                    // versions. Resolve defensively so an icon/resource exception
+                                    // cannot crash the entire updater screen during composition.
+                                    val icon = runCatching {
+                                        viewContext.packageManager.getApplicationIcon(viewContext.packageName)
+                                    }.getOrNull()
+                                    if (icon != null) {
+                                        setImageDrawable(icon)
+                                    } else {
+                                        setImageResource(android.R.drawable.sym_def_app_icon)
+                                    }
+                                    scaleType = ImageView.ScaleType.FIT_CENTER
                                 }
                             },
                             modifier = Modifier.size(48.dp)
