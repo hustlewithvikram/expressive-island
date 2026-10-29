@@ -43,8 +43,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -105,6 +106,7 @@ fun SettingsTab(
     onOpenPermissionDot: () -> Unit,
 ) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
+    var searchExpanded by rememberSaveable { mutableStateOf(false) }
 
     // Routing (and back navigation, via the bottom bar) is owned by MainScreen.
     // Deeper routes slide in from the right; stepping back slides in from the left, so the
@@ -238,22 +240,54 @@ private fun SettingsList(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
+        SearchBar(
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Search settings") },
-            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { onSearchQueryChange("") }) {
-                        Icon(Icons.Rounded.Clear, contentDescription = "Clear search")
+            inputField = {
+                SearchBarDefaults.InputField(
+                    query = searchQuery,
+                    onQueryChange = {
+                        searchQuery = it
+                        searchExpanded = true
+                    },
+                    onSearch = { searchExpanded = true },
+                    expanded = searchExpanded,
+                    onExpandedChange = { searchExpanded = it },
+                    placeholder = { Text("Search settings") },
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = {
+                                searchQuery = ""
+                                searchExpanded = true
+                            }) {
+                                Icon(Icons.Rounded.Clear, contentDescription = "Clear search")
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(28.dp),
+                )
+            },
+            expanded = searchExpanded,
+            onExpandedChange = { searchExpanded = it },
+        ) {
+            if (searchQuery.isBlank()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("Try searching for", style = MaterialTheme.typography.titleSmall)
+                    listOf("Island size", "Auto collapse", "Lock screen", "Animation speed", "Music progress", "Shadow", "Notification icons").forEach { suggestion ->
+                        Text(
+                            text = suggestion,
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                .clickable { searchQuery = suggestion; searchExpanded = true }
+                                .padding(12.dp),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
                     }
                 }
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(24.dp),
-        )
+            }
+        }
 
         if (searchQuery.isNotBlank()) {
             val normalizedQuery = searchQuery.trim().lowercase()
