@@ -50,6 +50,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -129,6 +130,7 @@ fun SettingsTab(
                 val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
                 SettingsList(
                     contentPadding = contentPadding,
+                    viewModel = viewModel,
                     cutoutEnabled = behaviour.cutoutEnabled,
                     onCutoutEnabledChange = viewModel::setCutoutEnabled,
                     searchQuery = searchQuery,
@@ -208,6 +210,7 @@ val SettingsRoute.depth: Int
 @Composable
 private fun SettingsList(
     contentPadding: PaddingValues,
+    viewModel: AppViewModel,
     cutoutEnabled: Boolean,
     onCutoutEnabledChange: (Boolean) -> Unit,
     searchQuery: String,
@@ -232,6 +235,14 @@ private fun SettingsList(
     // case that best-effort request doesn't take on this OEM.
     val notificationsGranted = rememberNotificationAccessGranted()
     val notificationsRunning = rememberNotificationListenerRunning()
+    val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
+    val appearance by viewModel.appearance.collectAsStateWithLifecycle()
+    val hideNotificationIcons by viewModel.hideNotificationIcons.collectAsStateWithLifecycle()
+    val hideSystemInfo by viewModel.hideSystemInfo.collectAsStateWithLifecycle()
+    val hideClock by viewModel.hideClock.collectAsStateWithLifecycle()
+    val silenceSystemAlerts by viewModel.silenceSystemAlerts.collectAsStateWithLifecycle()
+    val permissionDotEnabled by viewModel.permissionDotEnabled.collectAsStateWithLifecycle()
+    val permissionDotVertical by viewModel.permissionDotVertical.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -296,6 +307,118 @@ private fun SettingsList(
                         }
                 }
                 var resultCount = 0
+                if (matches("Hide on lock screen", "Hide the island while the device is locked", "lockscreen lock screen lock")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Hide on lock screen", "Hide the island while the device is locked", behaviour.hideOnLockscreen, viewModel::setHideOnLockscreen)
+                }
+                if (matches("Hide in landscape", "Hide the island in landscape orientation", "landscape horizontal rotation")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Hide in landscape", "Hide the island in landscape orientation", behaviour.hideInLandscape, { viewModel.setHorizontalCutoutMode(if (it) com.vikram.expressiveisland.data.HorizontalCutoutMode.HIDDEN else com.vikram.expressiveisland.data.HorizontalCutoutMode.CENTER) })
+                }
+                if (matches("Auto collapse", "Collapse the expanded island automatically", "collapse shrink timeout delay")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Auto collapse", "Collapse the expanded island automatically", behaviour.expandedAutoCollapse, viewModel::setExpandedAutoCollapse)
+                }
+                if (matches("Disappear on shrink", "Hide instead of returning to the normal pill", "shrink disappear")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Disappear on shrink", "Hide instead of returning to the normal pill", behaviour.expandedDisappearOnShrink, viewModel::setExpandedDisappearOnShrink)
+                }
+                if (matches("Notifications auto expand", "Expand for incoming notifications", "notification expansion")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Notifications auto expand", "Expand for incoming notifications", behaviour.notificationsAutoExpand, viewModel::setNotificationsAutoExpand)
+                }
+                if (matches("Ignore silent notifications", "Do not react to silent notifications", "silent notification mute")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Ignore silent notifications", "Do not react to silent notifications", behaviour.ignoreSilentNotifications, viewModel::setIgnoreSilentNotifications)
+                }
+                if (matches("Show action buttons", "Show actions inside expanded notifications", "reply buttons actions")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Show action buttons", "Show actions inside expanded notifications", behaviour.showActionButtons, viewModel::setShowActionButtons)
+                }
+                if (matches("Toast on action", "Show a confirmation after an action", "toast feedback confirmation")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Toast on action", "Show a confirmation after an action", behaviour.toastOnAction, viewModel::setToastOnAction)
+                }
+                if (matches("Shrink on swipe up", "Swipe upward to shrink the island", "gesture swipe up")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Shrink on swipe up", "Swipe upward to shrink the island", behaviour.shrinkOnSwipeUp, viewModel::setShrinkOnSwipeUp)
+                }
+                if (matches("Swipe to dismiss", "Allow horizontal swipe dismissal", "gesture swipe left right")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Swipe to dismiss", "Allow horizontal swipe dismissal", behaviour.swipeToDismiss, viewModel::setSwipeToDismiss)
+                }
+                if (matches("Vibrate on tap", "Use haptic feedback when the island is tapped", "vibration haptics touch")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Vibrate on tap", "Use haptic feedback when the island is tapped", behaviour.vibrateOnTap, viewModel::setVibrateOnTap)
+                }
+                if (matches("Haptics on pop", "Use haptics when the island appears", "vibration haptic appearance")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Haptics on pop", "Use haptics when the island appears", behaviour.hapticsOnPop, viewModel::setHapticsOnPop)
+                }
+                if (matches("Dismiss notifications", "Dismiss notifications when handled", "clear notification remove")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Dismiss notifications", "Dismiss notifications when handled", behaviour.dismissNotifications, viewModel::setDismissNotifications)
+                }
+                if (matches("Display while DND", "Show content while Do Not Disturb is enabled", "do not disturb quiet mode")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Display while DND", "Show content while Do Not Disturb is enabled", behaviour.displayWhileDnd, viewModel::setDisplayWhileDnd)
+                }
+                if (matches("Alert on notification", "Show alert feedback for notifications", "notification alert")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Alert on notification", "Show alert feedback for notifications", behaviour.alertOnNotification, viewModel::setAlertOnNotification)
+                }
+                if (matches("Show when empty", "Keep the island visible when idle", "idle empty bubble")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Show when empty", "Keep the island visible when idle", behaviour.showsWhenEmpty, viewModel::setShowsWhenEmpty)
+                }
+                if (matches("Shadow", "Show a shadow around the island", "appearance depth elevation")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Shadow", "Show a shadow around the island", appearance.shadowEnabled, viewModel::setShadowEnabled)
+                }
+                if (matches("Stroke outline", "Draw an outline around the island", "border outline width")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Stroke outline", "Draw an outline around the island", appearance.strokeEnabled, viewModel::setStrokeEnabled)
+                }
+                if (matches("Show source app name", "Show the originating app on notifications", "application notification source")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Show source app name", "Show the originating app on notifications", appearance.showSourceAppName, viewModel::setShowSourceAppName)
+                }
+                if (matches("Show timestamp", "Show notification time information", "time date clock")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Show timestamp", "Show notification time information", appearance.showTimestamp, viewModel::setShowTimestamp)
+                }
+                if (matches("Show full notification text", "Show the complete notification message", "message text content")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Show full notification text", "Show the complete notification message", appearance.showFullNotificationText, viewModel::setShowFullNotificationText)
+                }
+                if (matches("Prefer dynamic icon color", "Use app-provided dynamic icon colors", "icon color app accent")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Prefer dynamic icon color", "Use app-provided dynamic icon colors", appearance.preferDynamicIconColor, viewModel::setPreferDynamicIconColor)
+                }
+                if (matches("Hide notification icons", "Hide app notification icons from the status bar", "status bar app icons")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Hide notification icons", "Hide app notification icons from the status bar", hideNotificationIcons, viewModel::setHideNotificationIcons)
+                }
+                if (matches("Hide system info icons", "Hide clock, battery, Wi-Fi and signal icons", "status bar clock battery wifi signal")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Hide system info icons", "Hide clock, battery, Wi-Fi and signal icons", hideSystemInfo, viewModel::setHideSystemInfo)
+                }
+                if (matches("Hide status bar clock", "Hide the system clock", "time status bar")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Hide status bar clock", "Hide the system clock", hideClock, viewModel::setHideClock)
+                }
+                if (matches("Silence system alerts", "Silence system alerts while the island handles notifications", "sound vibration heads up")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Silence system alerts", "Silence system alerts while the island handles notifications", silenceSystemAlerts, viewModel::setSilenceSystemAlerts)
+                }
+                if (matches("Permission dots", "Show camera, microphone and location activity", "privacy camera microphone location")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Permission dots", "Show camera, microphone and location activity", permissionDotEnabled, viewModel::setPermissionDotEnabled)
+                }
+                if (matches("Vertical permission dots", "Stack permission indicators vertically", "privacy dots orientation")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Vertical permission dots", "Stack permission indicators vertically", permissionDotVertical, viewModel::setPermissionDotVertical)
+                }
                 if (matches("Dynamic Cutout", "Show or hide the island", "island overlay enable disable accessibility service")) {
                     resultCount++
                     CutoutEnableCard(
