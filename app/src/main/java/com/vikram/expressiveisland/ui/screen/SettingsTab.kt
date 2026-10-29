@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -225,6 +226,7 @@ private fun SettingsList(
     onOpenAppearance: () -> Unit,
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     // Re-reads on resume so returning from the system Accessibility settings updates immediately.
     val accessibilityAvailable = rememberAccessibilityGranted()
     // Granted is not the same as running: Android keeps the grant across an app update but often
@@ -263,7 +265,10 @@ private fun SettingsList(
                     },
                     onSearch = { searchExpanded = true },
                     expanded = searchExpanded,
-                    onExpandedChange = { searchExpanded = it },
+                    onExpandedChange = {
+                        searchExpanded = it
+                        if (!it) focusManager.clearFocus()
+                    },
                     placeholder = { Text("Search settings") },
                     leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                     trailingIcon = {
@@ -280,7 +285,10 @@ private fun SettingsList(
                 )
             },
             expanded = searchExpanded,
-            onExpandedChange = { searchExpanded = it },
+            onExpandedChange = {
+                searchExpanded = it
+                if (!it) focusManager.clearFocus()
+            },
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
