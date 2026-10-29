@@ -237,6 +237,7 @@ private fun SettingsList(
     val notificationsRunning = rememberNotificationListenerRunning()
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
+    val musicTile by viewModel.musicTile.collectAsStateWithLifecycle()
     val hideNotificationIcons by viewModel.hideNotificationIcons.collectAsStateWithLifecycle()
     val hideSystemInfo by viewModel.hideSystemInfo.collectAsStateWithLifecycle()
     val hideClock by viewModel.hideClock.collectAsStateWithLifecycle()
@@ -421,6 +422,38 @@ private fun SettingsList(
                 if (matches("Vertical permission dots", "Stack permission indicators vertically", "privacy dots orientation")) {
                     resultCount++
                     SettingsToggleCard(RoundedCornerShape(24.dp), "Vertical permission dots", "Stack permission indicators vertically", permissionDotVertical, viewModel::setPermissionDotVertical)
+                }
+                if (matches("Show album art", "Show album artwork in the music tile", "music album cover artwork")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Show album art", "Show album artwork in the music tile", musicTile.showAlbumArt, viewModel::setMusicShowAlbumArt)
+                }
+                if (matches("Rotate album art", "Rotate the album artwork while music plays", "music album rotation spinning")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Rotate album art", "Rotate the album artwork while music plays", musicTile.rotateAlbumArt, viewModel::setMusicRotateAlbumArt)
+                }
+                if (matches("Album art stroke", "Outline the album artwork", "music border outline")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Album art stroke", "Outline the album artwork", musicTile.albumArtStroke, viewModel::setMusicAlbumArtStroke)
+                }
+                if (matches("Expand on play", "Expand the island when music starts", "music auto expand playback")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Expand on play", "Expand the island when music starts", musicTile.expandOnPlay, viewModel::setMusicExpandOnPlay)
+                }
+                if (matches("Visible in player app", "Keep the music tile visible in the player app", "music player application")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Visible in player app", "Keep the music tile visible in the player app", musicTile.visibleInPlayerApp, viewModel::setMusicVisibleInPlayerApp)
+                }
+                if (matches("Music controls", "Show playback controls in the music tile", "music play pause next previous buttons")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Music controls", "Show playback controls in the music tile", musicTile.showControls, viewModel::setMusicShowControls)
+                }
+                if (matches("Music progress", "Show playback progress", "music seek timeline progress bar")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Music progress", "Show playback progress", musicTile.showProgress, viewModel::setMusicShowProgress)
+                }
+                if (matches("Music visualizer", "Show audio visualizer in the expanded tile", "music bars waveform pulse audio")) {
+                    resultCount++
+                    SettingsToggleCard(RoundedCornerShape(24.dp), "Music visualizer", "Show audio visualizer in the expanded tile", musicTile.showVisualizer, viewModel::setMusicShowVisualizer)
                 }
                 if (matches("Dynamic Cutout", "Show or hide the island", "island overlay enable disable accessibility service")) {
                     resultCount++
