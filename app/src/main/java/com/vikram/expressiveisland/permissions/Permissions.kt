@@ -42,6 +42,17 @@ object Permissions {
     fun openAccessibilitySettings(context: Context) =
         context.startActivitySafely(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
 
+    /** Opens this app's accessibility-service detail page when Android exposes it. */
+    fun openAccessibilityServiceSettings(context: Context) {
+        val service = ComponentName(context, CutoutAccessibilityService::class.java)
+        val targeted = Intent(Settings.ACTION_ACCESSIBILITY_DETAILS_SETTINGS).apply {
+            putExtra(Settings.EXTRA_ACCESSIBILITY_SERVICE_COMPONENT_NAME, service)
+        }
+        if (!context.startActivitySafely(targeted)) {
+            openAccessibilitySettings(context)
+        }
+    }
+
     /**
      * Opens the direct "ignore battery optimisation" prompt for this app. Falls back to
      * the general list if the OEM blocks the targeted request.

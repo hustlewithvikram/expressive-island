@@ -268,7 +268,7 @@ private fun SettingsList(
                 CutoutEnableCard(
                     enabled = cutoutEnabled,
                     onEnabledChange = onCutoutEnabledChange,
-                    onOpenAccessibility = { Permissions.openAccessibilitySettings(context) },
+                    onOpenAccessibility = { Permissions.openAccessibilityServiceSettings(context) },
                 )
             }
             if (matches("Size & position", "Adjust the cutout size and position", "width height offset size position camera")) {
@@ -321,7 +321,7 @@ private fun SettingsList(
                 icon = Icons.Rounded.ErrorOutline,
                 subtitle = stringResource(R.string.settings_access_missing),
                 title = stringResource(R.string.perm_accessibility_title),
-                onClick = { Permissions.openAccessibilitySettings(context) },
+                onClick = { Permissions.openAccessibilityServiceSettings(context) },
                 bgColor = MaterialTheme.colorScheme.primaryContainer,
                 fgColor = MaterialTheme.colorScheme.onPrimaryContainer
 
@@ -338,7 +338,7 @@ private fun SettingsList(
                 icon = Icons.Rounded.ErrorOutline,
                 subtitle = stringResource(R.string.settings_access_stalled),
                 title = stringResource(R.string.settings_access_stalled_title),
-                onClick = { Permissions.openAccessibilitySettings(context) },
+                onClick = { Permissions.openAccessibilityServiceSettings(context) },
                 bgColor = MaterialTheme.colorScheme.errorContainer,
                 fgColor = MaterialTheme.colorScheme.onErrorContainer
             )
@@ -363,7 +363,7 @@ private fun SettingsList(
         CutoutEnableCard(
             enabled = cutoutEnabled,
             onEnabledChange = onCutoutEnabledChange,
-            onOpenAccessibility = { Permissions.openAccessibilitySettings(context) },
+            onOpenAccessibility = { Permissions.openAccessibilityServiceSettings(context) },
         )
 
         // Customization of the cutout
