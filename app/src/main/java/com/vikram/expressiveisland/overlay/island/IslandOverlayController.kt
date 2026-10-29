@@ -1380,9 +1380,17 @@ class IslandOverlayController(private val context: Context) {
         dismissJob?.cancel()
         currentDeadlineMs = deadlineMs
         if (deadlineMs == null) return
+
+        // A cancelled coroutine can still race with a replacement event at its deadline.
+        // Bind this timeout to the event that owns the deadline so it cannot dismiss a newer pill.
+        val scheduledEventId = currentEvent.value?.id ?: return
         dismissJob = scope.launch {
             val remaining = deadlineMs - System.currentTimeMillis()
             if (remaining > 0) delay(remaining)
+            if (currentEvent.value?.id != scheduledEventId || currentDeadlineMs != deadlineMs) {
+                Log.d(TAG, "Ignoring stale pill timeout for event=$scheduledEventId")
+                return@launch
+            }
             dismissIsland()
         }
     }
@@ -2241,12 +2249,22 @@ class IslandOverlayController(private val context: Context) {
         currentDeadlineMs = null
         // Never time out a live cutout while it's active — it stays until playback / the call stops.
         if (isPinnedLiveTile()) return
+
+        // Capture both the event identity and its deadline. Unlock, notification and other transient
+        // signals can arrive in the same frame; a timeout from the previous signal must never clear
+        // or replace the event that won that race.
+        val scheduledEventId = currentEvent.value?.id ?: return
         // A system event with its own duration override wins; everything else uses the global normal.
         val seconds = currentSystemEventType?.let { eventDurations[it] }
             ?: behaviourState.value.normalDurationSeconds
-        currentDeadlineMs = System.currentTimeMillis() + seconds * 1_000L
+        val deadlineMs = System.currentTimeMillis() + seconds * 1_000L
+        currentDeadlineMs = deadlineMs
         dismissJob = scope.launch {
-            delay(seconds * 1_000L)
+            delay((deadlineMs - System.currentTimeMillis()).coerceAtLeast(0L))
+            if (currentEvent.value?.id != scheduledEventId || currentDeadlineMs != deadlineMs) {
+                Log.d(TAG, "Ignoring stale dismiss timeout for event=$scheduledEventId")
+                return@launch
+            }
             if (promoteSatelliteCollapsed()) return@launch
             val livePill = livePillToReturnTo()
             when {
@@ -2269,6 +2287,8 @@ class IslandOverlayController(private val context: Context) {
                     currentEvent.value = null
                 }
             }
+            currentDeadlineMs = null
+            currentSystemEventType = null
             syncWindowSize()
         }
     }
