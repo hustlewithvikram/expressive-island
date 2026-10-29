@@ -253,15 +253,14 @@ private fun SettingsList(
     val permissionDotEnabled by viewModel.permissionDotEnabled.collectAsStateWithLifecycle()
     val permissionDotVertical by viewModel.permissionDotVertical.collectAsStateWithLifecycle()
 
-    // Keep the expanding Material 3 SearchBar outside the scroll container so its overlay
-    // remains stable. Preserve system-bar insets, but let the settings content reach the edges.
+    // The entire settings page scrolls as one surface: the search field moves with the
+    // cards below it. Put the top inset inside the scroll content so it scrolls away naturally;
+    // omit the bottom inset to avoid the extra blank space at the bottom.
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(
-                top = contentPadding.calculateTopPadding(),
-                bottom = contentPadding.calculateBottomPadding(),
-            ),
+            .verticalScroll(rememberScrollState())
+            .padding(top = contentPadding.calculateTopPadding()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SearchBar(
@@ -300,7 +299,7 @@ private fun SettingsList(
             },
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                modifier = Modifier.fillMaxWidth(),
             ) {
             if (searchQuery.isBlank()) {
                 Column(
@@ -571,7 +570,7 @@ private fun SettingsList(
 
         if (searchQuery.isBlank() && !searchExpanded) {
         Column(
-            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
         // Accessibility access permission request if needed
