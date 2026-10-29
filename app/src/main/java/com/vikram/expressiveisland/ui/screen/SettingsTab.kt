@@ -287,67 +287,69 @@ private fun SettingsList(
                     }
                 }
             }
+            } else {
+                val normalizedQuery = searchQuery.trim().lowercase()
+                val matches = { title: String, subtitle: String, keywords: String ->
+                    val fields = listOf(title, subtitle, keywords)
+                    fields.any { it.contains(normalizedQuery, ignoreCase = true) } ||
+                        normalizedQuery.split(Regex("\\s+")).filter(String::isNotBlank).all { token ->
+                            fields.any { it.contains(token, ignoreCase = true) }
+                        }
+                }
+                var resultCount = 0
+                if (matches("Dynamic Cutout", "Show or hide the island", "island overlay enable disable accessibility service")) {
+                    resultCount++
+                    CutoutEnableCard(
+                        enabled = cutoutEnabled,
+                        onEnabledChange = onCutoutEnabledChange,
+                        onOpenAccessibility = { Permissions.openAccessibilitySettings(context) },
+                    )
+                }
+                if (matches("Size & position", "Adjust the cutout size and position", "width height offset size position camera")) {
+                    resultCount++
+                    SettingsListItem(Icons.Rounded.Tune, "Size & position", "Adjust the cutout size and position", onOpenSizePosition)
+                }
+                if (matches(stringResource(R.string.appearance_section_title), stringResource(R.string.settings_appearance_subtitle), "appearance shadow stroke color theme background buttons")) {
+                    resultCount++
+                    SettingsListItem(Icons.Rounded.ColorLens, stringResource(R.string.appearance_section_title), stringResource(R.string.settings_appearance_subtitle), onOpenAppearance)
+                }
+                if (matches(stringResource(R.string.behaviour_title), stringResource(R.string.settings_behaviour_subtitle), "behaviour behavior duration timeout lockscreen auto collapse swipe landscape orientation dismiss empty")) {
+                    resultCount++
+                    SettingsListItem(Icons.Rounded.Timer, stringResource(R.string.behaviour_title), stringResource(R.string.settings_behaviour_subtitle), onOpenBehaviour)
+                }
+                if (matches(stringResource(R.string.animation_title), stringResource(R.string.settings_animation_subtitle), "animation transition motion haptic")) {
+                    resultCount++
+                    SettingsListItem(Icons.Rounded.Animation, stringResource(R.string.animation_title), stringResource(R.string.settings_animation_subtitle), onOpenAnimation)
+                }
+                if (matches(stringResource(R.string.shizuku_options_title), stringResource(R.string.settings_shizuku_subtitle), "shizuku permission dot status bar accessibility")) {
+                    resultCount++
+                    SettingsListItem(Icons.Rounded.Terminal, stringResource(R.string.shizuku_options_title), stringResource(R.string.settings_shizuku_subtitle), onOpenShizuku)
+                }
+                if (matches(stringResource(R.string.dynamic_tiles_title), stringResource(R.string.settings_dynamic_tiles_subtitle), "dynamic tiles music timer stopwatch phone call battery charging wifi download recording flashlight")) {
+                    resultCount++
+                    SettingsListItem(Icons.Rounded.GridView, stringResource(R.string.dynamic_tiles_title), stringResource(R.string.settings_dynamic_tiles_subtitle), onOpenDynamicTiles)
+                }
+                if (matches(stringResource(R.string.section_icons_title), stringResource(R.string.settings_icons_subtitle), "event notification icon icons call charging lock biometrics")) {
+                    resultCount++
+                    SettingsListItem(Icons.Rounded.Notifications, stringResource(R.string.section_icons_title), stringResource(R.string.settings_icons_subtitle), onOpenEventIcons)
+                }
+                if (matches(stringResource(R.string.apps_title), stringResource(R.string.settings_apps_subtitle), "apps application notifications app list")) {
+                    resultCount++
+                    SettingsListItem(Icons.Rounded.Apps, stringResource(R.string.apps_title), stringResource(R.string.settings_apps_subtitle), onOpenApps)
+                }
+                if (resultCount == 0) {
+                    Text(
+                        text = "No matching settings",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+    
+            }
         }
 
-        if (searchQuery.isNotBlank()) {
-            val normalizedQuery = searchQuery.trim().lowercase()
-            val matches = { title: String, subtitle: String, keywords: String ->
-                val fields = listOf(title, subtitle, keywords)
-                fields.any { it.contains(normalizedQuery, ignoreCase = true) } ||
-                    normalizedQuery.split(Regex("\\s+")).filter(String::isNotBlank).all { token ->
-                        fields.any { it.contains(token, ignoreCase = true) }
-                    }
-            }
-            var resultCount = 0
-            if (matches("Dynamic Cutout", "Show or hide the island", "island overlay enable disable accessibility service")) {
-                resultCount++
-                CutoutEnableCard(
-                    enabled = cutoutEnabled,
-                    onEnabledChange = onCutoutEnabledChange,
-                    onOpenAccessibility = { Permissions.openAccessibilitySettings(context) },
-                )
-            }
-            if (matches("Size & position", "Adjust the cutout size and position", "width height offset size position camera")) {
-                resultCount++
-                SettingsListItem(Icons.Rounded.Tune, "Size & position", "Adjust the cutout size and position", onOpenSizePosition)
-            }
-            if (matches(stringResource(R.string.appearance_section_title), stringResource(R.string.settings_appearance_subtitle), "appearance shadow stroke color theme background buttons")) {
-                resultCount++
-                SettingsListItem(Icons.Rounded.ColorLens, stringResource(R.string.appearance_section_title), stringResource(R.string.settings_appearance_subtitle), onOpenAppearance)
-            }
-            if (matches(stringResource(R.string.behaviour_title), stringResource(R.string.settings_behaviour_subtitle), "behaviour behavior duration timeout lockscreen auto collapse swipe landscape orientation dismiss empty")) {
-                resultCount++
-                SettingsListItem(Icons.Rounded.Timer, stringResource(R.string.behaviour_title), stringResource(R.string.settings_behaviour_subtitle), onOpenBehaviour)
-            }
-            if (matches(stringResource(R.string.animation_title), stringResource(R.string.settings_animation_subtitle), "animation transition motion haptic")) {
-                resultCount++
-                SettingsListItem(Icons.Rounded.Animation, stringResource(R.string.animation_title), stringResource(R.string.settings_animation_subtitle), onOpenAnimation)
-            }
-            if (matches(stringResource(R.string.shizuku_options_title), stringResource(R.string.settings_shizuku_subtitle), "shizuku permission dot status bar accessibility")) {
-                resultCount++
-                SettingsListItem(Icons.Rounded.Terminal, stringResource(R.string.shizuku_options_title), stringResource(R.string.settings_shizuku_subtitle), onOpenShizuku)
-            }
-            if (matches(stringResource(R.string.dynamic_tiles_title), stringResource(R.string.settings_dynamic_tiles_subtitle), "dynamic tiles music timer stopwatch phone call battery charging wifi download recording flashlight")) {
-                resultCount++
-                SettingsListItem(Icons.Rounded.GridView, stringResource(R.string.dynamic_tiles_title), stringResource(R.string.settings_dynamic_tiles_subtitle), onOpenDynamicTiles)
-            }
-            if (matches(stringResource(R.string.section_icons_title), stringResource(R.string.settings_icons_subtitle), "event notification icon icons call charging lock biometrics")) {
-                resultCount++
-                SettingsListItem(Icons.Rounded.Notifications, stringResource(R.string.section_icons_title), stringResource(R.string.settings_icons_subtitle), onOpenEventIcons)
-            }
-            if (matches(stringResource(R.string.apps_title), stringResource(R.string.settings_apps_subtitle), "apps application notifications app list")) {
-                resultCount++
-                SettingsListItem(Icons.Rounded.Apps, stringResource(R.string.apps_title), stringResource(R.string.settings_apps_subtitle), onOpenApps)
-            }
-            if (resultCount == 0) {
-                Text(
-                    text = "No matching settings",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(16.dp),
-                )
-            }
-        } else {
+        if (searchQuery.isBlank() && !searchExpanded) {
         // Accessibility access permission request if needed
         AnimatedVisibility(
             visible = !accessibilityAvailable,
