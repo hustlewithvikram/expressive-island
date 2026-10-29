@@ -87,7 +87,11 @@ sealed interface CutoutSignal {
     }
 
     /** A device-level event occurred. */
-    data class System(val type: SystemEventType) : CutoutSignal
+    data class System(
+        val type: SystemEventType,
+        /** Monotonic-in-process sequence assigned by IslandEventBus to distinguish fresh events from replay. */
+        val eventId: Long = 0L,
+    ) : CutoutSignal
 
     /** Media started playing on the device (surfaced from any app's media session). */
     data class Music(

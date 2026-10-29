@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsNone
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -98,6 +99,7 @@ enum class ProfileRoute {
     About,
     Changelog,
     PermissionDetails,
+    AppUpdates,
 }
 
 @Composable
@@ -108,6 +110,7 @@ fun ProfileTab(
     onOpenAccess: () -> Unit,
     onOpenTestingTriggers: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenUpdates: () -> Unit,
     onOpenChangelog: () -> Unit,
     onOpenPermissionDetails: () -> Unit,
     onExportSettings: () -> Unit,
@@ -134,6 +137,7 @@ fun ProfileTab(
                     onOpenAccess = onOpenAccess,
                     onOpenTestingTriggers = onOpenTestingTriggers,
                     onOpenAbout = onOpenAbout,
+                    onOpenUpdates = onOpenUpdates,
                     onOpenChangelog = onOpenChangelog,
                     onOpenPermissionDetails = onOpenPermissionDetails,
                     onExportSettings = onExportSettings,
@@ -163,6 +167,10 @@ fun ProfileTab(
                 ChangelogScreen(contentPadding)
             }
 
+            ProfileRoute.AppUpdates -> {
+                AppUpdatesScreen(contentPadding = contentPadding)
+            }
+
             ProfileRoute.PermissionDetails -> {
                 PermissionDetailsScreen(contentPadding)
             }
@@ -177,6 +185,7 @@ private fun ProfileList(
     onOpenAccess: () -> Unit,
     onOpenTestingTriggers: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenUpdates: () -> Unit,
     onOpenChangelog: () -> Unit,
     onOpenPermissionDetails: () -> Unit,
     onExportSettings: () -> Unit,
@@ -261,6 +270,13 @@ private fun ProfileList(
             title = "About",
             description = "App version, changelog, repository, and developer.",
             onClick = onOpenAbout,
+        )
+
+        ProfileDestinationCard(
+            icon = Icons.Rounded.SystemUpdate,
+            title = "Updater",
+            description = "Check for updates and install the latest version.",
+            onClick = onOpenUpdates,
         )
 
         Spacer(
@@ -1106,19 +1122,17 @@ private fun AppHeader() {
                 .size(104.dp)
                 .clip(CircleShape)
                 .background(
-                    MaterialTheme.colorScheme.primaryContainer,
+                    MaterialTheme.colorScheme.surfaceContainerHighest,
                 ),
         ) {
-            Icon(
-                painter =
-                    painterResource(
-                        R.drawable.ic_launcher_monochrome,
-                    ),
-                contentDescription =
-                    stringResource(
-                        R.string.app_icon_description,
-                    ),
-                tint = MaterialTheme.colorScheme.primary,
+            Image(
+                painter = painterResource(
+                    R.drawable.ic_launcher_foreground,
+                ),
+                contentDescription = stringResource(
+                    R.string.app_icon_description,
+                ),
+                contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
             )
         }

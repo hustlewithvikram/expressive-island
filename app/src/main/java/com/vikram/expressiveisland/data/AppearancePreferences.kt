@@ -61,7 +61,7 @@ data class AppearanceSettings(
 ) {
     companion object {
         const val DEFAULT_SHADOW_ENABLED = true
-        val DEFAULT_SHADOW_COLOR: CutoutColor = CutoutColor.Solid(0xFF000000L)
+        val DEFAULT_SHADOW_COLOR: CutoutColor = CutoutColor.Solid(0xFF0A0A0AL)
         const val DEFAULT_STROKE_ENABLED = false
         const val DEFAULT_STROKE_WIDTH_DP = 2
         const val MIN_STROKE_WIDTH_DP = 1
@@ -91,7 +91,7 @@ data class AppearanceSettings(
         const val DEFAULT_CANCEL_ON_LEFT = false
         /** The confirmation historically hugged the leading edge. */
         val DEFAULT_SENT_ALIGNMENT = SentAlignment.LEFT
-        val DEFAULT_PAGE_TRANSITION_STYLE = PageTransitionStyle.FADE
+        val DEFAULT_PAGE_TRANSITION_STYLE = PageTransitionStyle.SHARED_AXIS
         const val DEFAULT_ACTION_BUTTON_HEIGHT_DP = 44
         const val MIN_ACTION_BUTTON_HEIGHT_DP = 36
         const val MAX_ACTION_BUTTON_HEIGHT_DP = 56

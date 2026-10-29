@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.MusicButtonStyle
+import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.service.ProgressData
 
 /**
@@ -140,6 +141,8 @@ data class IslandEvent(
     val packageName: String? = null,
     /** The primary branding color extracted from the posting app's default launcher icon, if any. */
     val appColor: Color? = null,
+    /** Original system-event type retained while this event moves between overlay slots. */
+    val systemEventType: SystemEventType? = null,
 )
 
 /** Which parts of the assistant tile to render (display text, max height). */

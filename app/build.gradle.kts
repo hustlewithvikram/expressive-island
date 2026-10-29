@@ -1,12 +1,11 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "com.vikram.expressiveisland"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.vikram.expressiveisland"
@@ -14,6 +13,10 @@ android {
         targetSdk = 35
         versionCode = 4
         versionName = "0.1.5"
+        buildConfigField("String", "BUILD_RUN_NUMBER", "\"${System.getenv("GITHUB_RUN_NUMBER") ?: "local"}\"")
+        buildConfigField("String", "BUILD_RUN_ID", "\"${System.getenv("GITHUB_RUN_ID") ?: ""}\"")
+        buildConfigField("String", "BUILD_COMMIT", "\"${System.getenv("GITHUB_SHA") ?: ""}\"")
+        buildConfigField("String", "BUILD_BRANCH", "\"${System.getenv("GITHUB_REF_NAME") ?: "local"}\"")
     }
 
     val releaseStoreFile = providers.gradleProperty("releaseStoreFile").orNull
@@ -57,6 +60,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Keep development and production installs side-by-side without sharing app data.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+
         release {
             // Keep release builds optimized without embedding signing credentials in source.
             isMinifyEnabled = true
@@ -86,12 +95,15 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

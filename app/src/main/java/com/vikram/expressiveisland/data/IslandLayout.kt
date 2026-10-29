@@ -86,24 +86,24 @@ data class IslandLayout(
 ) {
     companion object {
         val DEFAULT_COLLAPSED = IslandDimensions(
-            widthPercent = 38,
-            heightDp = 34,
+            widthPercent = 32,
+            heightDp = 36,
             offsetXDp = 0,
-            offsetYDp = 6,
-            cornerTopLeftDp = 17,
-            cornerTopRightDp = 17,
-            cornerBottomLeftDp = 17,
-            cornerBottomRightDp = 17,
+            offsetYDp = 14,
+            cornerTopLeftDp = 110,
+            cornerTopRightDp = 110,
+            cornerBottomLeftDp = 110,
+            cornerBottomRightDp = 110,
         )
         val DEFAULT_EXPANDED = IslandDimensions(
-            widthPercent = 90,
-            heightDp = 108,
+            widthPercent = 97,
+            heightDp = 140,
             offsetXDp = 0,
             offsetYDp = 6,
-            cornerTopLeftDp = 30,
-            cornerTopRightDp = 30,
-            cornerBottomLeftDp = 30,
-            cornerBottomRightDp = 30,
+            cornerTopLeftDp = 50,
+            cornerTopRightDp = 50,
+            cornerBottomLeftDp = 40,
+            cornerBottomRightDp = 40,
         )
 
         val DEFAULT = IslandLayout()

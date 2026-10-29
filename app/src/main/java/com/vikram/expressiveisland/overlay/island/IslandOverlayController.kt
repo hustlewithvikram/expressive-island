@@ -1380,9 +1380,17 @@ class IslandOverlayController(private val context: Context) {
         dismissJob?.cancel()
         currentDeadlineMs = deadlineMs
         if (deadlineMs == null) return
+
+        // A cancelled coroutine can still race with a replacement event at its deadline.
+        // Bind this timeout to the event that owns the deadline so it cannot dismiss a newer pill.
+        val scheduledEventId = currentEvent.value?.id ?: return
         dismissJob = scope.launch {
             val remaining = deadlineMs - System.currentTimeMillis()
             if (remaining > 0) delay(remaining)
+            if (currentEvent.value?.id != scheduledEventId || currentDeadlineMs != deadlineMs) {
+                Log.d(TAG, "Ignoring stale pill timeout for event=$scheduledEventId")
+                return@launch
+            }
             dismissIsland()
         }
     }
@@ -1560,7 +1568,16 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeSignals() = scope.launch {
+        // IslandEventBus intentionally replays recent signals so collectors can recover after
+        // lifecycle changes. System events are transitions, though: replaying an old DEVICE_LOCKED
+        // after the service reconnects can create a second stale lock pill. Snapshot the sequence
+        // before collecting and ignore only system events that predate this collector.
+        val startupSystemEventId = IslandEventBus.currentSystemEventId
         IslandEventBus.signals.collect { signal ->
+            if (signal is CutoutSignal.System && signal.eventId <= startupSystemEventId) {
+                Log.d(TAG, "Ignoring replayed system event ${signal.type} (id=${signal.eventId})")
+                return@collect
+            }
             if (signal is CutoutSignal.System) {
                 Log.d(
                     "SystemEventDebug",
@@ -1674,6 +1691,28 @@ class IslandOverlayController(private val context: Context) {
 
             if (!behaviourState.value.cutoutEnabled) return@collect
 
+            val incomingSystemTypeForCoalescing = (signal as? CutoutSignal.System)?.type
+            if (incomingSystemTypeForCoalescing != null) {
+                // Opposite states of one system-event family are replacements, not separate
+                // interruptions. Remove an older state from every secondary slot before routing.
+                waitingSatelliteEvents.removeAll { queued ->
+                    queued.event.systemEventType?.let {
+                        isSameSystemEventFamily(it, incomingSystemTypeForCoalescing)
+                    } == true
+                }
+                deferredExpandedEvents.removeAll { queued ->
+                    queued.systemEventType?.let {
+                        isSameSystemEventFamily(it, incomingSystemTypeForCoalescing)
+                    } == true
+                }
+                if (satelliteEvent.value?.systemEventType?.let {
+                        isSameSystemEventFamily(it, incomingSystemTypeForCoalescing)
+                    } == true
+                ) {
+                    clearSatellite()
+                }
+            }
+
             val existing = currentEvent.value
             // Live-tile refreshes often arrive with a new event ID. Keep the visible slot identity
             // and expansion state stable so playback/timer updates cannot collapse an expanded tile.
@@ -1778,12 +1817,14 @@ class IslandOverlayController(private val context: Context) {
             val incomingSystemEventType =
                 (signal as? CutoutSignal.System)?.type
 
+            val existingSystemEventType =
+                existing?.systemEventType ?: currentSystemEventType
             val sameSystemFamily =
                 existing != null &&
-                        currentSystemEventType != null &&
+                        existingSystemEventType != null &&
                         incomingSystemEventType != null &&
                         isSameSystemEventFamily(
-                            currentSystemEventType,
+                            existingSystemEventType,
                             incomingSystemEventType,
                         )
 
@@ -2208,12 +2249,22 @@ class IslandOverlayController(private val context: Context) {
         currentDeadlineMs = null
         // Never time out a live cutout while it's active — it stays until playback / the call stops.
         if (isPinnedLiveTile()) return
+
+        // Capture both the event identity and its deadline. Unlock, notification and other transient
+        // signals can arrive in the same frame; a timeout from the previous signal must never clear
+        // or replace the event that won that race.
+        val scheduledEventId = currentEvent.value?.id ?: return
         // A system event with its own duration override wins; everything else uses the global normal.
         val seconds = currentSystemEventType?.let { eventDurations[it] }
             ?: behaviourState.value.normalDurationSeconds
-        currentDeadlineMs = System.currentTimeMillis() + seconds * 1_000L
+        val deadlineMs = System.currentTimeMillis() + seconds * 1_000L
+        currentDeadlineMs = deadlineMs
         dismissJob = scope.launch {
-            delay(seconds * 1_000L)
+            delay((deadlineMs - System.currentTimeMillis()).coerceAtLeast(0L))
+            if (currentEvent.value?.id != scheduledEventId || currentDeadlineMs != deadlineMs) {
+                Log.d(TAG, "Ignoring stale dismiss timeout for event=$scheduledEventId")
+                return@launch
+            }
             if (promoteSatelliteCollapsed()) return@launch
             val livePill = livePillToReturnTo()
             when {
@@ -2236,6 +2287,8 @@ class IslandOverlayController(private val context: Context) {
                     currentEvent.value = null
                 }
             }
+            currentDeadlineMs = null
+            currentSystemEventType = null
             syncWindowSize()
         }
     }
