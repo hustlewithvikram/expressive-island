@@ -286,7 +286,6 @@ private fun SettingsList(
                         )
                     }
                 }
-            }
             } else {
                 val normalizedQuery = searchQuery.trim().lowercase()
                 val matches = { title: String, subtitle: String, keywords: String ->
