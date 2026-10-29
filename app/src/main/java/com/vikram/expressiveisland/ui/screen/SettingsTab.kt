@@ -253,10 +253,12 @@ private fun SettingsList(
     val permissionDotEnabled by viewModel.permissionDotEnabled.collectAsStateWithLifecycle()
     val permissionDotVertical by viewModel.permissionDotVertical.collectAsStateWithLifecycle()
 
+    // Keep the SearchBar outside the vertically scrolling settings content. Material 3's
+    // expanded SearchBar owns an overlay; nesting it in an unbounded scroll container can crash
+    // during focus/expansion on some Compose versions.
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -566,6 +568,10 @@ private fun SettingsList(
         }
 
         if (searchQuery.isBlank() && !searchExpanded) {
+        Column(
+            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
         // Accessibility access permission request if needed
         AnimatedVisibility(
             visible = !accessibilityAvailable,
@@ -680,6 +686,7 @@ private fun SettingsList(
                 subtitle = stringResource(R.string.settings_apps_subtitle),
                 onClick = onOpenApps,
             )
+        }
         }
         }
     }
