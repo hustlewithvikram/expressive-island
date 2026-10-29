@@ -40,6 +40,7 @@ import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -136,6 +137,8 @@ fun SettingsTab(
                     onCutoutEnabledChange = viewModel::setCutoutEnabled,
                     searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },
+                    searchExpanded = searchExpanded,
+                    onSearchExpandedChange = { searchExpanded = it },
                     onOpenSizePosition = onOpenSizePosition,
                     onOpenEventIcons = onOpenEventIcons,
                     onOpenDynamicTiles = onOpenDynamicTiles,
@@ -208,6 +211,7 @@ val SettingsRoute.depth: Int
         else -> 1
     }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsList(
     contentPadding: PaddingValues,
@@ -216,6 +220,8 @@ private fun SettingsList(
     onCutoutEnabledChange: (Boolean) -> Unit,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
+    searchExpanded: Boolean,
+    onSearchExpandedChange: (Boolean) -> Unit,
     onOpenSizePosition: () -> Unit,
     onOpenEventIcons: () -> Unit,
     onOpenDynamicTiles: () -> Unit,
@@ -260,13 +266,13 @@ private fun SettingsList(
                 SearchBarDefaults.InputField(
                     query = searchQuery,
                     onQueryChange = {
-                        searchQuery = it
-                        searchExpanded = true
+                        onSearchQueryChange(it)
+                        onSearchExpandedChange(true)
                     },
                     onSearch = { searchExpanded = true },
                     expanded = searchExpanded,
                     onExpandedChange = {
-                        searchExpanded = it
+                        onSearchExpandedChange(it)
                         if (!it) focusManager.clearFocus()
                     },
                     placeholder = { Text("Search settings") },
@@ -274,19 +280,18 @@ private fun SettingsList(
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = {
-                                searchQuery = ""
-                                searchExpanded = true
+                                onSearchQueryChange("")
+                                onSearchExpandedChange(true)
                             }) {
                                 Icon(Icons.Rounded.Clear, contentDescription = "Clear search")
                             }
                         }
                     },
-                    shape = RoundedCornerShape(28.dp),
                 )
             },
             expanded = searchExpanded,
             onExpandedChange = {
-                searchExpanded = it
+                onSearchExpandedChange(it)
                 if (!it) focusManager.clearFocus()
             },
         ) {
@@ -303,7 +308,7 @@ private fun SettingsList(
                         Text(
                             text = suggestion,
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                                .clickable { searchQuery = suggestion; searchExpanded = true }
+                                .clickable { onSearchQueryChange(suggestion); onSearchExpandedChange(true) }
                                 .padding(12.dp),
                             style = MaterialTheme.typography.bodyLarge,
                         )
