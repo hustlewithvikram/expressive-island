@@ -269,7 +269,7 @@ private fun SettingsList(
                         onSearchQueryChange(it)
                         onSearchExpandedChange(true)
                     },
-                    onSearch = { searchExpanded = true },
+                    onSearch = { onSearchExpandedChange(true) },
                     expanded = searchExpanded,
                     onExpandedChange = {
                         onSearchExpandedChange(it)
