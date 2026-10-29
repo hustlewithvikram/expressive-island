@@ -459,13 +459,57 @@ private fun SettingsList(
                     resultCount++
                     SettingsListItem(Icons.Rounded.Apps, stringResource(R.string.apps_title), stringResource(R.string.settings_apps_subtitle), onOpenApps)
                 }
+                if (matches("Normal duration", "How long event content stays visible", "seconds event duration timeout")) {
+                    resultCount++
+                    SearchSliderResult("Normal duration", "How long event content stays visible", behaviour.normalDurationSeconds.toFloat(), 1f..10f, 1f, { "${it.toInt()} sec" }) { viewModel.setNormalDurationSeconds(it.toInt()) }
+                }
+                if (matches("Collapse delay", "Time before the expanded island collapses", "seconds delay timeout")) {
+                    resultCount++
+                    SearchSliderResult("Collapse delay", "Time before the expanded island collapses", behaviour.expandedCollapseSeconds.toFloat(), 1f..15f, 1f, { "${it.toInt()} sec" }) { viewModel.setExpandedCollapseSeconds(it.toInt()) }
+                }
+                if (matches("Animation duration", "Duration for non-expressive animations", "motion speed milliseconds ms")) {
+                    resultCount++
+                    SearchSliderResult("Animation duration", "Duration for non-expressive animations", behaviour.animationDurationMs.toFloat(), 0f..1000f, 20f, { "${it.toInt()} ms" }) { viewModel.setAnimationDurationMs(it.toInt()) }
+                }
+                if (matches("Stroke width", "Thickness of the island outline", "border outline thickness dp")) {
+                    resultCount++
+                    SearchSliderResult("Stroke width", "Thickness of the island outline", appearance.strokeWidthDp.toFloat(), 1f..8f, 1f, { "${it.toInt()} dp" }) { viewModel.setStrokeWidth(it.toInt()) }
+                }
+                if (matches("Action button height", "Height of expanded action buttons", "reply button size dp")) {
+                    resultCount++
+                    SearchSliderResult("Action button height", "Height of expanded action buttons", appearance.actionButtonHeightDp.toFloat(), 36f..56f, 1f, { "${it.toInt()} dp" }) { viewModel.setActionButtonHeight(it.toInt()) }
+                }
                 if (resultCount == 0) {
-                    Text(
-                        text = "No matching settings",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(16.dp),
-                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier.size(64.dp).clip(RoundedCornerShape(22.dp))
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Rounded.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(32.dp),
+                                )
+                            }
+                            Text("Nothing matched your search", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Text(
+                                "Try another word, or search for “duration”, “shadow” or “notifications”.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            )
+                        }
+                    }
                 }
     
             }
@@ -694,4 +738,29 @@ fun SettingsListItem(
             )
         }
     }
+}
+
+
+@Composable
+private fun SearchSliderResult(
+    title: String,
+    description: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    step: Float,
+    formatValue: (Float) -> String,
+    onCommit: (Float) -> Unit,
+) {
+    var sliderValue by remember(value) { mutableStateOf(value) }
+    SettingsSliderCard(
+        shape = RoundedCornerShape(24.dp),
+        title = title,
+        description = description,
+        valueText = formatValue(sliderValue),
+        value = sliderValue,
+        valueRange = valueRange,
+        step = step,
+        onValueChange = { sliderValue = it },
+        onCommit = { onCommit(sliderValue) },
+    )
 }
