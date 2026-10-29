@@ -253,13 +253,15 @@ private fun SettingsList(
     val permissionDotEnabled by viewModel.permissionDotEnabled.collectAsStateWithLifecycle()
     val permissionDotVertical by viewModel.permissionDotVertical.collectAsStateWithLifecycle()
 
-    // Keep the SearchBar outside the vertically scrolling settings content. Material 3's
-    // expanded SearchBar owns an overlay; nesting it in an unbounded scroll container can crash
-    // during focus/expansion on some Compose versions.
+    // Keep the expanding Material 3 SearchBar outside the scroll container so its overlay
+    // remains stable. Preserve system-bar insets, but let the settings content reach the edges.
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(contentPadding),
+            .padding(
+                top = contentPadding.calculateTopPadding(),
+                bottom = contentPadding.calculateBottomPadding(),
+            ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SearchBar(
