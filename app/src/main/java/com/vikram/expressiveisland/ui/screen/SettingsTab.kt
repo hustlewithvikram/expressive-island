@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,21 +27,28 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Animation
 import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -94,6 +102,8 @@ fun SettingsTab(
     onOpenShizuku: () -> Unit,
     onOpenPermissionDot: () -> Unit,
 ) {
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+
     // Routing (and back navigation, via the bottom bar) is owned by MainScreen.
     // Deeper routes slide in from the right; stepping back slides in from the left, so the
     // motion mirrors the predictive-back peek.
@@ -117,6 +127,8 @@ fun SettingsTab(
                     contentPadding = contentPadding,
                     cutoutEnabled = behaviour.cutoutEnabled,
                     onCutoutEnabledChange = viewModel::setCutoutEnabled,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it },
                     onOpenSizePosition = onOpenSizePosition,
                     onOpenEventIcons = onOpenEventIcons,
                     onOpenDynamicTiles = onOpenDynamicTiles,
@@ -194,6 +206,8 @@ private fun SettingsList(
     contentPadding: PaddingValues,
     cutoutEnabled: Boolean,
     onCutoutEnabledChange: (Boolean) -> Unit,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     onOpenSizePosition: () -> Unit,
     onOpenEventIcons: () -> Unit,
     onOpenDynamicTiles: () -> Unit,
@@ -222,6 +236,82 @@ private fun SettingsList(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Search settings") },
+            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { onSearchQueryChange("") }) {
+                        Icon(Icons.Rounded.Clear, contentDescription = "Clear search")
+                    }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(24.dp),
+        )
+
+        if (searchQuery.isNotBlank()) {
+            val normalizedQuery = searchQuery.trim().lowercase()
+            val matches = { title: String, subtitle: String, keywords: String ->
+                val fields = listOf(title, subtitle, keywords)
+                fields.any { it.contains(normalizedQuery, ignoreCase = true) } ||
+                    normalizedQuery.split(Regex("\\s+")).filter(String::isNotBlank).all { token ->
+                        fields.any { it.contains(token, ignoreCase = true) }
+                    }
+            }
+            var resultCount = 0
+            if (matches("Dynamic Cutout", "Show or hide the island", "island overlay enable disable accessibility service")) {
+                resultCount++
+                CutoutEnableCard(
+                    enabled = cutoutEnabled,
+                    onEnabledChange = onCutoutEnabledChange,
+                    onOpenAccessibility = { Permissions.openAccessibilitySettings(context) },
+                )
+            }
+            if (matches("Size & position", "Adjust the cutout size and position", "width height offset size position camera")) {
+                resultCount++
+                SettingsListItem(Icons.Rounded.Tune, "Size & position", "Adjust the cutout size and position", onOpenSizePosition)
+            }
+            if (matches(stringResource(R.string.appearance_section_title), stringResource(R.string.settings_appearance_subtitle), "appearance shadow stroke color theme background buttons")) {
+                resultCount++
+                SettingsListItem(Icons.Rounded.ColorLens, stringResource(R.string.appearance_section_title), stringResource(R.string.settings_appearance_subtitle), onOpenAppearance)
+            }
+            if (matches(stringResource(R.string.behaviour_title), stringResource(R.string.settings_behaviour_subtitle), "behaviour behavior duration timeout lockscreen auto collapse swipe landscape orientation dismiss empty")) {
+                resultCount++
+                SettingsListItem(Icons.Rounded.Timer, stringResource(R.string.behaviour_title), stringResource(R.string.settings_behaviour_subtitle), onOpenBehaviour)
+            }
+            if (matches(stringResource(R.string.animation_title), stringResource(R.string.settings_animation_subtitle), "animation transition motion haptic")) {
+                resultCount++
+                SettingsListItem(Icons.Rounded.Animation, stringResource(R.string.animation_title), stringResource(R.string.settings_animation_subtitle), onOpenAnimation)
+            }
+            if (matches(stringResource(R.string.shizuku_options_title), stringResource(R.string.settings_shizuku_subtitle), "shizuku permission dot status bar accessibility")) {
+                resultCount++
+                SettingsListItem(Icons.Rounded.Terminal, stringResource(R.string.shizuku_options_title), stringResource(R.string.settings_shizuku_subtitle), onOpenShizuku)
+            }
+            if (matches(stringResource(R.string.dynamic_tiles_title), stringResource(R.string.settings_dynamic_tiles_subtitle), "dynamic tiles music timer stopwatch phone call battery charging wifi download recording flashlight")) {
+                resultCount++
+                SettingsListItem(Icons.Rounded.GridView, stringResource(R.string.dynamic_tiles_title), stringResource(R.string.settings_dynamic_tiles_subtitle), onOpenDynamicTiles)
+            }
+            if (matches(stringResource(R.string.section_icons_title), stringResource(R.string.settings_icons_subtitle), "event notification icon icons call charging lock biometrics")) {
+                resultCount++
+                SettingsListItem(Icons.Rounded.Notifications, stringResource(R.string.section_icons_title), stringResource(R.string.settings_icons_subtitle), onOpenEventIcons)
+            }
+            if (matches(stringResource(R.string.apps_title), stringResource(R.string.settings_apps_subtitle), "apps application notifications app list")) {
+                resultCount++
+                SettingsListItem(Icons.Rounded.Apps, stringResource(R.string.apps_title), stringResource(R.string.settings_apps_subtitle), onOpenApps)
+            }
+            if (resultCount == 0) {
+                Text(
+                    text = "No matching settings",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp),
+                )
+            }
+        } else {
         // Accessibility access permission request if needed
         AnimatedVisibility(
             visible = !accessibilityAvailable,
@@ -271,9 +361,9 @@ private fun SettingsList(
         }
 
         CutoutEnableCard(
-            enabled = if (accessibilityAvailable) cutoutEnabled else false,
+            enabled = cutoutEnabled,
             onEnabledChange = onCutoutEnabledChange,
-            canEdit = accessibilityAvailable
+            onOpenAccessibility = { Permissions.openAccessibilitySettings(context) },
         )
 
         // Customization of the cutout
@@ -337,14 +427,15 @@ private fun SettingsList(
                 onClick = onOpenApps,
             )
         }
+        }
     }
 }
 
 @Composable
 private fun CutoutEnableCard(
     enabled: Boolean,
-    canEdit: Boolean,
     onEnabledChange: (Boolean) -> Unit,
+    onOpenAccessibility: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -357,7 +448,13 @@ private fun CutoutEnableCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(onClick = onOpenAccessibility)
+                    .padding(vertical = 4.dp),
+            ) {
                 Text(
                     text = stringResource(R.string.cutout_enable_title),
                     style = MaterialTheme.typography.titleMedium,
@@ -369,7 +466,14 @@ private fun CutoutEnableCard(
                 )
             }
             Spacer(Modifier.width(12.dp))
-            Switch(checked = enabled, onCheckedChange = onEnabledChange, enabled = canEdit)
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(36.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant),
+            )
+            Spacer(Modifier.width(12.dp))
+            Switch(checked = enabled, onCheckedChange = onEnabledChange)
         }
     }
 }
