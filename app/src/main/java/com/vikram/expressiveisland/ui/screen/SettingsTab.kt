@@ -281,6 +281,9 @@ private fun SettingsList(
             expanded = searchExpanded,
             onExpandedChange = { searchExpanded = it },
         ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+            ) {
             if (searchQuery.isBlank()) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -511,6 +514,7 @@ private fun SettingsList(
                         }
                     }
                 }
+            }
     
             }
         }
