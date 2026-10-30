@@ -101,6 +101,9 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
 
     suspend fun setTapToOpenAssistant(enabled: Boolean) = context.assistantTileDataStore.edit {
         it[TAP_TO_OPEN_ASSISTANT] = enabled
+        // Enabling the interactive panel starts in manual mode; users can opt back into
+        // automatic response expansion with its dedicated setting.
+        if (enabled) it[AUTO_EXPAND_ASSISTANT_RESPONSES] = false
     }
 
     suspend fun setAutoExpandAssistantResponses(enabled: Boolean) = context.assistantTileDataStore.edit {
