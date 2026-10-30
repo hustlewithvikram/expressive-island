@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -62,6 +63,7 @@ fun AssistantExpandedContent(
     collapsedHeightDp: Int,
     onDismiss: () -> Unit,
     onHeightMeasured: ((Int) -> Unit)? = null,
+    onInputFocusChange: (Boolean) -> Unit = {},
 ) {
     val assistant = event.assistant ?: return
     val contentColor = LocalContentColor.current
@@ -153,7 +155,7 @@ fun AssistantExpandedContent(
                     OutlinedTextField(
                         value = query,
                         onValueChange = { query = it },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).onFocusChanged { onInputFocusChange(it.isFocused) },
                         placeholder = { Text("Ask anything…") },
                         shape = RoundedCornerShape(24.dp),
                         maxLines = 3,
