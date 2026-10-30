@@ -2,6 +2,7 @@ package com.vikram.expressiveisland
 
 import android.app.Application
 import android.content.ContentValues
+import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
@@ -14,11 +15,11 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Persists uncaught exceptions before Android's original handler terminates the process.
+ * Creates a user-visible diagnostic log for each app process and appends uncaught exceptions.
  *
- * Crash reports are written to shared storage at /storage/emulated/0/Expressive Island/logs,
- * using MediaStore so Android 10+ users can access them without broad storage permissions.
- * If shared storage is unavailable, a private app-storage fallback is used. Nothing is uploaded.
+ * Shared location: Internal storage/Expressive Island/logs/
+ * A private app-storage fallback is retained if shared storage cannot be written.
+ * This logger does not upload anything or capture Android's entire system logcat.
  */
 object CrashLogWriter {
     private const val TAG = "ExpressiveIslandCrash"
@@ -28,18 +29,32 @@ object CrashLogWriter {
     @Volatile
     private var installed = false
 
+    @Volatile
+    private var sharedLogUri: Uri? = null
+
+    @Volatile
+    private var fallbackLogFile: File? = null
+
     @Synchronized
     fun install(application: Application) {
         if (installed) return
-        installed = true
 
+        // Set the handler first so uncaught exceptions are handled even if log-file creation fails.
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            // Keep the write synchronous: the process is about to terminate.
-            runCatching { writeCrashLog(application, thread, throwable) }
-                .onFailure { Log.e(TAG, "Could not persist crash log", it) }
+            runCatching {
+                append(
+                    application,
+                    buildString {
+                        appendLine()
+                        appendLine("========== UNCAUGHT EXCEPTION ==========")
+                        appendLine("Thread: ${thread.name} (id=${thread.id})")
+                        appendLine("Timestamp: ${timestamp()}")
+                        appendLine(throwable.stackTraceText())
+                    },
+                )
+            }.onFailure { Log.e(TAG, "Could not persist crash log", it) }
 
-            // Preserve Android's normal crash reporting and process termination.
             if (previousHandler != null) {
                 previousHandler.uncaughtException(thread, throwable)
             } else {
@@ -47,68 +62,123 @@ object CrashLogWriter {
                 kotlin.system.exitProcess(10)
             }
         }
+        installed = true
+
+        // Always create a session log on process startup, not only after a crash.
+        runCatching {
+            createSessionLog(application)
+            append(
+                application,
+                buildString {
+                    appendLine("Expressive Island diagnostic log")
+                    appendLine("Started: ${timestamp()}")
+                    appendLine("App version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+                    appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL}")
+                    appendLine("Android: ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})")
+                    appendLine("Process: ${application.applicationInfo.processName}")
+                    appendLine("Event: application process started")
+                    appendLine("----------------------------------------")
+                },
+            )
+        }.onFailure {
+            Log.e(TAG, "Could not create diagnostic log", it)
+        }
     }
 
-    private fun writeCrashLog(application: Application, thread: Thread, throwable: Throwable) {
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date())
-        val fileName = "expressive_island_logs_$timestamp.txt"
-        val stackTrace = StringWriter().also { writer ->
-            throwable.printStackTrace(PrintWriter(writer))
-        }.toString()
+    /** Records an explicit app diagnostic event in the current session log. */
+    @Synchronized
+    fun logEvent(application: Application, message: String, throwable: Throwable? = null) {
+        runCatching {
+            val details = buildString {
+                append("[${timestamp()}] ")
+                appendLine(message)
+                if (throwable != null) appendLine(throwable.stackTraceText())
+            }
+            append(application, details)
+        }.onFailure { Log.e(TAG, "Could not append diagnostic event", it) }
+    }
 
-        val report = buildString {
-            appendLine("Expressive Island crash report")
-            appendLine("Timestamp: $timestamp")
-            appendLine("App version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
-            appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL}")
-            appendLine("Android: ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})")
-            appendLine("Process: ${application.applicationInfo.processName}")
-            appendLine("Thread: ${thread.name} (id=${thread.id})")
-            appendLine()
-            appendLine("Uncaught exception:")
-            append(stackTrace)
-        }
-
-        // MediaStore writes to a user-visible shared folder without requesting
-        // MANAGE_EXTERNAL_STORAGE. The resulting path is:
-        // /storage/emulated/0/Expressive Island/logs/<timestamped report>
-        val resolver = application.contentResolver
+    @Synchronized
+    private fun createSessionLog(application: Application) {
+        sharedLogUri = null
+        fallbackLogFile = null
+        val fileName = "expressive_island_logs_${SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date())}.txt"
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
             put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
             put(MediaStore.MediaColumns.RELATIVE_PATH, "$DIRECTORY_NAME/$LOGS_DIRECTORY")
+            put(MediaStore.MediaColumns.IS_PENDING, 0)
         }
         val collection = MediaStore.Files.getContentUri("external")
-        val sharedUri = runCatching { resolver.insert(collection, values) }.getOrNull()
-        if (sharedUri != null) {
-            val saved = runCatching {
-                resolver.openFileDescriptor(sharedUri, "w")?.use { descriptor ->
-                    FileOutputStream(descriptor.fileDescriptor).use { stream ->
-                        stream.write(report.toByteArray(Charsets.UTF_8))
-                        stream.flush()
-                        stream.fd.sync()
-                    }
-                } ?: throw IllegalStateException("Unable to open shared crash-log file")
+        val uri = runCatching { application.contentResolver.insert(collection, values) }
+            .onFailure { Log.e(TAG, "MediaStore insert failed", it) }
+            .getOrNull()
+
+        if (uri != null) {
+            val opened = runCatching {
+                application.contentResolver.openOutputStream(uri, "wa")?.use { stream ->
+                    stream.write("Expressive Island log created.\n".toByteArray(Charsets.UTF_8))
+                    stream.flush()
+                } ?: throw IllegalStateException("MediaStore returned no output stream")
             }
-            if (saved.isSuccess) {
-                Log.e(TAG, "Crash report saved to /storage/emulated/0/$DIRECTORY_NAME/$LOGS_DIRECTORY/$fileName")
+            if (opened.isSuccess) {
+                sharedLogUri = uri
+                Log.i(TAG, "Diagnostic log created: $uri")
                 return
             }
-            runCatching { resolver.delete(sharedUri, null, null) }
-            Log.e(TAG, "Shared crash-log write failed; using app-private fallback", saved.exceptionOrNull())
+            Log.e(TAG, "MediaStore log initialization failed", opened.exceptionOrNull())
+            runCatching { application.contentResolver.delete(uri, null, null) }
         }
 
-        // Keep crash reporting reliable if shared storage is temporarily unavailable.
-        val internalDirectory = File(application.filesDir, "expressive_island_logs")
-        if (!internalDirectory.exists() && !internalDirectory.mkdirs()) {
-            throw IllegalStateException("Unable to create fallback crash-log directory")
+        // Fallback remains private to the app, but preserves diagnostics if shared storage fails.
+        val directory = File(application.filesDir, "expressive_island_logs")
+        if (!directory.exists() && !directory.mkdirs()) {
+            throw IllegalStateException("Unable to create fallback log directory: ${directory.absolutePath}")
         }
-        val file = File(internalDirectory, fileName)
-        FileOutputStream(file, false).use { stream ->
-            stream.write(report.toByteArray(Charsets.UTF_8))
+        fallbackLogFile = File(directory, fileName).also { file ->
+            FileOutputStream(file, true).use { stream ->
+                stream.write("Expressive Island log created.\n".toByteArray(Charsets.UTF_8))
+                stream.flush()
+                stream.fd.sync()
+            }
+        }
+        Log.w(TAG, "Diagnostic log created in app-private fallback: ${fallbackLogFile?.absolutePath}")
+    }
+
+    @Synchronized
+    private fun append(application: Application, text: String) {
+        val bytes = text.toByteArray(Charsets.UTF_8)
+        val uri = sharedLogUri
+        if (uri != null) {
+            val result = runCatching {
+                application.contentResolver.openOutputStream(uri, "wa")?.use { stream ->
+                    stream.write(bytes)
+                    stream.flush()
+                } ?: throw IllegalStateException("Unable to open shared log for append")
+            }
+            if (result.isSuccess) return
+            Log.e(TAG, "Appending to shared log failed; switching to private fallback", result.exceptionOrNull())
+            sharedLogUri = null
+        }
+
+        val file = fallbackLogFile ?: run {
+            val directory = File(application.filesDir, "expressive_island_logs")
+            if (!directory.exists() && !directory.mkdirs()) {
+                throw IllegalStateException("Unable to create fallback log directory")
+            }
+            File(directory, "expressive_island_logs_fallback.txt").also { fallbackLogFile = it }
+        }
+        FileOutputStream(file, true).use { stream ->
+            stream.write(bytes)
             stream.flush()
             stream.fd.sync()
         }
-        Log.e(TAG, "Crash report saved to fallback path: ${file.absolutePath}")
+        Log.i(TAG, "Diagnostic log appended to fallback: ${file.absolutePath}")
     }
+
+    private fun timestamp(): String =
+        SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
+
+    private fun Throwable.stackTraceText(): String =
+        StringWriter().also { writer -> printStackTrace(PrintWriter(writer)) }.toString()
 }
