@@ -813,6 +813,7 @@ internal fun DynamicIsland(
                                             },
                                             onDismiss = onDismiss,
                                             onHeightMeasured = { assistantContentHeightDp = it },
+                                            onAssistantInputActiveChange = onReplyActiveChange,
                                         )
                                     } else {
                                         CollapsedContent(
