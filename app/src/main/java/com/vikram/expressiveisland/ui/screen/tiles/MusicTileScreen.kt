@@ -382,16 +382,16 @@ internal fun MusicTileScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             SeekOptionRow(
-                                title = "Seek backward",
-                                description = "Show a button before Play/Pause",
+                                title = stringResource(R.string.music_seek_backward),
+                                description = stringResource(R.string.music_seek_backward_desc),
                                 enabled = settings.leftSeekEnabled,
                                 seconds = settings.leftSeekSeconds,
                                 onEnabledChange = viewModel::setMusicLeftSeekEnabled,
                                 onTimeClick = { leftSeekTimeDialog = true },
                             )
                             SeekOptionRow(
-                                title = "Seek forward",
-                                description = "Show a button after Play/Pause",
+                                title = stringResource(R.string.music_seek_forward),
+                                description = stringResource(R.string.music_seek_forward_desc),
                                 enabled = settings.rightSeekEnabled,
                                 seconds = settings.rightSeekSeconds,
                                 onEnabledChange = viewModel::setMusicRightSeekEnabled,
@@ -434,7 +434,7 @@ internal fun MusicTileScreen(
                     )
 
                     ColorPickerCard(
-                        label = "Previous/Next icon color",
+                        label = stringResource(R.string.music_previous_next_icon_color),
                         selected = settings.skipIconColor,
                         onSelect = viewModel::setMusicSkipIconColor,
                         defaultLabel = "Automatic",
@@ -473,7 +473,7 @@ internal fun MusicTileScreen(
                     )
 
                     ColorPickerCard(
-                        label = "Play/Pause icon and text color",
+                        label = stringResource(R.string.music_play_pause_icon_text_color),
                         selected = settings.playPauseIconColor,
                         onSelect = viewModel::setMusicPlayPauseIconColor,
                         defaultLabel = "Automatic",
@@ -490,16 +490,16 @@ internal fun MusicTileScreen(
 
                     SettingsToggleCard(
                         shape = groupShape(GroupPosition.MIDDLE),
-                        title = "Show play/pause icon",
-                        description = "Display the play or pause symbol on the button.",
+                        title = stringResource(R.string.music_show_play_pause_icon),
+                        description = stringResource(R.string.music_show_play_pause_icon_desc),
                         checked = settings.showPlayPauseIcon,
                         onCheckedChange = viewModel::setMusicShowPlayPauseIcon,
                     )
 
                     SettingsToggleCard(
                         shape = groupShape(GroupPosition.LAST),
-                        title = "Show play/pause text",
-                        description = "Display Play or Pause text beside the symbol.",
+                        title = stringResource(R.string.music_show_play_pause_text),
+                        description = stringResource(R.string.music_show_play_pause_text_desc),
                         checked = settings.showPlayPauseText,
                         onCheckedChange = viewModel::setMusicShowPlayPauseText,
                     )
@@ -540,10 +540,10 @@ internal fun MusicTileScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Progress bar style", style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(R.string.music_progress_bar_style), style = MaterialTheme.typography.titleSmall)
                             Text(settings.progressStyle.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Icon(Icons.Rounded.Tune, contentDescription = "Choose progress style", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Rounded.Tune, contentDescription = stringResource(R.string.music_choose_progress_style), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -557,8 +557,8 @@ internal fun MusicTileScreen(
         SettingsGroup {
             SettingsToggleCard(
                 shape = groupShape(if (settings.showVisualizer) GroupPosition.FIRST else GroupPosition.ONLY),
-                title = "Show visualizer",
-                description = "Animate the music indicator in the collapsed island while music is playing.",
+                title = stringResource(R.string.music_show_visualizer),
+                description = stringResource(R.string.music_show_visualizer_desc),
                 checked = settings.showVisualizer,
                 onCheckedChange = viewModel::setMusicShowVisualizer,
             )
@@ -574,10 +574,10 @@ internal fun MusicTileScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Visualizer style", style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(R.string.music_visualizer_style), style = MaterialTheme.typography.titleSmall)
                             Text(settings.visualizerStyle.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Icon(Icons.Rounded.Tune, contentDescription = "Choose visualizer style", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Rounded.Tune, contentDescription = stringResource(R.string.music_choose_visualizer_style), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -588,7 +588,7 @@ internal fun MusicTileScreen(
 
     if (leftSeekTimeDialog) {
         SeekDurationDialog(
-            title = "Seek backward by",
+            title = stringResource(R.string.music_seek_backward_by),
             selectedSeconds = settings.leftSeekSeconds,
             onSelect = viewModel::setMusicLeftSeekSeconds,
             onDismiss = { leftSeekTimeDialog = false },
@@ -596,7 +596,7 @@ internal fun MusicTileScreen(
     }
     if (rightSeekTimeDialog) {
         SeekDurationDialog(
-            title = "Seek forward by",
+            title = stringResource(R.string.music_seek_forward_by),
             selectedSeconds = settings.rightSeekSeconds,
             onSelect = viewModel::setMusicRightSeekSeconds,
             onDismiss = { rightSeekTimeDialog = false },
@@ -606,7 +606,7 @@ internal fun MusicTileScreen(
     if (visualizerStyleDialog) {
         AlertDialog(
             onDismissRequest = { visualizerStyleDialog = false },
-            title = { Text("Music visualizer") },
+            title = { Text(stringResource(R.string.music_visualizer_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     MusicVisualizerStyle.entries.forEach { style ->
@@ -623,7 +623,7 @@ internal fun MusicTileScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(style.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-                                    if (settings.visualizerStyle == style) Icon(Icons.Rounded.PlayArrow, contentDescription = "Selected", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    if (settings.visualizerStyle == style) Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.music_selected), tint = MaterialTheme.colorScheme.onSecondaryContainer)
                                 }
                                 MusicVisualizerPreview(style = style)
                             }
@@ -631,7 +631,7 @@ internal fun MusicTileScreen(
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { visualizerStyleDialog = false }) { Text("Done") } },
+            confirmButton = { TextButton(onClick = { visualizerStyleDialog = false }) { Text(stringResource(R.string.action_done)) } },
         )
     }
 
@@ -655,7 +655,7 @@ internal fun MusicTileScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(style.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-                                    if (settings.progressStyle == style) Icon(Icons.Rounded.PlayArrow, contentDescription = "Selected", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    if (settings.progressStyle == style) Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.music_selected), tint = MaterialTheme.colorScheme.onSecondaryContainer)
                                 }
                                 when (style) {
                                     MusicProgressStyle.WAVY -> com.vikram.expressiveisland.overlay.contents.WavyProgressIndicator(
@@ -678,7 +678,7 @@ internal fun MusicTileScreen(
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { progressStyleDialog = false }) { Text("Done") } },
+            confirmButton = { TextButton(onClick = { progressStyleDialog = false }) { Text(stringResource(R.string.action_done)) } },
         )
     }
 }
@@ -1193,8 +1193,8 @@ private fun MusicControlsPreviewSurface(
                     Icon(Icons.Rounded.MusicNote, contentDescription = null, tint = Color.White, modifier = Modifier.size(30.dp))
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Now playing", color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1)
-                    Text("Artist name · Album", color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                    Text(stringResource(R.string.music_now_playing), color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                    Text(stringResource(R.string.music_artist_album_placeholder), color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.bodySmall, maxLines = 1)
                 }
             }
             if (showProgress) {
@@ -1554,8 +1554,8 @@ private fun SeekOptionRow(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text("Seek time: ${seconds}s", style = MaterialTheme.typography.labelLarge)
-                        Icon(Icons.Rounded.Tune, contentDescription = "Choose seek time", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Text(stringResource(R.string.music_seek_time, seconds), style = MaterialTheme.typography.labelLarge)
+                        Icon(Icons.Rounded.Tune, contentDescription = stringResource(R.string.music_choose_seek_time), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -1584,12 +1584,12 @@ private fun SeekDurationDialog(
                             .padding(horizontal = 12.dp, vertical = 11.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("${seconds} seconds", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                        if (selectedSeconds == seconds) Icon(Icons.Rounded.PlayArrow, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.music_seconds, seconds), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        if (selectedSeconds == seconds) Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.music_selected), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_done)) } },
     )
 }
