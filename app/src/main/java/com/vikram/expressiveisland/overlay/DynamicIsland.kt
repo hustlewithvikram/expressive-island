@@ -842,6 +842,7 @@ internal fun DynamicIsland(
                                             heightDp = collapsed.heightDp,
                                             isStickToCamera = isStickToCamera,
                                             trailingInsetDp = collapsedTrailingInsetDp,
+                                            showSatelliteActivityRing = satelliteShown && satelliteSharing,
                                         )
                                     }
                                 }
