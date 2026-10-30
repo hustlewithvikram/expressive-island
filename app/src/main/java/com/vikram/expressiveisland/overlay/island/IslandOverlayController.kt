@@ -961,7 +961,8 @@ class IslandOverlayController(private val context: Context) {
         combine(currentEvent, behaviourState, ::Pair).collect { (event, behaviour) ->
             setTouchable(
                 event != null || satelliteEvent.value != null ||
-                        (behaviour.showsWhenEmpty && behaviour.cutoutEnabled),
+                        (behaviour.showsWhenEmpty && behaviour.cutoutEnabled) ||
+                        (assistantSettings.tapToOpenAssistant && behaviour.cutoutEnabled && !previewPinned),
             )
         }
     }
@@ -2130,6 +2131,10 @@ class IslandOverlayController(private val context: Context) {
      * notification from the system too (like swiping it away in the shade).
      */
     private fun onDismiss() {
+        if (currentEvent.value?.assistant?.interactivePanel == true) {
+            assistantActive = false
+            lastAssistantEvent = null
+        }
         dismissIsland(NotificationDisposition.DISCARD)
     }
 
