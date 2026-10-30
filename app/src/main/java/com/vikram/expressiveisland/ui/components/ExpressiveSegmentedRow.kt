@@ -56,6 +56,15 @@ fun ExpressiveSegmentedRow(
     val count = options.size.coerceAtLeast(1)
 
     if (scrollable) {
+        val segmentWidth = 136.dp
+        val indicatorPosition by animateFloatAsState(
+            targetValue = selectedIndex.coerceIn(0, count - 1).toFloat(),
+            animationSpec = spring(
+                dampingRatio = 0.75f,
+                stiffness = Spring.StiffnessMediumLow,
+            ),
+            label = "scrollingSegmentIndicator",
+        )
         Surface(
             modifier = modifier,
             shape = RoundedCornerShape(28.dp),
@@ -67,46 +76,55 @@ fun ExpressiveSegmentedRow(
                     .padding(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                options.forEachIndexed { index, label ->
-                    val selected = index == selectedIndex
-                    val disabled = index in disabledIndices
-                    val contentColor by animateColorAsState(
-                        targetValue = when {
-                            disabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-                            selected -> MaterialTheme.colorScheme.onPrimary
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                        label = "segmentContent",
-                    )
+                Box {
+                    // Keep the animated pill in the same scrollable content as the tabs.
                     Box(
                         modifier = Modifier
+                            .offset(x = (segmentWidth + SegmentGap) * indicatorPosition)
+                            .width(segmentWidth)
+                            .height(SegmentHeight)
                             .clip(RoundedCornerShape(24.dp))
-                            .background(
-                                if (selected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.surfaceContainerHighest,
+                            .background(MaterialTheme.colorScheme.primary),
+                    )
+                    Row {
+                        options.forEachIndexed { index, label ->
+                            val selected = index == selectedIndex
+                            val disabled = index in disabledIndices
+                            val contentColor by animateColorAsState(
+                                targetValue = when {
+                                    disabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                    selected -> MaterialTheme.colorScheme.onPrimary
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                                label = "segmentContent",
                             )
-                            .selectable(
-                                selected = selected,
-                                enabled = !disabled,
-                                onClick = { onSelect(index) },
-                                role = Role.RadioButton,
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                            )
-                            .padding(horizontal = 16.dp)
-                            .height(SegmentHeight),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = label,
-                            color = contentColor,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            softWrap = false,
-                        )
+                            Box(
+                                modifier = Modifier
+                                    .width(segmentWidth)
+                                    .height(SegmentHeight)
+                                    .selectable(
+                                        selected = selected,
+                                        enabled = !disabled,
+                                        onClick = { onSelect(index) },
+                                        role = Role.RadioButton,
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                    )
+                                    .padding(horizontal = 8.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = label,
+                                    color = contentColor,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                )
+                            }
+                            if (index < count - 1) Spacer(Modifier.width(SegmentGap))
+                        }
                     }
-                    if (index < count - 1) Spacer(Modifier.width(SegmentGap))
                 }
             }
         }
