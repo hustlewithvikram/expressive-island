@@ -1,5 +1,12 @@
 <resources>
     <string name="app_name">Expressive Island</string>
+    <string name="language_title">App language</string>
+    <string name="language_desc">Choose the language used by Expressive Island.</string>
+    <string name="language_system_default">System default</string>
+    <string name="language_english">English</string>
+    <string name="language_hindi">Hindi</string>
+    <string name="language_marathi">Marathi</string>
+    <string name="language_selected">Selected</string>
     <string name="accessibility_service_label">Expressive Island overlay</string>
     <string name="accessibility_service_description">Draws a small dynamic island over the camera cutout to surface notifications and system events. No screen content is read or stored.</string>
     <string name="notification_service_label">Expressive Island notifications</string>
