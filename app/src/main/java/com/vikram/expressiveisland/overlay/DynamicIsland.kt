@@ -844,7 +844,7 @@ internal fun DynamicIsland(
                                             heightDp = collapsed.heightDp,
                                             isStickToCamera = isStickToCamera,
                                             trailingInsetDp = collapsedTrailingInsetDp,
-                                            showProgressIndicator = satellite == null,
+                                            showProgressIndicator = satellite == null || isExpanded || isCall || isStickToCamera,
                                         )
                                     }
                                 }
