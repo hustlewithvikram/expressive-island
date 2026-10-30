@@ -1638,6 +1638,8 @@ class IslandOverlayController(private val context: Context) {
 
                 is CutoutSignal.Assistant ->
                     assistantSettings.displayAnswerInCutout &&
+                            assistantSettings.autoExpandAssistantResponses &&
+                            !assistantSettings.tapToOpenAssistant &&
                             assistantSettings.autoExpandAssistantResponses
 
                 is CutoutSignal.System ->
