@@ -338,7 +338,7 @@ See the [LICENSE](LICENSE) file for the complete terms.
 
 **Expressive Island**
 
-*An open-source, offline, Material Expressive dynamic island for Android.*
+*An open-source, on-device-first, Material Expressive dynamic island for Android.*
 
 Built on the foundation of **Expressive Cutout by EvanKoe**.
 
