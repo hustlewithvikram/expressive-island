@@ -29,6 +29,7 @@ fun ExpandedContent(
     onSendReply: (String) -> Unit,
     onDismiss: () -> Unit = {},
     onHeightMeasured: ((Int) -> Unit)? = null,
+    onAssistantInputActiveChange: (Boolean) -> Unit = {},
 ) {
     val wifiState by WifiBus.state.collectAsStateWithLifecycle()
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
@@ -105,6 +106,7 @@ fun ExpandedContent(
             collapsedHeightDp = collapsedHeightDp,
             onDismiss = onDismiss,
             onHeightMeasured = onHeightMeasured,
+            onInputFocusChange = onAssistantInputActiveChange,
         )
         return
     }
