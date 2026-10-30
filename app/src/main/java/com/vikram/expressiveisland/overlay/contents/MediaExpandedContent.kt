@@ -258,7 +258,7 @@ fun MediaProgressBar(
                 positionMs = current.positionAt(now).coerceIn(0L, duration)
                 fraction = current.fractionAt(now)?.coerceIn(0f, 1f) ?: fraction
             }
-            if (current.speed <= 0f || positionMs >= duration) break
+            if (current.speed <= 0f) break
             delay(PROGRESS_TICK_MS.milliseconds)
         }
     }
