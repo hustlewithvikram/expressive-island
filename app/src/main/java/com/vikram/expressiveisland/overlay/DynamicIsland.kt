@@ -607,7 +607,7 @@ internal fun DynamicIsland(
                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         }
 
-                                        if (event == null && assistantTapEnabled) {
+                                        if (event == null && assistantTapEnabled && !emptyPill) {
                                             onAssistantTap()
                                             return@detectTapGestures
                                         }
