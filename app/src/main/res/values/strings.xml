@@ -74,8 +74,12 @@
     <string name="tile_timer_desc">Show a running countdown timer on the Island</string>
     <string name="tile_assistant">Assistant</string>
     <string name="tile_assistant_desc">Show voice assistant speech and responses on the Island</string>
-    <string name="assistant_display_answer_title">Display assistant answer in Island</string>
-    <string name="assistant_display_answer_desc">Show the text response of the voice assistant in the Island</string>
+    <string name="assistant_display_answer_title">Show assistant response text</string>
+    <string name="assistant_display_answer_desc">Show response text received from supported assistant notifications.</string>
+    <string name="assistant_tap_to_open_title">Tap camera cutout to open Assistant</string>
+    <string name="assistant_tap_to_open_desc">When the island is otherwise idle, tap the cutout to open the Assistant panel. Notifications and active tiles keep priority.</string>
+    <string name="assistant_auto_expand_title">Auto-expand assistant responses</string>
+    <string name="assistant_auto_expand_desc">Automatically expand when a supported assistant response arrives. Turn this off to keep responses collapsed.</string>
     <string name="assistant_max_height_title">Max Island height</string>
     <string name="assistant_max_height_desc">Share of the screen height the answer can fill</string>
     <string name="assistant_max_height_value">%1$d%%</string>
