@@ -266,7 +266,9 @@ private fun SettingsList(
                 start = 16.dp,
                 end = 16.dp,
                 top = contentPadding.calculateTopPadding(),
-                bottom = 24.dp,
+                // Keep the final settings cards clear of the bottom navigation bar, with
+                // a little extra breathing room after the last item.
+                bottom = contentPadding.calculateBottomPadding() + 24.dp,
             ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
