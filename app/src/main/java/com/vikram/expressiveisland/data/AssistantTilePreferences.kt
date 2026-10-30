@@ -25,11 +25,17 @@ data class AssistantTileSettings(
     val iconContainerColor: CutoutColor? = null,
     /** Whether to use the animated sparkles Lottie icon instead of the static glyph. */
     val useAnimatedIcon: Boolean = DEFAULT_USE_ANIMATED_ICON,
+    /** Allow a tap on the otherwise-hidden cutout to open the interactive assistant panel. */
+    val tapToOpenAssistant: Boolean = DEFAULT_TAP_TO_OPEN_ASSISTANT,
+    /** Automatically expand assistant response events instead of only showing the collapsed pill. */
+    val autoExpandAssistantResponses: Boolean = DEFAULT_AUTO_EXPAND_ASSISTANT_RESPONSES,
 ) {
     companion object {
         const val DEFAULT_DISPLAY_ANSWER_IN_CUTOUT = true
         const val DEFAULT_MAX_CUTOUT_HEIGHT_PERCENT = 35
         const val DEFAULT_USE_ANIMATED_ICON = false
+        const val DEFAULT_TAP_TO_OPEN_ASSISTANT = false
+        const val DEFAULT_AUTO_EXPAND_ASSISTANT_RESPONSES = false
     }
 }
 
@@ -42,6 +48,8 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             maxCutoutHeightPercent = prefs[MAX_CUTOUT_HEIGHT_PERCENT] ?: AssistantTileSettings.DEFAULT_MAX_CUTOUT_HEIGHT_PERCENT,
             iconContainerColor = CutoutColor.deserialize(prefs[ICON_CONTAINER_COLOR]),
             useAnimatedIcon = prefs[USE_ANIMATED_ICON] ?: AssistantTileSettings.DEFAULT_USE_ANIMATED_ICON,
+            tapToOpenAssistant = prefs[TAP_TO_OPEN_ASSISTANT] ?: AssistantTileSettings.DEFAULT_TAP_TO_OPEN_ASSISTANT,
+            autoExpandAssistantResponses = prefs[AUTO_EXPAND_ASSISTANT_RESPONSES] ?: AssistantTileSettings.DEFAULT_AUTO_EXPAND_ASSISTANT_RESPONSES,
         )
     }
 
@@ -53,6 +61,8 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             put("maxCutoutHeightPercent", s.maxCutoutHeightPercent)
             put("iconContainerColor", s.iconContainerColor?.serialize() ?: JSONObject.NULL)
             put("useAnimatedIcon", s.useAnimatedIcon)
+            put("tapToOpenAssistant", s.tapToOpenAssistant)
+            put("autoExpandAssistantResponses", s.autoExpandAssistantResponses)
         }.toString()
     }
 
@@ -63,6 +73,8 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             if (obj.has("displayAnswerInCutout")) it[DISPLAY_ANSWER_IN_CUTOUT] = obj.getBoolean("displayAnswerInCutout")
             if (obj.has("maxCutoutHeightPercent")) it[MAX_CUTOUT_HEIGHT_PERCENT] = obj.getInt("maxCutoutHeightPercent").coerceIn(10, 80)
             if (obj.has("useAnimatedIcon")) it[USE_ANIMATED_ICON] = obj.getBoolean("useAnimatedIcon")
+            if (obj.has("tapToOpenAssistant")) it[TAP_TO_OPEN_ASSISTANT] = obj.getBoolean("tapToOpenAssistant")
+            if (obj.has("autoExpandAssistantResponses")) it[AUTO_EXPAND_ASSISTANT_RESPONSES] = obj.getBoolean("autoExpandAssistantResponses")
             if (obj.has("iconContainerColor")) {
                 val raw = if (obj.isNull("iconContainerColor")) null else obj.optString("iconContainerColor")
                 val color = CutoutColor.deserialize(raw)
@@ -87,10 +99,20 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
         it[USE_ANIMATED_ICON] = enabled
     }
 
+    suspend fun setTapToOpenAssistant(enabled: Boolean) = context.assistantTileDataStore.edit {
+        it[TAP_TO_OPEN_ASSISTANT] = enabled
+    }
+
+    suspend fun setAutoExpandAssistantResponses(enabled: Boolean) = context.assistantTileDataStore.edit {
+        it[AUTO_EXPAND_ASSISTANT_RESPONSES] = enabled
+    }
+
     private companion object {
         val DISPLAY_ANSWER_IN_CUTOUT = booleanPreferencesKey("display_answer_in_cutout")
         val MAX_CUTOUT_HEIGHT_PERCENT = intPreferencesKey("max_cutout_height_percent")
         val ICON_CONTAINER_COLOR = stringPreferencesKey("icon_container_color")
         val USE_ANIMATED_ICON = booleanPreferencesKey("use_animated_icon")
+        val TAP_TO_OPEN_ASSISTANT = booleanPreferencesKey("tap_to_open_assistant")
+        val AUTO_EXPAND_ASSISTANT_RESPONSES = booleanPreferencesKey("auto_expand_assistant_responses")
     }
 }
