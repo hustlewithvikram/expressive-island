@@ -9,6 +9,8 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import com.vikram.expressiveisland.data.PageTransitionStyle
@@ -64,7 +66,7 @@ internal fun pageTransition(
             ) + fadeOut(tween(PAGE_TRANSITION_DURATION_MS))
         }
 
-        PageTransitionStyle.SLIDE_FADE -> {
+        PageTransitionStyle.VERTICAL_SLIDE -> {\n            enter = slideInVertically(tween(PAGE_TRANSITION_DURATION_MS)) { height -> height }\n            exit = slideOutVertically(tween(PAGE_TRANSITION_DURATION_MS)) { height -> -height }\n        }\n\n        PageTransitionStyle.ZOOM -> {\n            enter = scaleIn(initialScale = 0.72f, animationSpec = tween(PAGE_TRANSITION_DURATION_MS))\n            exit = scaleOut(targetScale = 1.18f, animationSpec = tween(PAGE_TRANSITION_DURATION_MS))\n        }\n\n        PageTransitionStyle.SLIDE_FADE -> {
             enter = slideInHorizontally(tween(PAGE_TRANSITION_DURATION_MS)) { width ->
                 direction * width
             } + fadeIn(tween(PAGE_TRANSITION_DURATION_MS))
