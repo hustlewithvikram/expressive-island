@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -334,11 +333,10 @@ private fun AnimationChoiceCard(
                                 horizontalArrangement = Arrangement.spacedBy(7.dp),
                             ) {
                                 if (selected) {
-                                    Icon(
-                                        imageVector = androidx.compose.material.icons.Icons.Rounded.Check,
-                                        contentDescription = "Selected",
-                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        modifier = Modifier.size(16.dp),
+                                    Text(
+                                        text = "✓",
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        style = MaterialTheme.typography.labelLarge,
                                     )
                                 }
                                 Text(
