@@ -52,6 +52,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
@@ -93,6 +94,7 @@ import kotlinx.coroutines.withContext
  * The list is read off the main thread once; each row loads its own launcher icon lazily, so
  * scrolling a few hundred apps never holds every icon bitmap in memory at once.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AppsScreen(
     viewModel: AppViewModel,
