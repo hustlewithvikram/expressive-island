@@ -280,14 +280,14 @@ private fun AnimationChoiceCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             if (description.isNotBlank()) {
@@ -298,6 +298,8 @@ private fun AnimationChoiceCard(
                 )
             }
 
+            // Compact choice rows reduce the height of Motion and Transitions while
+            // preserving readable labels and a clear selected state on narrow screens.
             options.chunked(2).forEachIndexed { rowIndex, rowOptions ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -309,46 +311,46 @@ private fun AnimationChoiceCard(
                         Card(
                             onClick = { onSelect(index) },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(20.dp),
+                            shape = RoundedCornerShape(14.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (selected) {
-                                    MaterialTheme.colorScheme.primaryContainer
+                                    MaterialTheme.colorScheme.secondaryContainer
                                 } else {
                                     MaterialTheme.colorScheme.surfaceContainerLow
                                 },
                             ),
                         ) {
-                            Column(
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(76.dp)
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                                verticalArrangement = Arrangement.Center,
+                                    .height(48.dp)
+                                    .padding(horizontal = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(7.dp),
                             ) {
+                                if (selected) {
+                                    Icon(
+                                        imageVector = androidx.compose.material.icons.Icons.Rounded.Check,
+                                        contentDescription = "Selected",
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
                                 Text(
                                     text = option,
-                                    style = MaterialTheme.typography.titleSmall,
+                                    style = MaterialTheme.typography.labelLarge,
                                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                                     color = if (selected) {
-                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                        MaterialTheme.colorScheme.onSecondaryContainer
                                     } else {
                                         MaterialTheme.colorScheme.onSurface
                                     },
+                                    maxLines = 1,
                                 )
-                                if (selected) {
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text(
-                                        text = "Selected",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    )
-                                }
                             }
                         }
                     }
-                    if (rowOptions.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+                    if (rowOptions.size == 1) Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
