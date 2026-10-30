@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -26,6 +27,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -41,6 +44,8 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Downloading
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
@@ -51,8 +56,11 @@ import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -61,6 +69,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -294,100 +303,190 @@ private fun ProfileList(
 
 @Composable
 private fun LanguageCard() {
-    var expanded by remember { mutableStateOf(false) }
+    var sheetVisible by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     val appLocales = AppCompatDelegate.getApplicationLocales().toLanguageTags()
-    val currentTag = appLocales.ifBlank { "" }
+    val currentTag = appLocales.substringBefore(',').substringBefore('-').ifBlank { "" }
 
-    val selectedLabel = when (currentTag.substringBefore('-')) {
+    val selectedLabel = when (currentTag) {
         "en" -> stringResource(R.string.language_english)
         "hi" -> stringResource(R.string.language_hindi)
         "mr" -> stringResource(R.string.language_marathi)
         else -> stringResource(R.string.language_system_default)
     }
 
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = { expanded = true },
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    val languages = listOf(
+        LanguageOption("", stringResource(R.string.language_system_default), "system default"),
+        LanguageOption("en", stringResource(R.string.language_english), "english en"),
+        LanguageOption("hi", stringResource(R.string.language_hindi), "hindi हिन्दी"),
+        LanguageOption("mr", stringResource(R.string.language_marathi), "marathi मराठी"),
+    )
+    val filteredLanguages = languages.filter {
+        searchQuery.isBlank() ||
+            it.label.contains(searchQuery, ignoreCase = true) ||
+            it.searchTerms.contains(searchQuery, ignoreCase = true) ||
+            it.tag.contains(searchQuery, ignoreCase = true)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = {
+            searchQuery = ""
+            sheetVisible = true
+        },
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(46.dp),
             ) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    modifier = Modifier.size(46.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Rounded.Language,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(23.dp),
-                        )
-                    }
-                }
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.language_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Spacer(Modifier.height(3.dp))
-                    Text(
-                        text = selectedLabel,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = stringResource(R.string.language_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.Language,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(23.dp),
                     )
                 }
-                Spacer(Modifier.width(8.dp))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.language_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = selectedLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = stringResource(R.string.language_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            val options = listOf(
-                "" to stringResource(R.string.language_system_default),
-                "en" to stringResource(R.string.language_english),
-                "hi" to stringResource(R.string.language_hindi),
-                "mr" to stringResource(R.string.language_marathi),
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            options.forEach { (tag, label) ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = if (tag == currentTag) "$label · ${stringResource(R.string.language_selected)}" else label,
-                        )
-                    },
-                    onClick = {
-                        expanded = false
-                        if (tag != currentTag) {
-                            AppCompatDelegate.setApplicationLocales(
-                                LocaleListCompat.forLanguageTags(tag),
+        }
+    }
+
+    if (sheetVisible) {
+        ModalBottomSheet(
+            onDismissRequest = { sheetVisible = false },
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.language_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.language_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text(stringResource(R.string.language_search_hint)) },
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                    trailingIcon = if (searchQuery.isNotEmpty()) {
+                        {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = stringResource(R.string.language_clear_search),
+                                modifier = Modifier.clickable { searchQuery = "" },
                             )
                         }
-                    },
+                    } else null,
+                    shape = RoundedCornerShape(18.dp),
                 )
+                Spacer(Modifier.height(12.dp))
+                if (filteredLanguages.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.language_no_results),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp),
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp),
+                    ) {
+                        items(filteredLanguages, key = { it.tag }) { language ->
+                            val selected = language.tag == currentTag
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable {
+                                        sheetVisible = false
+                                        if (language.tag != currentTag) {
+                                            AppCompatDelegate.setApplicationLocales(
+                                                LocaleListCompat.forLanguageTags(language.tag),
+                                            )
+                                        }
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 15.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        text = language.label,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                    )
+                                    if (selected) {
+                                        Text(
+                                            text = stringResource(R.string.language_selected),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                }
+                                if (selected) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.CheckCircle,
+                                        contentDescription = stringResource(R.string.language_selected),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(20.dp))
             }
         }
     }
 }
+
+private data class LanguageOption(
+    val tag: String,
+    val label: String,
+    val searchTerms: String,
+)
 
 @Composable
 private fun ProfileDestinationCard(
