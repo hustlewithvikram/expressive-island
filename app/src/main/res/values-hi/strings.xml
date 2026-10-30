@@ -24,4 +24,18 @@
     <string name="changelog_subtitle">इस संस्करण में नया क्या है</string>
     <string name="profile_permissions_title">अनुमतियाँ</string>
     <string name="profile_permissions_subtitle">ऐप की अनुमतियाँ प्रबंधित करें</string>
+    <string name="profile_appearance_section">दिखावट</string>
+    <string name="profile_appearance_description">Expressive Island का रूप बदलें।</string>
+    <string name="profile_backup_section">बैकअप और रीस्टोर</string>
+    <string name="profile_backup_description">अपनी सेटिंग्स सेव करें या बाद में वापस लाएँ।</string>
+    <string name="profile_manage_section">प्रबंधन</string>
+    <string name="profile_manage_description">अनुमतियाँ, टेस्ट टूल और प्रोजेक्ट की जानकारी।</string>
+    <string name="profile_access_title">ऐक्सेस</string>
+    <string name="profile_access_description">सिस्टम अनुमतियाँ प्रबंधित करें और ऐक्सेस की स्थिति देखें।</string>
+    <string name="profile_testing_title">टेस्ट ट्रिगर</string>
+    <string name="profile_testing_description">नोटिफ़िकेशन, कॉल और आइलैंड की स्थितियों का पूर्वावलोकन करें।</string>
+    <string name="profile_about_title">ऐप के बारे में</string>
+    <string name="profile_about_description">ऐप संस्करण, बदलाव, रिपॉज़िटरी और डेवलपर।</string>
+    <string name="profile_updater_title">अपडेटर</string>
+    <string name="profile_updater_description">अपडेट देखें और नवीनतम संस्करण इंस्टॉल करें।</string>
 </resources>
