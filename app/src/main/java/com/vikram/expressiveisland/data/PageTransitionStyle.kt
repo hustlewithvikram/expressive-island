@@ -10,7 +10,7 @@ enum class PageTransitionStyle {
     SHARED_AXIS,
     FADE_THROUGH,
     SCALE_FADE,
-    SLIDE_FADE;
+    SLIDE_FADE,\n    VERTICAL_SLIDE,\n    ZOOM;
 
     companion object {
         fun deserialize(value: String?): PageTransitionStyle? =
