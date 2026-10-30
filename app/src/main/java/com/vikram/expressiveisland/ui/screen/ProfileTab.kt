@@ -592,7 +592,7 @@ private fun AboutSubpage(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SectionHeader(title = "About", description = "Version details and links to the project and its developer.")
+        SectionHeader(title = stringResource(R.string.profile_about_title), description = stringResource(R.string.profile_about_description_extra))
         VersionCard(
             versionName = versionName,
             onClick = {
@@ -808,8 +808,8 @@ private fun AccessSection(
     onOpenPermissionDetails: () -> Unit,
 ) {
     SectionHeader(
-        title = "Access",
-        description = "System access required for Expressive Island to work correctly.",
+        title = stringResource(R.string.profile_access_title),
+        description = stringResource(R.string.profile_access_description_extra),
     )
 
     if (status.allEssentialGranted) {
@@ -1085,8 +1085,8 @@ private fun TestingSection(
     }
 
     SectionHeader(
-        title = "Testing Triggers",
-        description = "Test how Expressive Island responds to notifications and calls.",
+        title = stringResource(R.string.profile_testing_title),
+        description = stringResource(R.string.profile_testing_description_extra),
     )
 
     Spacer(
@@ -1098,7 +1098,7 @@ private fun TestingSection(
     // -------------------------------------------------------------------------
 
     TestGroupHeader(
-        title = "Notifications",
+        title = stringResource(R.string.profile_testing_notifications),
     )
 
     Column(
@@ -1112,7 +1112,7 @@ private fun TestingSection(
             title = stringResource(
                 R.string.action_send_test,
             ),
-            description = "Test a standard notification.",
+            description = stringResource(R.string.profile_testing_standard_notification),
             onClick = {
                 postWithPermission {
                     TestNotifier.send(context)
@@ -1126,7 +1126,7 @@ private fun TestingSection(
             title = stringResource(
                 R.string.action_send_test_plain,
             ),
-            description = "Test a simple notification.",
+            description = stringResource(R.string.profile_testing_simple_notification),
             onClick = {
                 postWithPermission {
                     TestNotifier.sendPlain(context)
@@ -1140,7 +1140,7 @@ private fun TestingSection(
             title = stringResource(
                 R.string.action_send_test_progress,
             ),
-            description = "Test a notification with progress.",
+            description = stringResource(R.string.profile_testing_progress_notification),
             onClick = {
                 postWithPermission {
                     TestNotifier.sendProgress(context)
@@ -1158,7 +1158,7 @@ private fun TestingSection(
     // -------------------------------------------------------------------------
 
     TestGroupHeader(
-        title = "Calls",
+        title = stringResource(R.string.profile_testing_calls),
     )
 
     Column(
@@ -1172,7 +1172,7 @@ private fun TestingSection(
             title = stringResource(
                 R.string.action_send_test_call,
             ),
-            description = "Test the connected-call pill.",
+            description = stringResource(R.string.profile_testing_connected_call),
             onClick = {
                 TestCaller.toggle(
                     context,
@@ -1187,7 +1187,7 @@ private fun TestingSection(
             title = stringResource(
                 R.string.action_send_test_incoming_call,
             ),
-            description = "Test the incoming-call pill.",
+            description = stringResource(R.string.profile_testing_incoming_call),
             onClick = {
                 TestCaller.toggle(
                     context,
@@ -1206,7 +1206,7 @@ private fun TestingSection(
     // -------------------------------------------------------------------------
 
     TestGroupHeader(
-        title = "Island",
+        title = stringResource(R.string.profile_testing_island),
     )
 
     TestCard(
@@ -1215,7 +1215,7 @@ private fun TestingSection(
         title = stringResource(
             R.string.action_send_test_double,
         ),
-        description = "Test simultaneous notifications and duplicate handling.",
+        description = stringResource(R.string.profile_testing_duplicate_notifications),
         onClick = {
             postWithPermission {
                 TestNotifier.sendPair(context)
