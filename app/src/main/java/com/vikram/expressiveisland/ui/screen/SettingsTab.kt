@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.rememberScrollState
@@ -262,9 +263,11 @@ private fun SettingsList(
     // omit the bottom inset to avoid the extra blank space at the bottom.
     Column(
         modifier = if (searchExpanded) {
-            // Expanded search becomes its own full-size surface, rather than staying inside
-            // the padded/scrollable Settings list.
-            Modifier.fillMaxSize()
+            // Keep the expanded search below the system status bar without changing the
+            // collapsed Settings layout or applying the inset twice.
+            Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
         } else {
             Modifier
                 .fillMaxSize()
