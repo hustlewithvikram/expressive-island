@@ -139,6 +139,9 @@ internal fun AnimationScreen(
                     "Bouncy",
                     "Smooth",
                     "Snappy",
+                    "Decelerate",
+                    "Accelerate",
+                    "Overshoot",
                 ),
                 selectedIndex = behaviour.animationStyle.ordinal,
                 onSelect = { viewModel.setAnimationStyle(AnimationStyle.entries[it]) },
@@ -255,6 +258,8 @@ internal fun AnimationScreen(
                 "Fade Through",
                 "Scale + Fade",
                 "Slide + Fade",
+                "Vertical Slide",
+                "Zoom",
             ),
             selectedIndex = appearance.pageTransitionStyle.ordinal,
             onSelect = { viewModel.setPageTransitionStyle(PageTransitionStyle.entries[it]) },
@@ -528,6 +533,9 @@ private fun AnimationStyle.displayLabel(): String = when (this) {
     AnimationStyle.BOUNCY -> "Bouncy"
     AnimationStyle.SMOOTH -> "Smooth"
     AnimationStyle.SNAPPY -> "Snappy"
+    AnimationStyle.DECELERATE -> "Decelerate"
+    AnimationStyle.ACCELERATE -> "Accelerate"
+    AnimationStyle.OVERSHOOT -> "Overshoot"
 }
 
 @Composable
