@@ -1,6 +1,7 @@
 package com.vikram.expressiveisland.overlay.contents
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -10,8 +11,18 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,6 +45,7 @@ fun CollapsedContent(
     heightDp: Int,
     isStickToCamera: Boolean = false,
     trailingInsetDp: Int = 0,
+    showSatelliteActivityRing: Boolean = false,
 ) {
     // The music tile shows album art, the phone tile the caller's photo, on the normal cutout.
     val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()
@@ -73,6 +85,23 @@ fun CollapsedContent(
                 badgeSize = badgeSize,
                 iconSize = (heightDp * 0.46f).dp,
                 modifier = placement,
+            )
+        }
+
+        if (showSatelliteActivityRing && !isStickToCamera &&
+            ((event.media != null && nowPlaying?.isPlaying == true) || event.progressData != null)
+        ) {
+            SatelliteActivityRing(
+                diameterDp = heightDp,
+                progress = event.progressData?.let { data ->
+                    if (data.isIndeterminate || data.max <= 0) null
+                    else (data.current.toFloat() / data.max).coerceIn(0f, 1f)
+                },
+                isIndeterminate = event.progressData?.isIndeterminate == true ||
+                    (event.media != null && nowPlaying?.isPlaying == true && event.progressData == null),
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = (heightDp * 0.04f).dp),
             )
         }
 
@@ -139,5 +168,60 @@ fun CollapsedContent(
                 )
             }
         }
+    }
+}
+
+/**
+ * Compact activity ring drawn around the leading badge when a satellite bubble is visible.
+ * Its bounds stay inside the pill; progress notifications use a determinate arc when possible,
+ * while live music / indeterminate work uses a rotating arc.
+ */
+@Composable
+private fun SatelliteActivityRing(
+    diameterDp: Int,
+    progress: Float?,
+    isIndeterminate: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "satelliteActivityRing")
+    val rotation by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "satelliteActivityRingRotation",
+    )
+    val ringDiameter = (diameterDp * 0.94f).dp
+    val stroke = (diameterDp * 0.055f).dp
+    Canvas(
+        modifier = modifier
+            .size(ringDiameter)
+            .rotate(if (isIndeterminate || progress == null) rotation else 0f),
+    ) {
+        val inset = stroke.toPx() / 2f
+        val arcSize = androidx.compose.ui.geometry.Size(
+            size.width - stroke.toPx(),
+            size.height - stroke.toPx(),
+        )
+        drawArc(
+            color = androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
+            startAngle = 0f,
+            sweepAngle = 360f,
+            useCenter = false,
+            topLeft = androidx.compose.ui.geometry.Offset(inset, inset),
+            size = arcSize,
+            style = Stroke(width = stroke.toPx(), cap = StrokeCap.Round),
+        )
+        drawArc(
+            color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+            startAngle = if (isIndeterminate || progress == null) 20f else -90f,
+            sweepAngle = if (isIndeterminate || progress == null) 105f else 360f * progress.coerceIn(0f, 1f),
+            useCenter = false,
+            topLeft = androidx.compose.ui.geometry.Offset(inset, inset),
+            size = arcSize,
+            style = Stroke(width = stroke.toPx(), cap = StrokeCap.Round),
+        )
     }
 }
