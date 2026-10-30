@@ -1,7 +1,9 @@
 package com.vikram.expressiveisland
 
 import android.app.Application
+import android.content.ContentValues
 import android.os.Build
+import android.provider.MediaStore
 import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
@@ -14,13 +16,14 @@ import java.util.Locale
 /**
  * Persists uncaught exceptions before Android's original handler terminates the process.
  *
- * Files are written to the app-specific external folder
- * Android/data/<package>/files/expressive_island_logs, with an internal-storage fallback.
- * No storage permission is required and no crash data is uploaded.
+ * Crash reports are written to shared storage at /storage/emulated/0/Expressive Island/logs,
+ * using MediaStore so Android 10+ users can access them without broad storage permissions.
+ * If shared storage is unavailable, a private app-storage fallback is used. Nothing is uploaded.
  */
 object CrashLogWriter {
     private const val TAG = "ExpressiveIslandCrash"
-    private const val DIRECTORY_NAME = "expressive_island_logs"
+    private const val DIRECTORY_NAME = "Expressive Island"
+    private const val LOGS_DIRECTORY = "logs"
 
     @Volatile
     private var installed = false
@@ -49,14 +52,6 @@ object CrashLogWriter {
     private fun writeCrashLog(application: Application, thread: Thread, throwable: Throwable) {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date())
         val fileName = "expressive_island_logs_$timestamp.txt"
-        val externalDirectory = application.getExternalFilesDir(DIRECTORY_NAME)
-        val internalDirectory = File(application.filesDir, DIRECTORY_NAME)
-        val directory = externalDirectory?.takeIf { it.exists() || it.mkdirs() }
-            ?: internalDirectory.apply { if (!exists()) mkdirs() }
-        if (!directory.exists() && !directory.mkdirs()) {
-            throw IllegalStateException("Unable to create crash-log directory")
-        }
-
         val stackTrace = StringWriter().also { writer ->
             throwable.printStackTrace(PrintWriter(writer))
         }.toString()
@@ -74,12 +69,46 @@ object CrashLogWriter {
             append(stackTrace)
         }
 
-        val file = File(directory, fileName)
+        // MediaStore writes to a user-visible shared folder without requesting
+        // MANAGE_EXTERNAL_STORAGE. The resulting path is:
+        // /storage/emulated/0/Expressive Island/logs/<timestamped report>
+        val resolver = application.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, "$DIRECTORY_NAME/$LOGS_DIRECTORY")
+        }
+        val collection = MediaStore.Files.getContentUri("external")
+        val sharedUri = runCatching { resolver.insert(collection, values) }.getOrNull()
+        if (sharedUri != null) {
+            val saved = runCatching {
+                resolver.openFileDescriptor(sharedUri, "w")?.use { descriptor ->
+                    FileOutputStream(descriptor.fileDescriptor).use { stream ->
+                        stream.write(report.toByteArray(Charsets.UTF_8))
+                        stream.flush()
+                        stream.fd.sync()
+                    }
+                } ?: throw IllegalStateException("Unable to open shared crash-log file")
+            }
+            if (saved.isSuccess) {
+                Log.e(TAG, "Crash report saved to /storage/emulated/0/$DIRECTORY_NAME/$LOGS_DIRECTORY/$fileName")
+                return
+            }
+            runCatching { resolver.delete(sharedUri, null, null) }
+            Log.e(TAG, "Shared crash-log write failed; using app-private fallback", saved.exceptionOrNull())
+        }
+
+        // Keep crash reporting reliable if shared storage is temporarily unavailable.
+        val internalDirectory = File(application.filesDir, "expressive_island_logs")
+        if (!internalDirectory.exists() && !internalDirectory.mkdirs()) {
+            throw IllegalStateException("Unable to create fallback crash-log directory")
+        }
+        val file = File(internalDirectory, fileName)
         FileOutputStream(file, false).use { stream ->
             stream.write(report.toByteArray(Charsets.UTF_8))
             stream.flush()
             stream.fd.sync()
         }
-        Log.e(TAG, "Crash report saved to ${file.absolutePath}")
+        Log.e(TAG, "Crash report saved to fallback path: ${file.absolutePath}")
     }
 }
