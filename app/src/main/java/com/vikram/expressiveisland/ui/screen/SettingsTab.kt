@@ -299,8 +299,6 @@ private fun SettingsList(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-        if (searchExpanded) {
-            Column(modifier = Modifier.fillMaxWidth()) {
             if (searchQuery.isBlank()) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -564,8 +562,6 @@ private fun SettingsList(
                     }
                 }
             }
-            }
-        }
 
         if (searchQuery.isBlank() && !searchExpanded) {
         Column(
