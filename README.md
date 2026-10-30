@@ -120,10 +120,6 @@ On first launch, Expressive Island guides you through the permissions required f
 
 # Requirements & Setup
 
----
-
-# Requirements & Setup
-
 After installing Expressive Island, the app will guide you through the required setup.
 
 ### 1. Notification access
