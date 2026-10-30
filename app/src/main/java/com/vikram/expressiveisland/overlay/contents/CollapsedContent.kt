@@ -195,6 +195,8 @@ private fun SatelliteActivityRing(
     )
     val ringDiameter = (diameterDp * 0.94f).dp
     val stroke = (diameterDp * 0.055f).dp
+    val trackColor = MaterialTheme.colorScheme.primaryContainer
+    val progressColor = MaterialTheme.colorScheme.primary
     Canvas(
         modifier = modifier
             .size(ringDiameter)
@@ -206,7 +208,7 @@ private fun SatelliteActivityRing(
             size.height - stroke.toPx(),
         )
         drawArc(
-            color = androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
+            color = trackColor,
             startAngle = 0f,
             sweepAngle = 360f,
             useCenter = false,
@@ -215,7 +217,7 @@ private fun SatelliteActivityRing(
             style = Stroke(width = stroke.toPx(), cap = StrokeCap.Round),
         )
         drawArc(
-            color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+            color = progressColor,
             startAngle = if (isIndeterminate || progress == null) 20f else -90f,
             sweepAngle = if (isIndeterminate || progress == null) 105f else 360f * progress.coerceIn(0f, 1f),
             useCenter = false,
