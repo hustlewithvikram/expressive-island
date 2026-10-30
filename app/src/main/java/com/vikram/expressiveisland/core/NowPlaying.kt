@@ -68,9 +68,13 @@ data class MediaProgress(
 /** The transport actions the music tile exposes. Backed by the active media session's controls. */
 @Stable
 interface MediaTransport {
+    /** Whether the active media session advertises support for absolute seeking. */
+    val canSeek: Boolean
+
     fun previous()
     fun seekBackward(seconds: Int)
     fun seekForward(seconds: Int)
+    fun seekTo(positionMs: Long)
     fun playPause()
     fun next()
 }
