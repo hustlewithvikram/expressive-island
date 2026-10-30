@@ -150,6 +150,8 @@ data class AssistantTileOptions(
     val displayAnswerInCutout: Boolean,
     val maxCutoutHeightPercent: Int,
     val answerText: String?,
+    /** True for the on-demand conversational panel, rather than a mirrored assistant response. */
+    val interactivePanel: Boolean = false,
 )
 
 /** Which parts of the timer tile to render (and how its buttons look), per the tile's settings. */
