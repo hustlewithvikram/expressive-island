@@ -75,6 +75,7 @@ import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.formatMediaTime
 import com.vikram.expressiveisland.overlay.resolve
 import kotlinx.coroutines.delay
+import kotlin.math.PI
 import kotlin.math.sin
 import kotlin.time.Duration.Companion.milliseconds
 
