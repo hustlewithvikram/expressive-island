@@ -425,6 +425,13 @@ internal fun DynamicIsland(
         spec,
         label = "islandOffsetX",
     )
+    // The satellite shifts the pill sideways, but the progress ring must stay centered
+    // on the physical camera cutout rather than following that shifted pill.
+    val cutoutCenterOffsetX by animateDpAsState(
+        if (isStickToCamera) 0.dp else dims.offsetXDp.dp,
+        spec,
+        label = "cutoutProgressOffsetX",
+    )
     val offsetY by animateDpAsState(
         if (isStickToCamera) 0.dp else dims.offsetYDp.dp,
         spec,
@@ -901,7 +908,7 @@ internal fun DynamicIsland(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .offset(x = offsetX, y = offsetY)
+                        .offset(x = cutoutCenterOffsetX, y = offsetY)
                         .size(ringSize),
                     contentAlignment = Alignment.Center,
                 ) {
