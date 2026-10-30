@@ -34,6 +34,7 @@ fun CollapsedContent(
     heightDp: Int,
     isStickToCamera: Boolean = false,
     trailingInsetDp: Int = 0,
+    showProgressIndicator: Boolean = true,
 ) {
     // The music tile shows album art, the phone tile the caller's photo, on the normal cutout.
     val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()
@@ -110,7 +111,7 @@ fun CollapsedContent(
             }
         }
 
-        event.progressData?.takeIf { !isStickToCamera }?.let { progress ->
+        event.progressData?.takeIf { !isStickToCamera && showProgressIndicator }?.let { progress ->
             val indicatorModifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(end = (heightDp * 0.24f).dp + trailingInsetDp.dp)
