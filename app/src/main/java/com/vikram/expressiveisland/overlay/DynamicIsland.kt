@@ -503,6 +503,26 @@ internal fun DynamicIsland(
             val stickPaddingStart = if (isStickToCamera && !isRotation270) offsetYDp.dp else 0.dp
             val stickPaddingEnd = if (isStickToCamera && isRotation270) offsetYDp.dp else 0.dp
 
+            // When the empty island is disabled there is no IslandSurface to receive taps.
+            // Keep a transparent hit target over the physical cutout so Assistant can still be
+            // opened on demand, but only while no event owns the island.
+            if (event == null && assistantTapEnabled && !showsWhenEmpty && !isStickToCamera) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(x = offsetX, y = offsetY)
+                        .width(width)
+                        .height(collapsed.heightDp.dp)
+                        .pointerInput(assistantTapEnabled) {
+                            detectTapGestures(
+                                onTap = {
+                                    if (assistantTapEnabled) onAssistantTap()
+                                }
+                            )
+                        },
+                )
+            }
+
             Box(
                 modifier = Modifier
                     .align(if (isStickToCamera) stickAlignment else Alignment.TopCenter)
