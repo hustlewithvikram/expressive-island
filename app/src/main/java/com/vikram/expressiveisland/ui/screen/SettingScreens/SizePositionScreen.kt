@@ -245,7 +245,7 @@ private fun DimensionsEditor(
          * Size
          */
         EditorSection(
-            title = "Size",
+            title = stringResource(R.string.size_position_size),
             description = if (expandedPreview) {
                 "Control the dimensions of the expanded island."
             } else {
@@ -281,8 +281,8 @@ private fun DimensionsEditor(
          * Corners
          */
         EditorSection(
-            title = "Corners",
-            description = "Customize each corner independently or as groups.",
+            title = stringResource(R.string.size_position_corners),
+            description = stringResource(R.string.size_position_corners_desc),
         ) {
             CornerRadiusControls(
                 cornerTl = cornerTl,
@@ -303,8 +303,8 @@ private fun DimensionsEditor(
          * Position
          */
         EditorSection(
-            title = "Position",
-            description = "Fine-tune where the island sits on the screen.",
+            title = stringResource(R.string.size_position_position),
+            description = stringResource(R.string.size_position_position_desc),
         ) {
             AdjustableSlider(
                 label = stringResource(R.string.appearance_vertical),
