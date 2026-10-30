@@ -24,4 +24,18 @@
     <string name="changelog_subtitle">या आवृत्तीत नवीन काय आहे</string>
     <string name="profile_permissions_title">परवानग्या</string>
     <string name="profile_permissions_subtitle">अॅपच्या परवानग्या व्यवस्थापित करा</string>
+    <string name="profile_appearance_section">दिसणे</string>
+    <string name="profile_appearance_description">Expressive Island चे स्वरूप सानुकूलित करा.</string>
+    <string name="profile_backup_section">बॅकअप आणि पुनर्संचयित</string>
+    <string name="profile_backup_description">तुमच्या सेटिंग्ज जतन करा किंवा नंतर पुनर्संचयित करा.</string>
+    <string name="profile_manage_section">व्यवस्थापन</string>
+    <string name="profile_manage_description">परवानग्या, चाचणी साधने आणि प्रकल्पाची माहिती.</string>
+    <string name="profile_access_title">प्रवेश</string>
+    <string name="profile_access_description">सिस्टम परवानग्या व्यवस्थापित करा आणि प्रवेश स्थिती तपासा.</string>
+    <string name="profile_testing_title">चाचणी ट्रिगर्स</string>
+    <string name="profile_testing_description">सूचना, कॉल आणि आयलंडच्या विविध स्थितींचे पूर्वावलोकन करा.</string>
+    <string name="profile_about_title">माहिती</string>
+    <string name="profile_about_description">अॅप आवृत्ती, बदल, रिपॉझिटरी आणि विकासक.</string>
+    <string name="profile_updater_title">अपडेटर</string>
+    <string name="profile_updater_description">अपडेट तपासा आणि नवीनतम आवृत्ती इंस्टॉल करा.</string>
 </resources>
