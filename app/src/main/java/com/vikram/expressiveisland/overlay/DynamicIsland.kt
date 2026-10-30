@@ -18,10 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -424,13 +421,6 @@ internal fun DynamicIsland(
         if (isStickToCamera) 0.dp else dims.offsetXDp.dp + satelliteShiftDp.dp,
         spec,
         label = "islandOffsetX",
-    )
-    // The satellite shifts the pill sideways, but the progress ring must stay centered
-    // on the physical camera cutout rather than following that shifted pill.
-    val cutoutCenterOffsetX by animateDpAsState(
-        if (isStickToCamera) 0.dp else dims.offsetXDp.dp,
-        spec,
-        label = "cutoutProgressOffsetX",
     )
     val offsetY by animateDpAsState(
         if (isStickToCamera) 0.dp else dims.offsetYDp.dp,
@@ -851,7 +841,6 @@ internal fun DynamicIsland(
                                             heightDp = collapsed.heightDp,
                                             isStickToCamera = isStickToCamera,
                                             trailingInsetDp = collapsedTrailingInsetDp,
-                                            showProgressIndicator = satellite == null || isExpanded || isCall || isStickToCamera,
                                         )
                                     }
                                 }
@@ -886,47 +875,6 @@ internal fun DynamicIsland(
                                 )
                             }
                         }
-                    }
-                }
-            }
-
-            // When a split satellite is visible, move notification progress out of the
-            // shortened pill and render it as a ring around the physical camera cutout.
-            val cutoutProgress = shownEvent?.progressData?.takeIf {
-                satellite != null && satelliteReveal.value > 0.01f &&
-                    !isExpanded && !isCall && !isStickToCamera
-            }
-            cutoutProgress?.let { progress ->
-                val fraction = if (progress.max <= 0) 0f
-                else (progress.current.toFloat() / progress.max).coerceIn(0f, 1f)
-                val animatedFraction by animateFloatAsState(
-                    targetValue = fraction,
-                    label = "cutoutProgress",
-                )
-                val ringSize = (collapsed.heightDp * 1.22f).dp
-                val ringStroke = (collapsed.heightDp * 0.055f).dp
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(x = cutoutCenterOffsetX, y = offsetY)
-                        .size(ringSize),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (progress.isIndeterminate) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.primaryContainer,
-                            strokeWidth = ringStroke,
-                        )
-                    } else {
-                        CircularProgressIndicator(
-                            progress = { animatedFraction },
-                            modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.primaryContainer,
-                            strokeWidth = ringStroke,
-                        )
                     }
                 }
             }
