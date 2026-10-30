@@ -72,6 +72,24 @@ internal fun AssistantScreen(
         }
 
         SettingsToggleCard(
+            shape = RoundedCornerShape(4.dp),
+            title = stringResource(R.string.assistant_tap_to_open_title),
+            description = stringResource(R.string.assistant_tap_to_open_desc),
+            checked = settings.tapToOpenAssistant,
+            onCheckedChange = viewModel::setAssistantTapToOpen,
+        )
+
+        AnimatedVisibility(visible = settings.tapToOpenAssistant) {
+            SettingsToggleCard(
+                shape = RoundedCornerShape(4.dp),
+                title = stringResource(R.string.assistant_auto_expand_title),
+                description = stringResource(R.string.assistant_auto_expand_desc),
+                checked = settings.autoExpandAssistantResponses,
+                onCheckedChange = viewModel::setAssistantAutoExpandResponses,
+            )
+        }
+
+        SettingsToggleCard(
             shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 32.dp, bottomEnd = 32.dp),
             title = stringResource(R.string.assistant_animated_icon_title),
             description = stringResource(R.string.assistant_animated_icon_desc),
