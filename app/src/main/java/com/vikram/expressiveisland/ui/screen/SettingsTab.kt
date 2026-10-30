@@ -261,26 +261,33 @@ private fun SettingsList(
     // cards below it. Put the top inset inside the scroll content so it scrolls away naturally;
     // omit the bottom inset to avoid the extra blank space at the bottom.
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(
-                start = 16.dp,
-                end = 16.dp,
-                top = contentPadding.calculateTopPadding(),
-                // Keep the final settings cards clear of the bottom navigation bar, with
-                // a little extra breathing room after the last item.
-                bottom = contentPadding.calculateBottomPadding() + 24.dp,
-            ),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = if (searchExpanded) {
+            // Expanded search becomes its own full-size surface, rather than staying inside
+            // the padded/scrollable Settings list.
+            Modifier.fillMaxSize()
+        } else {
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = contentPadding.calculateTopPadding(),
+                    bottom = contentPadding.calculateBottomPadding() + 24.dp,
+                )
+        },
+        verticalArrangement = if (searchExpanded) Arrangement.Top else Arrangement.spacedBy(12.dp),
     ) {
         SearchBar(
-            // SearchBar expands into a large surface. The parent is vertically scrollable,
-            // so it otherwise receives unbounded height during expansion on some Compose builds.
-            // Keep the official Material 3 surface bounded to the available screen height.
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = (LocalConfiguration.current.screenHeightDp - 120).coerceAtLeast(320).dp),
+            // Use the whole available app surface while expanded. Bound only the collapsed
+            // search field; applying that height cap to expanded search prevents full-screen UI.
+            modifier = if (searchExpanded) {
+                Modifier.fillMaxSize()
+            } else {
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = (LocalConfiguration.current.screenHeightDp - 120).coerceAtLeast(320).dp)
+            },
             inputField = {
                 SearchBarDefaults.InputField(
                     query = searchQuery,
@@ -308,7 +315,10 @@ private fun SettingsList(
         ) {
             // Search results stay inside the official Material 3 expanded surface.
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
             if (searchQuery.isBlank()) {
