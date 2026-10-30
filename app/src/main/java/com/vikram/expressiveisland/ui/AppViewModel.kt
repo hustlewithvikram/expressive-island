@@ -458,6 +458,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         assistantTilePreferences.setUseAnimatedIcon(enabled)
     }
 
+    fun setAssistantTapToOpen(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setTapToOpenAssistant(enabled)
+    }
+
+    fun setAssistantAutoExpandResponses(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setAutoExpandAssistantResponses(enabled)
+    }
+
     fun setMusicSkipColor(color: CutoutColor?) = viewModelScope.launch {
         musicTilePreferences.setSkipColor(color)
     }
