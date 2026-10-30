@@ -5,6 +5,7 @@ import android.os.SystemClock
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -78,6 +79,7 @@ import com.vikram.expressiveisland.overlay.formatMediaTime
 import com.vikram.expressiveisland.overlay.resolve
 import kotlinx.coroutines.delay
 import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.sin
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -284,12 +286,16 @@ fun MediaProgressBar(
                 fontWeight = FontWeight.Medium,
             )
             androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
-            CircularProgressIndicator(
-                progress = { fraction },
-                modifier = Modifier.size(22.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+            CircularSeekProgressIndicator(
+                progress = fraction,
+                durationMs = duration,
+                positionMs = positionMs,
+                canSeek = canSeek,
                 strokeWidth = if (style == MusicProgressStyle.CIRCULAR_WAVY) 2.dp else 3.dp,
+                onScrubStart = { isScrubbing = true; onInteraction() },
+                onScrubPosition = updateScrubPosition,
+                onSeek = finishSeek,
+                onScrubCancel = { isScrubbing = false; onInteraction() },
             )
             androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
             Text(
@@ -331,6 +337,78 @@ fun MediaProgressBar(
             )
         }
     }
+}
+
+/**
+ * A compact circular seek control for users who selected a circular progress style. Touches map
+ * to the ring's angle, so it remains seekable without introducing a slider thumb.
+ */
+@Composable
+private fun CircularSeekProgressIndicator(
+    progress: Float,
+    durationMs: Long,
+    positionMs: Long,
+    canSeek: Boolean,
+    strokeWidth: Dp,
+    onScrubStart: () -> Unit,
+    onScrubPosition: (Long) -> Unit,
+    onSeek: (Long) -> Unit,
+    onScrubCancel: () -> Unit,
+) {
+    var targetMs by remember(durationMs) {
+        mutableLongStateOf(positionMs.coerceIn(0L, durationMs))
+    }
+    val latestOnScrubStart by rememberUpdatedState(onScrubStart)
+    val latestOnScrubPosition by rememberUpdatedState(onScrubPosition)
+    val latestOnSeek by rememberUpdatedState(onSeek)
+    val latestOnScrubCancel by rememberUpdatedState(onScrubCancel)
+
+    fun targetAt(x: Float, y: Float, width: Float, height: Float): Long {
+        val dx = x - width / 2f
+        val dy = y - height / 2f
+        val turnsFromRight = atan2(dy, dx) / (2f * PI.toFloat())
+        val fraction = (turnsFromRight + 0.25f + 1f) % 1f
+        return (fraction * durationMs).toLong().coerceIn(0L, durationMs)
+    }
+
+    CircularProgressIndicator(
+        progress = { progress },
+        modifier = Modifier
+            .size(30.dp)
+            .pointerInput(durationMs, canSeek) {
+                if (!canSeek) return@pointerInput
+                detectTapGestures { offset ->
+                    targetMs = targetAt(offset.x, offset.y, size.width.toFloat(), size.height.toFloat())
+                    latestOnScrubStart()
+                    latestOnScrubPosition(targetMs)
+                    latestOnSeek(targetMs)
+                }
+            }
+            .pointerInput(durationMs, canSeek) {
+                if (!canSeek) return@pointerInput
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        targetMs = targetAt(offset.x, offset.y, size.width.toFloat(), size.height.toFloat())
+                        latestOnScrubStart()
+                        latestOnScrubPosition(targetMs)
+                    },
+                    onDragEnd = { latestOnSeek(targetMs) },
+                    onDragCancel = { latestOnScrubCancel() },
+                ) { change, _ ->
+                    targetMs = targetAt(
+                        change.position.x,
+                        change.position.y,
+                        size.width.toFloat(),
+                        size.height.toFloat(),
+                    )
+                    latestOnScrubPosition(targetMs)
+                    change.consume()
+                }
+            },
+        color = MaterialTheme.colorScheme.primary,
+        trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+        strokeWidth = strokeWidth,
+    )
 }
 
 /**
