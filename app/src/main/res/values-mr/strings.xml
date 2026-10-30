@@ -38,4 +38,7 @@
     <string name="profile_about_description">अॅप आवृत्ती, बदल, रिपॉझिटरी आणि विकासक.</string>
     <string name="profile_updater_title">अपडेटर</string>
     <string name="profile_updater_description">अपडेट तपासा आणि नवीनतम आवृत्ती इंस्टॉल करा.</string>
+    <string name="language_search_hint">भाषा शोधा</string>
+    <string name="language_clear_search">शोध मिटवा</string>
+    <string name="language_no_results">कोणतीही भाषा सापडली नाही</string>
 </resources>
