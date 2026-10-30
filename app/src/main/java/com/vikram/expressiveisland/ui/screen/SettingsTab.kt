@@ -563,6 +563,9 @@ private fun SettingsList(
                 }
             }
 
+            }
+        }
+
         if (searchQuery.isBlank() && !searchExpanded) {
         Column(
             modifier = Modifier.fillMaxWidth(),
