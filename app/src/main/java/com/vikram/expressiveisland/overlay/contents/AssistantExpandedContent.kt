@@ -127,7 +127,7 @@ fun AssistantExpandedContent(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                 ) {
                     Column(Modifier.padding(14.dp)) {
                         Text(
