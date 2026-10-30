@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">एक्सप्रेसिव आयलंड</string>
+    <string name="language_title">अॅपची भाषा</string>
+    <string name="language_desc">Expressive Island मध्ये वापरली जाणारी भाषा निवडा.</string>
+    <string name="language_system_default">सिस्टमची भाषा</string>
+    <string name="language_english">इंग्रजी</string>
+    <string name="language_hindi">हिंदी</string>
+    <string name="language_marathi">मराठी</string>
+    <string name="language_selected">निवडलेले</string>
+    <string name="nav_settings">सेटिंग्ज</string>
+    <string name="nav_profile">प्रोफाइल</string>
+    <string name="profile_theme">थीम</string>
+    <string name="theme_system">सिस्टमप्रमाणे</string>
+    <string name="theme_light">लाइट</string>
+    <string name="theme_dark">डार्क</string>
+    <string name="profile_version">अॅप आवृत्ती</string>
+    <string name="profile_version_subtitle">इंस्टॉल केलेली आवृत्ती</string>
+    <string name="profile_export_title">बॅकअप आणि पुनर्संचयित करा</string>
+    <string name="profile_export_description">तुमच्या सेटिंग्ज जतन करा किंवा बॅकअपमधून पुनर्संचयित करा.</string>
+    <string name="profile_export_export">सेटिंग्ज एक्सपोर्ट करा</string>
+    <string name="profile_export_import">सेटिंग्ज इम्पोर्ट करा</string>
+    <string name="changelog_title">बदलांची नोंद</string>
+    <string name="changelog_subtitle">या आवृत्तीत नवीन काय आहे</string>
+    <string name="profile_permissions_title">परवानग्या</string>
+    <string name="profile_permissions_subtitle">अॅपच्या परवानग्या व्यवस्थापित करा</string>
+</resources>
