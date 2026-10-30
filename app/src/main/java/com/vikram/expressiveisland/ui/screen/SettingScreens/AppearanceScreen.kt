@@ -79,6 +79,7 @@ import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
+import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 import com.vikram.expressiveisland.ui.components.DefaultPresetColors
 import com.vikram.expressiveisland.ui.screen.AdjustableSlider
 import com.vikram.expressiveisland.ui.screen.SettingsToggleCard
@@ -98,132 +99,147 @@ internal fun AppearanceScreen(
     val haptics = LocalHapticFeedback.current
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
     var strokeWidth by remember(appearance.strokeWidthDp) { mutableStateOf(appearance.strokeWidthDp.toFloat()) }
+    var selectedTab by remember { mutableStateOf(0) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(contentPadding)
+            .padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         CardSectionHeader(
             text = "Appearance",
-            padding = PaddingValues(start = 6.dp, bottom = 8.dp)
+            padding = PaddingValues(start = 4.dp, bottom = 2.dp)
         )
 
-        SettingsToggleCard(
-            shape = RoundedCornerShape(
-                topStart = 24.dp,
-                topEnd = 24.dp,
-                bottomStart = 0.dp,
-                bottomEnd = 0.dp
-            ),
-            title = stringResource(R.string.appearance_shadow_title),
-            description = stringResource(R.string.appearance_shadow_desc),
-            checked = appearance.shadowEnabled,
-            onCheckedChange = viewModel::setShadowEnabled,
+        ExpressiveSegmentedRow(
+            options = listOf("Effects", "Content", "Controls"),
+            selectedIndex = selectedTab,
+            onSelect = { selectedTab = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 2.dp),
         )
 
-        AnimatedVisibility(visible = appearance.shadowEnabled) {
-            ColorPickerCard(
-                label = stringResource(R.string.appearance_shadow_color),
-                selected = appearance.shadowColor,
-                onSelect = { it?.let(viewModel::setShadowColor) },
-                shape = RoundedCornerShape(
-                    bottomStart = 24.dp,
-                    bottomEnd = 24.dp,
-                ),
-            )
-        }
-
-        SettingsToggleCard(
-            shape = RoundedCornerShape(0.dp),
-            title = stringResource(R.string.appearance_stroke_title),
-            description = stringResource(R.string.appearance_stroke_desc),
-            checked = appearance.strokeEnabled,
-            onCheckedChange = viewModel::setStrokeEnabled,
-        )
-
-        AnimatedVisibility(visible = appearance.strokeEnabled) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(0.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            ) {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                    AdjustableSlider(
-                        label = stringResource(R.string.appearance_stroke_width),
-                        valueText = "${strokeWidth.roundToInt()} dp",
-                        value = strokeWidth,
-                        valueRange = AppearanceSettings.MIN_STROKE_WIDTH_DP.toFloat()..
-                                AppearanceSettings.MAX_STROKE_WIDTH_DP.toFloat(),
-                        step = 1f,
-                        onValueChange = { strokeWidth = it },
-                        onCommit = { viewModel.setStrokeWidth(strokeWidth.roundToInt()) },
+        when (selectedTab) {
+            0 -> {
+                CardSectionHeader(
+                    text = "Visual effects",
+                    padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp)
+                )
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 0.dp, bottomEnd = 0.dp),
+                    title = stringResource(R.string.appearance_shadow_title),
+                    description = stringResource(R.string.appearance_shadow_desc),
+                    checked = appearance.shadowEnabled,
+                    onCheckedChange = viewModel::setShadowEnabled,
+                )
+                AnimatedVisibility(visible = appearance.shadowEnabled) {
+                    ColorPickerCard(
+                        label = stringResource(R.string.appearance_shadow_color),
+                        selected = appearance.shadowColor,
+                        onSelect = { it?.let(viewModel::setShadowColor) },
+                        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
                     )
                 }
+
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 0.dp, bottomEnd = 0.dp),
+                    title = stringResource(R.string.appearance_stroke_title),
+                    description = stringResource(R.string.appearance_stroke_desc),
+                    checked = appearance.strokeEnabled,
+                    onCheckedChange = viewModel::setStrokeEnabled,
+                )
+                AnimatedVisibility(visible = appearance.strokeEnabled) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(0.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        ) {
+                            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                AdjustableSlider(
+                                    label = stringResource(R.string.appearance_stroke_width),
+                                    valueText = "${strokeWidth.roundToInt()} dp",
+                                    value = strokeWidth,
+                                    valueRange = AppearanceSettings.MIN_STROKE_WIDTH_DP.toFloat()..AppearanceSettings.MAX_STROKE_WIDTH_DP.toFloat(),
+                                    step = 1f,
+                                    onValueChange = { strokeWidth = it },
+                                    onCommit = { viewModel.setStrokeWidth(strokeWidth.roundToInt()) },
+                                )
+                            }
+                        }
+                        ColorPickerCard(
+                            label = stringResource(R.string.appearance_stroke_color),
+                            selected = appearance.strokeColor,
+                            onSelect = { it?.let(viewModel::setStrokeColor) },
+                            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+                        )
+                    }
+                }
+
+                BackgroundCard(onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onOpenBackground()
+                })
             }
-            ColorPickerCard(
-                label = stringResource(R.string.appearance_stroke_color),
-                selected = appearance.strokeColor,
-                onSelect = { it?.let(viewModel::setStrokeColor) },
-            )
+
+            1 -> {
+                CardSectionHeader(
+                    text = "Content and text",
+                    padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp)
+                )
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 0.dp, bottomEnd = 0.dp),
+                    title = stringResource(R.string.appearance_show_source_app_name_title),
+                    description = stringResource(R.string.appearance_show_source_app_name_desc),
+                    checked = appearance.showSourceAppName,
+                    onCheckedChange = viewModel::setShowSourceAppName,
+                )
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(0.dp),
+                    title = stringResource(R.string.appearance_show_timestamp_title),
+                    description = stringResource(R.string.appearance_show_timestamp_desc),
+                    checked = appearance.showTimestamp,
+                    onCheckedChange = viewModel::setShowTimestamp,
+                )
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(0.dp),
+                    title = stringResource(R.string.appearance_full_notification_text_title),
+                    description = stringResource(R.string.appearance_full_notification_text_desc),
+                    checked = appearance.showFullNotificationText,
+                    onCheckedChange = viewModel::setShowFullNotificationText,
+                )
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(0.dp),
+                    title = stringResource(R.string.appearance_prefer_dynamic_icon_color_title),
+                    description = stringResource(R.string.appearance_prefer_dynamic_icon_color_desc),
+                    checked = appearance.preferDynamicIconColor,
+                    onCheckedChange = viewModel::setPreferDynamicIconColor,
+                )
+                ColorPickerCard(
+                    label = stringResource(R.string.appearance_text_color),
+                    selected = appearance.textColor,
+                    defaultLabel = stringResource(R.string.appearance_text_color_default),
+                    defaultColor = MaterialTheme.colorScheme.onSurface,
+                    onSelect = viewModel::setTextColor,
+                    shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+                )
+            }
+
+            else -> {
+                CardSectionHeader(
+                    text = "Interactive controls",
+                    padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp)
+                )
+                ActionButtonsCard(onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onOpenActionButtons()
+                })
+            }
         }
-
-        SettingsToggleCard(
-            shape = RoundedCornerShape(0.dp),
-            title = stringResource(R.string.appearance_show_source_app_name_title),
-            description = stringResource(R.string.appearance_show_source_app_name_desc),
-            checked = appearance.showSourceAppName,
-            onCheckedChange = viewModel::setShowSourceAppName,
-        )
-
-        SettingsToggleCard(
-            shape = RoundedCornerShape(0.dp),
-            title = stringResource(R.string.appearance_show_timestamp_title),
-            description = stringResource(R.string.appearance_show_timestamp_desc),
-            checked = appearance.showTimestamp,
-            onCheckedChange = viewModel::setShowTimestamp,
-        )
-
-        SettingsToggleCard(
-            shape = RoundedCornerShape(0.dp),
-            title = stringResource(R.string.appearance_full_notification_text_title),
-            description = stringResource(R.string.appearance_full_notification_text_desc),
-            checked = appearance.showFullNotificationText,
-            onCheckedChange = viewModel::setShowFullNotificationText,
-        )
-
-        SettingsToggleCard(
-            shape = RoundedCornerShape(0.dp),
-            title = stringResource(R.string.appearance_prefer_dynamic_icon_color_title),
-            description = stringResource(R.string.appearance_prefer_dynamic_icon_color_desc),
-            checked = appearance.preferDynamicIconColor,
-            onCheckedChange = viewModel::setPreferDynamicIconColor,
-        )
-
-        ColorPickerCard(
-            label = stringResource(R.string.appearance_text_color),
-            selected = appearance.textColor,
-            defaultLabel = stringResource(R.string.appearance_text_color_default),
-            defaultColor = MaterialTheme.colorScheme.onSurface,
-            onSelect = viewModel::setTextColor,
-            shape = RoundedCornerShape(0.dp)
-        )
-
-        // Opens the dedicated screen for the collapsed/expanded background fills (solid colours
-        // and gradients, one per state).
-        BackgroundCard(onClick = {
-            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onOpenBackground()
-        })
-
-        // Opens the dedicated screen for the expanded cutout's action chips and reply field
-        // (including the send/cancel reply-button colours).
-        ActionButtonsCard(onClick = {
-            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onOpenActionButtons()
-        })
     }
 }
 
