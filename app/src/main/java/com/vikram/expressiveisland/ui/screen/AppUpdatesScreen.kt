@@ -94,8 +94,13 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
                 .setTitle("Expressive Island update")
                 .setDescription("Downloading ${info.branch.ifBlank { channel }} build #${info.runNumber}")
                 .setMimeType("application/vnd.android.package-archive")
+                .setAllowedNetworkTypes(
+                    DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE
+                )
                 .setAllowedOverMetered(true)
                 .setAllowedOverRoaming(true)
+                .addRequestHeader("User-Agent", "Expressive-Island-Android")
+                .addRequestHeader("Accept", "application/octet-stream")
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "expressive-island-update.apk")
             val id = manager.enqueue(request)
