@@ -374,7 +374,7 @@ private fun CircularSeekProgressIndicator(
     CircularProgressIndicator(
         progress = { progress },
         modifier = Modifier
-            .size(30.dp)
+            .size(26.dp)
             .pointerInput(durationMs, canSeek) {
                 if (!canSeek) return@pointerInput
                 detectTapGestures { offset ->
