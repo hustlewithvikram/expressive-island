@@ -298,12 +298,12 @@ private fun SettingsList(
                     onSearch = { onSearchExpandedChange(true) },
                     expanded = searchExpanded,
                     onExpandedChange = onSearchExpandedChange,
-                    placeholder = { Text("Search settings") },
+                    placeholder = { Text(stringResource(R.string.settings_search_hint)) },
                     leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { onSearchQueryChange("") }) {
-                                Icon(Icons.Rounded.Clear, contentDescription = "Clear search")
+                                Icon(Icons.Rounded.Clear, contentDescription = stringResource(R.string.settings_search_clear))
                             }
                         }
                     },
@@ -326,8 +326,8 @@ private fun SettingsList(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Try searching for", style = MaterialTheme.typography.titleSmall)
-                    listOf("Island size", "Auto collapse", "Lock screen", "Animation speed", "Music progress", "Shadow", "Notification icons").forEach { suggestion ->
+                    Text(stringResource(R.string.settings_search_try), style = MaterialTheme.typography.titleSmall)
+                    listOf(stringResource(R.string.settings_search_suggestion_size), stringResource(R.string.settings_search_suggestion_collapse), stringResource(R.string.settings_search_suggestion_lock), stringResource(R.string.settings_search_suggestion_animation), stringResource(R.string.settings_search_suggestion_music), stringResource(R.string.settings_search_suggestion_shadow), stringResource(R.string.settings_search_suggestion_notifications)).forEach { suggestion ->
                         Text(
                             text = suggestion,
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
@@ -574,9 +574,9 @@ private fun SettingsList(
                                     modifier = Modifier.size(32.dp),
                                 )
                             }
-                            Text("Nothing matched your search", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Text(stringResource(R.string.settings_search_nothing_found), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
                             Text(
-                                "Try another word, or search for “duration”, “shadow” or “notifications”.",
+                                stringResource(R.string.settings_search_no_results_hint),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                             )
