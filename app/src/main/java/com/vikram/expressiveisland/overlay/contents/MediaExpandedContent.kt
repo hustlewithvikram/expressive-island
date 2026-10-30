@@ -222,7 +222,6 @@ fun MediaProgressBar(
     // PlaybackState snapshots arrive periodically. Keep the newest anchor without restarting
     // the clock on every update, and let the user's scrub preview take precedence while dragging.
     val latestProgress by rememberUpdatedState(progress)
-    val latestScrubbing by rememberUpdatedState(false)
     var isScrubbing by remember(duration) { androidx.compose.runtime.mutableStateOf(false) }
 
     var fraction by remember(duration) {
