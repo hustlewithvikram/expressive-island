@@ -61,6 +61,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -273,7 +274,12 @@ private fun SettingsList(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SearchBar(
-            modifier = Modifier.fillMaxWidth(),
+            // SearchBar expands into a large surface. The parent is vertically scrollable,
+            // so it otherwise receives unbounded height during expansion on some Compose builds.
+            // Keep the official Material 3 surface bounded to the available screen height.
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = (LocalConfiguration.current.screenHeightDp - 120).coerceAtLeast(320).dp),
             inputField = {
                 SearchBarDefaults.InputField(
                     query = searchQuery,
