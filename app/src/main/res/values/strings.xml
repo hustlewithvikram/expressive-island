@@ -7,6 +7,9 @@
     <string name="language_hindi">Hindi</string>
     <string name="language_marathi">Marathi</string>
     <string name="language_selected">Selected</string>
+    <string name="language_search_hint">Search languages</string>
+    <string name="language_clear_search">Clear search</string>
+    <string name="language_no_results">No languages found</string>
     <string name="profile_appearance_section">Appearance</string>
     <string name="profile_appearance_description">Customize how Expressive Island looks.</string>
     <string name="profile_backup_section">Backup &amp; Restore</string>
