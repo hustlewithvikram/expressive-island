@@ -598,6 +598,10 @@ class IslandOverlayController(private val context: Context) {
                         swipeDismissDirection = behaviour.swipeDismissDirection,
                         swipeDismissTarget = behaviour.swipeDismissTarget,
                         showsWhenEmpty = behaviour.showsWhenEmpty && behaviour.cutoutEnabled,
+                        assistantTapEnabled = assistantSettings.tapToOpenAssistant &&
+                                behaviour.cutoutEnabled && !previewPinned && currentEvent.value == null &&
+                                satelliteEvent.value == null,
+                        onAssistantTap = ::openAssistantPanel,
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
                         emptyIconColor = behaviour.showsWhenEmptyIconColor,
                         emptyOpensCenter = behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
@@ -1631,7 +1635,8 @@ class IslandOverlayController(private val context: Context) {
                     musicSettings.expandOnPlay
 
                 is CutoutSignal.Assistant ->
-                    assistantSettings.displayAnswerInCutout
+                    assistantSettings.displayAnswerInCutout &&
+                            assistantSettings.autoExpandAssistantResponses
 
                 is CutoutSignal.System ->
                     false
@@ -2053,6 +2058,60 @@ class IslandOverlayController(private val context: Context) {
         } else {
             CenterShortcutExecutor.execute(shortcut, context)
         }
+    }
+
+    /**
+     * Opens the on-demand assistant only while the cutout has no active main or satellite event.
+     * This is intentionally separate from the notification signal path so a tap never replaces a
+     * notification, music session, call, timer, or another active tile.
+     */
+    private fun openAssistantPanel() {
+        if (!assistantSettings.tapToOpenAssistant ||
+            !behaviourState.value.cutoutEnabled ||
+            previewPinned ||
+            overlayHidden ||
+            currentEvent.value != null ||
+            satelliteEvent.value != null ||
+            tileEnabled[DynamicTile.ASSISTANT] == false
+        ) return
+
+        val signal = CutoutSignal.Assistant(
+            packageName = context.packageName,
+            title = context.getString(R.string.tile_assistant),
+            active = true,
+        )
+        val resolved = resolver.resolve(
+            signal,
+            customIcons,
+            musicSettings,
+            phoneSettings,
+            timerSettings,
+            assistantSettings,
+            eventDynamicColor,
+            eventDynamicColorRole,
+            eventDynamicColorOpacity,
+            eventAnimatedIcons,
+            eventAnimatedIconLoops,
+            eventColors,
+            appearanceState.value.preferDynamicIconColor,
+        )
+        val panelEvent = resolved.copy(
+            initiallyExpanded = true,
+            assistant = resolved.assistant?.copy(
+                displayAnswerInCutout = true,
+                answerText = null,
+                interactivePanel = true,
+            ),
+        )
+        dismissJob?.cancel()
+        currentDeadlineMs = null
+        currentSystemEventType = null
+        forcedExpanded.value = null
+        expanded = true
+        currentEvent.value = panelEvent
+        lastAssistantEvent = panelEvent
+        assistantActive = true
+        syncWindowSize()
     }
 
     private fun onActivate() {
