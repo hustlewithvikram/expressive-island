@@ -316,8 +316,26 @@ class MediaPlaybackMonitor(private val context: Context) {
 
     /** Bridges the tile's transport buttons to the active session's controls. */
     private class ControllerTransport(private val controller: MediaController) : MediaTransport {
+        override val canSeek: Boolean
+            get() = runCatching {
+                controller.playbackState?.actions?.and(PlaybackState.ACTION_SEEK_TO) != 0L
+            }.getOrDefault(false)
+
         override fun previous() {
             runCatching { controller.transportControls.skipToPrevious() }
+        }
+
+        override fun seekTo(positionMs: Long) {
+            runCatching {
+                val state = controller.playbackState ?: return
+                if (state.actions and PlaybackState.ACTION_SEEK_TO == 0L) return
+                val duration = controller.metadata
+                    ?.getLong(MediaMetadata.METADATA_KEY_DURATION)
+                    ?.takeIf { it > 0L }
+                val target = positionMs.coerceAtLeast(0L)
+                    .let { requested -> duration?.let { requested.coerceAtMost(it) } ?: requested }
+                controller.transportControls.seekTo(target)
+            }
         }
 
         override fun seekBackward(seconds: Int) {
