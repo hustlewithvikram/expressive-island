@@ -214,6 +214,7 @@ val SettingsRoute.depth: Int
     }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun SettingsList(
     contentPadding: PaddingValues,
     viewModel: AppViewModel,
