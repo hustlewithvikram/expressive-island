@@ -223,8 +223,8 @@ private fun ProfileList(
         // =====================================================================
 
         SectionHeader(
-            title = "Appearance",
-            description = "Customize how Expressive Island looks.",
+            title = stringResource(R.string.profile_appearance_section),
+            description = stringResource(R.string.profile_appearance_description),
         )
 
         ThemeCard(
@@ -239,8 +239,8 @@ private fun ProfileList(
         // =====================================================================
 
         SectionHeader(
-            title = "Backup & Restore",
-            description = "Save your Expressive Island settings or restore them later.",
+            title = stringResource(R.string.profile_backup_section),
+            description = stringResource(R.string.profile_backup_description),
         )
 
         ExportSettingsCard(
@@ -253,35 +253,35 @@ private fun ProfileList(
         // =====================================================================
 
         SectionHeader(
-            title = "Manage",
-            description = "Permissions, test tools, and project information.",
+            title = stringResource(R.string.profile_manage_section),
+            description = stringResource(R.string.profile_manage_description),
         )
 
         ProfileDestinationCard(
             icon = Icons.Rounded.Shield,
-            title = "Access",
-            description = "Manage system permissions and check access status.",
+            title = stringResource(R.string.profile_access_title),
+            description = stringResource(R.string.profile_access_description),
             onClick = onOpenAccess,
         )
 
         ProfileDestinationCard(
             icon = Icons.Rounded.Layers,
-            title = "Testing Triggers",
-            description = "Preview notifications, calls, and island edge cases.",
+            title = stringResource(R.string.profile_testing_title),
+            description = stringResource(R.string.profile_testing_description),
             onClick = onOpenTestingTriggers,
         )
 
         ProfileDestinationCard(
             icon = Icons.Rounded.Info,
-            title = "About",
-            description = "App version, changelog, repository, and developer.",
+            title = stringResource(R.string.profile_about_title),
+            description = stringResource(R.string.profile_about_description),
             onClick = onOpenAbout,
         )
 
         ProfileDestinationCard(
             icon = Icons.Rounded.SystemUpdate,
-            title = "Updater",
-            description = "Check for updates and install the latest version.",
+            title = stringResource(R.string.profile_updater_title),
+            description = stringResource(R.string.profile_updater_description),
             onClick = onOpenUpdates,
         )
 
