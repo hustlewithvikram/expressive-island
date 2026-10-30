@@ -76,6 +76,18 @@ internal fun BehaviourScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        var selectedTab by remember { mutableStateOf(0) }
+
+        ExpressiveSegmentedRow(
+            options = listOf("Display", "Notifications", "Interactions", "Gestures"),
+            selectedIndex = selectedTab,
+            onSelect = { selectedTab = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 8.dp),
+        )
+
+        if (selectedTab == 0) {
         // Behaviour
         CardSectionHeader(
             text = "Behaviour",
@@ -160,6 +172,10 @@ internal fun BehaviourScreen(
             onCheckedChange = viewModel::setExpandedDisappearOnShrink,
         )
 
+
+        }
+
+        if (selectedTab == 1) {
         // Notifications
         CardSectionHeader(
             text = "Notifications",
@@ -210,6 +226,10 @@ internal fun BehaviourScreen(
             onCheckedChange = viewModel::setDisplayWhileDnd,
         )
 
+
+        }
+
+        if (selectedTab == 2) {
         // Interactions
         CardSectionHeader(
             text = "Interactions",
@@ -252,6 +272,10 @@ internal fun BehaviourScreen(
             onCheckedChange = viewModel::setHapticsOnPop,
         )
 
+
+        }
+
+        if (selectedTab == 3) {
         // Swipe to dismiss
         CardSectionHeader(
             text = "Swipe to dismiss",
@@ -306,6 +330,10 @@ internal fun BehaviourScreen(
             }
         }
 
+
+        }
+
+        if (selectedTab == 0) {
         // Split Island
         CardSectionHeader(
             text = "Split Island",
@@ -375,6 +403,8 @@ internal fun BehaviourScreen(
                 onOpenShowsWhenEmpty()
             },
         )
+        }
+
     }
 }
 
