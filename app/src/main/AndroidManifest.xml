@@ -81,6 +81,7 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <receiver android:name=".notifications.UpdateCleanupReceiver" android:exported="false"><intent-filter><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter></receiver>
         <receiver android:name=".notifications.TestReplyReceiver" android:exported="false" />
         <receiver android:name=".notifications.TestCallReceiver" android:exported="false" />
 
