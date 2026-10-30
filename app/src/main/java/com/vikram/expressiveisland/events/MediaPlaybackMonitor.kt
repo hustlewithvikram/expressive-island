@@ -318,7 +318,8 @@ class MediaPlaybackMonitor(private val context: Context) {
     private class ControllerTransport(private val controller: MediaController) : MediaTransport {
         override val canSeek: Boolean
             get() = runCatching {
-                controller.playbackState?.actions?.and(PlaybackState.ACTION_SEEK_TO) != 0L
+                val actions = controller.playbackState?.actions ?: return@runCatching false
+                actions and PlaybackState.ACTION_SEEK_TO != 0L
             }.getOrDefault(false)
 
         override fun previous() {
