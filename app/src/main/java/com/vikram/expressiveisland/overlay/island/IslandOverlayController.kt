@@ -599,7 +599,8 @@ class IslandOverlayController(private val context: Context) {
                         swipeDismissTarget = behaviour.swipeDismissTarget,
                         showsWhenEmpty = behaviour.showsWhenEmpty && behaviour.cutoutEnabled,
                         assistantTapEnabled = assistantSettings.tapToOpenAssistant &&
-                                behaviour.cutoutEnabled && !previewPinned && currentEvent.value == null &&
+                                behaviour.cutoutEnabled && !behaviour.showsWhenEmpty &&
+                                !previewPinned && currentEvent.value == null &&
                                 satelliteEvent.value == null,
                         onAssistantTap = ::openAssistantPanel,
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
