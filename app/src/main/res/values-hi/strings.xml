@@ -38,4 +38,7 @@
     <string name="profile_about_description">ऐप संस्करण, बदलाव, रिपॉज़िटरी और डेवलपर।</string>
     <string name="profile_updater_title">अपडेटर</string>
     <string name="profile_updater_description">अपडेट देखें और नवीनतम संस्करण इंस्टॉल करें।</string>
+    <string name="language_search_hint">भाषाएँ खोजें</string>
+    <string name="language_clear_search">खोज मिटाएँ</string>
+    <string name="language_no_results">कोई भाषा नहीं मिली</string>
 </resources>
