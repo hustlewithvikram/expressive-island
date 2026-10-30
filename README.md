@@ -12,7 +12,7 @@ It transforms the camera cutout on your Android phone into a small, living islan
 
 Built with **Jetpack Compose** and inspired by Google's **Material Expressive** design language, Expressive Island focuses on expressive animations, flexible customisation, and a polished Dynamic Island experience that feels native to Android.
 
-The project is completely offline. **Expressive Island does not request the `INTERNET` permission**, meaning the app has no ability to upload your notification content, usage data, analytics, or other information to a remote server.
+Expressive Island keeps notification handling and island behaviour on-device. The app requests network access for its in-app updater to check for and download releases; it does not use that access to upload notification content, analytics, or usage data.
 
 [![Download](https://img.shields.io/badge/Download-latest%20release-005AC1?style=for-the-badge\&logo=github\&logoColor=white)](https://github.com/hustlewithvikram/expressive-island/releases)
 [![Stars](https://img.shields.io/github/stars/hustlewithvikram/expressive-island?style=for-the-badge)](https://github.com/hustlewithvikram/expressive-island/stargazers)
@@ -33,6 +33,7 @@ The project is completely offline. **Expressive Island does not request the `INT
 * [Download](#download)
 * [Requirements & Setup](#requirements--setup)
 * [Permissions](#permissions)
+* [Help with translations](#help-with-translations)
 * [Expressive Island vs Original](#expressive-island-vs-original)
 * [Original Expressive Cutout](#original-expressive-cutout)
 * [Credits & Inspiration](#credits--inspiration)
@@ -84,7 +85,7 @@ Everything is designed around Material Expressive shapes, motion, colours, and c
 | **Animations**          | Expressive spring · ease-in-out · slow / default / fast speeds · bounce size · configurable animation duration                                                                           |
 | **Gestures**            | Auto-collapse · persistent expanded state · swipe up to shrink · swipe sideways to dismiss · configurable dismiss direction · configurable size behaviour                                |
 | **Lockscreen**          | Optional complete island removal on the lockscreen to ensure the overlay is torn down when hidden                                                                                        |
-| **Privacy**             | No INTERNET permission · no analytics · no tracking · no remote data collection                                                                                                          |
+| **Privacy**             | On-device notification handling · updater network access only · no analytics · no tracking · no upload of notification content or usage data                                               |
 | **Testing**             | Test notifications · notification actions · inline replies · test ongoing calls · test incoming calls · system-event previews                                                            |
 
 ---
@@ -162,25 +163,25 @@ Expressive Island intentionally keeps its permissions to a minimum.
 
 | Permission                      | Purpose                                                       |
 | ------------------------------- | ------------------------------------------------------------- |
-| **Notification access**         | Mirrors notifications into the island                         |
-| **Accessibility service**       | Displays the island overlay                                   |
-| **Ignore battery optimisation** | Helps prevent the app from being terminated in the background |
-| **Post notifications**          | Used for testing functionality                                |
-| **Network state**               | Detects Wi-Fi connectivity changes                            |
+| **Notification access**         | Reads notifications so they can be displayed and interacted with in the island |
+| **Accessibility service**       | Displays the island overlay and handles island gestures; it does not read screen contents |
+| **Ignore battery optimisation** | Optional; helps prevent the overlay service from being stopped in the background |
+| **Post notifications**          | Optional; posts test notifications when you explicitly trigger a test |
+| **Internet**                    | Checks for and downloads app updates through the in-app updater |
+| **Request install packages**    | Lets the updater open Android's installer for a downloaded APK; installation still requires confirmation |
+| **Network state**               | Reads connection state for Wi-Fi/network events |
+| **Wi-Fi state**                 | Reads Wi-Fi state and details needed by the Wi-Fi event tile |
+| **Nearby Wi-Fi devices**        | Supports Wi-Fi APIs on Android 13+; marked `neverForLocation` |
+| **Bluetooth connect / scan**    | Supports Bluetooth connection-state events; scan permission is marked `neverForLocation` |
+| **Fine / approximate location** | Legacy compatibility for older Wi-Fi APIs; not used to record or track location |
+| **Vibration**                   | Provides haptic feedback |
+| **Shizuku API**                 | Declares optional integration with compatible Shizuku versions |
 
 ### Privacy
 
-Expressive Island does **not** request the Android `INTERNET` permission.
+Expressive Island requests `INTERNET` access only for its in-app updater, which checks for and downloads app releases. The app does not upload notification content or usage analytics. Notification content is handled locally for display and is not sent to the updater.
 
-That means the app cannot connect to a remote server to upload:
-
-* Notification content
-* Usage information
-* Analytics
-* Personal data
-* Tracking information
-
-The project is designed to keep its functionality on-device.
+The app also declares `REQUEST_INSTALL_PACKAGES` so the updater can hand a downloaded APK to Android's package installer. Android still requires you to confirm installation.
 
 ---
 
@@ -297,6 +298,19 @@ https://github.com/hustlewithvikram/expressive-island/releases
 
 **Discussions:**
 https://github.com/hustlewithvikram/expressive-island/discussions
+
+---
+
+# Help with translations
+
+Expressive Island currently includes **English, Hindi, and Marathi**. Would you like to help make the app accessible to more people? Contributions to improve existing translations or add another language are welcome.
+
+- Browse the app's string resources in [`app/src/main/res/values/strings.xml`](app/src/main/res/values/strings.xml).
+- Use the existing locale folders such as [`values-hi`](app/src/main/res/values-hi) and [`values-mr`](app/src/main/res/values-mr) as examples when adding or updating a translation.
+- Keep every string resource name unchanged, preserve formatting placeholders such as `%1$s` and `%d`, and escape XML characters correctly.
+- Test the app with the contributed language before opening a pull request.
+
+Not sure where to start? Open an issue or pull request and mention the language you'd like to help with. Even small corrections are useful.
 
 ---
 
