@@ -22,8 +22,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -43,9 +43,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -86,6 +86,7 @@ private const val FORCE_STALLED_CARDS_FOR_TESTING = false
  * The individual sub-screens live in the SettingScreens/ folder (same package).
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun SettingsTab(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
@@ -266,50 +267,38 @@ private fun SettingsList(
             ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Surface(
+        SearchBar(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.surface,
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSearchExpandedChange(true) }
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Rounded.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.width(16.dp))
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = {
+            inputField = {
+                SearchBarDefaults.InputField(
+                    query = searchQuery,
+                    onQueryChange = {
                         onSearchQueryChange(it)
                         onSearchExpandedChange(true)
                     },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                    cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
-                    decorationBox = { innerTextField ->
-                        Box {
-                            if (searchQuery.isEmpty()) {
-                                Text("Search settings", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge)
+                    onSearch = { onSearchExpandedChange(true) },
+                    expanded = searchExpanded,
+                    onExpandedChange = onSearchExpandedChange,
+                    placeholder = { Text("Search settings") },
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { onSearchQueryChange("") }) {
+                                Icon(Icons.Rounded.Clear, contentDescription = "Clear search")
                             }
-                            innerTextField()
                         }
                     },
                 )
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = {
-                        onSearchQueryChange("")
-                        onSearchExpandedChange(true)
-                    }) {
-                        Icon(Icons.Rounded.Clear, contentDescription = "Clear search")
-                    }
-                }
-            }
-        }
-
+            },
+            expanded = searchExpanded,
+            onExpandedChange = onSearchExpandedChange,
+            windowInsets = WindowInsets(0, 0, 0, 0),
+        ) {
+            // Search results stay inside the official Material 3 expanded surface.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
         if (searchExpanded) {
             Column(modifier = Modifier.fillMaxWidth()) {
             if (searchQuery.isBlank()) {
