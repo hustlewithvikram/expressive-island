@@ -178,10 +178,6 @@ Expressive Island is a community-developed fork of **Expressive Cutout by EvanKo
 
 ---
 
-
-
----
-
 # Credits & Inspiration
 
 Thanks to **[EvanKoe](https://github.com/EvanKoe)** for creating [Expressive Cutout](https://github.com/EvanKoe/expressive-cutout), the foundation of this project. Design inspiration also comes from [Dynamic Spot](https://play.google.com/store/apps/details?id=com.jamworks.dynamicspot), [Material Capsule](https://play.google.com/store/apps/details?id=com.pryshedko.mtisland), and [Sameerasw's Essentials](https://github.com/sameerasw/essentials), especially its Material You Expressive design.
