@@ -171,6 +171,8 @@ internal fun DynamicIsland(
     emptyIcon: IconSource? = null,
     emptyIconColor: CutoutColor? = null,
     emptyOpensCenter: Boolean = false,
+    assistantTapEnabled: Boolean = false,
+    onAssistantTap: () -> Unit = {},
     centerShortcuts: List<CenterShortcut> = emptyList(),
     centerShowLabels: Boolean = true,
     centerFillContainers: Boolean = false,
@@ -510,7 +512,7 @@ internal fun DynamicIsland(
                         y = if (isStickToCamera) 0.dp else offsetY
                     ),
             ) {
-                if (present || reveal.value > 0f) {
+                if (present || reveal.value > 0f || assistantTapEnabled) {
                     IslandSurface(
                         modifier = Modifier
                             .width(revealWidth)
@@ -603,6 +605,11 @@ internal fun DynamicIsland(
                                     onTap = {
                                         if (vibrateOnTap) {
                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        }
+
+                                        if (event == null && assistantTapEnabled) {
+                                            onAssistantTap()
+                                            return@detectTapGestures
                                         }
 
                                         if (emptyPill) {
