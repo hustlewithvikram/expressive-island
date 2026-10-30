@@ -210,7 +210,7 @@ internal fun AppsScreen(
                             if (query.isNotEmpty()) {
                                 Icon(
                                     imageVector = Icons.Rounded.Clear,
-                                    contentDescription = "Clear search",
+                                    contentDescription = stringResource(R.string.apps_clear_search),
                                     modifier = Modifier
                                         .size(24.dp)
                                         .clickable { query = "" }
@@ -233,7 +233,7 @@ internal fun AppsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.FilterList,
-                            contentDescription = "Filter and sort apps",
+                            contentDescription = stringResource(R.string.apps_filter_sort_content_description),
                         )
                     }
                 }
@@ -332,12 +332,12 @@ internal fun AppsScreen(
     if (sortDialogVisible) {
         AlertDialog(
             onDismissRequest = { sortDialogVisible = false },
-            title = { Text("Filter and sort") },
+            title = { Text(stringResource(R.string.apps_filter_sort_title)) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text("Show apps", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.apps_show_apps), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                     AppFilter.entries.forEach { option ->
                         Row(
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
@@ -346,11 +346,11 @@ internal fun AppsScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(option.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                            if (filter == option) Icon(Icons.Rounded.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                            if (filter == option) Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.apps_selected), tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                     HorizontalDivider()
-                    Text("Sort by", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.apps_sort_by), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                     AppSort.entries.forEach { option ->
                         Row(
                             modifier = Modifier
@@ -380,7 +380,7 @@ internal fun AppsScreen(
                 }
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { sortDialogVisible = false }) { Text("Done") }
+                androidx.compose.material3.TextButton(onClick = { sortDialogVisible = false }) { Text(stringResource(R.string.action_done)) }
             },
         )
     }
