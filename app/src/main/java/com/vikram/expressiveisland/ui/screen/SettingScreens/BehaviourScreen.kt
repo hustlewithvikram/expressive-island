@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -79,40 +78,15 @@ internal fun BehaviourScreen(
     ) {
         var selectedTab by remember { mutableStateOf(0) }
 
-        val behaviourTabs = listOf("Display", "Notifications", "Interactions", "Gestures")
-        Row(
+        ExpressiveSegmentedRow(
+            options = listOf("Display", "Notifications", "Interactions", "Gestures"),
+            selectedIndex = selectedTab,
+            onSelect = { selectedTab = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 4.dp, vertical = 8.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            behaviourTabs.forEachIndexed { index, title ->
-                val selected = selectedTab == index
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(
-                            if (selected) MaterialTheme.colorScheme.primary
-                            else androidx.compose.ui.graphics.Color.Transparent
-                        )
-                        .clickable { selectedTab = index }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = title,
-                        color = if (selected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
+                .padding(horizontal = 4.dp, vertical = 8.dp),
+            scrollable = true,
+        )
 
         if (selectedTab == 0) {
         // Behaviour
