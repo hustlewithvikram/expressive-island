@@ -281,13 +281,10 @@ private fun SettingsList(
         SearchBar(
             // Use the whole available app surface while expanded. Bound only the collapsed
             // search field; applying that height cap to expanded search prevents full-screen UI.
-            modifier = if (searchExpanded) {
-                Modifier.fillMaxSize()
-            } else {
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = (LocalConfiguration.current.screenHeightDp - 120).coerceAtLeast(320).dp)
-            },
+            modifier = Modifier.fillMaxWidth().then(
+                if (searchExpanded) Modifier
+                else Modifier.heightIn(max = (LocalConfiguration.current.screenHeightDp - 120).coerceAtLeast(320).dp)
+            ),
             inputField = {
                 SearchBarDefaults.InputField(
                     query = searchQuery,
@@ -316,7 +313,7 @@ private fun SettingsList(
             // Search results stay inside the official Material 3 expanded surface.
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
