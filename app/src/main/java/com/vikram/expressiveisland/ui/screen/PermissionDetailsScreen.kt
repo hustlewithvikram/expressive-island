@@ -22,6 +22,8 @@ import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BluetoothSearching
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Notifications
@@ -129,6 +131,28 @@ private val PermissionDocs: List<PermissionDoc> = listOf(
             "not ask for.",
         uses = listOf(
             "Post the sample notification, call and reply used to preview the island without waiting for a real one",
+        ),
+        optional = true,
+    ),
+    PermissionDoc(
+        icon = Icons.Rounded.Cloud,
+        title = "Internet access",
+        manifestName = "INTERNET",
+        summary = "Used by the in-app updater to check for available releases and download update files. " +
+            "The app does not send notification content or usage analytics to a server.",
+        uses = listOf(
+            "Check the project's release information when you use the updater",
+            "Download an update when you choose to download it",
+        ),
+    ),
+    PermissionDoc(
+        icon = Icons.Rounded.Download,
+        title = "Install downloaded updates",
+        manifestName = "REQUEST_INSTALL_PACKAGES",
+        summary = "Allows the in-app updater to open Android's package installer for a downloaded APK. " +
+            "Android displays its own installation confirmation; this permission does not silently install updates.",
+        uses = listOf(
+            "Hand a downloaded update APK to the Android package installer",
         ),
         optional = true,
     ),
