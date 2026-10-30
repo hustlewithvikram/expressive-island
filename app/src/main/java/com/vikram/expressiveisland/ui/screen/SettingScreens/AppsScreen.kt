@@ -50,10 +50,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -187,40 +187,46 @@ internal fun AppsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(28.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                            unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
-                        ),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Search,
-                                contentDescription = null,
+                    SearchBar(
+                        inputField = {
+                            SearchBarDefaults.InputField(
+                                query = query,
+                                onQueryChange = { query = it },
+                                onSearch = { focusManager.clearFocus() },
+                                expanded = false,
+                                onExpandedChange = {},
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = {
+                                    Text(stringResource(R.string.apps_search_hint))
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Search,
+                                        contentDescription = null,
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (query.isNotEmpty()) {
+                                        IconButton(onClick = { query = "" }) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Clear,
+                                                contentDescription = stringResource(R.string.apps_clear_search),
+                                            )
+                                        }
+                                    }
+                                },
                             )
                         },
-                        trailingIcon = {
-                            if (query.isNotEmpty()) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Clear,
-                                    contentDescription = stringResource(R.string.apps_clear_search),
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .clickable { query = "" }
-                                        .padding(3.dp),
-                                )
-                            }
-                        },
-                        placeholder = {
-                            Text(stringResource(R.string.apps_search_hint))
-                        },
+                        expanded = false,
+                        onExpandedChange = {},
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = SearchBarDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ),
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp,
+                        content = {},
                     )
 
                     IconButton(
@@ -266,7 +272,21 @@ internal fun AppsScreen(
 
                 Spacer(Modifier.height(12.dp))
 
-                LazyRow(
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.FilterList, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Filter apps", style = MaterialTheme.typography.titleSmall)
+                        }
+                        LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(end = 4.dp),
@@ -281,6 +301,8 @@ internal fun AppsScreen(
                             label = { Text(option.label) },
                             shape = CircleShape,
                         )
+                    }
+                        }
                     }
                 }
 
