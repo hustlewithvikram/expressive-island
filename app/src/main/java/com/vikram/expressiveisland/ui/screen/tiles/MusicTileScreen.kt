@@ -45,7 +45,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -666,12 +665,6 @@ internal fun MusicTileScreen(
                                         progress = { 0.68f }, modifier = Modifier.fillMaxWidth().height(6.dp),
                                         color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer,
                                     )
-                                    MusicProgressStyle.CIRCULAR -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                                        CircularProgressIndicator(progress = { 0.68f }, strokeWidth = 4.dp)
-                                    }
-                                    MusicProgressStyle.CIRCULAR_WAVY -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                                        CircularProgressIndicator(progress = { 0.68f }, strokeWidth = 2.dp, trackColor = MaterialTheme.colorScheme.primaryContainer)
-                                    }
                                 }
                             }
                         }
@@ -1205,12 +1198,6 @@ private fun MusicControlsPreviewSurface(
                     MusicProgressStyle.LINEAR -> LinearProgressIndicator(
                         progress = { 0.42f }, modifier = Modifier.fillMaxWidth().height(5.dp),
                         color = playPauseStyle.color?.resolve() ?: MusicAccent, trackColor = Color.White.copy(alpha = 0.20f))
-                    MusicProgressStyle.CIRCULAR, MusicProgressStyle.CIRCULAR_WAVY -> Row(
-                        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                        CircularProgressIndicator(progress = { 0.42f },
-                            strokeWidth = if (progressStyle == MusicProgressStyle.CIRCULAR_WAVY) 2.dp else 4.dp,
-                            color = playPauseStyle.color?.resolve() ?: MusicAccent, trackColor = Color.White.copy(alpha = 0.20f))
-                    }
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("1:24", color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.labelSmall)
