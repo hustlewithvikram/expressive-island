@@ -179,7 +179,7 @@ internal fun SatelliteActivityRing(
         )
     }
 
-    LaunchedEffect(event.id, duration) {
+    LaunchedEffect(event.id, duration, mediaProgress?.speed) {
         while (true) {
             val current = latestMediaProgress ?: break
             mediaFraction = current.fractionAt(SystemClock.elapsedRealtime())
