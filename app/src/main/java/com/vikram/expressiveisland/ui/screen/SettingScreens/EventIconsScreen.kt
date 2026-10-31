@@ -108,7 +108,10 @@ internal fun EventIconsScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.clip(shape = RoundedCornerShape(24.dp)),
+            modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+            .clip(shape = RoundedCornerShape(24.dp)),
             contentPadding = contentPadding,
         ) {
             // Global event appearance
