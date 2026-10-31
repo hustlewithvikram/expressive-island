@@ -111,12 +111,12 @@ internal fun AppearanceScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(contentPadding)
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         CardSectionHeader(
             text = "Appearance",
-            padding = PaddingValues(start = 0.dp, bottom = 2.dp)
+            padding = PaddingValues(start = 4.dp, bottom = 2.dp)
         )
 
         ExpressiveSegmentedRow(
@@ -125,7 +125,7 @@ internal fun AppearanceScreen(
             onSelect = { selectedTab = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 2.dp),
+                .padding(horizontal = 4.dp, vertical = 2.dp),
             scrollable = true,
         )
 

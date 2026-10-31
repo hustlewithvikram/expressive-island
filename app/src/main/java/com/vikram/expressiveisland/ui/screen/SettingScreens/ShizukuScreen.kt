@@ -99,8 +99,8 @@ internal fun ShizukuScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(contentPadding)
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         // Shizuku status
         AnimatedVisibility(
@@ -123,7 +123,7 @@ internal fun ShizukuScreen(
         CardSectionHeader(
             text = "Status bar",
             padding = PaddingValues(
-                start = 0.dp,
+                start = 4.dp,
                 top = 4.dp,
                 bottom = 4.dp,
             ),

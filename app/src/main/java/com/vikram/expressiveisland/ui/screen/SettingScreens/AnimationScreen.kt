@@ -83,8 +83,8 @@ internal fun AnimationScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(contentPadding)
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         ExpressiveSegmentedRow(
             options = listOf("Animations", "Transitions"),
@@ -92,7 +92,7 @@ internal fun AnimationScreen(
             onSelect = { selectedTab = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
+                .padding(horizontal = 4.dp, vertical = 4.dp),
         )
 
         if (selectedTab == 0) {
@@ -100,7 +100,7 @@ internal fun AnimationScreen(
         CardSectionHeader(
             text = "Preview",
             padding = PaddingValues(
-                start = 0.dp,
+                start = 4.dp,
                 bottom = 4.dp,
             ),
         )

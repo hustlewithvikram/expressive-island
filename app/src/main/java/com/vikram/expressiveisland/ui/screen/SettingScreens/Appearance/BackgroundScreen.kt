@@ -114,8 +114,7 @@ internal fun BackgroundScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(contentPadding)
-            .padding(horizontal = 16.dp),
+            .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(

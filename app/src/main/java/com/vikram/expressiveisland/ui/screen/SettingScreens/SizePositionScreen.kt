@@ -108,9 +108,8 @@ internal fun SizePositionScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(contentPadding)
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(contentPadding),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         CardSectionHeader(
             text = "Size & Position",
