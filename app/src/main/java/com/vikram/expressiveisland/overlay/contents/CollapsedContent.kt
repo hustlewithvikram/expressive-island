@@ -10,7 +10,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import android.os.SystemClock
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -156,9 +160,8 @@ fun CollapsedContent(
 }
 
 /**
- * Compact activity ring drawn around the leading badge when a satellite bubble is visible.
- * Its bounds stay inside the pill; progress notifications use a determinate arc when possible,
- * while live music / indeterminate work uses a rotating arc.
+ * Activity ring aligned to the physical camera cutout. Determinate media and notification
+ * progress fill clockwise from 12 o'clock; only streams / indeterminate work rotate.
  */
 @Composable
 internal fun SatelliteActivityRing(
@@ -167,13 +170,44 @@ internal fun SatelliteActivityRing(
     modifier: Modifier = Modifier,
 ) {
     val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()
-    val progress = event.progressData?.let { data ->
+    val mediaProgress = nowPlaying?.progress
+    val latestMediaProgress by rememberUpdatedState(mediaProgress)
+    val duration = mediaProgress?.durationMs ?: 0L
+    var mediaFraction by androidx.compose.runtime.remember(event.id, duration) {
+        mutableFloatStateOf(
+            mediaProgress?.fractionAt(SystemClock.elapsedRealtime())?.coerceIn(0f, 1f) ?: 0f
+        )
+    }
+
+    LaunchedEffect(event.id, duration) {
+        while (true) {
+            val current = latestMediaProgress ?: break
+            mediaFraction = current.fractionAt(SystemClock.elapsedRealtime())
+                ?.coerceIn(0f, 1f) ?: mediaFraction
+            if (current.speed <= 0f) break
+            delay(250)
+        }
+    }
+
+    val notificationProgress = event.progressData?.let { data ->
         if (data.isIndeterminate || data.max <= 0) null
         else (data.current.toFloat() / data.max).coerceIn(0f, 1f)
     }
-    val isIndeterminate = event.progressData?.isIndeterminate == true ||
-        (event.media != null && nowPlaying?.isPlaying == true && event.progressData == null)
-    if (!((event.media != null && nowPlaying?.isPlaying == true) || event.progressData != null)) return
+    val hasMedia = event.media != null && nowPlaying != null
+    val hasNotificationProgress = event.progressData != null
+    if (!hasMedia && !hasNotificationProgress) return
+
+    val mediaIsDeterminate = hasMedia && duration > 0L
+    val notificationIsDeterminate = hasNotificationProgress && notificationProgress != null
+    val isDeterminate = mediaIsDeterminate || notificationIsDeterminate
+    val fraction = when {
+        notificationIsDeterminate -> notificationProgress!!
+        mediaIsDeterminate -> mediaFraction
+        else -> 0f
+    }
+    val shouldRotate = !isDeterminate &&
+        (event.progressData?.isIndeterminate == true || (hasMedia && nowPlaying?.isPlaying == true))
+
     val transition = rememberInfiniteTransition(label = "satelliteActivityRing")
     val rotation by transition.animateFloat(
         initialValue = 0f,
@@ -191,7 +225,7 @@ internal fun SatelliteActivityRing(
     Canvas(
         modifier = modifier
             .size(ringDiameter)
-            .rotate(if (isIndeterminate || progress == null) rotation else 0f),
+            .rotate(if (shouldRotate) rotation else 0f),
     ) {
         val inset = stroke.toPx() / 2f
         val arcSize = androidx.compose.ui.geometry.Size(
@@ -207,14 +241,16 @@ internal fun SatelliteActivityRing(
             size = arcSize,
             style = Stroke(width = stroke.toPx(), cap = StrokeCap.Round),
         )
-        drawArc(
-            color = progressColor,
-            startAngle = if (isIndeterminate || progress == null) 20f else -90f,
-            sweepAngle = if (isIndeterminate || progress == null) 105f else 360f * progress.coerceIn(0f, 1f),
-            useCenter = false,
-            topLeft = androidx.compose.ui.geometry.Offset(inset, inset),
-            size = arcSize,
-            style = Stroke(width = stroke.toPx(), cap = StrokeCap.Round),
-        )
+        if (shouldRotate || fraction > 0f) {
+            drawArc(
+                color = progressColor,
+                startAngle = if (shouldRotate) 20f else -90f,
+                sweepAngle = if (shouldRotate) 105f else 360f * fraction,
+                useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(inset, inset),
+                size = arcSize,
+                style = Stroke(width = stroke.toPx(), cap = StrokeCap.Round),
+            )
+        }
     }
 }
