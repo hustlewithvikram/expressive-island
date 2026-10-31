@@ -89,6 +89,40 @@ internal fun AssistantScreen(
             )
         }
 
+        AnimatedVisibility(visible = settings.displayAnswerInCutout) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                var pillTimeout by remember(settings.pillTimeoutSeconds) {
+                    mutableFloatStateOf(settings.pillTimeoutSeconds.toFloat())
+                }
+                SettingsSliderCard(
+                    shape = RoundedCornerShape(4.dp),
+                    title = stringResource(R.string.assistant_pill_timeout_title),
+                    description = stringResource(R.string.assistant_pill_timeout_desc),
+                    valueText = stringResource(R.string.assistant_timeout_value, pillTimeout.toInt()),
+                    value = pillTimeout,
+                    valueRange = 2f..30f,
+                    step = 1f,
+                    onValueChange = { pillTimeout = it },
+                    onCommit = { viewModel.setAssistantPillTimeoutSeconds(pillTimeout.toInt()) },
+                )
+
+                var expandedTimeout by remember(settings.expandedTimeoutSeconds) {
+                    mutableFloatStateOf(settings.expandedTimeoutSeconds.toFloat())
+                }
+                SettingsSliderCard(
+                    shape = RoundedCornerShape(4.dp),
+                    title = stringResource(R.string.assistant_expanded_timeout_title),
+                    description = stringResource(R.string.assistant_expanded_timeout_desc),
+                    valueText = stringResource(R.string.assistant_timeout_value, expandedTimeout.toInt()),
+                    value = expandedTimeout,
+                    valueRange = 5f..60f,
+                    step = 1f,
+                    onValueChange = { expandedTimeout = it },
+                    onCommit = { viewModel.setAssistantExpandedTimeoutSeconds(expandedTimeout.toInt()) },
+                )
+            }
+        }
+
         SettingsToggleCard(
             shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 32.dp, bottomEnd = 32.dp),
             title = stringResource(R.string.assistant_animated_icon_title),
