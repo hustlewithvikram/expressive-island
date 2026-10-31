@@ -890,7 +890,7 @@ internal fun DynamicIsland(
                     diameterDp = collapsed.heightDp,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .offset(x = offsetX - satelliteShiftDp.dp, y = offsetY),
+                        .offset(x = dims.offsetXDp.dp, y = offsetY),
                 )
             }
 
