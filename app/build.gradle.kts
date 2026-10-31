@@ -11,8 +11,8 @@ android {
         applicationId = "com.vikram.expressiveisland"
         minSdk = 29
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.1.5"
+        versionCode = 5
+        versionName = "0.1.6"
         buildConfigField("String", "BUILD_RUN_NUMBER", "\"${System.getenv("GITHUB_RUN_NUMBER") ?: "local"}\"")
         buildConfigField("String", "BUILD_RUN_ID", "\"${System.getenv("GITHUB_RUN_ID") ?: ""}\"")
         buildConfigField("String", "BUILD_COMMIT", "\"${System.getenv("GITHUB_SHA") ?: ""}\"")

@@ -1,0 +1,110 @@
+name: Publish GitHub Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Existing version tag to publish (for example v0.1.6)"
+        required: true
+        type: string
+      release_run_id:
+        description: "Run ID of the successful Build Release APK (Signed) workflow"
+        required: true
+        type: string
+      playstore_run_id:
+        description: "Run ID of the successful Build Play Store APK and AAB (Signed) workflow"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: expressive-island-publish-${{ inputs.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Attach tested APK and AAB to GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Validate inputs
+        shell: bash
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
+          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          PLAYSTORE_RUN_ID: ${{ inputs.playstore_run_id }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]; then
+            echo "::error::Invalid version tag: $TAG_NAME"
+            exit 1
+          fi
+          for run_id in "$RELEASE_RUN_ID" "$PLAYSTORE_RUN_ID"; do
+            if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
+              echo "::error::Workflow run IDs must be numeric."
+              exit 1
+            fi
+          done
+          if [[ "$RELEASE_RUN_ID" == "$PLAYSTORE_RUN_ID" ]]; then
+            echo "::error::Provide the two different workflow run IDs."
+            exit 1
+          fi
+
+      - name: Download signed release APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: expressive-island-release
+          path: release-assets/release
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.release_run_id }}
+
+      - name: Download signed Play Store APK and AAB artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: expressive-island-playstore
+          path: release-assets/playstore
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.playstore_run_id }}
+
+      - name: Prepare and verify all release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_APK="release-assets/release/expressive-island-release.apk"
+          PLAYSTORE_APK="release-assets/playstore/expressive-island-playstore.apk"
+          PLAYSTORE_AAB="release-assets/playstore/expressive-island-playstore.aab"
+
+          for file in "$RELEASE_APK" "$PLAYSTORE_APK" "$PLAYSTORE_AAB"; do
+            if [[ ! -s "$file" ]]; then
+              echo "::error::Missing or empty artifact: $file"
+              exit 1
+            fi
+          done
+
+          mkdir -p release-assets/final
+          cp "$RELEASE_APK" release-assets/final/expressive-island-release.apk
+          cp "$PLAYSTORE_APK" release-assets/final/expressive-island-playstore.apk
+          cp "$PLAYSTORE_AAB" release-assets/final/expressive-island-playstore.aab
+
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
+          "$APKSIGNER" verify --verbose release-assets/final/expressive-island-release.apk
+          "$APKSIGNER" verify --verbose release-assets/final/expressive-island-playstore.apk
+          jarsigner -verify release-assets/final/expressive-island-playstore.aab
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          name: Expressive Island ${{ inputs.tag_name }}
+          generate_release_notes: true
+          files: |
+            release-assets/final/expressive-island-release.apk
+            release-assets/final/expressive-island-playstore.apk
+            release-assets/final/expressive-island-playstore.aab
+          fail_on_unmatched_files: true
+          prerelease: false
