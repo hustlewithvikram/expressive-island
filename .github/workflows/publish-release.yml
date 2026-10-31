@@ -41,62 +41,84 @@ jobs:
             exit 1
           fi
 
-      - name: Build signed release APK
-        id: release
+      - name: Trigger and wait for both signed builds
+        id: builds
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.EXPRESSIVE_RELEASE_TOKEN }}
         run: |
           set -euo pipefail
+
+          # Capture the start time before dispatching either workflow so both
+          # runs can be identified even if GitHub takes a few seconds to list them.
           STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          echo "Starting signed release APK build..."
           gh workflow run build-release-apk.yml --ref main --repo "$GITHUB_REPOSITORY"
-          for attempt in {1..60}; do
-            RUN_ID="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/build-release-apk.yml/runs" \
-              -f branch=main -f event=workflow_dispatch -F per_page=20 \
-              --jq ".workflow_runs[] | select(.head_sha == \"$GITHUB_SHA\" and .created_at >= \"$STARTED_AT\") | .id" | head -n 1)"
-            if [[ -n "$RUN_ID" ]]; then
-              echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
-              gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
-              exit 0
-            fi
-            sleep 10
-          done
-          echo "::error::Timed out waiting for the release APK workflow to start."
-          exit 1
 
-      - name: Build signed Play Store APK and AAB
-        id: playstore
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.EXPRESSIVE_RELEASE_TOKEN }}
-        run: |
-          set -euo pipefail
-          STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "Starting signed Play Store APK/AAB build..."
           gh workflow run build-playstore-apk-aab.yml --ref main --repo "$GITHUB_REPOSITORY"
+
+          find_run_id() {
+            local workflow_file="$1"
+            gh api -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_file/runs" \
+              -f branch=main \
+              -f event=workflow_dispatch \
+              -F per_page=50 \
+              --jq ".workflow_runs[]
+                | select(.head_sha == \"$GITHUB_SHA\" and .created_at >= \"$STARTED_AT\")
+                | .id" | head -n 1
+          }
+
+          RELEASE_RUN_ID=""
+          PLAYSTORE_RUN_ID=""
+
+          # Allow GitHub's Actions API time to expose both newly dispatched runs.
           for attempt in {1..60}; do
-            RUN_ID="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/build-playstore-apk-aab.yml/runs" \
-              -f branch=main -f event=workflow_dispatch -F per_page=20 \
-              --jq ".workflow_runs[] | select(.head_sha == \"$GITHUB_SHA\" and .created_at >= \"$STARTED_AT\") | .id" | head -n 1)"
-            if [[ -n "$RUN_ID" ]]; then
-              echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
-              gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
-              exit 0
+            if [[ -z "$RELEASE_RUN_ID" ]]; then
+              RELEASE_RUN_ID="$(find_run_id "build-release-apk.yml")"
+            fi
+            if [[ -z "$PLAYSTORE_RUN_ID" ]]; then
+              PLAYSTORE_RUN_ID="$(find_run_id "build-playstore-apk-aab.yml")"
+            fi
+
+            if [[ -n "$RELEASE_RUN_ID" && -n "$PLAYSTORE_RUN_ID" ]]; then
+              break
             fi
             sleep 10
           done
-          echo "::error::Timed out waiting for the Play Store workflow to start."
-          exit 1
 
+          if [[ -z "$RELEASE_RUN_ID" || -z "$PLAYSTORE_RUN_ID" ]]; then
+            echo "::error::Timed out waiting for both signed build workflows to start."
+            echo "Release APK run: ${RELEASE_RUN_ID:-not found}"
+            echo "Play Store run: ${PLAYSTORE_RUN_ID:-not found}"
+            exit 1
+          fi
+
+          echo "Release APK workflow run: $RELEASE_RUN_ID"
+          echo "Play Store workflow run: $PLAYSTORE_RUN_ID"
+          echo "release_run_id=$RELEASE_RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "playstore_run_id=$PLAYSTORE_RUN_ID" >> "$GITHUB_OUTPUT"
+
+          # Both builds are already running. Wait for each and fail immediately
+          # if either workflow fails; publishing never proceeds with partial assets.
+          echo "Waiting for signed release APK build..."
+          gh run watch "$RELEASE_RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
+
+          echo "Waiting for signed Play Store APK/AAB build..."
+          gh run watch "$PLAYSTORE_RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
+
+          echo "Both signed build workflows completed successfully."
       - name: Download signed build artifacts
         env:
           GH_TOKEN: ${{ secrets.EXPRESSIVE_RELEASE_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p release-assets/release release-assets/playstore
-          gh run download "${{ steps.release.outputs.run_id }}" \
+          gh run download "${{ steps.builds.outputs.release_run_id }}" \
             --repo "$GITHUB_REPOSITORY" --name expressive-island-release \
             --dir release-assets/release
-          gh run download "${{ steps.playstore.outputs.run_id }}" \
+          gh run download "${{ steps.builds.outputs.playstore_run_id }}" \
             --repo "$GITHUB_REPOSITORY" --name expressive-island-playstore \
             --dir release-assets/playstore
 
