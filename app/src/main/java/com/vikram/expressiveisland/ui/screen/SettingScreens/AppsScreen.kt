@@ -159,7 +159,10 @@ internal fun AppsScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        contentPadding = contentPadding,
+        contentPadding = PaddingValues(
+            top = contentPadding.calculateTopPadding(),
+            bottom = contentPadding.calculateBottomPadding(),
+        ),
     ) {
         item(key = "header") {
             Column(
@@ -221,7 +224,7 @@ internal fun AppsScreen(
                         },
                         expanded = false,
                         onExpandedChange = {},
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).height(56.dp),
                         shape = RoundedCornerShape(28.dp),
                         colors = SearchBarDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
