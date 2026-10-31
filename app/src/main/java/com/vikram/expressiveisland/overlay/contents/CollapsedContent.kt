@@ -61,6 +61,9 @@ fun CollapsedContent(
     val context = LocalContext.current
     val musicPreferences = remember(context) { MusicTilePreferences(context) }
     val musicSettings by musicPreferences.settings.collectAsState(initial = MusicTileSettings())
+    val ringPreferences = remember(context) { SatelliteRingPreferences(context) }
+    val ringSettings by ringPreferences.settings.collectAsStateWithLifecycle(initialValue = com.vikram.expressiveisland.data.SatelliteRingSettings())
+    val hideSatelliteIndicators = satelliteSharing && ringSettings.enabled
     val onCall by OnCallBus.state.collectAsStateWithLifecycle()
     val albumArt = albumArtFor(event, nowPlaying)
     val callPhoto = event.call?.takeIf { it.showPhoto }?.let { onCall?.photo }
@@ -102,7 +105,7 @@ fun CollapsedContent(
             nowPlaying?.isPlaying == true &&
             musicSettings.showVisualizer &&
             !isStickToCamera &&
-            !satelliteSharing
+            !hideSatelliteIndicators
         ) {
             MusicVisualizer(
                 isPlaying = true,
@@ -132,7 +135,7 @@ fun CollapsedContent(
             }
         }
 
-        event.progressData?.takeIf { !isStickToCamera && !satelliteSharing }?.let { progress ->
+        event.progressData?.takeIf { !isStickToCamera && !hideSatelliteIndicators }?.let { progress ->
             val indicatorModifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(end = (heightDp * 0.24f).dp + trailingInsetDp.dp)
