@@ -120,12 +120,13 @@ internal fun AppearanceScreen(
         )
 
         ExpressiveSegmentedRow(
-            options = listOf("Effects", "Content", "Controls", "Satellite ring"),
+            options = listOf("Effects", "Content", "Controls", "Camera ring"),
             selectedIndex = selectedTab,
             onSelect = { selectedTab = it },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp, vertical = 2.dp),
+            scrollable = true,
         )
 
         when (selectedTab) {
@@ -257,35 +258,37 @@ private fun SatelliteRingSettingsSection() {
     val scope = rememberCoroutineScope()
     val settings by preferences.settings.collectAsStateWithLifecycle(initialValue = com.vikram.expressiveisland.data.SatelliteRingSettings())
     var thickness by remember(settings.thicknessDp) { mutableFloatStateOf(settings.thicknessDp) }
+    var opacity by remember(settings.opacity) { mutableFloatStateOf(settings.opacity) }
+    var ringSize by remember(settings.diameterScale) { mutableFloatStateOf(settings.diameterScale) }
 
-    CardSectionHeader(text = "Satellite activity ring", padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp))
+    CardSectionHeader(text = "Camera ring", padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp))
     SettingsToggleCard(
         shape = RoundedCornerShape(24.dp),
-        title = "Show activity ring",
-        description = "Show circular progress around the camera cutout when a satellite activity is visible",
+        title = "Show camera activity ring",
+        description = "Display activity progress around the camera cutout for music and supported notifications",
         checked = settings.enabled,
         onCheckedChange = { scope.launch { preferences.setEnabled(it) } },
     )
     AnimatedVisibility(visible = settings.enabled) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             ColorPickerCard(
-                label = "Progress color",
+                label = "Activity tint",
                 selected = settings.progressColor,
-                defaultLabel = "Theme primary",
+                defaultLabel = "Use theme accent",
                 defaultColor = MaterialTheme.colorScheme.primary,
                 onSelect = { scope.launch { preferences.setProgressColor(it) } },
             )
             ColorPickerCard(
-                label = "Remaining ring color",
+                label = "Track tint",
                 selected = settings.trackColor,
-                defaultLabel = "Theme track",
+                defaultLabel = "Use theme surface",
                 defaultColor = MaterialTheme.colorScheme.primaryContainer,
                 onSelect = { scope.launch { preferences.setTrackColor(it) } },
             )
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     AdjustableSlider(
-                        label = "Ring thickness",
+                        label = "Stroke width",
                         valueText = String.format("%.1f dp", thickness),
                         value = thickness,
                         valueRange = 1f..6f,
@@ -293,23 +296,42 @@ private fun SatelliteRingSettingsSection() {
                         onValueChange = { thickness = it },
                         onCommit = { scope.launch { preferences.setThickness(thickness) } },
                     )
+                    AdjustableSlider(
+                        label = "Ring size",
+                        valueText = "${(ringSize * 100).roundToInt()}%",
+                        value = ringSize,
+                        valueRange = 0.88f..1f,
+                        step = 0.01f,
+                        onValueChange = { ringSize = it },
+                        onCommit = { scope.launch { preferences.setDiameterScale(ringSize) } },
+                    )
+                    AdjustableSlider(
+                        label = "Opacity",
+                        valueText = "${(opacity * 100).roundToInt()}%",
+                        value = opacity,
+                        valueRange = 0.2f..1f,
+                        step = 0.05f,
+                        onValueChange = { opacity = it },
+                        onCommit = { scope.launch { preferences.setOpacity(opacity) } },
+                    )
                 }
             }
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Ring style", style = MaterialTheme.typography.titleMedium)
                     ExpressiveSegmentedRow(
-                        options = listOf("Classic", "Dotted", "Wavy", "MD3"),
+                        options = listOf("Solid", "Dotted", "Wavy", "Expressive"),
                         selectedIndex = settings.style.ordinal,
                         onSelect = { index -> scope.launch { preferences.setStyle(SatelliteRingStyle.entries[index]) } },
                         modifier = Modifier.fillMaxWidth(),
+                        scrollable = true,
                     )
                 }
             }
             SettingsToggleCard(
                 shape = RoundedCornerShape(24.dp),
                 title = "Clockwise direction",
-                description = "Turn off to make progress travel anticlockwise",
+                description = "Turn off to reverse the progress direction",
                 checked = settings.clockwise,
                 onCheckedChange = { scope.launch { preferences.setClockwise(it) } },
             )
