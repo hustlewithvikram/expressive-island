@@ -73,8 +73,9 @@ internal fun BehaviourScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(contentPadding)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         var selectedTab by remember { mutableStateOf(0) }
 
@@ -84,7 +85,7 @@ internal fun BehaviourScreen(
             onSelect = { selectedTab = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 8.dp),
+                .padding(vertical = 4.dp),
             scrollable = true,
         )
 
@@ -93,7 +94,7 @@ internal fun BehaviourScreen(
         CardSectionHeader(
             text = "Behaviour",
             padding = PaddingValues(
-                start = 6.dp,
+                start = 0.dp,
                 bottom = 4.dp,
             ),
         )
