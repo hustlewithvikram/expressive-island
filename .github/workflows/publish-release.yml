@@ -1,104 +1,83 @@
 name: Publish GitHub Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Existing version tag to publish (for example v0.1.6)"
+        required: true
+        type: string
+      apk_url:
+        description: "Download URL of the already-built signed release APK"
+        required: true
+        type: string
+      aab_url:
+        description: "Download URL of the already-built signed Play Store AAB"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: expressive-island-publish-${{ github.ref }}
+  group: expressive-island-publish-${{ inputs.tag_name }}
   cancel-in-progress: false
 
 jobs:
   publish:
-    name: Build, verify, and publish release assets
+    name: Attach tested APK and AAB to GitHub Release
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 15
     steps:
-      - name: Checkout tagged commit
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Configure release signing key
+      - name: Validate tag and download URLs
         shell: bash
         env:
-          RELEASE_KEYSTORE_BASE64: ${{ secrets.EXPRESSIVE_RELEASE_STORE_FILE }}
-          RELEASE_STORE_PASSWORD: ${{ secrets.EXPRESSIVE_RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.EXPRESSIVE_RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.EXPRESSIVE_RELEASE_KEY_PASSWORD }}
+          TAG_NAME: ${{ inputs.tag_name }}
+          APK_URL: ${{ inputs.apk_url }}
+          AAB_URL: ${{ inputs.aab_url }}
         run: |
           set -euo pipefail
-          for name in RELEASE_KEYSTORE_BASE64 RELEASE_STORE_PASSWORD RELEASE_KEY_ALIAS RELEASE_KEY_PASSWORD; do
-            if [[ -z "${!name:-}" ]]; then
-              echo "::error::Required release signing secret is missing: $name."
+          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]; then
+            echo "::error::Invalid version tag: $TAG_NAME"
+            exit 1
+          fi
+          for url in "$APK_URL" "$AAB_URL"; do
+            if [[ "$url" != https://* ]]; then
+              echo "::error::Artifact URLs must use HTTPS."
               exit 1
             fi
           done
-          KEYSTORE_PATH="$RUNNER_TEMP/expressive-island-release.jks"
-          printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
-          test -s "$KEYSTORE_PATH"
-          {
-            echo "EXPRESSIVE_RELEASE_STORE_FILE=$KEYSTORE_PATH"
-            echo "EXPRESSIVE_RELEASE_STORE_PASSWORD=$RELEASE_STORE_PASSWORD"
-            echo "EXPRESSIVE_RELEASE_KEY_ALIAS=$RELEASE_KEY_ALIAS"
-            echo "EXPRESSIVE_RELEASE_KEY_PASSWORD=$RELEASE_KEY_PASSWORD"
-          } >> "$GITHUB_ENV"
 
-      - name: Build signed APK and AAB
-        run: ./gradlew assembleRelease bundleRelease --build-cache --parallel --no-daemon
+      - name: Download already-built release artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APK_URL: ${{ inputs.apk_url }}
+          AAB_URL: ${{ inputs.aab_url }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          curl --fail --location --silent --show-error "$APK_URL" --output release-assets/expressive-island-release.apk
+          curl --fail --location --silent --show-error "$AAB_URL" --output release-assets/expressive-island-release.aab
+          test -s release-assets/expressive-island-release.apk
+          test -s release-assets/expressive-island-release.aab
 
-      - name: Prepare and verify release assets
+      - name: Verify APK and AAB signatures
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          APK_FILES=(app/build/outputs/apk/release/*.apk)
-          AAB_FILES=(app/build/outputs/bundle/release/*.aab)
-          if [[ ${#APK_FILES[@]} -ne 1 ]]; then
-            echo "::error::Expected exactly one release APK, found ${#APK_FILES[@]}."
-            printf '%s\n' "${APK_FILES[@]}"
-            exit 1
-          fi
-          if [[ ${#AAB_FILES[@]} -ne 1 ]]; then
-            echo "::error::Expected exactly one release AAB, found ${#AAB_FILES[@]}."
-            printf '%s\n' "${AAB_FILES[@]}"
-            exit 1
-          fi
-
-          mkdir -p release-assets
-          cp "${APK_FILES[0]}" release-assets/expressive-island-release.apk
-          cp "${AAB_FILES[0]}" release-assets/expressive-island-release.aab
-
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
           "$APKSIGNER" verify --verbose release-assets/expressive-island-release.apk
           jarsigner -verify release-assets/expressive-island-release.aab
 
-      - name: Publish GitHub Release
+      - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Expressive Island ${{ github.ref_name }}
+          tag_name: ${{ inputs.tag_name }}
+          name: Expressive Island ${{ inputs.tag_name }}
           generate_release_notes: true
           files: |
             release-assets/expressive-island-release.apk
             release-assets/expressive-island-release.aab
           fail_on_unmatched_files: true
           prerelease: false
-
-      - name: Remove temporary signing key
-        if: always()
-        shell: bash
-        run: rm -f "$RUNNER_TEMP/expressive-island-release.jks"
