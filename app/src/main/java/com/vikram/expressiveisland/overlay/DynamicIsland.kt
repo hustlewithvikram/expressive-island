@@ -890,7 +890,10 @@ internal fun DynamicIsland(
                     diameterDp = collapsed.heightDp,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .offset(x = dims.offsetXDp.dp, y = offsetY),
+                        .offset(
+                            x = dims.offsetXDp.dp,
+                            y = offsetY + (collapsed.heightDp * 0.03f).dp,
+                        ),
                 )
             }
 
