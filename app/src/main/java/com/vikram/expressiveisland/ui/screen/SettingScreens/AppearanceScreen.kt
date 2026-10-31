@@ -255,7 +255,7 @@ private fun SatelliteRingSettingsSection() {
     val context = LocalContext.current
     val preferences = remember(context) { SatelliteRingPreferences(context) }
     val scope = rememberCoroutineScope()
-    val settings by preferences.settings.collectAsStateWithLifecycle()
+    val settings by preferences.settings.collectAsStateWithLifecycle(initialValue = com.vikram.expressiveisland.data.SatelliteRingSettings())
     var thickness by remember(settings.thicknessDp) { mutableFloatStateOf(settings.thicknessDp) }
 
     CardSectionHeader(text = "Satellite activity ring", padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp))
