@@ -45,7 +45,7 @@ jobs:
         id: release
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.EXPRESSIVE_RELEASE_TOKEN }}
         run: |
           set -euo pipefail
           STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -68,7 +68,7 @@ jobs:
         id: playstore
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.EXPRESSIVE_RELEASE_TOKEN }}
         run: |
           set -euo pipefail
           STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -89,7 +89,7 @@ jobs:
 
       - name: Download signed build artifacts
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.EXPRESSIVE_RELEASE_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p release-assets/release release-assets/playstore
