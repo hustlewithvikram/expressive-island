@@ -46,6 +46,7 @@ import com.vikram.expressiveisland.data.SatelliteRingPreferences
 import com.vikram.expressiveisland.data.SatelliteRingStyle
 import androidx.compose.ui.platform.LocalContext
 import com.vikram.expressiveisland.overlay.island.IslandEvent
+import com.vikram.expressiveisland.overlay.resolve
 
 @Composable
 fun CollapsedContent(
