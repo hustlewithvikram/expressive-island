@@ -158,7 +158,9 @@ internal fun AppsScreen(
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
         contentPadding = contentPadding,
     ) {
         item(key = "header") {
