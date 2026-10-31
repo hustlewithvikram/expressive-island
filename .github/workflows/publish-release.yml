@@ -41,13 +41,7 @@ jobs:
             exit 1
           fi
 
-      - name: Trigger signed release APK build
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh workflow run build-release-apk.yml --ref main --repo "$GITHUB_REPOSITORY"
-
-      - name: Wait for signed release APK build
+      - name: Build signed release APK
         id: release
         shell: bash
         env:
@@ -55,6 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          gh workflow run build-release-apk.yml --ref main --repo "$GITHUB_REPOSITORY"
           for attempt in {1..60}; do
             RUN_ID="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/build-release-apk.yml/runs" \
               -f branch=main -f event=workflow_dispatch -F per_page=20 \
@@ -69,13 +64,7 @@ jobs:
           echo "::error::Timed out waiting for the release APK workflow to start."
           exit 1
 
-      - name: Trigger signed Play Store APK and AAB build
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh workflow run build-playstore-apk-aab.yml --ref main --repo "$GITHUB_REPOSITORY"
-
-      - name: Wait for signed Play Store build
+      - name: Build signed Play Store APK and AAB
         id: playstore
         shell: bash
         env:
@@ -83,6 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          gh workflow run build-playstore-apk-aab.yml --ref main --repo "$GITHUB_REPOSITORY"
           for attempt in {1..60}; do
             RUN_ID="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/build-playstore-apk-aab.yml/runs" \
               -f branch=main -f event=workflow_dispatch -F per_page=20 \
