@@ -589,9 +589,11 @@ class IslandOverlayController(private val context: Context) {
                         animationSpeed = behaviour.animationSpeed,
                         animationBounce = behaviour.animationBounce,
                         animationDurationMs = behaviour.animationDurationMs,
-                        autoCollapse = if (event?.assistant != null && !event.assistant.interactivePanel) {
-                            true
-                        } else behaviour.expandedAutoCollapse,
+                        autoCollapse = when {
+                            event?.assistant?.interactivePanel == true -> false
+                            event?.assistant != null -> true
+                            else -> behaviour.expandedAutoCollapse
+                        },
                         autoCollapseMs = if (event?.assistant != null && !event.assistant.interactivePanel) {
                             assistantSettings.expandedTimeoutSeconds * 1_000L
                         } else behaviour.expandedCollapseSeconds * 1_000L,
@@ -1736,7 +1738,7 @@ class IslandOverlayController(private val context: Context) {
                     id = existing.id,
                     initiallyExpanded = existing.initiallyExpanded,
                 )
-                if (isPinnedLiveTile()) dismissJob?.cancel() else scheduleDismiss()
+                if (isPinnedLiveTile() || expanded) dismissJob?.cancel() else scheduleDismiss()
                 syncWindowSize()
                 return@collect
             }
@@ -1895,7 +1897,7 @@ class IslandOverlayController(private val context: Context) {
                 is CutoutSignal.Assistant -> {
                     assistantActive = true
                     lastAssistantEvent = currentEvent.value
-                    if (currentEvent.value?.assistant?.interactivePanel == true) {
+                    if (currentEvent.value?.assistant?.interactivePanel == true || expanded) {
                         dismissJob?.cancel()
                     } else {
                         scheduleDismiss()
@@ -2258,7 +2260,7 @@ class IslandOverlayController(private val context: Context) {
         isLiveTileEvent(currentEvent.value) || isLiveTileEvent(satelliteEvent.value)
 
     private fun isLiveTileEvent(event: IslandEvent?): Boolean = event?.let {
-        it.media != null || it.call != null || it.timer != null || it.assistant != null
+        it.media != null || it.call != null || it.timer != null || it.assistant?.interactivePanel == true
     } == true
 
     /**
