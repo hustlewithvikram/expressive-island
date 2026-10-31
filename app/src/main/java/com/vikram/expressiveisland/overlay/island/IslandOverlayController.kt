@@ -594,9 +594,10 @@ class IslandOverlayController(private val context: Context) {
                             event?.assistant != null -> true
                             else -> behaviour.expandedAutoCollapse
                         },
-                        autoCollapseMs = if (event?.assistant != null && !event.assistant.interactivePanel) {
-                            assistantSettings.expandedTimeoutSeconds * 1_000L
-                        } else behaviour.expandedCollapseSeconds * 1_000L,
+                        autoCollapseMs = event?.assistant
+                            ?.takeUnless { it.interactivePanel }
+                            ?.let { assistantSettings.expandedTimeoutSeconds * 1_000L }
+                            ?: (behaviour.expandedCollapseSeconds * 1_000L),
                         appearance = appearance,
                         showActions = behaviour.showActionButtons,
                         shrinkOnSwipeUp = behaviour.shrinkOnSwipeUp,
