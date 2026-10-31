@@ -16,14 +16,14 @@
       "Added assistant response display in the cutout with configurable collapsed and expanded timeouts",
       "Added persistent assistant timeout preferences with settings export and import support",
       "Added searchable language selection in a bottom sheet and Hindi and Marathi translations across Profile and Settings",
-      "Added a new Expressive Island app identity and updated project branding"
-    ],
-    "bugfixes": [
+      "Added a new Expressive Island app identity and updated project branding",
       "Improved the Apps settings layout with consistent horizontal spacing and vertically aligned search and filter controls",
       "Improved the Events, Behaviour, Animation, Shizuku, Dynamic Tiles, and Profile settings screens with clearer organization and localized text",
       "Improved music playback progress accuracy, seeking behaviour, and progress recovery after pausing",
       "Improved camera-ring positioning and transition behaviour so the ring remains centered on the physical cutout",
-      "Improved assistant response handling so completed responses automatically dismiss instead of remaining visible indefinitely",
+      "Improved assistant response handling so completed responses automatically dismiss instead of remaining visible indefinitely"
+    ],
+    "bugfixes": [
       "Fixed duplicate satellite rendering between music and timer dynamic tiles",
       "Fixed album artwork recovery after the MediaSession listener is rebound",
       "Fixed custom expanded height being incorrectly applied to the expanded music player",
