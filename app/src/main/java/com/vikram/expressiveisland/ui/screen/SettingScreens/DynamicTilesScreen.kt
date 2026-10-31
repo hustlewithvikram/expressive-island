@@ -64,7 +64,10 @@ internal fun DynamicTilesScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.clip(RoundedCornerShape(24.dp)),
+            modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(24.dp)),
             contentPadding = contentPadding,
         ) {
             item {
