@@ -230,10 +230,10 @@ internal fun SatelliteActivityRing(
         ),
         label = "satelliteActivityRingRotation",
     )
-    val ringDiameter = (diameterDp * 0.94f).dp
+    val ringDiameter = (diameterDp * ringSettings.diameterScale).dp
     val stroke = ringSettings.thicknessDp.dp
-    val trackColor = ringSettings.trackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer
-    val progressColor = ringSettings.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary
+    val trackColor = (ringSettings.trackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer).copy(alpha = ringSettings.opacity)
+    val progressColor = (ringSettings.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary).copy(alpha = ringSettings.opacity)
     val direction = if (ringSettings.clockwise) 1f else -1f
     Canvas(
         modifier = modifier
@@ -242,34 +242,61 @@ internal fun SatelliteActivityRing(
     ) {
         val inset = stroke.toPx() / 2f
         val arcSize = androidx.compose.ui.geometry.Size(size.width - stroke.toPx(), size.height - stroke.toPx())
-        val cap = if (ringSettings.style == SatelliteRingStyle.DOTTED) StrokeCap.Butt else StrokeCap.Round
-        val pathEffect = if (ringSettings.style == SatelliteRingStyle.DOTTED) {
-            androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(stroke.toPx() * 0.7f, stroke.toPx() * 1.35f), 0f)
-        } else null
-        val trackStyle = Stroke(width = stroke.toPx(), cap = cap, pathEffect = pathEffect)
-        drawArc(color = trackColor, startAngle = -90f, sweepAngle = 360f, useCenter = false,
-            topLeft = androidx.compose.ui.geometry.Offset(inset, inset), size = arcSize, style = trackStyle)
+        val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+        val radius = (size.minDimension - stroke.toPx()) / 2f
+        fun drawDottedArc(color: Color, startAngle: Float, sweepAngle: Float, dotRadius: Float) {
+            val circumference = 2f * Math.PI.toFloat() * radius
+            val spacing = dotRadius * 3.2f
+            val count = (circumference / spacing).toInt().coerceAtLeast(12)
+            val steps = (count * kotlin.math.abs(sweepAngle) / 360f).toInt().coerceAtLeast(1)
+            for (i in 0..steps) {
+                val angle = Math.toRadians((startAngle + sweepAngle * i / steps).toDouble())
+                drawCircle(color, dotRadius, androidx.compose.ui.geometry.Offset(
+                    center.x + kotlin.math.cos(angle).toFloat() * radius,
+                    center.y + kotlin.math.sin(angle).toFloat() * radius,
+                ))
+            }
+        }
+        if (ringSettings.style == SatelliteRingStyle.DOTTED) {
+            drawDottedArc(trackColor, -90f, 360f, stroke.toPx() * 0.42f)
+        } else {
+            drawArc(color = trackColor, startAngle = -90f, sweepAngle = 360f, useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(inset, inset), size = arcSize,
+                style = Stroke(width = stroke.toPx(), cap = StrokeCap.Round))
+        }
         if (shouldRotate || fraction > 0f) {
             val sweep = if (shouldRotate) 105f else 360f * fraction * direction
             val start = if (shouldRotate) 20f else -90f
-            if (ringSettings.style == SatelliteRingStyle.WAVY && !shouldRotate && fraction > 0f) {
-                val path = androidx.compose.ui.graphics.Path()
-                val radius = (size.minDimension - stroke.toPx()) / 2f
-                val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
-                val steps = (180 * fraction).toInt().coerceAtLeast(2)
-                for (i in 0..steps) {
-                    val angle = Math.toRadians((-90.0 + direction * 360.0 * fraction * i / steps).toDouble())
-                    val wave = kotlin.math.sin(i * 0.42f) * stroke.toPx() * 0.18f
-                    val r = radius + wave
-                    val point = androidx.compose.ui.geometry.Offset(center.x + kotlin.math.cos(angle).toFloat() * r, center.y + kotlin.math.sin(angle).toFloat() * r)
-                    if (i == 0) path.moveTo(point.x, point.y) else path.lineTo(point.x, point.y)
+            when (ringSettings.style) {
+                SatelliteRingStyle.DOTTED -> drawDottedArc(progressColor, start, sweep, stroke.toPx() * 0.42f)
+                SatelliteRingStyle.WAVY -> {
+                    val path = androidx.compose.ui.graphics.Path()
+                    val steps = (220 * (kotlin.math.abs(sweep) / 360f)).toInt().coerceAtLeast(2)
+                    for (i in 0..steps) {
+                        val angle = Math.toRadians((start + sweep * i / steps).toDouble())
+                        val wave = kotlin.math.sin(i * 0.32f) * stroke.toPx() * 0.28f
+                        val r = radius + wave
+                        val point = androidx.compose.ui.geometry.Offset(
+                            center.x + kotlin.math.cos(angle).toFloat() * r,
+                            center.y + kotlin.math.sin(angle).toFloat() * r
+                        )
+                        if (i == 0) path.moveTo(point.x, point.y) else path.lineTo(point.x, point.y)
+                    }
+                    drawPath(path, progressColor, style = Stroke(width = stroke.toPx(), cap = StrokeCap.Round))
                 }
-                drawPath(path, progressColor, style = Stroke(width = stroke.toPx(), cap = StrokeCap.Round))
-            } else {
-                val expressiveWidth = if (ringSettings.style == SatelliteRingStyle.EXPRESSIVE) stroke.toPx() * 1.12f else stroke.toPx()
-                drawArc(color = progressColor, startAngle = start, sweepAngle = sweep, useCenter = false,
+                SatelliteRingStyle.EXPRESSIVE -> {
+                    val expressiveEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                        floatArrayOf(stroke.toPx() * 2.8f, stroke.toPx() * 0.75f, stroke.toPx() * 0.9f, stroke.toPx() * 0.75f), 0f
+                    )
+                    drawArc(color = progressColor, startAngle = start, sweepAngle = sweep, useCenter = false,
+                        topLeft = androidx.compose.ui.geometry.Offset(inset, inset), size = arcSize,
+                        style = Stroke(width = stroke.toPx() * 1.18f, cap = StrokeCap.Round, pathEffect = expressiveEffect))
+                }
+                SatelliteRingStyle.SOLID -> drawArc(
+                    color = progressColor, startAngle = start, sweepAngle = sweep, useCenter = false,
                     topLeft = androidx.compose.ui.geometry.Offset(inset, inset), size = arcSize,
-                    style = Stroke(width = expressiveWidth, cap = if (ringSettings.style == SatelliteRingStyle.DOTTED) StrokeCap.Butt else StrokeCap.Round, pathEffect = pathEffect))
+                    style = Stroke(width = stroke.toPx(), cap = StrokeCap.Round)
+                )
             }
         }
     }
