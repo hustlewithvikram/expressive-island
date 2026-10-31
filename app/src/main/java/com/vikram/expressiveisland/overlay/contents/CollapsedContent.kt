@@ -45,7 +45,7 @@ fun CollapsedContent(
     heightDp: Int,
     isStickToCamera: Boolean = false,
     trailingInsetDp: Int = 0,
-    showSatelliteActivityRing: Boolean = false,
+    satelliteSharing: Boolean = false,
 ) {
     // The music tile shows album art, the phone tile the caller's photo, on the normal cutout.
     val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()
@@ -88,28 +88,12 @@ fun CollapsedContent(
             )
         }
 
-        if (showSatelliteActivityRing && !isStickToCamera &&
-            ((event.media != null && nowPlaying?.isPlaying == true) || event.progressData != null)
-        ) {
-            SatelliteActivityRing(
-                diameterDp = heightDp,
-                progress = event.progressData?.let { data ->
-                    if (data.isIndeterminate || data.max <= 0) null
-                    else (data.current.toFloat() / data.max).coerceIn(0f, 1f)
-                },
-                isIndeterminate = event.progressData?.isIndeterminate == true ||
-                    (event.media != null && nowPlaying?.isPlaying == true && event.progressData == null),
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = (heightDp * 0.04f).dp),
-            )
-        }
-
         if (
             event.media != null &&
             nowPlaying?.isPlaying == true &&
             musicSettings.showVisualizer &&
-            !isStickToCamera
+            !isStickToCamera &&
+            !satelliteSharing
         ) {
             MusicVisualizer(
                 isPlaying = true,
@@ -139,7 +123,7 @@ fun CollapsedContent(
             }
         }
 
-        event.progressData?.takeIf { !isStickToCamera }?.let { progress ->
+        event.progressData?.takeIf { !isStickToCamera && !satelliteSharing }?.let { progress ->
             val indicatorModifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(end = (heightDp * 0.24f).dp + trailingInsetDp.dp)
@@ -177,12 +161,19 @@ fun CollapsedContent(
  * while live music / indeterminate work uses a rotating arc.
  */
 @Composable
-private fun SatelliteActivityRing(
+internal fun SatelliteActivityRing(
+    event: IslandEvent,
     diameterDp: Int,
-    progress: Float?,
-    isIndeterminate: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()
+    val progress = event.progressData?.let { data ->
+        if (data.isIndeterminate || data.max <= 0) null
+        else (data.current.toFloat() / data.max).coerceIn(0f, 1f)
+    }
+    val isIndeterminate = event.progressData?.isIndeterminate == true ||
+        (event.media != null && nowPlaying?.isPlaying == true && event.progressData == null)
+    if (!((event.media != null && nowPlaying?.isPlaying == true) || event.progressData != null)) return
     val transition = rememberInfiniteTransition(label = "satelliteActivityRing")
     val rotation by transition.animateFloat(
         initialValue = 0f,

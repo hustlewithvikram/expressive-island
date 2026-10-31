@@ -64,6 +64,7 @@ import com.vikram.expressiveisland.overlay.contents.ACTIONS_ROW_SPACING_DP
 import com.vikram.expressiveisland.overlay.contents.CallNormalContent
 import com.vikram.expressiveisland.overlay.contents.CenterContent
 import com.vikram.expressiveisland.overlay.contents.CollapsedContent
+import com.vikram.expressiveisland.overlay.contents.SatelliteActivityRing
 import com.vikram.expressiveisland.overlay.contents.EmptyPillContent
 import com.vikram.expressiveisland.overlay.contents.ExpandedContent
 import com.vikram.expressiveisland.overlay.contents.IslandSurface
@@ -842,7 +843,7 @@ internal fun DynamicIsland(
                                             heightDp = collapsed.heightDp,
                                             isStickToCamera = isStickToCamera,
                                             trailingInsetDp = collapsedTrailingInsetDp,
-                                            showSatelliteActivityRing = satelliteShown && satelliteSharing,
+                                            satelliteSharing = satelliteShown && satelliteSharing,
                                         )
                                     }
                                 }
@@ -879,6 +880,18 @@ internal fun DynamicIsland(
                         }
                     }
                 }
+            }
+
+            // Anchor activity feedback to the physical camera cutout, not album art.
+            // The pill shifts away from the satellite bubble; the camera position stays fixed.
+            if (satelliteShown && satelliteSharing && shownEvent != null) {
+                SatelliteActivityRing(
+                    event = shownEvent,
+                    diameterDp = collapsed.heightDp,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(x = offsetX - satelliteShiftDp.dp, y = offsetY),
+                )
             }
 
             // The bubble is a sibling of the pill so the pill keeps its own centre and the bubble simply
