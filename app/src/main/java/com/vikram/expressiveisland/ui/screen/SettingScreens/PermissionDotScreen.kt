@@ -93,7 +93,8 @@ internal fun PermissionDotScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(contentPadding),
+            .padding(contentPadding)
+            .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         PermissionDotPositionCard(
