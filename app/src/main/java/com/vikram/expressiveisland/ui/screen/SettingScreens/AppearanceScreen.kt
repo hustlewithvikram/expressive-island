@@ -136,7 +136,12 @@ internal fun AppearanceScreen(
                     padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp)
                 )
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 0.dp, bottomEnd = 0.dp),
+                    shape = RoundedCornerShape(
+                        topStart = 24.dp,
+                        topEnd = 24.dp,
+                        bottomStart = if (appearance.shadowEnabled) 0.dp else 24.dp,
+                        bottomEnd = if (appearance.shadowEnabled) 0.dp else 24.dp,
+                    ),
                     title = stringResource(R.string.appearance_shadow_title),
                     description = stringResource(R.string.appearance_shadow_desc),
                     checked = appearance.shadowEnabled,
@@ -152,7 +157,12 @@ internal fun AppearanceScreen(
                 }
 
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 0.dp, bottomEnd = 0.dp),
+                    shape = RoundedCornerShape(
+                        topStart = 24.dp,
+                        topEnd = 24.dp,
+                        bottomStart = if (appearance.strokeEnabled) 0.dp else 24.dp,
+                        bottomEnd = if (appearance.strokeEnabled) 0.dp else 24.dp,
+                    ),
                     title = stringResource(R.string.appearance_stroke_title),
                     description = stringResource(R.string.appearance_stroke_desc),
                     checked = appearance.strokeEnabled,
@@ -346,7 +356,7 @@ private fun BackgroundCard(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(0.dp),
+        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
