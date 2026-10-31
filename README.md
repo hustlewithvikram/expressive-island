@@ -89,11 +89,16 @@ Everything is designed around Material Expressive shapes, motion, colours, and c
 
 | Screenshot 1 | Screenshot 2 | Screenshot 3 |
 |:---:|:---:|:---:|
-| <img alt="Expressive Island screenshot 1" src="https://github.com/user-attachments/assets/9f7e4724-bd91-4486-8f0e-9500906024d2" width="250" /> | <img alt="Expressive Island screenshot 2" src="https://github.com/user-attachments/assets/e803d2a2-8e9b-41e0-8688-54affaefa355" width="250" /> | <img alt="Expressive Island screenshot 3" src="https://github.com/user-attachments/assets/84f40ce3-7ef0-41b4-9d89-3790008de5bc" width="250" /> |
+| Screenshot 1 | Screenshot 2 | Screenshot 3 |
+| <img alt="Expressive Island screenshot 1" src="./app/src/main/assets/app-screenshots/app-screenshot-1.png" width="250" /> | <img alt="Expressive Island screenshot 2" src="./app/src/main/assets/app-screenshots/app-screenshot-2.png" width="250" /> | <img alt="Expressive Island screenshot 3" src="./app/src/main/assets/app-screenshots/app-screenshot-3.png" width="250" /> |
 | Screenshot 4 | Screenshot 5 | Screenshot 6 |
-| <img alt="Expressive Island screenshot 4" src="https://github.com/user-attachments/assets/7c4b132c-54ec-471b-a4c3-bf7ddc7d8846" width="250" /> | <img alt="Expressive Island screenshot 5" src="https://github.com/user-attachments/assets/1d59ac95-0dfb-4b4b-9b8c-2814eb436da1" width="250" /> | <img alt="Expressive Island screenshot 6" src="https://github.com/user-attachments/assets/33542dec-9d6b-456a-bc14-c779c1d07a00" width="250" /> |
-| Screenshot 7 |  |  |
-| <img alt="Expressive Island screenshot 7" src="https://github.com/user-attachments/assets/e33224c9-fe29-4fa2-b580-e0e8a10c7237" width="250" /> |  |  |
+| <img alt="Expressive Island screenshot 4" src="./app/src/main/assets/app-screenshots/app-screenshot-4.png" width="250" /> | <img alt="Expressive Island screenshot 5" src="./app/src/main/assets/app-screenshots/app-screenshot-5.png" width="250" /> | <img alt="Expressive Island screenshot 6" src="./app/src/main/assets/app-screenshots/app-screenshot-6.png" width="250" /> |
+| Screenshot 7 | Screenshot 8 | Screenshot 9 |
+| <img alt="Expressive Island screenshot 7" src="./app/src/main/assets/app-screenshots/app-screenshot-7.png" width="250" /> | <img alt="Expressive Island screenshot 8" src="./app/src/main/assets/app-screenshots/app-screenshot-8.png" width="250" /> | <img alt="Expressive Island screenshot 9" src="./app/src/main/assets/app-screenshots/app-screenshot-9.png" width="250" /> |
+| Screenshot 10 | Screenshot 11 | Screenshot 12 |
+| <img alt="Expressive Island screenshot 10" src="./app/src/main/assets/app-screenshots/app-screenshot-10.png" width="250" /> | <img alt="Expressive Island screenshot 11" src="./app/src/main/assets/app-screenshots/app-screenshot-11.png" width="250" /> | <img alt="Expressive Island screenshot 12" src="./app/src/main/assets/app-screenshots/app-screenshot-12.png" width="250" /> |
+| Screenshot 13 | Screenshot 14 | Screenshot 15 |
+| <img alt="Expressive Island screenshot 13" src="./app/src/main/assets/app-screenshots/app-screenshot-13.png" width="250" /> | <img alt="Expressive Island screenshot 14" src="./app/src/main/assets/app-screenshots/app-screenshot-14.png" width="250" /> | <img alt="Expressive Island screenshot 15" src="./app/src/main/assets/app-screenshots/app-screenshot-15.png" width="250" /> |
 
 ---
 
