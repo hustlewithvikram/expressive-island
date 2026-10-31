@@ -7,18 +7,10 @@ on:
         description: "Version tag to publish (for example 0.1.6)"
         required: true
         type: string
-      release_run_id:
-        description: "Run ID of the successful Build Release APK (Signed) workflow"
-        required: true
-        type: string
-      playstore_run_id:
-        description: "Run ID of the successful Build Play Store APK and AAB (Signed) workflow"
-        required: true
-        type: string
 
 permissions:
   contents: write
-  actions: read
+  actions: write
 
 concurrency:
   group: expressive-island-publish-${{ inputs.tag_name }}
@@ -26,85 +18,155 @@ concurrency:
 
 jobs:
   publish:
-    name: Attach tested APK and AAB to GitHub Release
+    name: Build and publish release
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 90
     steps:
-      - name: Validate inputs
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate version tag
         shell: bash
         env:
           TAG_NAME: ${{ inputs.tag_name }}
-          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
-          PLAYSTORE_RUN_ID: ${{ inputs.playstore_run_id }}
         run: |
           set -euo pipefail
           if [[ ! "$TAG_NAME" =~ ^(v)?[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]; then
             echo "::error::Invalid version tag: $TAG_NAME"
             exit 1
           fi
-          for run_id in "$RELEASE_RUN_ID" "$PLAYSTORE_RUN_ID"; do
-            if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
-              echo "::error::Workflow run IDs must be numeric."
-              exit 1
-            fi
-          done
-          if [[ "$RELEASE_RUN_ID" == "$PLAYSTORE_RUN_ID" ]]; then
-            echo "::error::Provide the two different workflow run IDs."
+          VERSION="${TAG_NAME#v}"
+          if ! jq -e --arg version "$VERSION" 'any(.[]; .version == $version)' app/src/main/assets/changelog.json >/dev/null; then
+            echo "::error::No matching version $VERSION found in changelog.json."
             exit 1
           fi
 
-      - name: Download signed release APK artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: expressive-island-release
-          path: release-assets/release
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ github.repository }}
-          run-id: ${{ inputs.release_run_id }}
+      - name: Trigger signed release APK build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run build-release-apk.yml --ref main --repo "$GITHUB_REPOSITORY"
 
-      - name: Download signed Play Store APK and AAB artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: expressive-island-playstore
-          path: release-assets/playstore
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ github.repository }}
-          run-id: ${{ inputs.playstore_run_id }}
+      - name: Wait for signed release APK build
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          for attempt in {1..60}; do
+            RUN_ID="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/build-release-apk.yml/runs" \
+              -f branch=main -f event=workflow_dispatch -F per_page=20 \
+              --jq ".workflow_runs[] | select(.head_sha == \"$GITHUB_SHA\" and .created_at >= \"$STARTED_AT\") | .id" | head -n 1)"
+            if [[ -n "$RUN_ID" ]]; then
+              echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+              gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Timed out waiting for the release APK workflow to start."
+          exit 1
 
-      - name: Prepare and verify all release assets
+      - name: Trigger signed Play Store APK and AAB build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run build-playstore-apk-aab.yml --ref main --repo "$GITHUB_REPOSITORY"
+
+      - name: Wait for signed Play Store build
+        id: playstore
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          for attempt in {1..60}; do
+            RUN_ID="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/build-playstore-apk-aab.yml/runs" \
+              -f branch=main -f event=workflow_dispatch -F per_page=20 \
+              --jq ".workflow_runs[] | select(.head_sha == \"$GITHUB_SHA\" and .created_at >= \"$STARTED_AT\") | .id" | head -n 1)"
+            if [[ -n "$RUN_ID" ]]; then
+              echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+              gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Timed out waiting for the Play Store workflow to start."
+          exit 1
+
+      - name: Download signed build artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets/release release-assets/playstore
+          gh run download "${{ steps.release.outputs.run_id }}" \
+            --repo "$GITHUB_REPOSITORY" --name expressive-island-release \
+            --dir release-assets/release
+          gh run download "${{ steps.playstore.outputs.run_id }}" \
+            --repo "$GITHUB_REPOSITORY" --name expressive-island-playstore \
+            --dir release-assets/playstore
+
+      - name: Prepare release notes from changelog.json
+        shell: bash
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG_NAME#v}"
+          python3 - "$VERSION" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          version = sys.argv[1]
+          changelog = json.loads(pathlib.Path("app/src/main/assets/changelog.json").read_text())
+          entry = next((item for item in changelog if item.get("version") == version), None)
+          if entry is None:
+              raise SystemExit(f"No changelog entry found for version {version}")
+
+          lines = [f"## Expressive Island {version}", ""]
+          if entry.get("description"):
+              lines += [entry["description"], ""]
+          for key, heading in (("features", "What's New"), ("bugfixes", "Fixes & Improvements")):
+              items = entry.get(key, [])
+              if items:
+                  lines += [f"### {heading}", ""]
+                  lines += [f"- {item}" for item in items]
+                  lines.append("")
+          pathlib.Path("release-notes.md").write_text("\n".join(lines).rstrip() + "\n")
+          PY
+
+      - name: Verify release assets
         shell: bash
         run: |
           set -euo pipefail
           RELEASE_APK="release-assets/release/expressive-island-release.apk"
           PLAYSTORE_APK="release-assets/playstore/expressive-island-playstore.apk"
           PLAYSTORE_AAB="release-assets/playstore/expressive-island-playstore.aab"
-
           for file in "$RELEASE_APK" "$PLAYSTORE_APK" "$PLAYSTORE_AAB"; do
             if [[ ! -s "$file" ]]; then
               echo "::error::Missing or empty artifact: $file"
               exit 1
             fi
           done
-
-          mkdir -p release-assets/final
-          cp "$RELEASE_APK" release-assets/final/expressive-island-release.apk
-          cp "$PLAYSTORE_APK" release-assets/final/expressive-island-playstore.apk
-          cp "$PLAYSTORE_AAB" release-assets/final/expressive-island-playstore.aab
-
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner"
-          "$APKSIGNER" verify --verbose release-assets/final/expressive-island-release.apk
-          "$APKSIGNER" verify --verbose release-assets/final/expressive-island-playstore.apk
-          jarsigner -verify release-assets/final/expressive-island-playstore.aab
+          "$APKSIGNER" verify --verbose "$RELEASE_APK"
+          "$APKSIGNER" verify --verbose "$PLAYSTORE_APK"
+          jarsigner -verify "$PLAYSTORE_AAB"
 
       - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag_name }}
           name: Expressive Island ${{ inputs.tag_name }}
-          generate_release_notes: true
+          body_path: release-notes.md
           files: |
-            release-assets/final/expressive-island-release.apk
-            release-assets/final/expressive-island-playstore.apk
-            release-assets/final/expressive-island-playstore.aab
+            release-assets/release/expressive-island-release.apk
+            release-assets/playstore/expressive-island-playstore.apk
+            release-assets/playstore/expressive-island-playstore.aab
           fail_on_unmatched_files: true
           prerelease: false
