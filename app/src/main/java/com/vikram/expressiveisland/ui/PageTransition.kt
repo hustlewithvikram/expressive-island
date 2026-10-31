@@ -9,13 +9,14 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import com.vikram.expressiveisland.data.PageTransitionStyle
 
 /**
- * Builds the configured page transition. Every style uses the same duration budget to keep
- * navigation responsive while offering distinct motion personalities.
+ * Builds the configured page transition. Existing Fade and Slide behavior is retained.
  */
 internal fun pageTransition(
     style: PageTransitionStyle,
@@ -56,11 +57,11 @@ internal fun pageTransition(
         PageTransitionStyle.SCALE_FADE -> {
             enter = scaleIn(
                 initialScale = 0.92f,
-                animationSpec = tween(PAGE_TRANSITION_DURATION_MS)
+                animationSpec = tween(PAGE_TRANSITION_DURATION_MS),
             ) + fadeIn(tween(PAGE_TRANSITION_DURATION_MS))
             exit = scaleOut(
                 targetScale = 0.96f,
-                animationSpec = tween(PAGE_TRANSITION_DURATION_MS)
+                animationSpec = tween(PAGE_TRANSITION_DURATION_MS),
             ) + fadeOut(tween(PAGE_TRANSITION_DURATION_MS))
         }
 
@@ -71,6 +72,22 @@ internal fun pageTransition(
             exit = slideOutHorizontally(tween(PAGE_TRANSITION_DURATION_MS)) { width ->
                 -direction * width
             } + fadeOut(tween(PAGE_TRANSITION_DURATION_MS))
+        }
+
+        PageTransitionStyle.VERTICAL_SLIDE -> {
+            enter = slideInVertically(tween(PAGE_TRANSITION_DURATION_MS)) { height -> height }
+            exit = slideOutVertically(tween(PAGE_TRANSITION_DURATION_MS)) { height -> -height }
+        }
+
+        PageTransitionStyle.ZOOM -> {
+            enter = scaleIn(
+                initialScale = 0.72f,
+                animationSpec = tween(PAGE_TRANSITION_DURATION_MS),
+            )
+            exit = scaleOut(
+                targetScale = 1.18f,
+                animationSpec = tween(PAGE_TRANSITION_DURATION_MS),
+            )
         }
     }
 

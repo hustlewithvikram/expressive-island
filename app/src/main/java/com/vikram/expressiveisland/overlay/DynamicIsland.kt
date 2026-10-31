@@ -64,6 +64,7 @@ import com.vikram.expressiveisland.overlay.contents.ACTIONS_ROW_SPACING_DP
 import com.vikram.expressiveisland.overlay.contents.CallNormalContent
 import com.vikram.expressiveisland.overlay.contents.CenterContent
 import com.vikram.expressiveisland.overlay.contents.CollapsedContent
+import com.vikram.expressiveisland.overlay.contents.SatelliteActivityRing
 import com.vikram.expressiveisland.overlay.contents.EmptyPillContent
 import com.vikram.expressiveisland.overlay.contents.ExpandedContent
 import com.vikram.expressiveisland.overlay.contents.IslandSurface
@@ -171,6 +172,8 @@ internal fun DynamicIsland(
     emptyIcon: IconSource? = null,
     emptyIconColor: CutoutColor? = null,
     emptyOpensCenter: Boolean = false,
+    assistantTapEnabled: Boolean = false,
+    onAssistantTap: () -> Unit = {},
     centerShortcuts: List<CenterShortcut> = emptyList(),
     centerShowLabels: Boolean = true,
     centerFillContainers: Boolean = false,
@@ -501,6 +504,26 @@ internal fun DynamicIsland(
             val stickPaddingStart = if (isStickToCamera && !isRotation270) offsetYDp.dp else 0.dp
             val stickPaddingEnd = if (isStickToCamera && isRotation270) offsetYDp.dp else 0.dp
 
+            // When the empty island is disabled there is no IslandSurface to receive taps.
+            // Keep a transparent hit target over the physical cutout so Assistant can still be
+            // opened on demand, but only while no event owns the island.
+            if (event == null && assistantTapEnabled && !showsWhenEmpty && !isStickToCamera) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(x = offsetX, y = offsetY)
+                        .width(width)
+                        .height(collapsed.heightDp.dp)
+                        .pointerInput(assistantTapEnabled) {
+                            detectTapGestures(
+                                onTap = {
+                                    if (assistantTapEnabled) onAssistantTap()
+                                }
+                            )
+                        },
+                )
+            }
+
             Box(
                 modifier = Modifier
                     .align(if (isStickToCamera) stickAlignment else Alignment.TopCenter)
@@ -510,7 +533,7 @@ internal fun DynamicIsland(
                         y = if (isStickToCamera) 0.dp else offsetY
                     ),
             ) {
-                if (present || reveal.value > 0f) {
+                if (present || reveal.value > 0f || assistantTapEnabled) {
                     IslandSurface(
                         modifier = Modifier
                             .width(revealWidth)
@@ -603,6 +626,11 @@ internal fun DynamicIsland(
                                     onTap = {
                                         if (vibrateOnTap) {
                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        }
+
+                                        if (event == null && assistantTapEnabled && !emptyPill) {
+                                            onAssistantTap()
+                                            return@detectTapGestures
                                         }
 
                                         if (emptyPill) {
@@ -806,6 +834,8 @@ internal fun DynamicIsland(
                                             },
                                             onDismiss = onDismiss,
                                             onHeightMeasured = { assistantContentHeightDp = it },
+                                            onAssistantInputActiveChange = onReplyActiveChange,
+                                            onMediaInteraction = { mediaInteraction++ },
                                         )
                                     } else {
                                         CollapsedContent(
@@ -813,6 +843,7 @@ internal fun DynamicIsland(
                                             heightDp = collapsed.heightDp,
                                             isStickToCamera = isStickToCamera,
                                             trailingInsetDp = collapsedTrailingInsetDp,
+                                            satelliteSharing = satelliteShown && satelliteSharing,
                                         )
                                     }
                                 }
@@ -849,6 +880,21 @@ internal fun DynamicIsland(
                         }
                     }
                 }
+            }
+
+            // Anchor activity feedback to the physical camera cutout, not album art.
+            // The pill shifts away from the satellite bubble; the camera position stays fixed.
+            if (satelliteShown && satelliteSharing && shownEvent != null) {
+                SatelliteActivityRing(
+                    event = shownEvent,
+                    diameterDp = collapsed.heightDp,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(
+                            x = dims.offsetXDp.dp,
+                            y = offsetY + (collapsed.heightDp * 0.03f).dp,
+                        ),
+                )
             }
 
             // The bubble is a sibling of the pill so the pill keeps its own centre and the bubble simply

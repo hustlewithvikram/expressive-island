@@ -100,6 +100,36 @@ jobs:
           BRANCH="$GITHUB_REF_NAME"
           TITLE="Expressive Island Debug — Build #${GITHUB_RUN_NUMBER} (${BRANCH} · ${SHORT_SHA})"
           COMMIT_SUBJECT="$(git log -1 --pretty=%s "$GITHUB_SHA")"
+
+          CHANGELOG="$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          entries = json.loads(Path("app/src/main/assets/changelog.json").read_text(encoding="utf-8"))
+          sections = (
+              ("Features Added", lambda item: not item.lower().startswith(("improved ", "updated ", "refined ", "optimized "))),
+              ("Features Improved", lambda item: item.lower().startswith(("improved ", "updated ", "refined ", "optimized "))),
+              ("Bugs Fixed", None),
+          )
+
+          for entry in entries:
+              print(f"### {entry.get('version', 'Unversioned')} — {entry.get('description', '').strip()}")
+              features = entry.get("features", [])
+              fixes = entry.get("bugfixes", [])
+              added = [item for item in features if sections[0][1](item)]
+              improved = [item for item in features if sections[1][1](item)]
+              improved.extend(item for item in fixes if item.lower().startswith(("improved ", "updated ", "refined ", "optimized ")))
+              bugfixes = [item for item in fixes if item not in improved]
+
+              for title, items in (("Features Added", added), ("Features Improved", improved), ("Bugs Fixed", bugfixes)):
+                  if items:
+                      print(f"\n**{title}**")
+                      for item in items:
+                          print(f"- {item}")
+              print()
+          PY
+          )"
+
           NOTES="$(cat <<EOF
           **Latest signed debug build** for the \`${BRANCH}\` branch.
 
@@ -110,7 +140,12 @@ jobs:
           - **Commit message:** ${COMMIT_SUBJECT}
           - **Workflow run:** https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
 
-          This prerelease is a rolling channel: each successful run replaces the APK attached to this release with the newest signed debug build.
+          ## Full changelog
+
+          ${CHANGELOG}
+
+          ---
+          This is a rolling debug channel. Every successful run replaces the attached APK with the newest signed debug build. The full version history above is read from the app's changelog asset, so earlier entries remain included in every build.
           EOF
           )"
 

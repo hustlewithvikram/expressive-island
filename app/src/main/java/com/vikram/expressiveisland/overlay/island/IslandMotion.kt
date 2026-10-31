@@ -42,6 +42,9 @@ internal class IslandMotion(
         AnimationStyle.EASE_IN_OUT -> EaseInOutEasing
         AnimationStyle.SMOOTH -> SmoothEasing
         AnimationStyle.SNAPPY -> SnappyEasing
+        AnimationStyle.DECELERATE -> DecelerateEasing
+        AnimationStyle.ACCELERATE -> AccelerateEasing
+        AnimationStyle.OVERSHOOT -> OvershootEasing
     }
 
     private fun springDamping() = when (style) {
@@ -162,6 +165,9 @@ internal class IslandMotion(
         private val EaseInOutEasing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
         private val SmoothEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
         private val SnappyEasing = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)
+        private val DecelerateEasing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
+        private val AccelerateEasing = CubicBezierEasing(0.7f, 0f, 0.9f, 0.3f)
+        private val OvershootEasing = CubicBezierEasing(0.18f, 1.35f, 0.4f, 1f)
 
         // The island's resting scale, i.e. the one the boop and the pop depart from and return to.
         private const val REST_SCALE = 1f

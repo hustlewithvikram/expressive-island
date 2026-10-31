@@ -1,7 +1,7 @@
 package com.vikram.expressiveisland
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.SideEffect
@@ -17,7 +17,7 @@ import com.vikram.expressiveisland.ui.theme.ExpressiveIslandTheme
 import com.vikram.expressiveisland.ui.theme.isDark
 
 /** Single-activity host. The overlay itself runs independently in the services. */
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -16,6 +16,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,7 +28,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,10 +50,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -93,6 +94,7 @@ import kotlinx.coroutines.withContext
  * The list is read off the main thread once; each row loads its own launcher icon lazily, so
  * scrolling a few hundred apps never holds every icon bitmap in memory at once.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AppsScreen(
     viewModel: AppViewModel,
@@ -152,12 +154,16 @@ internal fun AppsScreen(
         }
     }
     val allEnabled = loaded.isNotEmpty() && loaded.all { it.packageName !in disabled }
-    val lastIndex = filtered.lastIndex
 
     LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = contentPadding,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(
+            top = contentPadding.calculateTopPadding(),
+            bottom = contentPadding.calculateBottomPadding(),
+        ),
     ) {
         item(key = "header") {
             Column(
@@ -187,45 +193,52 @@ internal fun AppsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(28.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                            unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
-                        ),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Search,
-                                contentDescription = null,
+                    SearchBar(
+                        inputField = {
+                            SearchBarDefaults.InputField(
+                                query = query,
+                                onQueryChange = { query = it },
+                                onSearch = { focusManager.clearFocus() },
+                                expanded = false,
+                                onExpandedChange = {},
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = {
+                                    Text(stringResource(R.string.apps_search_hint))
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Search,
+                                        contentDescription = null,
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (query.isNotEmpty()) {
+                                        IconButton(onClick = { query = "" }) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Clear,
+                                                contentDescription = stringResource(R.string.apps_clear_search),
+                                            )
+                                        }
+                                    }
+                                },
                             )
                         },
-                        trailingIcon = {
-                            if (query.isNotEmpty()) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Clear,
-                                    contentDescription = "Clear search",
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .clickable { query = "" }
-                                        .padding(3.dp),
-                                )
-                            }
-                        },
-                        placeholder = {
-                            Text(stringResource(R.string.apps_search_hint))
-                        },
+                        expanded = false,
+                        onExpandedChange = {},
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = SearchBarDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ),
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp,
+                        windowInsets = WindowInsets(0, 0, 0, 0),
+                        content = {},
                     )
 
                     IconButton(
                         onClick = { sortDialogVisible = true },
-                        modifier = Modifier.size(54.dp),
+                        modifier = Modifier.size(56.dp),
                         colors = IconButtonDefaults.filledIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -233,7 +246,7 @@ internal fun AppsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.FilterList,
-                            contentDescription = "Filter and sort apps",
+                            contentDescription = stringResource(R.string.apps_filter_sort_content_description),
                         )
                     }
                 }
@@ -266,7 +279,21 @@ internal fun AppsScreen(
 
                 Spacer(Modifier.height(12.dp))
 
-                LazyRow(
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.FilterList, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Filter apps", style = MaterialTheme.typography.titleSmall)
+                        }
+                        LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(end = 4.dp),
@@ -281,6 +308,8 @@ internal fun AppsScreen(
                             label = { Text(option.label) },
                             shape = CircleShape,
                         )
+                    }
+                        }
                     }
                 }
 
@@ -312,10 +341,9 @@ internal fun AppsScreen(
             }
         }
 
-        itemsIndexed(filtered, key = { _, app -> app.packageName }) { index, app ->
+        items(filtered, key = { app -> app.packageName }) { app ->
             AppCard(
                 app = app,
-                shape = appGroupShape(index = index, lastIndex = lastIndex),
                 enabled = app.packageName !in disabled,
                 normalOnly = app.packageName in normalOnly,
                 expanded = expandedPackage == app.packageName,
@@ -332,12 +360,12 @@ internal fun AppsScreen(
     if (sortDialogVisible) {
         AlertDialog(
             onDismissRequest = { sortDialogVisible = false },
-            title = { Text("Filter and sort") },
+            title = { Text(stringResource(R.string.apps_filter_sort_title)) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text("Show apps", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.apps_show_apps), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                     AppFilter.entries.forEach { option ->
                         Row(
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
@@ -346,11 +374,11 @@ internal fun AppsScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(option.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                            if (filter == option) Icon(Icons.Rounded.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                            if (filter == option) Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.apps_selected), tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                     HorizontalDivider()
-                    Text("Sort by", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.apps_sort_by), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                     AppSort.entries.forEach { option ->
                         Row(
                             modifier = Modifier
@@ -380,7 +408,7 @@ internal fun AppsScreen(
                 }
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { sortDialogVisible = false }) { Text("Done") }
+                androidx.compose.material3.TextButton(onClick = { sortDialogVisible = false }) { Text(stringResource(R.string.action_done)) }
             },
         )
     }
@@ -398,23 +426,6 @@ private enum class AppSort(val label: String) {
     Z_TO_A("Z–A"),
 }
 
-// Grouped-list corners: the group's outer corners (first top, last bottom) are 32dp, rest 4dp.
-// Hoisted to constants rather than built per item — with a few hundred rows the allocation churn
-// during a fling is pure waste.
-private val GroupShapeFirst =
-    RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-private val GroupShapeMiddle = RoundedCornerShape(4.dp)
-private val GroupShapeLast =
-    RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 32.dp, bottomEnd = 32.dp)
-private val GroupShapeOnly = RoundedCornerShape(32.dp)
-
-private fun appGroupShape(index: Int, lastIndex: Int): Shape = when {
-    index == 0 && index == lastIndex -> GroupShapeOnly
-    index == 0 -> GroupShapeFirst
-    index == lastIndex -> GroupShapeLast
-    else -> GroupShapeMiddle
-}
-
 /**
  * One app: identity and the allow switch on the collapsed row, with the per-app options revealed
  * underneath when the row is tapped. The chevron rotates to advertise that there is more here —
@@ -423,7 +434,6 @@ private fun appGroupShape(index: Int, lastIndex: Int): Shape = when {
 @Composable
 private fun AppCard(
     app: InstalledApp,
-    shape: Shape,
     enabled: Boolean,
     normalOnly: Boolean,
     expanded: Boolean,
@@ -438,7 +448,7 @@ private fun AppCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = shape,
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),

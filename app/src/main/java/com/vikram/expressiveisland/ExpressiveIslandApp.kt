@@ -15,6 +15,7 @@ class ExpressiveIslandApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        CrashLogWriter.install(this)
         HiddenApiBypass.addHiddenApiExemptions("")
         ShizukuState.start(this)
         StatusBarIconController.start(this, appScope)

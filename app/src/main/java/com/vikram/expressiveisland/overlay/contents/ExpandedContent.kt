@@ -29,6 +29,8 @@ fun ExpandedContent(
     onSendReply: (String) -> Unit,
     onDismiss: () -> Unit = {},
     onHeightMeasured: ((Int) -> Unit)? = null,
+    onAssistantInputActiveChange: (Boolean) -> Unit = {},
+    onMediaInteraction: () -> Unit = {},
 ) {
     val wifiState by WifiBus.state.collectAsStateWithLifecycle()
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
@@ -42,6 +44,7 @@ fun ExpandedContent(
             event = event,
             buttonHeightDp = appearance.actionButtonHeightDp,
             collapsedHeightDp = collapsedHeightDp,
+            onMediaInteraction = onMediaInteraction,
         )
 
         return
@@ -105,6 +108,7 @@ fun ExpandedContent(
             collapsedHeightDp = collapsedHeightDp,
             onDismiss = onDismiss,
             onHeightMeasured = onHeightMeasured,
+            onInputFocusChange = onAssistantInputActiveChange,
         )
         return
     }

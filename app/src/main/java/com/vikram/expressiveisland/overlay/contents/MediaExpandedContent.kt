@@ -5,6 +5,8 @@ import android.os.SystemClock
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,7 +34,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -89,6 +90,7 @@ fun MediaExpandedContent(
     event: IslandEvent,
     buttonHeightDp: Int,
     collapsedHeightDp: Int,
+    onMediaInteraction: () -> Unit = {},
 ) {
     val nowPlaying by NowPlayingBus.state.collectAsStateWithLifecycle()
     val sourceAlbumArt = albumArtFor(event, nowPlaying)
@@ -160,7 +162,13 @@ fun MediaExpandedContent(
                         .height(28.dp),
                 ) {
                     nowPlaying?.progress?.let { progress ->
-                        MediaProgressBar(progress = progress, style = musicSettings.progressStyle)
+                        MediaProgressBar(
+                            progress = progress,
+                            style = musicSettings.progressStyle,
+                            canSeek = nowPlaying?.transport?.canSeek == true,
+                            onSeek = { target -> nowPlaying?.transport?.seekTo(target) },
+                            onInteraction = onMediaInteraction,
+                        )
                     }
                 }
             }
@@ -201,111 +209,171 @@ fun MediaExpandedContent(
  * (a live stream) gets the indeterminate bar instead, matching the notification tile's.
  */
 @Composable
-fun MediaProgressBar(progress: MediaProgress?, style: MusicProgressStyle = MusicProgressStyle.WAVY) {
-    val duration = progress?.durationMs ?: return
+fun MediaProgressBar(
+    progress: MediaProgress?,
+    style: MusicProgressStyle = MusicProgressStyle.WAVY,
+    canSeek: Boolean = false,
+    onSeek: (Long) -> Unit = {},
+    onInteraction: () -> Unit = {},
+) {
+    val duration = progress?.durationMs?.takeIf { it > 0L } ?: return
 
-    // PlaybackState snapshots can arrive every second. Keep the newest anchor available to
-    // the ticker without keying/restarting its coroutine on every snapshot.
+    // PlaybackState snapshots arrive periodically. Keep the newest anchor without restarting
+    // the clock on every update, and let the user's scrub preview take precedence while dragging.
     val latestProgress by rememberUpdatedState(progress)
+    var isScrubbing by remember(duration) { androidx.compose.runtime.mutableStateOf(false) }
 
     var fraction by remember(duration) {
         mutableFloatStateOf(
-            progress.fractionAt(SystemClock.elapsedRealtime())
-                ?.coerceIn(0f, 1f)
-                ?: 0f
+            progress.fractionAt(SystemClock.elapsedRealtime())?.coerceIn(0f, 1f) ?: 0f
         )
     }
-
     var positionMs by remember(duration) {
-        mutableLongStateOf(
-            progress.positionAt(SystemClock.elapsedRealtime())
-                .coerceIn(0L, duration)
-        )
+        mutableLongStateOf(progress.positionAt(SystemClock.elapsedRealtime()).coerceIn(0L, duration))
+    }
+
+    val updateScrubPosition: (Long) -> Unit = { target ->
+        val clamped = target.coerceIn(0L, duration)
+        isScrubbing = true
+        positionMs = clamped
+        fraction = clamped.toFloat() / duration.toFloat()
+    }
+    val finishSeek: (Long) -> Unit = { target ->
+        val clamped = target.coerceIn(0L, duration)
+        positionMs = clamped
+        fraction = clamped.toFloat() / duration.toFloat()
+        onSeek(clamped)
+        isScrubbing = false
+        onInteraction()
     }
 
     LaunchedEffect(duration, progress.speed > 0f) {
         while (true) {
             val current = latestProgress ?: break
-            val now = SystemClock.elapsedRealtime()
-
-            positionMs = current.positionAt(now).coerceIn(0L, duration)
-            fraction = current.fractionAt(now)?.coerceIn(0f, 1f) ?: fraction
-
-            if (current.speed <= 0f || positionMs >= duration) break
+            if (!isScrubbing) {
+                val now = SystemClock.elapsedRealtime()
+                positionMs = current.positionAt(now).coerceIn(0L, duration)
+                fraction = current.fractionAt(now)?.coerceIn(0f, 1f) ?: fraction
+            }
+            if (current.speed <= 0f) break
             delay(PROGRESS_TICK_MS.milliseconds)
         }
     }
 
-    // When paused, still reflect an explicit seek or position correction immediately.
-    LaunchedEffect(progress.positionMs, progress.speed) {
-        if (progress.speed > 0f) return@LaunchedEffect
-
+    // When paused, reflect an external seek or position correction immediately, unless the user
+    // currently owns the position by scrubbing.
+    LaunchedEffect(progress.positionMs, progress.speed, isScrubbing) {
+        if (progress.speed > 0f || isScrubbing) return@LaunchedEffect
         val current = latestProgress ?: return@LaunchedEffect
         val now = SystemClock.elapsedRealtime()
         positionMs = current.positionAt(now).coerceIn(0L, duration)
         fraction = current.fractionAt(now)?.coerceIn(0f, 1f) ?: fraction
     }
 
-    if (style == MusicProgressStyle.CIRCULAR || style == MusicProgressStyle.CIRCULAR_WAVY) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            Text(
-                text = formatMediaTime(positionMs),
-                color = LocalContentColor.current.copy(alpha = 0.65f),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-            )
-            androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
-            CircularProgressIndicator(
-                progress = { fraction },
-                modifier = Modifier.size(22.dp),
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = formatMediaTime(positionMs),
+            color = LocalContentColor.current.copy(alpha = 0.65f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+        )
+        SeekableProgressTrack(
+            progress = fraction,
+            durationMs = duration,
+            initialPositionMs = positionMs,
+            style = style,
+            canSeek = canSeek,
+            modifier = Modifier.weight(1f).height(28.dp),
+            onScrubStart = { isScrubbing = true; onInteraction() },
+            onScrubPosition = updateScrubPosition,
+            onSeek = finishSeek,
+            onScrubCancel = { isScrubbing = false; onInteraction() },
+        )
+        Text(
+            text = formatMediaTime(duration),
+            color = LocalContentColor.current.copy(alpha = 0.65f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+/**
+ * A thumb-less, directly manipulable seek track. Taps jump to a position and horizontal drags
+ * scrub continuously; the larger invisible hit area makes it usable without changing its visual
+ * style into a Material Slider. Consuming the gesture here keeps the expanded island's tap handler
+ * from toggling the card while the user is seeking.
+ */
+@Composable
+private fun SeekableProgressTrack(
+    progress: Float,
+    durationMs: Long,
+    initialPositionMs: Long,
+    style: MusicProgressStyle,
+    canSeek: Boolean,
+    modifier: Modifier = Modifier,
+    onScrubStart: () -> Unit,
+    onScrubPosition: (Long) -> Unit,
+    onSeek: (Long) -> Unit,
+    onScrubCancel: () -> Unit,
+) {
+    var targetMs by remember(durationMs) {
+        mutableLongStateOf(initialPositionMs.coerceIn(0L, durationMs))
+    }
+    val latestOnScrubStart by rememberUpdatedState(onScrubStart)
+    val latestOnScrubPosition by rememberUpdatedState(onScrubPosition)
+    val latestOnSeek by rememberUpdatedState(onSeek)
+    val latestOnScrubCancel by rememberUpdatedState(onScrubCancel)
+
+    fun targetAt(x: Float, width: Float): Long =
+        ((x / width.coerceAtLeast(1f)).coerceIn(0f, 1f) * durationMs).toLong()
+
+    Box(
+        modifier = modifier
+            .pointerInput(durationMs, canSeek) {
+                if (!canSeek) return@pointerInput
+                detectTapGestures { offset ->
+                    targetMs = targetAt(offset.x, size.width.toFloat())
+                    latestOnScrubStart()
+                    latestOnScrubPosition(targetMs)
+                    latestOnSeek(targetMs)
+                }
+            }
+            .pointerInput(durationMs, canSeek) {
+                if (!canSeek) return@pointerInput
+                detectHorizontalDragGestures(
+                    onDragStart = { offset ->
+                        targetMs = targetAt(offset.x, size.width.toFloat())
+                        latestOnScrubStart()
+                        latestOnScrubPosition(targetMs)
+                    },
+                    onDragEnd = { latestOnSeek(targetMs) },
+                    onDragCancel = { latestOnScrubCancel() },
+                ) { change, _ ->
+                    targetMs = targetAt(change.position.x, size.width.toFloat())
+                    latestOnScrubPosition(targetMs)
+                    change.consume()
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        if (style == MusicProgressStyle.LINEAR) {
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth().height(4.dp),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                strokeWidth = if (style == MusicProgressStyle.CIRCULAR_WAVY) 2.dp else 3.dp,
             )
-            androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
-            Text(
-                text = formatMediaTime(duration),
-                color = LocalContentColor.current.copy(alpha = 0.65f),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-            )
-        }
-    } else {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = formatMediaTime(positionMs),
-                color = LocalContentColor.current.copy(alpha = 0.65f),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-            )
-            if (style == MusicProgressStyle.LINEAR) {
-                LinearProgressIndicator(
-                    progress = { fraction },
-                    modifier = Modifier.weight(1f).height(4.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                )
-            } else {
-                WavyProgressIndicator(
-                    progress = fraction,
-                    modifier = Modifier.weight(1f).height(12.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                )
-            }
-            Text(
-                text = formatMediaTime(duration),
-                color = LocalContentColor.current.copy(alpha = 0.65f),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
+        } else {
+            WavyProgressIndicator(
+                progress = progress,
+                modifier = Modifier.fillMaxWidth().height(12.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
             )
         }
     }

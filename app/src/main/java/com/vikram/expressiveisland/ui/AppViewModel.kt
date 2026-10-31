@@ -458,6 +458,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         assistantTilePreferences.setUseAnimatedIcon(enabled)
     }
 
+    fun setAssistantTapToOpen(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setTapToOpenAssistant(enabled)
+    }
+
+    fun setAssistantAutoExpandResponses(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setAutoExpandAssistantResponses(enabled)
+    }
+
+    fun setAssistantPillTimeoutSeconds(seconds: Int) = viewModelScope.launch {
+        assistantTilePreferences.setPillTimeoutSeconds(seconds)
+    }
+
+    fun setAssistantExpandedTimeoutSeconds(seconds: Int) = viewModelScope.launch {
+        assistantTilePreferences.setExpandedTimeoutSeconds(seconds)
+    }
+
     fun setMusicSkipColor(color: CutoutColor?) = viewModelScope.launch {
         musicTilePreferences.setSkipColor(color)
     }

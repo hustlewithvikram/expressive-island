@@ -7,6 +7,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,8 +51,85 @@ fun ExpressiveSegmentedRow(
     modifier: Modifier = Modifier,
     // Indices that read as greyed-out and can't be selected — e.g. an option that's coming soon.
     disabledIndices: Set<Int> = emptySet(),
+    scrollable: Boolean = false,
 ) {
     val count = options.size.coerceAtLeast(1)
+
+    if (scrollable) {
+        val segmentWidth = 136.dp
+        val indicatorPosition by animateFloatAsState(
+            targetValue = selectedIndex.coerceIn(0, count - 1).toFloat(),
+            animationSpec = spring(
+                dampingRatio = 0.75f,
+                stiffness = Spring.StiffnessMediumLow,
+            ),
+            label = "scrollingSegmentIndicator",
+        )
+        Surface(
+            modifier = modifier,
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        ) {
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box {
+                    // Keep the animated pill in the same scrollable content as the tabs.
+                    Box(
+                        modifier = Modifier
+                            .offset(x = (segmentWidth + SegmentGap) * indicatorPosition)
+                            .width(segmentWidth)
+                            .height(SegmentHeight)
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(MaterialTheme.colorScheme.primary),
+                    )
+                    Row {
+                        options.forEachIndexed { index, label ->
+                            val selected = index == selectedIndex
+                            val disabled = index in disabledIndices
+                            val contentColor by animateColorAsState(
+                                targetValue = when {
+                                    disabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                    selected -> MaterialTheme.colorScheme.onPrimary
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                                label = "segmentContent",
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(segmentWidth)
+                                    .height(SegmentHeight)
+                                    .selectable(
+                                        selected = selected,
+                                        enabled = !disabled,
+                                        onClick = { onSelect(index) },
+                                        role = Role.RadioButton,
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                    )
+                                    .padding(horizontal = 8.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = label,
+                                    color = contentColor,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                )
+                            }
+                            if (index < count - 1) Spacer(Modifier.width(SegmentGap))
+                        }
+                    }
+                }
+            }
+        }
+        return
+    }
 
     Surface(
         modifier = modifier,

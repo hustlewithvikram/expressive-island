@@ -1,6 +1,10 @@
 package com.vikram.expressiveisland.ui.screen
 
+import android.app.DownloadManager
+import android.content.Context
 import android.content.Intent
+import android.os.Environment
+import android.os.SystemClock
 import android.net.Uri
 import android.provider.Settings
 import android.widget.ImageView
@@ -24,6 +28,7 @@ import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 
 private const val UPDATE_API = "https://api.github.com/repos/hustlewithvikram/expressive-island"
 private const val DEBUG_RELEASE_TAG = "expressive-island-debug-latest-build"
@@ -44,6 +49,8 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
     var checking by remember { mutableStateOf(false) }
     var downloading by remember { mutableStateOf(false) }
     var progress by remember { mutableStateOf(0f) }
+    var downloadSpeed by remember { mutableStateOf(0L) }
+    var downloadId by remember { mutableLongStateOf(-1L) }
     var latest by remember { mutableStateOf<UpdateInfo?>(null) }
     var downloadedUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
     var apk by remember { mutableStateOf<File?>(null) }
@@ -51,7 +58,6 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
     var installDialog by remember { mutableStateOf(false) }
     var discardDialog by remember { mutableStateOf(false) }
     var cancelDialog by remember { mutableStateOf(false) }
-    var downloadJob by remember { mutableStateOf<Job?>(null) }
 
     fun checkUpdates() {
         if (checking || downloading) return
@@ -75,45 +81,136 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
     }
     fun startDownload() {
         val info = latest ?: return
-        downloading = true; progress = 0f; error = null
-        downloadJob = scope.launch {
-            val target = File(context.cacheDir,"updates/expressive-island-update.apk")
-            try {
-                withContext(Dispatchers.IO) {
-                    target.parentFile?.mkdirs(); target.delete()
-                    val conn = (URL(info.apkUrl).openConnection() as HttpURLConnection).apply {
-                        connectTimeout=15000; readTimeout=30000
-                        setRequestProperty("User-Agent","Expressive-Island-Android")
-                    }
-                    try {
-                        if (conn.responseCode !in 200..299) error("Download failed (HTTP ${conn.responseCode}).")
-                        val total = conn.contentLengthLong
-                        conn.inputStream.use { input ->
-                            target.outputStream().buffered().use { output ->
-                                val buffer=ByteArray(16384)
-                                while (true) {
-                                    currentCoroutineContext().ensureActive()
-                                    val n=input.read(buffer); if(n<0) break
-                                    if(n==0) continue
-                                    output.write(buffer,0,n)
-                                    if(total>0) progress=(target.length().toFloat()/total).coerceIn(0f,1f)
-                                }
-                            }
-                        }
-                    } finally { conn.disconnect() }
-                }
-                if(!target.exists() || target.length()==0L) error("Downloaded APK is empty.")
-                apk=target; downloadedUpdate=info; installDialog=true
-            } catch(e: CancellationException) { target.delete(); throw e
-            } catch(e: Exception) { target.delete(); error=e.message ?: "Download failed."
-            } finally { downloading=false; downloadJob=null }
+        if (info.apkUrl.isBlank()) return
+        try {
+            val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            val prefs = context.getSharedPreferences("app_update_download", Context.MODE_PRIVATE)
+            val oldId = prefs.getLong("download_id", -1L)
+            if (oldId >= 0L) runCatching { manager.remove(oldId) }
+            val target = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "expressive-island-update.apk")
+            target.parentFile?.mkdirs()
+            target.delete()
+            val request = DownloadManager.Request(Uri.parse(info.apkUrl))
+                .setTitle("Expressive Island update")
+                .setDescription("Downloading ${info.branch.ifBlank { channel }} build #${info.runNumber}")
+                .setMimeType("application/vnd.android.package-archive")
+                .setAllowedNetworkTypes(
+                    DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE
+                )
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(true)
+                .addRequestHeader("User-Agent", "Expressive-Island-Android")
+                .addRequestHeader("Accept", "application/octet-stream")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "expressive-island-update.apk")
+            val id = manager.enqueue(request)
+            prefs.edit()
+                .putLong("download_id", id)
+                .putString("download_url", info.apkUrl)
+                .putString("download_version", info.version)
+                .putString("download_notes", info.notes)
+                .putString("download_run_number", info.runNumber)
+                .putString("download_run_id", info.runId)
+                .putString("download_commit", info.commit)
+                .putString("download_branch", info.branch)
+                .putString("download_channel", info.channel)
+                .putString("installed_version_at_download", installedVersion)
+                .apply()
+            downloadId = id
+            downloading = true
+            progress = 0f
+            downloadSpeed = 0L
+            error = null
+        } catch (e: Exception) {
+            downloading = false
+            error = "Could not start download: ${e.message ?: "check network access"}"
         }
     }
-    fun discardDownloadedApk() { apk?.delete(); apk = null; downloadedUpdate = null; installDialog = false; error = null }
+    fun discardDownloadedApk() {
+        val prefs = context.getSharedPreferences("app_update_download", Context.MODE_PRIVATE)
+        val id = prefs.getLong("download_id", -1L)
+        if (id >= 0L) runCatching { (context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).remove(id) }
+        apk?.delete()
+        File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "expressive-island-update.apk").delete()
+        prefs.edit().clear().apply()
+        downloadId = -1L; downloading = false; downloadSpeed = 0L
+        apk = null; downloadedUpdate = null; installDialog = false; error = null
+    }
     fun openSettings() {
         context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:${context.packageName}")))
     }
-    LaunchedEffect(Unit) { checkUpdates() }
+    LaunchedEffect(Unit) {
+        val prefs = context.getSharedPreferences("app_update_download", Context.MODE_PRIVATE)
+        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val savedId = prefs.getLong("download_id", -1L)
+        val savedInstalledVersion = prefs.getString("installed_version_at_download", null)
+        if (savedInstalledVersion != null && savedInstalledVersion != installedVersion) {
+            File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "expressive-island-update.apk").delete()
+            prefs.edit().clear().apply()
+        } else if (savedId >= 0L) {
+            downloadId = savedId
+            val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "expressive-island-update.apk")
+            manager.query(DownloadManager.Query().setFilterById(savedId)).use { cursor ->
+                if (cursor != null && cursor.moveToFirst()) {
+                    when (cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))) {
+                        DownloadManager.STATUS_PENDING, DownloadManager.STATUS_RUNNING, DownloadManager.STATUS_PAUSED -> downloading = true
+                        DownloadManager.STATUS_SUCCESSFUL -> if (file.exists() && file.length() > 0L) {
+                            apk = file
+                            downloadedUpdate = savedUpdateInfo(prefs, channel)
+                            progress = 1f
+                        } else error = "Download finished but the APK file is missing. Download it again."
+                        DownloadManager.STATUS_FAILED -> {
+                            error = "Download failed (code ${cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))}). Try again on a stable connection."
+                            prefs.edit().remove("download_id").apply()
+                        }
+                    }
+                }
+            }
+        }
+        checkUpdates()
+        var lastBytes = 0L
+        var lastTime = SystemClock.elapsedRealtime()
+        while (true) {
+            delay(500)
+            val id = downloadId
+            if (id < 0L) continue
+            manager.query(DownloadManager.Query().setFilterById(id)).use { cursor ->
+                if (cursor == null || !cursor.moveToFirst()) {
+                    downloading = false
+                } else {
+                    val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                    val bytes = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)).coerceAtLeast(0L)
+                    val total = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)).coerceAtLeast(0L)
+                    val now = SystemClock.elapsedRealtime()
+                    val elapsed = now - lastTime
+                    if (elapsed >= 500L) {
+                        downloadSpeed = (((bytes - lastBytes).coerceAtLeast(0L) * 1000L) / elapsed)
+                        lastBytes = bytes; lastTime = now
+                    }
+                    if (total > 0L) progress = (bytes.toFloat() / total).coerceIn(0f, 1f)
+                    when (status) {
+                        DownloadManager.STATUS_PENDING, DownloadManager.STATUS_RUNNING, DownloadManager.STATUS_PAUSED -> downloading = true
+                        DownloadManager.STATUS_SUCCESSFUL -> {
+                            downloading = false
+                            val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "expressive-island-update.apk")
+                            if (file.exists() && file.length() > 0L) {
+                                apk = file
+                                downloadedUpdate = savedUpdateInfo(prefs, channel)
+                                progress = 1f
+                                installDialog = true
+                            } else error = "Download finished but the APK file is missing. Download it again."
+                        }
+                        DownloadManager.STATUS_FAILED -> {
+                            downloading = false
+                            error = "Download failed (code ${cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))}). Check your connection and retry."
+                            prefs.edit().remove("download_id").apply()
+                            downloadId = -1L
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     val latestDiffersFromInstalled = latest?.let { !isSameBuild(it, installedRunId, installedCommit) } == true
     val latestDiffersFromDownloaded = latest?.let { info ->
@@ -187,7 +284,7 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
                 }
                 if (downloading) {
                     LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                    Text((progress * 100).toInt().toString() + "% downloaded", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${(progress * 100).toInt()}% downloaded  •  ${formatBytes(downloadSpeed)}/s", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     OutlinedButton(onClick = { cancelDialog = true }, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Close, null); Spacer(Modifier.width(8.dp)); Text("Cancel download")
                     }
@@ -227,7 +324,15 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
         }
     }
     if(cancelDialog) AlertDialog(onDismissRequest={cancelDialog=false},title={Text("Cancel download?")},text={Text("The partial APK will be deleted.")},
-        confirmButton={TextButton(onClick={cancelDialog=false;downloadJob?.cancel()}) { Text("Cancel download") }},
+        confirmButton={TextButton(onClick={
+            cancelDialog=false
+            val prefs=context.getSharedPreferences("app_update_download",Context.MODE_PRIVATE)
+            val id=prefs.getLong("download_id",-1L)
+            if(id>=0L) runCatching { (context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).remove(id) }
+            File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),"expressive-island-update.apk").delete()
+            prefs.edit().clear().apply()
+            downloadId=-1L; downloading=false; progress=0f; downloadSpeed=0L
+        }) { Text("Cancel download") }},
         dismissButton={TextButton(onClick={cancelDialog=false}) { Text("Keep downloading") }})
     if(discardDialog) AlertDialog(onDismissRequest={discardDialog=false},title={Text("Discard downloaded APK?")},text={Text("The downloaded APK will be deleted. You can download it again later.")},confirmButton={TextButton(onClick={discardDialog=false;discardDownloadedApk()}) { Text("Discard APK") }},dismissButton={TextButton(onClick={discardDialog=false}) { Text("Keep APK") }})
     if(installDialog) AlertDialog(onDismissRequest={installDialog=false},title={Text("Install update?")},text={Text("The APK is ready. Android will ask you to confirm installation.")},
@@ -246,6 +351,26 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
         }) { Text("Install") }},dismissButton={TextButton(onClick={installDialog=false}) { Text("Later") }})
 }
 
+
+private fun savedUpdateInfo(prefs: android.content.SharedPreferences, channel: String) = UpdateInfo(
+    prefs.getString("download_version", "Unknown") ?: "Unknown",
+    prefs.getString("download_notes", "") ?: "",
+    prefs.getString("download_run_number", "") ?: "",
+    prefs.getString("download_run_id", "") ?: "",
+    prefs.getString("download_commit", "") ?: "",
+    prefs.getString("download_branch", "") ?: "",
+    prefs.getString("download_url", "") ?: "",
+    prefs.getString("download_channel", channel) ?: channel
+)
+
+private fun formatBytes(bytes: Long): String {
+    if (bytes < 1024L) return "$bytes B"
+    val units = arrayOf("KB", "MB", "GB")
+    var value = bytes.toDouble()
+    var unit = -1
+    do { value /= 1024.0; unit++ } while (value >= 1024.0 && unit < units.lastIndex)
+    return String.format(Locale.getDefault(), "%.1f %s", value, units[unit])
+}
 
 @Composable
 private fun BuildSummaryCard(title: String, branch: String, run: String, commit: String, modifier: Modifier = Modifier) {
