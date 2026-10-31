@@ -13,10 +13,10 @@ android {
         targetSdk = 35
         versionCode = 5
         versionName = "0.1.6"
-        buildConfigField("String", "BUILD_RUN_NUMBER", "\"\${System.getenv("GITHUB_RUN_NUMBER") ?: "local"}\"")
-        buildConfigField("String", "BUILD_RUN_ID", "\"\${System.getenv("GITHUB_RUN_ID") ?: ""}\"")
-        buildConfigField("String", "BUILD_COMMIT", "\"\${System.getenv("GITHUB_SHA") ?: ""}\"")
-        buildConfigField("String", "BUILD_BRANCH", "\"\${System.getenv("GITHUB_REF_NAME") ?: "local"}\"")
+        buildConfigField("String", "BUILD_RUN_NUMBER", "\"${System.getenv("GITHUB_RUN_NUMBER") ?: "local"}\"")
+        buildConfigField("String", "BUILD_RUN_ID", "\"${System.getenv("GITHUB_RUN_ID") ?: ""}\"")
+        buildConfigField("String", "BUILD_COMMIT", "\"${System.getenv("GITHUB_SHA") ?: ""}\"")
+        buildConfigField("String", "BUILD_BRANCH", "\"${System.getenv("GITHUB_REF_NAME") ?: "local"}\"")
     }
 
     val releaseStoreFile = providers.gradleProperty("releaseStoreFile").orNull
