@@ -589,8 +589,12 @@ class IslandOverlayController(private val context: Context) {
                         animationSpeed = behaviour.animationSpeed,
                         animationBounce = behaviour.animationBounce,
                         animationDurationMs = behaviour.animationDurationMs,
-                        autoCollapse = behaviour.expandedAutoCollapse,
-                        autoCollapseMs = behaviour.expandedCollapseSeconds * 1_000L,
+                        autoCollapse = if (event?.assistant != null && !event.assistant.interactivePanel) {
+                            true
+                        } else behaviour.expandedAutoCollapse,
+                        autoCollapseMs = if (event?.assistant != null && !event.assistant.interactivePanel) {
+                            assistantSettings.expandedTimeoutSeconds * 1_000L
+                        } else behaviour.expandedCollapseSeconds * 1_000L,
                         appearance = appearance,
                         showActions = behaviour.showActionButtons,
                         shrinkOnSwipeUp = behaviour.shrinkOnSwipeUp,
@@ -927,9 +931,9 @@ class IslandOverlayController(private val context: Context) {
     /** The timer cutout should stay pinned up (no auto-dismiss) while a countdown is running. */
     private fun isPinnedTimer(): Boolean = timerActive && currentEvent.value?.timer != null
 
-    /** The assistant cutout should stay pinned up (no auto-dismiss) while assistant is active. */
+    /** Only the manually opened assistant panel is persistent; mirrored responses time out. */
     private fun isPinnedAssistant(): Boolean =
-        assistantActive && currentEvent.value?.assistant != null
+        assistantActive && currentEvent.value?.assistant?.interactivePanel == true
 
     /** Any live tile (music, a call, a running timer, or assistant) is currently pinned up. */
     private fun isPinnedLiveTile(): Boolean =
@@ -1294,7 +1298,8 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun isPersistentTileEvent(event: IslandEvent): Boolean =
-        event.media != null || event.call != null || event.timer != null || event.assistant != null
+        event.media != null || event.call != null || event.timer != null ||
+                event.assistant?.interactivePanel == true
 
     private fun isSameActivity(a: IslandEvent, b: IslandEvent): Boolean =
         a.id == b.id || isSameTile(a, b) ||
@@ -1305,7 +1310,7 @@ class IslandOverlayController(private val context: Context) {
         event.call != null -> callActive && tileEnabled[DynamicTile.PHONE] != false &&
             OnCallBus.state.value?.packageName !in disabledApps && !shouldHideForPhoneApp()
         event.timer != null -> timerActive && tileEnabled[DynamicTile.TIMER] != false
-        event.assistant != null -> assistantActive && tileEnabled[DynamicTile.ASSISTANT] != false
+        event.assistant?.interactivePanel == true -> assistantActive && tileEnabled[DynamicTile.ASSISTANT] != false
         else -> false
     }
 
@@ -1731,7 +1736,7 @@ class IslandOverlayController(private val context: Context) {
                     id = existing.id,
                     initiallyExpanded = existing.initiallyExpanded,
                 )
-                if (isPinnedLiveTile()) dismissJob?.cancel()
+                if (isPinnedLiveTile()) dismissJob?.cancel() else scheduleDismiss()
                 syncWindowSize()
                 return@collect
             }
@@ -1890,7 +1895,11 @@ class IslandOverlayController(private val context: Context) {
                 is CutoutSignal.Assistant -> {
                     assistantActive = true
                     lastAssistantEvent = currentEvent.value
-                    dismissJob?.cancel()
+                    if (currentEvent.value?.assistant?.interactivePanel == true) {
+                        dismissJob?.cancel()
+                    } else {
+                        scheduleDismiss()
+                    }
                 }
 
                 else -> scheduleDismiss()
@@ -2322,8 +2331,12 @@ class IslandOverlayController(private val context: Context) {
         // or replace the event that won that race.
         val scheduledEventId = currentEvent.value?.id ?: return
         // A system event with its own duration override wins; everything else uses the global normal.
-        val seconds = currentSystemEventType?.let { eventDurations[it] }
-            ?: behaviourState.value.normalDurationSeconds
+        val seconds = when {
+            currentEvent.value?.assistant != null -> assistantSettings.pillTimeoutSeconds
+            currentSystemEventType != null -> eventDurations[currentSystemEventType]
+                ?: behaviourState.value.normalDurationSeconds
+            else -> behaviourState.value.normalDurationSeconds
+        }
         val deadlineMs = System.currentTimeMillis() + seconds * 1_000L
         currentDeadlineMs = deadlineMs
         dismissJob = scope.launch {
