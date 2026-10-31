@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -154,10 +153,9 @@ internal fun AppsScreen(
         }
     }
     val allEnabled = loaded.isNotEmpty() && loaded.all { it.packageName !in disabled }
-    val lastIndex = filtered.lastIndex
 
     LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
@@ -235,7 +233,7 @@ internal fun AppsScreen(
 
                     IconButton(
                         onClick = { sortDialogVisible = true },
-                        modifier = Modifier.size(54.dp),
+                        modifier = Modifier.size(56.dp),
                         colors = IconButtonDefaults.filledIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -282,7 +280,7 @@ internal fun AppsScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -338,10 +336,9 @@ internal fun AppsScreen(
             }
         }
 
-        itemsIndexed(filtered, key = { _, app -> app.packageName }) { index, app ->
+        items(filtered, key = { app -> app.packageName }) { app ->
             AppCard(
                 app = app,
-                shape = appGroupShape(index = index, lastIndex = lastIndex),
                 enabled = app.packageName !in disabled,
                 normalOnly = app.packageName in normalOnly,
                 expanded = expandedPackage == app.packageName,
@@ -424,23 +421,6 @@ private enum class AppSort(val label: String) {
     Z_TO_A("Z–A"),
 }
 
-// Grouped-list corners: the group's outer corners (first top, last bottom) are 32dp, rest 4dp.
-// Hoisted to constants rather than built per item — with a few hundred rows the allocation churn
-// during a fling is pure waste.
-private val GroupShapeFirst =
-    RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-private val GroupShapeMiddle = RoundedCornerShape(4.dp)
-private val GroupShapeLast =
-    RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 32.dp, bottomEnd = 32.dp)
-private val GroupShapeOnly = RoundedCornerShape(32.dp)
-
-private fun appGroupShape(index: Int, lastIndex: Int): Shape = when {
-    index == 0 && index == lastIndex -> GroupShapeOnly
-    index == 0 -> GroupShapeFirst
-    index == lastIndex -> GroupShapeLast
-    else -> GroupShapeMiddle
-}
-
 /**
  * One app: identity and the allow switch on the collapsed row, with the per-app options revealed
  * underneath when the row is tapped. The chevron rotates to advertise that there is more here —
@@ -449,7 +429,6 @@ private fun appGroupShape(index: Int, lastIndex: Int): Shape = when {
 @Composable
 private fun AppCard(
     app: InstalledApp,
-    shape: Shape,
     enabled: Boolean,
     normalOnly: Boolean,
     expanded: Boolean,
@@ -464,7 +443,7 @@ private fun AppCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = shape,
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
