@@ -1,7 +1,7 @@
 [
   {
-    "version": "0.1.5",
-    "description": "Expressive Island — expanded system events, smarter media controls, assistant support, and a more configurable cutout",
+    "version": "0.1.6",
+    "description": "Expressive Island — refined island interactions, smarter assistant controls, and a more polished settings experience",
     "features": [
       "Added expanded battery information with detailed battery status and charging information",
       "Added system event support for more device states and system actions",
@@ -29,7 +29,10 @@
       "Fixed custom expanded height being incorrectly applied to the expanded music player",
       "Fixed notification display options and various Dynamic Island interaction issues",
       "Fixed satellite ring color resolution, initial preference state, and restoration of normal indicators when the ring is disabled",
-      "Fixed assistant timeout compilation by avoiding unsafe smart casts of delegated properties"
+      "Fixed assistant timeout compilation by avoiding unsafe smart casts of delegated properties",
+      "Fixed Apps settings search and filter alignment and restored consistent page spacing",
+      "Fixed the Shizuku back-pill title and appearance-effect corner grouping",
+      "Fixed settings layout changes leaking into screens outside the Apps page"
     ]
   }
 ]
