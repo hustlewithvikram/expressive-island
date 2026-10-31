@@ -116,6 +116,11 @@
     <string name="assistant_tap_to_open_desc">When the island is otherwise idle, tap the cutout to open the Assistant panel. Notifications and active tiles keep priority.</string>
     <string name="assistant_auto_expand_title">Auto-expand assistant responses</string>
     <string name="assistant_auto_expand_desc">Automatically expand when a supported assistant response arrives. Turn this off to keep responses collapsed.</string>
+    <string name="assistant_pill_timeout_title">Pill timeout</string>
+    <string name="assistant_pill_timeout_desc">How long a collapsed assistant response stays visible</string>
+    <string name="assistant_timeout_value">%1$d seconds</string>
+    <string name="assistant_expanded_timeout_title">Expanded timeout</string>
+    <string name="assistant_expanded_timeout_desc">How long an expanded response stays open before it collapses</string>
     <string name="assistant_max_height_title">Max Island height</string>
     <string name="assistant_max_height_desc">Share of the screen height the answer can fill</string>
     <string name="assistant_max_height_value">%1$d%%</string>
