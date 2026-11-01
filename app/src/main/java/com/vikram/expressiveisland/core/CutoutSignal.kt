@@ -137,6 +137,9 @@ sealed interface CutoutSignal {
         val actions: List<Notification.Action> = emptyList(),
     ) : CutoutSignal
 
+    /** Distinguishes a live microphone session from a visible typed-prompt interface. */
+enum class AssistantInteractionMode { UNKNOWN, VOICE, PROMPT }
+
     /** Voice assistant activity or response (surfaced from voice assistant media session / app). */
     data class Assistant(
         val packageName: String,
