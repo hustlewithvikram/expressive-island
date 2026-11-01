@@ -195,6 +195,7 @@ class IslandOverlayController(private val context: Context) {
 
     private val layoutState = MutableStateFlow(IslandLayout.DEFAULT)
     private val forcedExpanded = MutableStateFlow<Boolean?>(null)
+    private val cameraHoleQuickActions = MutableStateFlow(false)
     private val behaviourState = MutableStateFlow(BehaviourSettings())
     private val appearanceState = MutableStateFlow(AppearanceSettings())
     private var customIcons: Map<SystemEventType, IconSource> = emptyMap()
@@ -567,6 +568,7 @@ class IslandOverlayController(private val context: Context) {
                 val widthDp by displayWidthDp.collectAsStateWithLifecycle()
                 val orientation by orientationState.collectAsStateWithLifecycle()
                 val collapseRequestValue by collapseRequest.collectAsStateWithLifecycle()
+                val cameraHoleQuickActionsValue by cameraHoleQuickActions.collectAsStateWithLifecycle()
                 val isNoExpandLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE &&
                         (behaviour.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
                                 behaviour.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
@@ -605,15 +607,11 @@ class IslandOverlayController(private val context: Context) {
                         swipeToDismiss = behaviour.swipeToDismiss,
                         swipeDismissDirection = behaviour.swipeDismissDirection,
                         swipeDismissTarget = behaviour.swipeDismissTarget,
-                        showsWhenEmpty = (behaviour.showsWhenEmpty ||
-                                (assistantSettings.tapToOpenAssistant &&
-                                        !behaviour.cameraHoleTapEnabled &&
-                                        currentEvent.value == null &&
-                                        satelliteEvent.value == null &&
-                                        !previewPinned)) && behaviour.cutoutEnabled,
+                        showsWhenEmpty = behaviour.showsWhenEmpty && behaviour.cutoutEnabled,
                         assistantTapEnabled = false,
                         onAssistantTap = ::openAssistantPanel,
-                        cameraHoleTapEnabled = behaviour.cameraHoleTapEnabled &&
+                        cameraHoleTapEnabled = (behaviour.cameraHoleTapEnabled ||
+                                assistantSettings.tapToOpenAssistant) &&
                                 behaviour.cutoutEnabled &&
                                 !behaviour.showsWhenEmpty &&
                                 !previewPinned &&
@@ -621,11 +619,17 @@ class IslandOverlayController(private val context: Context) {
                                 event == null &&
                                 satelliteEvent.value == null,
                         cameraHoleTapHaptics = behaviour.cameraHoleTapHaptics,
+                        cameraHoleQuickActions = cameraHoleQuickActionsValue,
                         onCameraHoleTap = {
-                            CenterShortcutExecutor.executeCameraHoleAction(
-                                behaviour.cameraHoleTapAction,
-                                context,
-                            )
+                            when {
+                                assistantSettings.tapToOpenAssistant -> openAssistantPanel()
+                                behaviour.cameraHoleTapAction == com.vikram.expressiveisland.data.CameraHoleTapAction.QUICK_ACTIONS ->
+                                    cameraHoleQuickActions.value = true
+                                else -> CenterShortcutExecutor.executeCameraHoleAction(
+                                    behaviour.cameraHoleTapAction,
+                                    context,
+                                )
+                            }
                         },
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
                         emptyIconColor = behaviour.showsWhenEmptyIconColor,
@@ -2070,6 +2074,7 @@ class IslandOverlayController(private val context: Context) {
      * the press animation the pill already plays.
      */
     private fun onEmptyClick() {
+        cameraHoleQuickActions.value = false
         val behaviour = behaviourState.value
         if (behaviour.showsWhenEmptyClickAction != EmptyClickAction.OPEN_APP) return
         val packageName = behaviour.showsWhenEmptyClickPackage ?: return
@@ -2085,6 +2090,7 @@ class IslandOverlayController(private val context: Context) {
      * we give that collapse a beat to finish so the overlay isn't in the shot / behind the dialog.
      */
     private fun onCenterShortcut(shortcut: CenterShortcut) {
+        cameraHoleQuickActions.value = false
         if (shortcut == CenterShortcut.Assistant) {
             openAssistantPanel()
             return
