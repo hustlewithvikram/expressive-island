@@ -488,6 +488,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         assistantTilePreferences.setManualExpandedToPillTimeoutSeconds(seconds)
     }
 
+    fun setAssistantManualAutoShrinkEnabled(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setManualAutoShrinkEnabled(enabled)
+    }
+
     fun setAssistantManualAutoHideEnabled(enabled: Boolean) = viewModelScope.launch {
         assistantTilePreferences.setManualAutoHideEnabled(enabled)
     }
