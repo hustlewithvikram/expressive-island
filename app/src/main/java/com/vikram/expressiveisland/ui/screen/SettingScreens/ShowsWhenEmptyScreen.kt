@@ -159,7 +159,7 @@ internal fun ShowsWhenEmptyScreen(
                 // Hero: the chosen icon at a glance, plus the "change icon" action.
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = persistentPillGroupShape(isFirst = false, isLast = false),
+                    shape = persistentPillGroupShape(isFirst = false, isLast = true),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Column(

@@ -62,6 +62,7 @@ object CenterShortcutExecutor {
         CameraHoleTapAction.NONE -> false
         CameraHoleTapAction.QUICK_ACTIONS -> false // Opened by the overlay controller.
         CameraHoleTapAction.ASSISTANT -> launchDeviceAssistant(context)
+        CameraHoleTapAction.APP_ASSISTANT -> false // Opened by the overlay controller's assistant tile.
         CameraHoleTapAction.SCREENSHOT -> execute(CenterShortcut.Global(GlobalAction.SCREENSHOT), context)
         CameraHoleTapAction.LOCK_SCREEN -> execute(CenterShortcut.Global(GlobalAction.LOCK_SCREEN), context)
         CameraHoleTapAction.POWER_MENU -> execute(CenterShortcut.Global(GlobalAction.POWER_DIALOG), context)

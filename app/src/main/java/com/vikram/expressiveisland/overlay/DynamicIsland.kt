@@ -284,10 +284,12 @@ internal fun DynamicIsland(
         confirmingSent,
         centerInteraction,
         mediaInteraction,
+        cameraHoleQuickActions,
     ) {
         if (forcedExpanded == null && tapExpanded && autoCollapse && !replying && !confirmingSent) {
             delay(autoCollapseMs.milliseconds)
             tapExpanded = false
+            if (cameraHoleQuickActions) onCameraHoleQuickActionsDismiss()
         }
     }
 

@@ -29,6 +29,13 @@ import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.CameraHoleTapAction
 import com.vikram.expressiveisland.ui.AppViewModel
 
+private fun cameraHoleGroupShape(isFirst: Boolean, isLast: Boolean) = RoundedCornerShape(
+    topStart = if (isFirst) 28.dp else 4.dp,
+    topEnd = if (isFirst) 28.dp else 4.dp,
+    bottomStart = if (isLast) 28.dp else 4.dp,
+    bottomEnd = if (isLast) 28.dp else 4.dp,
+)
+
 /** Settings for the transparent hit target over the physical camera hole, independent of Empty Island. */
 @Composable
 internal fun CameraHoleTapScreen(
@@ -38,7 +45,7 @@ internal fun CameraHoleTapScreen(
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
     val assistant by viewModel.assistantTile.collectAsStateWithLifecycle()
     val selectedAction = when {
-        behaviour.cameraHoleAssistantEnabled -> CameraHoleTapAction.ASSISTANT
+        behaviour.cameraHoleAssistantEnabled -> CameraHoleTapAction.APP_ASSISTANT
         assistant.tapToOpenAssistant -> CameraHoleTapAction.QUICK_ACTIONS
         else -> behaviour.cameraHoleTapAction
     }
@@ -48,10 +55,16 @@ internal fun CameraHoleTapScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        Text(
+            text = stringResource(R.string.camera_hole_section_touch),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 2.dp),
+        )
         SettingsToggleCard(
-            shape = RoundedCornerShape(24.dp),
+            shape = cameraHoleGroupShape(isFirst = true, isLast = !behaviour.cameraHoleTapEnabled),
             title = stringResource(R.string.camera_hole_enabled_title),
             description = stringResource(R.string.camera_hole_enabled_desc),
             checked = behaviour.cameraHoleTapEnabled,
@@ -59,15 +72,15 @@ internal fun CameraHoleTapScreen(
         )
 
         AnimatedVisibility(visible = behaviour.cameraHoleTapEnabled) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = cameraHoleGroupShape(isFirst = false, isLast = true),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Column(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
                             text = stringResource(R.string.camera_hole_action_title),
@@ -91,7 +104,7 @@ internal fun CameraHoleTapScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 RadioButton(
-                                    selected = behaviour.cameraHoleTapAction == action,
+                                    selected = selectedAction == action,
                                     onClick = null,
                                 )
                                 Text(
@@ -104,6 +117,12 @@ internal fun CameraHoleTapScreen(
                     }
                 }
 
+                Text(
+                    text = stringResource(R.string.camera_hole_section_feedback),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 2.dp),
+                )
                 SettingsToggleCard(
                     shape = RoundedCornerShape(24.dp),
                     title = stringResource(R.string.camera_hole_haptics_title),
@@ -112,6 +131,12 @@ internal fun CameraHoleTapScreen(
                     onCheckedChange = viewModel::setCameraHoleTapHaptics,
                 )
 
+                Text(
+                    text = stringResource(R.string.camera_hole_section_requirements),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 2.dp),
+                )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),

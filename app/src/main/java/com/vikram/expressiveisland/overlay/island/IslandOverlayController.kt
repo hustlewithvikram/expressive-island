@@ -593,6 +593,7 @@ class IslandOverlayController(private val context: Context) {
                         animationBounce = behaviour.animationBounce,
                         animationDurationMs = behaviour.animationDurationMs,
                         autoCollapse = when {
+                            cameraHoleQuickActionsValue && !behaviour.showsWhenEmpty -> true
                             event?.assistant?.interactivePanel == true -> false
                             event?.assistant != null -> true
                             else -> behaviour.expandedAutoCollapse
@@ -622,13 +623,14 @@ class IslandOverlayController(private val context: Context) {
                         onCameraHoleQuickActionsDismiss = { cameraHoleQuickActions.value = false },
                         onCameraHoleTap = {
                             val action = when {
-                                behaviour.cameraHoleAssistantEnabled -> com.vikram.expressiveisland.data.CameraHoleTapAction.ASSISTANT
+                                behaviour.cameraHoleAssistantEnabled -> com.vikram.expressiveisland.data.CameraHoleTapAction.APP_ASSISTANT
                                 assistantSettings.tapToOpenAssistant -> com.vikram.expressiveisland.data.CameraHoleTapAction.QUICK_ACTIONS
                                 else -> behaviour.cameraHoleTapAction
                             }
                             when (action) {
                                 com.vikram.expressiveisland.data.CameraHoleTapAction.QUICK_ACTIONS -> cameraHoleQuickActions.value = true
                                 com.vikram.expressiveisland.data.CameraHoleTapAction.ASSISTANT -> CenterShortcutExecutor.execute(CenterShortcut.Assistant, context)
+                                com.vikram.expressiveisland.data.CameraHoleTapAction.APP_ASSISTANT -> openAssistantPanel()
                                 else -> CenterShortcutExecutor.executeCameraHoleAction(action, context)
                             }
                         },

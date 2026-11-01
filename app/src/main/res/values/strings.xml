@@ -118,11 +118,16 @@
     <string name="camera_hole_enabled_title">Enable camera hole Touch</string>
     <string name="camera_hole_enabled_desc">Enable actions for the camera-hole touch area when no island or Persistent Pill is visible.</string>
     <string name="camera_hole_action_title">Touch action</string>
-    <string name="camera_hole_action_desc">Choose what happens when you touch the camera hole. Quick Actions opens your shortcut grid; Assistant launches your device\'s default assistant.</string>
+    <string name="camera_hole_action_desc">Choose what opens when you touch the camera hole. Device Assistant launches Gemini or your configured system assistant; App Assistant opens the assistant built into Expressive Island.</string>
     <string name="camera_hole_haptics_title">Haptic feedback</string>
     <string name="camera_hole_haptics_desc">Vibrate briefly when the camera-hole touch is detected.</string>
     <string name="camera_hole_action_none">Do nothing</string>
     <string name="camera_hole_action_quick_actions">Open Quick Actions</string>
+    <string name="camera_hole_action_device_assistant">Device Assistant</string>
+    <string name="camera_hole_action_app_assistant">App Assistant</string>
+    <string name="camera_hole_section_touch">Touch</string>
+    <string name="camera_hole_section_feedback">Feedback</string>
+    <string name="camera_hole_section_requirements">Requirements</string>
     <string name="camera_hole_shizuku_note">Wi-Fi, Bluetooth and mobile data require Shizuku to be running with permission granted. No Settings page will be opened as a fallback.</string>
     <string name="camera_hole_disabled_note">Enable this feature to activate the transparent touch area over the physical camera hole. It does not draw or change the Persistent Pill.</string>
     <string name="assistant_auto_read_desc">Automatically detect supported assistant activity and show its visible response in the island. Turn this off to stop reading assistant screens.</string>
@@ -543,7 +548,7 @@
     <string name="center_move_down">Move down</string>
     <string name="center_remove">Remove</string>
     <string name="center_action_torch">Flashlight</string>
-    <string name="center_action_assistant">Assistant</string>
+    <string name="center_action_assistant">Device Assistant</string>
     <string name="center_action_wifi_shizuku">Wi‑Fi</string>
     <string name="center_action_bluetooth_shizuku">Bluetooth</string>
     <string name="center_action_mobile_data_shizuku">Mobile data</string>
