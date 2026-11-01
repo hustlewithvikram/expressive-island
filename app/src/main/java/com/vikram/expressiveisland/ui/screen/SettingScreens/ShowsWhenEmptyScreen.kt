@@ -543,6 +543,12 @@ private fun AddShortcutSheet(
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
         )
+        Text(
+            text = stringResource(R.string.center_shizuku_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
+        )
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
