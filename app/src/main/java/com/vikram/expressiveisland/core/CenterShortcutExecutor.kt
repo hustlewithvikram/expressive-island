@@ -111,34 +111,36 @@ object CenterShortcutExecutor {
 
                 connection = object : ServiceConnection {
                     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                        val result = runCatching {
-                            val data = Parcel.obtain()
-                            val reply = Parcel.obtain()
-                            try {
-                                data.writeInterfaceToken(ShizukuCommandService.DESCRIPTOR)
-                                data.writeInt(
-                                    when (radio) {
-                                        RadioToggle.WIFI -> ShizukuCommandService.RADIO_WIFI
-                                        RadioToggle.BLUETOOTH -> ShizukuCommandService.RADIO_BLUETOOTH
-                                        RadioToggle.MOBILE_DATA -> ShizukuCommandService.RADIO_MOBILE_DATA
-                                    },
-                                )
-                                check(
-                                    requireNotNull(service).transact(
-                                        ShizukuCommandService.TRANSACTION_TOGGLE_RADIO,
-                                        data,
-                                        reply,
-                                        0,
-                                    ),
-                                )
-                                reply.readException()
-                                reply.readString()
-                            } finally {
-                                data.recycle()
-                                reply.recycle()
-                            }
-                        }.getOrNull()
-                        finish(result)
+                        scope.launch(Dispatchers.IO) {
+                            val result = runCatching {
+                                val data = Parcel.obtain()
+                                val reply = Parcel.obtain()
+                                try {
+                                    data.writeInterfaceToken(ShizukuCommandService.DESCRIPTOR)
+                                    data.writeInt(
+                                        when (radio) {
+                                            RadioToggle.WIFI -> ShizukuCommandService.RADIO_WIFI
+                                            RadioToggle.BLUETOOTH -> ShizukuCommandService.RADIO_BLUETOOTH
+                                            RadioToggle.MOBILE_DATA -> ShizukuCommandService.RADIO_MOBILE_DATA
+                                        },
+                                    )
+                                    check(
+                                        requireNotNull(service).transact(
+                                            ShizukuCommandService.TRANSACTION_TOGGLE_RADIO,
+                                            data,
+                                            reply,
+                                            0,
+                                        ),
+                                    )
+                                    reply.readException()
+                                    reply.readString()
+                                } finally {
+                                    data.recycle()
+                                    reply.recycle()
+                                }
+                            }.getOrNull()
+                            finish(result)
+                        }
                     }
 
                     override fun onServiceDisconnected(name: ComponentName?) {
@@ -146,9 +148,9 @@ object CenterShortcutExecutor {
                     }
                 }
 
-                continuation.invokeOnCancellation { finish(null) }
                 runCatching { Shizuku.bindUserService(args, connection) }
                     .onFailure { finish(null) }
+                continuation.invokeOnCancellation { finish(null) }
             }
         }
     }
