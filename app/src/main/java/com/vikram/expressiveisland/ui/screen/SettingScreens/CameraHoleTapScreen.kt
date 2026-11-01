@@ -37,6 +37,11 @@ internal fun CameraHoleTapScreen(
 ) {
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
     val assistant by viewModel.assistantTile.collectAsStateWithLifecycle()
+    val selectedAction = when {
+        behaviour.cameraHoleAssistantEnabled -> CameraHoleTapAction.ASSISTANT
+        assistant.tapToOpenAssistant -> CameraHoleTapAction.QUICK_ACTIONS
+        else -> behaviour.cameraHoleTapAction
+    }
 
     Column(
         modifier = Modifier
@@ -55,22 +60,6 @@ internal fun CameraHoleTapScreen(
 
         AnimatedVisibility(visible = behaviour.cameraHoleTapEnabled) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SettingsToggleCard(
-                    shape = RoundedCornerShape(24.dp),
-                    title = stringResource(R.string.camera_hole_quick_actions_title),
-                    description = stringResource(R.string.camera_hole_quick_actions_desc),
-                    checked = assistant.tapToOpenAssistant,
-                    onCheckedChange = viewModel::setAssistantTapToOpen,
-                )
-
-                SettingsToggleCard(
-                    shape = RoundedCornerShape(24.dp),
-                    title = stringResource(R.string.camera_hole_assistant_title),
-                    description = stringResource(R.string.camera_hole_assistant_desc),
-                    checked = behaviour.cameraHoleAssistantEnabled,
-                    onCheckedChange = viewModel::setCameraHoleAssistantEnabled,
-                )
-
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -94,7 +83,7 @@ internal fun CameraHoleTapScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .selectable(
-                                        selected = behaviour.cameraHoleTapAction == action,
+                                        selected = selectedAction == action,
                                         onClick = { viewModel.setCameraHoleTapAction(action) },
                                         role = Role.RadioButton,
                                     )

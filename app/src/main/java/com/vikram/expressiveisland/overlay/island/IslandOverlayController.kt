@@ -621,13 +621,15 @@ class IslandOverlayController(private val context: Context) {
                         cameraHoleQuickActions = cameraHoleQuickActionsValue,
                         onCameraHoleQuickActionsDismiss = { cameraHoleQuickActions.value = false },
                         onCameraHoleTap = {
-                            when {
-                                behaviour.cameraHoleAssistantEnabled -> openAssistantPanel()
-                                assistantSettings.tapToOpenAssistant -> cameraHoleQuickActions.value = true
-                                else -> CenterShortcutExecutor.executeCameraHoleAction(
-                                    behaviour.cameraHoleTapAction,
-                                    context,
-                                )
+                            val action = when {
+                                behaviour.cameraHoleAssistantEnabled -> com.vikram.expressiveisland.data.CameraHoleTapAction.ASSISTANT
+                                assistantSettings.tapToOpenAssistant -> com.vikram.expressiveisland.data.CameraHoleTapAction.QUICK_ACTIONS
+                                else -> behaviour.cameraHoleTapAction
+                            }
+                            when (action) {
+                                com.vikram.expressiveisland.data.CameraHoleTapAction.QUICK_ACTIONS -> cameraHoleQuickActions.value = true
+                                com.vikram.expressiveisland.data.CameraHoleTapAction.ASSISTANT -> CenterShortcutExecutor.execute(CenterShortcut.Assistant, context)
+                                else -> CenterShortcutExecutor.executeCameraHoleAction(action, context)
                             }
                         },
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
@@ -699,7 +701,12 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeBehaviour() = scope.launch {
+        var previousShowsWhenEmpty: Boolean? = null
         behaviourPreferences.settings.collect {
+            if (previousShowsWhenEmpty == true && !it.showsWhenEmpty) {
+                cameraHoleQuickActions.value = false
+            }
+            previousShowsWhenEmpty = it.showsWhenEmpty
             behaviourState.value = it
             // Toggling "hide on lockscreen" (or first load while already locked) must take effect now.
             applyLockVisibility()
@@ -987,9 +994,11 @@ class IslandOverlayController(private val context: Context) {
      * unaffected; the pill's own footprint does stop passing touches through.
      */
     private fun observeVisibility() = scope.launch {
-        combine(currentEvent, behaviourState, ::Pair).collect { (event, behaviour) ->
+        combine(currentEvent, behaviourState, cameraHoleQuickActions) { event, behaviour, quickActions ->
+            Triple(event, behaviour, quickActions)
+        }.collect { (event, behaviour, quickActions) ->
             setTouchable(
-                event != null || satelliteEvent.value != null ||
+                event != null || satelliteEvent.value != null || quickActions ||
                         (behaviour.showsWhenEmpty && behaviour.cutoutEnabled) ||
                         (behaviour.cameraHoleTapEnabled &&
                                 behaviour.cutoutEnabled &&
@@ -2089,10 +2098,6 @@ class IslandOverlayController(private val context: Context) {
      */
     private fun onCenterShortcut(shortcut: CenterShortcut) {
         cameraHoleQuickActions.value = false
-        if (shortcut == CenterShortcut.Assistant) {
-            openAssistantPanel()
-            return
-        }
         val settleFirst = shortcut is CenterShortcut.Global &&
                 (shortcut.action == GlobalAction.SCREENSHOT || shortcut.action == GlobalAction.POWER_DIALOG)
         if (settleFirst) {

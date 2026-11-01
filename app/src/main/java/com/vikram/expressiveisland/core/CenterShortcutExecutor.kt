@@ -49,7 +49,7 @@ object CenterShortcutExecutor {
         is CenterShortcut.Global -> performGlobal(shortcut)
         CenterShortcut.Torch -> toggleTorch(context)
         is CenterShortcut.Panel -> startIntent(Intent(shortcut.panel.action), context)
-        CenterShortcut.Assistant -> false // Routed by IslandOverlayController to the assistant panel.
+        CenterShortcut.Assistant -> launchDeviceAssistant(context)
         is CenterShortcut.LaunchApp -> launchApp(shortcut.packageName, context)
     }
 
@@ -60,6 +60,8 @@ object CenterShortcutExecutor {
      */
     fun executeCameraHoleAction(action: CameraHoleTapAction, context: Context): Boolean = when (action) {
         CameraHoleTapAction.NONE -> false
+        CameraHoleTapAction.QUICK_ACTIONS -> false // Opened by the overlay controller.
+        CameraHoleTapAction.ASSISTANT -> launchDeviceAssistant(context)
         CameraHoleTapAction.SCREENSHOT -> execute(CenterShortcut.Global(GlobalAction.SCREENSHOT), context)
         CameraHoleTapAction.LOCK_SCREEN -> execute(CenterShortcut.Global(GlobalAction.LOCK_SCREEN), context)
         CameraHoleTapAction.POWER_MENU -> execute(CenterShortcut.Global(GlobalAction.POWER_DIALOG), context)
@@ -181,6 +183,12 @@ object CenterShortcutExecutor {
     private fun launchApp(packageName: String, context: Context): Boolean {
         val launch = context.packageManager.getLaunchIntentForPackage(packageName) ?: return false
         return startIntent(launch, context)
+    }
+
+    /** Launch the device's configured assistant rather than the app's internal assistant panel. */
+    private fun launchDeviceAssistant(context: Context): Boolean {
+        if (startIntent(Intent(Intent.ACTION_ASSIST), context)) return true
+        return startIntent(Intent(Intent.ACTION_VOICE_COMMAND), context)
     }
 
     private fun startIntent(intent: Intent, context: Context): Boolean = runCatching {

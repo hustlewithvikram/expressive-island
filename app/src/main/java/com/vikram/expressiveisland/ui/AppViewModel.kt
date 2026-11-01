@@ -666,6 +666,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setCameraHoleTapAction(action: CameraHoleTapAction) = viewModelScope.launch {
+        behaviourPreferences.setCameraHoleAssistantEnabled(false)
+        assistantTilePreferences.setTapToOpenAssistant(false)
         behaviourPreferences.setCameraHoleTapAction(action)
     }
 

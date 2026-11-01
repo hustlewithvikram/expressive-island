@@ -118,10 +118,11 @@
     <string name="camera_hole_enabled_title">Enable camera hole Touch</string>
     <string name="camera_hole_enabled_desc">Enable actions for the camera-hole touch area when no island or Persistent Pill is visible.</string>
     <string name="camera_hole_action_title">Touch action</string>
-    <string name="camera_hole_action_desc">Choose the system action to perform when touched. Assistant and Quick Actions have separate toggles above.</string>
+    <string name="camera_hole_action_desc">Choose what happens when you touch the camera hole. Quick Actions opens your shortcut grid; Assistant launches your device\'s default assistant.</string>
     <string name="camera_hole_haptics_title">Haptic feedback</string>
     <string name="camera_hole_haptics_desc">Vibrate briefly when the camera-hole touch is detected.</string>
     <string name="camera_hole_action_none">Do nothing</string>
+    <string name="camera_hole_action_quick_actions">Open Quick Actions</string>
     <string name="camera_hole_shizuku_note">Wi-Fi, Bluetooth and mobile data require Shizuku to be running with permission granted. No Settings page will be opened as a fallback.</string>
     <string name="camera_hole_disabled_note">Enable this feature to activate the transparent touch area over the physical camera hole. It does not draw or change the Persistent Pill.</string>
     <string name="assistant_auto_read_desc">Automatically detect supported assistant activity and show its visible response in the island. Turn this off to stop reading assistant screens.</string>
@@ -129,6 +130,9 @@
     <string name="camera_hole_quick_actions_desc">Open the configurable Quick Actions center when you touch the camera hole while no island or Persistent Pill is visible.</string>
     <string name="camera_hole_assistant_title">Open Assistant on camera hole touch</string>
     <string name="camera_hole_assistant_desc">Open the Assistant when you touch the camera hole while no island or Persistent Pill is visible. This takes priority over Quick Actions.</string>
+    <string name="persistent_pill_appearance">Appearance</string>
+    <string name="persistent_pill_interaction">Interaction</string>
+    <string name="persistent_pill_shortcuts">Quick Actions</string>
     <string name="assistant_auto_expand_title">Auto-expand assistant responses</string>
     <string name="assistant_auto_expand_desc">Automatically expand when a supported assistant response arrives. Turn this off to keep responses collapsed.</string>
     <string name="assistant_pill_timeout_title">Pill timeout</string>
