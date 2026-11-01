@@ -2513,6 +2513,8 @@ class IslandOverlayController(private val context: Context) {
             PixelFormat.TRANSLUCENT,
 
             ).apply {
+            // Let the assistant composer remain visible while the IME resizes the overlay viewport.
+            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
             gravity = computeWindowGravity()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 layoutInDisplayCutoutMode =
