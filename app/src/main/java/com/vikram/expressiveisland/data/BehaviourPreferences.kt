@@ -106,6 +106,7 @@ data class BehaviourSettings(
     val cameraHoleTapEnabled: Boolean = DEFAULT_CAMERA_HOLE_TAP_ENABLED,
     val cameraHoleTapAction: CameraHoleTapAction = DEFAULT_CAMERA_HOLE_TAP_ACTION,
     val cameraHoleTapHaptics: Boolean = DEFAULT_CAMERA_HOLE_TAP_HAPTICS,
+    val cameraHoleAssistantEnabled: Boolean = DEFAULT_CAMERA_HOLE_ASSISTANT_ENABLED,
     val vibrateOnTap: Boolean = DEFAULT_VIBRATE_ON_TAP,
     val hapticsOnPop: Boolean = DEFAULT_HAPTICS_ON_POP,
     val dismissNotifications: Boolean = DEFAULT_DISMISS_NOTIFICATIONS,
@@ -153,6 +154,7 @@ data class BehaviourSettings(
         const val DEFAULT_CAMERA_HOLE_TAP_ENABLED = false
         val DEFAULT_CAMERA_HOLE_TAP_ACTION = CameraHoleTapAction.SCREENSHOT
         const val DEFAULT_CAMERA_HOLE_TAP_HAPTICS = true
+        const val DEFAULT_CAMERA_HOLE_ASSISTANT_ENABLED = false
         const val DEFAULT_DISMISS_NOTIFICATIONS = false
         const val DEFAULT_DISPLAY_WHILE_DND = false
         const val DEFAULT_ALERT_ON_NOTIFICATION = false
@@ -249,6 +251,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
                 ?.let { runCatching { CameraHoleTapAction.valueOf(it) }.getOrNull() }
                 ?: BehaviourSettings.DEFAULT_CAMERA_HOLE_TAP_ACTION,
             cameraHoleTapHaptics = prefs[CAMERA_HOLE_TAP_HAPTICS] ?: BehaviourSettings.DEFAULT_CAMERA_HOLE_TAP_HAPTICS,
+            cameraHoleAssistantEnabled = prefs[CAMERA_HOLE_ASSISTANT_ENABLED] ?: BehaviourSettings.DEFAULT_CAMERA_HOLE_ASSISTANT_ENABLED,
             vibrateOnTap = prefs[VIBRATE_ON_TAP] ?: BehaviourSettings.DEFAULT_VIBRATE_ON_TAP,
             /** If enabled, haptic feedback fires when the cutout appears and disappears */
             hapticsOnPop = prefs[HAPTICS_ON_POP] ?: BehaviourSettings.DEFAULT_HAPTICS_ON_POP,
@@ -310,6 +313,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("cameraHoleTapEnabled", s.cameraHoleTapEnabled)
             put("cameraHoleTapAction", s.cameraHoleTapAction.name)
             put("cameraHoleTapHaptics", s.cameraHoleTapHaptics)
+            put("cameraHoleAssistantEnabled", s.cameraHoleAssistantEnabled)
             put("vibrateOnTap", s.vibrateOnTap)
             put("hapticsOnPop", s.hapticsOnPop)
             put("dismissNotifications", s.dismissNotifications)
@@ -432,6 +436,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             parseEnum<CameraHoleTapAction>(obj, "cameraHoleTapAction")
                 ?.let { action -> it[CAMERA_HOLE_TAP_ACTION] = action.name }
             if (obj.has("cameraHoleTapHaptics")) it[CAMERA_HOLE_TAP_HAPTICS] = obj.getBoolean("cameraHoleTapHaptics")
+            if (obj.has("cameraHoleAssistantEnabled")) it[CAMERA_HOLE_ASSISTANT_ENABLED] = obj.getBoolean("cameraHoleAssistantEnabled")
             if (obj.has("vibrateOnTap")) it[VIBRATE_ON_TAP] = obj.getBoolean("vibrateOnTap")
             if (obj.has("hapticsOnPop")) it[HAPTICS_ON_POP] = obj.getBoolean("hapticsOnPop")
             if (obj.has("dismissNotifications")) it[DISMISS_NOTIFICATIONS] =
@@ -632,6 +637,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[CAMERA_HOLE_TAP_HAPTICS] = enabled
     }
 
+    suspend fun setCameraHoleAssistantEnabled(enabled: Boolean) = context.behaviourDataStore.edit {
+        it[CAMERA_HOLE_ASSISTANT_ENABLED] = enabled
+    }
+
     /** Sets whether the cutout vibrates on tap */
     suspend fun setVibrateOnTap(enabled: Boolean) = context.behaviourDataStore.edit {
         it[VIBRATE_ON_TAP] = enabled
@@ -700,6 +709,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val CAMERA_HOLE_TAP_ENABLED = booleanPreferencesKey("camera_hole_tap_enabled")
         val CAMERA_HOLE_TAP_ACTION = stringPreferencesKey("camera_hole_tap_action")
         val CAMERA_HOLE_TAP_HAPTICS = booleanPreferencesKey("camera_hole_tap_haptics")
+        val CAMERA_HOLE_ASSISTANT_ENABLED = booleanPreferencesKey("camera_hole_assistant_enabled")
         val VIBRATE_ON_TAP = booleanPreferencesKey("vibrate_on_tap")
         val HAPTICS_ON_POP = booleanPreferencesKey("haptics_on_pop")
         val DISMISS_NOTIFICATIONS = booleanPreferencesKey("dismiss_notifications")
