@@ -195,10 +195,11 @@ internal fun ShowsWhenEmptyScreen(
                     text = stringResource(R.string.shows_when_empty_on_click),
                     style = MaterialTheme.typography.titleMedium,
                 )
-                EmptyClickAction.entries.filter { it != EmptyClickAction.OPEN_CENTER }.forEach { action ->
+                EmptyClickAction.entries.forEach { action ->
                     val label = when (action) {
                         EmptyClickAction.NONE -> stringResource(R.string.shows_when_empty_click_none)
                         EmptyClickAction.OPEN_APP -> stringResource(R.string.shows_when_empty_click_open_app)
+                        EmptyClickAction.OPEN_CENTER -> stringResource(R.string.shows_when_empty_click_open_center)
                     }
                     Row(
                         modifier = Modifier
