@@ -1330,7 +1330,7 @@ private fun AppHeader() {
         ) {
             Image(
                 painter = painterResource(
-                    R.drawable.ic_launcher_foreground,
+                    R.drawable.ic_app_logo,
                 ),
                 contentDescription = stringResource(
                     R.string.app_icon_description,
