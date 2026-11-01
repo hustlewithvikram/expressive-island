@@ -380,7 +380,7 @@ internal fun DynamicIsland(
     }
 
     LaunchedEffect(emptyPill) {
-        if (emptyPill) {
+        if (emptyPill && !cameraHoleQuickActions) {
             tapExpanded = false
             if (dismissOffsetX.value != 0f) {
                 reveal.snapTo(0f)
