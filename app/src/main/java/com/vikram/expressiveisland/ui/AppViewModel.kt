@@ -484,6 +484,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         assistantTilePreferences.setExpandedTimeoutSeconds(seconds)
     }
 
+    fun setAssistantManualExpandedToPillTimeoutSeconds(seconds: Int) = viewModelScope.launch {
+        assistantTilePreferences.setManualExpandedToPillTimeoutSeconds(seconds)
+    }
+
+    fun setAssistantManualAutoHideEnabled(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setManualAutoHideEnabled(enabled)
+    }
+
+    fun setAssistantManualPillToHiddenTimeoutSeconds(seconds: Int) = viewModelScope.launch {
+        assistantTilePreferences.setManualPillToHiddenTimeoutSeconds(seconds)
+    }
+
+    fun setAssistantShowMicButton(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setShowAssistantMicButton(enabled)
+    }
+
+    fun setAssistantShowPromptInput(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setShowAssistantPromptInput(enabled)
+    }
+
+    fun setAssistantShowSendButton(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setShowAssistantSendButton(enabled)
+    }
+
     fun setMusicSkipColor(color: CutoutColor?) = viewModelScope.launch {
         musicTilePreferences.setSkipColor(color)
     }

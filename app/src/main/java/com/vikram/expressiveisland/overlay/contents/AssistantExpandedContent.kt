@@ -1,8 +1,6 @@
 package com.vikram.expressiveisland.overlay.contents
 
-import android.app.SearchManager
 import android.content.Intent
-import android.net.Uri
 import android.speech.RecognizerIntent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -40,6 +38,9 @@ import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardActions
+import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -94,7 +95,18 @@ fun AssistantExpandedContent(
     var query by remember(event.id) { mutableStateOf("") }
     var voiceMode by remember(event.id) { mutableStateOf(assistant.interactionMode == AssistantInteractionMode.VOICE) }
     var promptMode by remember(event.id) { mutableStateOf(assistant.interactionMode == AssistantInteractionMode.PROMPT) }
+    var submittedPrompt by remember(event.id) { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val submitPrompt: () -> Unit = {
+        val prompt = query.trim()
+        if (prompt.isNotEmpty()) {
+            submittedPrompt = prompt
+            query = ""
+            promptMode = false
+            voiceMode = false
+            onInputFocusChange(false)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -206,79 +218,93 @@ fun AssistantExpandedContent(
 
                 Spacer(Modifier.height(12.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = {
-                            query = it
-                            promptMode = it.isNotBlank()
-                            if (it.isNotBlank()) voiceMode = false
-                        },
-                        modifier = Modifier.weight(1f).onFocusChanged {
-                            onInputFocusChange(it.isFocused)
-                            if (it.isFocused) promptMode = true
-                        },
-                        placeholder = { Text("Ask anything…") },
-                        shape = RoundedCornerShape(24.dp),
-                        maxLines = 3,
-                    )
-                    IconButton(
-                        onClick = {
-                            voiceMode = true
-                            promptMode = false
-                            scope.launch {
-                                delay(650)
-                                val voiceIntent = Intent(Intent.ACTION_VOICE_COMMAND).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                runCatching { context.startActivity(voiceIntent) }.onFailure {
-                                    val fallback = Intent(RecognizerIntent.ACTION_WEB_SEARCH).apply {
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    }
-                                    runCatching { context.startActivity(fallback) }
-                                }
-                            }
-                        },
+                if (assistant.showPromptInput || assistant.showMicButton) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Icon(Icons.Rounded.Mic, contentDescription = "Open voice assistant")
-                    }
-                    IconButton(
-                        enabled = query.isNotBlank(),
-                        onClick = {
-                            val text = query.trim()
-                            if (text.isNotEmpty()) {
-                                promptMode = true
-                                voiceMode = false
-                                scope.launch {
-                                    delay(420)
-                                    val geminiIntent = Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse("https://gemini.google.com/app?q=${Uri.encode(text)}"),
-                                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    runCatching { context.startActivity(geminiIntent) }.onFailure {
-                                        val fallback = Intent(Intent.ACTION_WEB_SEARCH).apply {
-                                            putExtra(SearchManager.QUERY, text)
+                        if (assistant.showPromptInput) {
+                            OutlinedTextField(
+                                value = query,
+                                onValueChange = {
+                                    query = it
+                                    promptMode = it.isNotBlank()
+                                    if (it.isNotBlank()) voiceMode = false
+                                },
+                                modifier = Modifier.weight(1f).onFocusChanged {
+                                    onInputFocusChange(it.isFocused)
+                                    if (it.isFocused) promptMode = true
+                                },
+                                placeholder = { Text("Ask anything…") },
+                                shape = RoundedCornerShape(24.dp),
+                                singleLine = !assistant.showSendButton,
+                                maxLines = if (assistant.showSendButton) 3 else 1,
+                                keyboardOptions = KeyboardOptions(
+                                    imeAction = if (assistant.showSendButton) ImeAction.Default else ImeAction.Send,
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onSend = { if (!assistant.showSendButton) submitPrompt() },
+                                ),
+                            )
+                        }
+                        if (assistant.showMicButton) {
+                            IconButton(
+                                onClick = {
+                                    voiceMode = true
+                                    promptMode = false
+                                    scope.launch {
+                                        delay(650)
+                                        val voiceIntent = Intent(Intent.ACTION_VOICE_COMMAND).apply {
                                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                         }
-                                        runCatching { context.startActivity(fallback) }
+                                        runCatching { context.startActivity(voiceIntent) }.onFailure {
+                                            val fallback = Intent(RecognizerIntent.ACTION_WEB_SEARCH).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+                                            runCatching { context.startActivity(fallback) }
+                                        }
                                     }
-                                }
+                                },
+                            ) {
+                                Icon(Icons.Rounded.Mic, contentDescription = "Open voice assistant")
                             }
-                        },
-                    ) {
-                        Icon(Icons.Rounded.Send, contentDescription = "Send prompt to Gemini")
+                        }
+                        if (assistant.showPromptInput && assistant.showSendButton) {
+                            IconButton(
+                                enabled = query.isNotBlank(),
+                                onClick = submitPrompt,
+                            ) {
+                                Icon(Icons.Rounded.Send, contentDescription = "Send prompt")
+                            }
+                        }
                     }
                 }
-                Text(
-                    text = "Text prompts open Gemini; voice uses your configured Android assistant.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = contentColor.copy(alpha = 0.58f),
-                    modifier = Modifier.padding(start = 8.dp, top = 4.dp),
-                )
+
+                submittedPrompt?.let { prompt ->
+                    Spacer(Modifier.height(12.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                    ) {
+                        Column(Modifier.padding(14.dp)) {
+                            Text(
+                                text = prompt,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = contentColor,
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = "Please setup Assistant API for this to work",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = contentColor.copy(alpha = 0.82f),
+                            )
+                        }
+                    }
+                }
+
             } else if (assistant.displayAnswerInCutout) {
                 val textToDisplay =
                     assistant.answerText.takeIf { !it.isNullOrBlank() } ?: "Assistant response received."

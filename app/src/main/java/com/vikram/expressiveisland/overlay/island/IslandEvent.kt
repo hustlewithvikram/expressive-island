@@ -154,6 +154,9 @@ data class AssistantTileOptions(
     /** True for the on-demand conversational panel, rather than a mirrored assistant response. */
     val interactivePanel: Boolean = false,
     val interactionMode: AssistantInteractionMode = AssistantInteractionMode.UNKNOWN,
+    val showMicButton: Boolean = true,
+    val showPromptInput: Boolean = true,
+    val showSendButton: Boolean = true,
 )
 
 /** Which parts of the timer tile to render (and how its buttons look), per the tile's settings. */

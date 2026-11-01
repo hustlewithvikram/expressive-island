@@ -39,6 +39,12 @@ data class AssistantTileSettings(
     val pillTimeoutSeconds: Int = DEFAULT_PILL_TIMEOUT_SECONDS,
     /** Seconds an expanded assistant response stays open before collapsing. */
     val expandedTimeoutSeconds: Int = DEFAULT_EXPANDED_TIMEOUT_SECONDS,
+    val manualExpandedToPillTimeoutSeconds: Int = DEFAULT_MANUAL_EXPANDED_TO_PILL_TIMEOUT_SECONDS,
+    val manualAutoHideEnabled: Boolean = DEFAULT_MANUAL_AUTO_HIDE_ENABLED,
+    val manualPillToHiddenTimeoutSeconds: Int = DEFAULT_MANUAL_PILL_TO_HIDDEN_TIMEOUT_SECONDS,
+    val showAssistantMicButton: Boolean = DEFAULT_SHOW_ASSISTANT_MIC_BUTTON,
+    val showAssistantPromptInput: Boolean = DEFAULT_SHOW_ASSISTANT_PROMPT_INPUT,
+    val showAssistantSendButton: Boolean = DEFAULT_SHOW_ASSISTANT_SEND_BUTTON,
 ) {
     companion object {
         const val DEFAULT_DISPLAY_ANSWER_IN_CUTOUT = true
@@ -49,6 +55,12 @@ data class AssistantTileSettings(
         const val DEFAULT_AUTO_READ_ASSISTANT_EVENTS = true
         const val DEFAULT_PILL_TIMEOUT_SECONDS = 6
         const val DEFAULT_EXPANDED_TIMEOUT_SECONDS = 18
+        const val DEFAULT_MANUAL_EXPANDED_TO_PILL_TIMEOUT_SECONDS = 15
+        const val DEFAULT_MANUAL_AUTO_HIDE_ENABLED = true
+        const val DEFAULT_MANUAL_PILL_TO_HIDDEN_TIMEOUT_SECONDS = 10
+        const val DEFAULT_SHOW_ASSISTANT_MIC_BUTTON = true
+        const val DEFAULT_SHOW_ASSISTANT_PROMPT_INPUT = true
+        const val DEFAULT_SHOW_ASSISTANT_SEND_BUTTON = true
     }
 }
 
@@ -67,6 +79,13 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             autoReadAssistantEvents = prefs[AUTO_READ_ASSISTANT_EVENTS] ?: AssistantTileSettings.DEFAULT_AUTO_READ_ASSISTANT_EVENTS,
             pillTimeoutSeconds = prefs[PILL_TIMEOUT_SECONDS] ?: AssistantTileSettings.DEFAULT_PILL_TIMEOUT_SECONDS,
             expandedTimeoutSeconds = prefs[EXPANDED_TIMEOUT_SECONDS] ?: AssistantTileSettings.DEFAULT_EXPANDED_TIMEOUT_SECONDS,
+            manualExpandedToPillTimeoutSeconds = prefs[MANUAL_EXPANDED_TO_PILL_TIMEOUT_SECONDS] ?: AssistantTileSettings.DEFAULT_MANUAL_EXPANDED_TO_PILL_TIMEOUT_SECONDS,
+            manualAutoHideEnabled = prefs[MANUAL_AUTO_HIDE_ENABLED] ?: AssistantTileSettings.DEFAULT_MANUAL_AUTO_HIDE_ENABLED,
+            manualPillToHiddenTimeoutSeconds = prefs[MANUAL_PILL_TO_HIDDEN_TIMEOUT_SECONDS] ?: AssistantTileSettings.DEFAULT_MANUAL_PILL_TO_HIDDEN_TIMEOUT_SECONDS,
+            showAssistantMicButton = prefs[SHOW_ASSISTANT_MIC_BUTTON] ?: AssistantTileSettings.DEFAULT_SHOW_ASSISTANT_MIC_BUTTON,
+            showAssistantPromptInput = prefs[SHOW_ASSISTANT_PROMPT_INPUT] ?: AssistantTileSettings.DEFAULT_SHOW_ASSISTANT_PROMPT_INPUT,
+            showAssistantSendButton = (prefs[SHOW_ASSISTANT_SEND_BUTTON] ?: AssistantTileSettings.DEFAULT_SHOW_ASSISTANT_SEND_BUTTON) &&
+                (prefs[SHOW_ASSISTANT_PROMPT_INPUT] ?: AssistantTileSettings.DEFAULT_SHOW_ASSISTANT_PROMPT_INPUT),
         )
     }
 
@@ -84,6 +103,12 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             put("autoReadAssistantEvents", s.autoReadAssistantEvents)
             put("pillTimeoutSeconds", s.pillTimeoutSeconds)
             put("expandedTimeoutSeconds", s.expandedTimeoutSeconds)
+            put("manualExpandedToPillTimeoutSeconds", s.manualExpandedToPillTimeoutSeconds)
+            put("manualAutoHideEnabled", s.manualAutoHideEnabled)
+            put("manualPillToHiddenTimeoutSeconds", s.manualPillToHiddenTimeoutSeconds)
+            put("showAssistantMicButton", s.showAssistantMicButton)
+            put("showAssistantPromptInput", s.showAssistantPromptInput)
+            put("showAssistantSendButton", s.showAssistantSendButton)
         }.toString()
     }
 
@@ -103,6 +128,19 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             if (obj.has("autoReadAssistantEvents")) it[AUTO_READ_ASSISTANT_EVENTS] = obj.getBoolean("autoReadAssistantEvents")
             if (obj.has("pillTimeoutSeconds")) it[PILL_TIMEOUT_SECONDS] = obj.getInt("pillTimeoutSeconds").coerceIn(2, 30)
             if (obj.has("expandedTimeoutSeconds")) it[EXPANDED_TIMEOUT_SECONDS] = obj.getInt("expandedTimeoutSeconds").coerceIn(5, 60)
+            if (obj.has("manualExpandedToPillTimeoutSeconds")) it[MANUAL_EXPANDED_TO_PILL_TIMEOUT_SECONDS] = obj.getInt("manualExpandedToPillTimeoutSeconds").coerceIn(5, 60)
+            if (obj.has("manualAutoHideEnabled")) it[MANUAL_AUTO_HIDE_ENABLED] = obj.getBoolean("manualAutoHideEnabled")
+            if (obj.has("manualPillToHiddenTimeoutSeconds")) it[MANUAL_PILL_TO_HIDDEN_TIMEOUT_SECONDS] = obj.getInt("manualPillToHiddenTimeoutSeconds").coerceIn(2, 60)
+            if (obj.has("showAssistantMicButton")) it[SHOW_ASSISTANT_MIC_BUTTON] = obj.getBoolean("showAssistantMicButton")
+            if (obj.has("showAssistantPromptInput")) {
+                val showPrompt = obj.getBoolean("showAssistantPromptInput")
+                it[SHOW_ASSISTANT_PROMPT_INPUT] = showPrompt
+                if (!showPrompt) it[SHOW_ASSISTANT_SEND_BUTTON] = false
+            }
+            if (obj.has("showAssistantSendButton")) {
+                it[SHOW_ASSISTANT_SEND_BUTTON] =
+                    obj.getBoolean("showAssistantSendButton") && (it[SHOW_ASSISTANT_PROMPT_INPUT] ?: true)
+            }
             if (obj.has("iconContainerColor")) {
                 val raw = if (obj.isNull("iconContainerColor")) null else obj.optString("iconContainerColor")
                 val color = CutoutColor.deserialize(raw)
@@ -151,7 +189,38 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
         it[EXPANDED_TIMEOUT_SECONDS] = seconds.coerceIn(5, 60)
     }
 
+    suspend fun setManualExpandedToPillTimeoutSeconds(seconds: Int) = context.assistantTileDataStore.edit {
+        it[MANUAL_EXPANDED_TO_PILL_TIMEOUT_SECONDS] = seconds.coerceIn(5, 60)
+    }
+
+    suspend fun setManualAutoHideEnabled(enabled: Boolean) = context.assistantTileDataStore.edit {
+        it[MANUAL_AUTO_HIDE_ENABLED] = enabled
+    }
+
+    suspend fun setManualPillToHiddenTimeoutSeconds(seconds: Int) = context.assistantTileDataStore.edit {
+        it[MANUAL_PILL_TO_HIDDEN_TIMEOUT_SECONDS] = seconds.coerceIn(2, 60)
+    }
+
+    suspend fun setShowAssistantMicButton(enabled: Boolean) = context.assistantTileDataStore.edit {
+        it[SHOW_ASSISTANT_MIC_BUTTON] = enabled
+    }
+
+    suspend fun setShowAssistantPromptInput(enabled: Boolean) = context.assistantTileDataStore.edit {
+        it[SHOW_ASSISTANT_PROMPT_INPUT] = enabled
+        if (!enabled) it[SHOW_ASSISTANT_SEND_BUTTON] = false
+    }
+
+    suspend fun setShowAssistantSendButton(enabled: Boolean) = context.assistantTileDataStore.edit {
+        it[SHOW_ASSISTANT_SEND_BUTTON] = enabled && (it[SHOW_ASSISTANT_PROMPT_INPUT] ?: true)
+    }
+
     private companion object {
+        val MANUAL_EXPANDED_TO_PILL_TIMEOUT_SECONDS = intPreferencesKey("manual_expanded_to_pill_timeout_seconds")
+        val MANUAL_AUTO_HIDE_ENABLED = booleanPreferencesKey("manual_auto_hide_enabled")
+        val MANUAL_PILL_TO_HIDDEN_TIMEOUT_SECONDS = intPreferencesKey("manual_pill_to_hidden_timeout_seconds")
+        val SHOW_ASSISTANT_MIC_BUTTON = booleanPreferencesKey("show_assistant_mic_button")
+        val SHOW_ASSISTANT_PROMPT_INPUT = booleanPreferencesKey("show_assistant_prompt_input")
+        val SHOW_ASSISTANT_SEND_BUTTON = booleanPreferencesKey("show_assistant_send_button")
         val ACTIVATION_MODE = stringPreferencesKey("activation_mode")
         val DISPLAY_ANSWER_IN_CUTOUT = booleanPreferencesKey("display_answer_in_cutout")
         val MAX_CUTOUT_HEIGHT_PERCENT = intPreferencesKey("max_cutout_height_percent")

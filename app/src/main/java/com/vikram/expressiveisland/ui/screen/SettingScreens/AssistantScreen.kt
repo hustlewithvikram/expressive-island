@@ -30,10 +30,6 @@ import com.vikram.expressiveisland.data.AssistantActivationMode
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 
-/**
- * Assistant tile settings. Auto reads supported assistant windows; Manual disables screen reading
- * and automatic expansion, leaving Behaviour > Camera Hole Touch as the single manual trigger.
- */
 @Composable
 internal fun AssistantScreen(
     viewModel: AppViewModel,
@@ -66,7 +62,7 @@ internal fun AssistantScreen(
         if (settings.activationMode == AssistantActivationMode.AUTO) {
             AssistantInfoCard(
                 title = "Automatic assistant detection",
-                description = "Expressive Island reads supported assistant app windows and displays their activity in the cutout. Automatic expansion follows the controls below.",
+                description = "Reads supported assistant app windows and displays their activity. Automatic expansion follows the controls below.",
             )
 
             SettingsToggleCard(
@@ -86,69 +82,67 @@ internal fun AssistantScreen(
             )
 
             SettingsToggleCard(
-                shape = RoundedCornerShape(4.dp),
+                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp),
                 title = stringResource(R.string.assistant_display_answer_title),
                 description = stringResource(R.string.assistant_display_answer_desc),
                 checked = settings.displayAnswerInCutout,
                 onCheckedChange = viewModel::setAssistantDisplayAnswerInCutout,
             )
-
-            AnimatedVisibility(visible = settings.displayAnswerInCutout) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    var maxHeight by remember(settings.maxCutoutHeightPercent) {
-                        mutableFloatStateOf(settings.maxCutoutHeightPercent.toFloat())
-                    }
-                    SettingsSliderCard(
-                        shape = RoundedCornerShape(4.dp),
-                        title = stringResource(R.string.assistant_max_height_title),
-                        description = stringResource(R.string.assistant_max_height_desc),
-                        valueText = stringResource(R.string.assistant_max_height_value, maxHeight.toInt()),
-                        value = maxHeight,
-                        valueRange = 10f..80f,
-                        step = 5f,
-                        onValueChange = { maxHeight = it },
-                        onCommit = { viewModel.setAssistantMaxCutoutHeightPercent(maxHeight.toInt()) },
-                    )
-
-                    var pillTimeout by remember(settings.pillTimeoutSeconds) {
-                        mutableFloatStateOf(settings.pillTimeoutSeconds.toFloat())
-                    }
-                    SettingsSliderCard(
-                        shape = RoundedCornerShape(4.dp),
-                        title = stringResource(R.string.assistant_pill_timeout_title),
-                        description = stringResource(R.string.assistant_pill_timeout_desc),
-                        valueText = stringResource(R.string.assistant_timeout_value, pillTimeout.toInt()),
-                        value = pillTimeout,
-                        valueRange = 2f..30f,
-                        step = 1f,
-                        onValueChange = { pillTimeout = it },
-                        onCommit = { viewModel.setAssistantPillTimeoutSeconds(pillTimeout.toInt()) },
-                    )
-
-                    var expandedTimeout by remember(settings.expandedTimeoutSeconds) {
-                        mutableFloatStateOf(settings.expandedTimeoutSeconds.toFloat())
-                    }
-                    SettingsSliderCard(
-                        shape = RoundedCornerShape(4.dp),
-                        title = stringResource(R.string.assistant_expanded_timeout_title),
-                        description = stringResource(R.string.assistant_expanded_timeout_desc),
-                        valueText = stringResource(R.string.assistant_timeout_value, expandedTimeout.toInt()),
-                        value = expandedTimeout,
-                        valueRange = 5f..60f,
-                        step = 1f,
-                        onValueChange = { expandedTimeout = it },
-                        onCommit = { viewModel.setAssistantExpandedTimeoutSeconds(expandedTimeout.toInt()) },
-                    )
-                }
-            }
         } else {
             AssistantInfoCard(
                 title = "Manual assistant activation",
-                description = "Automatic screen reading and automatic expansion are disabled in this mode. Open App Assistant using the Camera Hole Touch action configured in Behaviour. That trigger stays in one place and is not duplicated here.",
+                description = "Automatic screen reading is disabled. Open App Assistant through the Camera Hole Touch action configured in Behaviour.",
             )
 
             Text(
-                text = "Appearance",
+                text = "Panel behaviour",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
+            )
+
+            var expandedToPill by remember(settings.manualExpandedToPillTimeoutSeconds) {
+                mutableFloatStateOf(settings.manualExpandedToPillTimeoutSeconds.toFloat())
+            }
+            SettingsSliderCard(
+                shape = RoundedCornerShape(24.dp),
+                title = "Expanded to Pill timeout",
+                description = "How long the expanded assistant stays open before shrinking to the compact pill.",
+                valueText = stringResource(R.string.assistant_timeout_value, expandedToPill.toInt()),
+                value = expandedToPill,
+                valueRange = 5f..60f,
+                step = 1f,
+                onValueChange = { expandedToPill = it },
+                onCommit = { viewModel.setAssistantManualExpandedToPillTimeoutSeconds(expandedToPill.toInt()) },
+            )
+
+            SettingsToggleCard(
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                title = "Auto hide after some time",
+                description = "Automatically remove the compact assistant pill after its timeout.",
+                checked = settings.manualAutoHideEnabled,
+                onCheckedChange = viewModel::setAssistantManualAutoHideEnabled,
+            )
+
+            AnimatedVisibility(visible = settings.manualAutoHideEnabled) {
+                var pillToHidden by remember(settings.manualPillToHiddenTimeoutSeconds) {
+                    mutableFloatStateOf(settings.manualPillToHiddenTimeoutSeconds.toFloat())
+                }
+                SettingsSliderCard(
+                    shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp),
+                    title = "Pill to Hidden timeout",
+                    description = "How long the compact assistant pill remains visible before it disappears.",
+                    valueText = stringResource(R.string.assistant_timeout_value, pillToHidden.toInt()),
+                    value = pillToHidden,
+                    valueRange = 2f..60f,
+                    step = 1f,
+                    onValueChange = { pillToHidden = it },
+                    onCommit = { viewModel.setAssistantManualPillToHiddenTimeoutSeconds(pillToHidden.toInt()) },
+                )
+            }
+
+            Text(
+                text = "Expanded panel elements",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
@@ -156,26 +150,73 @@ internal fun AssistantScreen(
 
             SettingsToggleCard(
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
-                title = stringResource(R.string.assistant_animated_icon_title),
-                description = stringResource(R.string.assistant_animated_icon_desc),
-                checked = settings.useAnimatedIcon,
-                onCheckedChange = viewModel::setAssistantUseAnimatedIcon,
+                title = "Microphone button",
+                description = "Show or hide the voice assistant shortcut.",
+                checked = settings.showAssistantMicButton,
+                onCheckedChange = viewModel::setAssistantShowMicButton,
             )
-
-            Text(
-                text = stringResource(R.string.tile_icon_container_title),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
+            SettingsToggleCard(
+                shape = RoundedCornerShape(4.dp),
+                title = "Prompt input",
+                description = "Show or hide the text prompt field.",
+                checked = settings.showAssistantPromptInput,
+                onCheckedChange = viewModel::setAssistantShowPromptInput,
             )
-            ColorPickerCard(
-                label = stringResource(R.string.tile_icon_container_label),
-                selected = settings.iconContainerColor,
-                onSelect = viewModel::setAssistantIconContainerColor,
-                defaultLabel = stringResource(R.string.music_default_accent),
-                defaultColor = Color(DynamicTile.ASSISTANT.accent),
+            SettingsToggleCard(
+                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp),
+                title = "Send button",
+                description = if (settings.showPromptInput) {
+                    "Show the send button beside the prompt field. When hidden, Enter submits the prompt."
+                } else {
+                    "Enable Prompt input first. The send button is automatically hidden when the prompt field is off."
+                },
+                checked = settings.showAssistantSendButton && settings.showAssistantPromptInput,
+                enabled = settings.showAssistantPromptInput,
+                onCheckedChange = viewModel::setAssistantShowSendButton,
             )
         }
+
+        Text(
+            text = "Expanded layout",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp, top = 14.dp, bottom = 4.dp),
+        )
+        var maxHeight by remember(settings.maxCutoutHeightPercent) {
+            mutableFloatStateOf(settings.maxCutoutHeightPercent.toFloat())
+        }
+        SettingsSliderCard(
+            shape = RoundedCornerShape(24.dp),
+            title = stringResource(R.string.assistant_max_height_title),
+            description = "Maximum height of the expanded assistant island, shared by Auto and Manual modes.",
+            valueText = stringResource(R.string.assistant_max_height_value, maxHeight.toInt()),
+            value = maxHeight,
+            valueRange = 10f..80f,
+            step = 5f,
+            onValueChange = { maxHeight = it },
+            onCommit = { viewModel.setAssistantMaxCutoutHeightPercent(maxHeight.toInt()) },
+        )
+
+        Text(
+            text = "Shared appearance",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp, top = 14.dp, bottom = 4.dp),
+        )
+        ColorPickerCard(
+            label = stringResource(R.string.tile_icon_container_title),
+            selected = settings.iconContainerColor,
+            onSelect = viewModel::setAssistantIconContainerColor,
+            defaultLabel = stringResource(R.string.music_default_accent),
+            defaultColor = Color(DynamicTile.ASSISTANT.accent),
+        )
+        SettingsToggleCard(
+            shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 32.dp, bottomEnd = 32.dp),
+            title = stringResource(R.string.assistant_animated_icon_title),
+            description = stringResource(R.string.assistant_animated_icon_desc),
+            checked = settings.useAnimatedIcon,
+            onCheckedChange = viewModel::setAssistantUseAnimatedIcon,
+        )
 
         Text(
             text = stringResource(R.string.assistant_tile_note),
@@ -187,29 +228,18 @@ internal fun AssistantScreen(
 }
 
 @Composable
-private fun AssistantInfoCard(
-    title: String,
-    description: String,
-) {
+private fun AssistantInfoCard(title: String, description: String) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             Text(title, style = MaterialTheme.typography.titleSmall)
-            Text(
-                description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

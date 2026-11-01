@@ -594,14 +594,18 @@ class IslandOverlayController(private val context: Context) {
                         animationDurationMs = behaviour.animationDurationMs,
                         autoCollapse = when {
                             cameraHoleQuickActionsValue && !behaviour.showsWhenEmpty -> true
-                            event?.assistant?.interactivePanel == true -> false
+                            event?.assistant?.interactivePanel == true -> assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL
                             event?.assistant != null -> true
                             else -> behaviour.expandedAutoCollapse
                         },
-                        autoCollapseMs = event?.assistant
-                            ?.takeUnless { it.interactivePanel }
-                            ?.let { assistantSettings.expandedTimeoutSeconds * 1_000L }
-                            ?: (behaviour.expandedCollapseSeconds * 1_000L),
+                        autoCollapseMs = when {
+                            event?.assistant?.interactivePanel == true &&
+                                assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL ->
+                                assistantSettings.manualExpandedToPillTimeoutSeconds * 1_000L
+                            event?.assistant != null ->
+                                assistantSettings.expandedTimeoutSeconds * 1_000L
+                            else -> behaviour.expandedCollapseSeconds * 1_000L
+                        },
                         appearance = appearance,
                         showActions = behaviour.showActionButtons,
                         shrinkOnSwipeUp = behaviour.shrinkOnSwipeUp,
@@ -781,7 +785,30 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeAssistantSettings() = scope.launch {
-        assistantTilePreferences.settings.collect { assistantSettings = it }
+        assistantTilePreferences.settings.collect { settings ->
+            assistantSettings = settings
+            val current = currentEvent.value
+            if (current?.assistant != null) {
+                val updated = current.copy(
+                    iconContainerColor = settings.iconContainerColor,
+                    assistant = current.assistant.copy(
+                        displayAnswerInCutout = if (current.assistant.interactivePanel) true else settings.displayAnswerInCutout,
+                        maxCutoutHeightPercent = settings.maxCutoutHeightPercent,
+                        showMicButton = settings.showAssistantMicButton,
+                        showPromptInput = settings.showAssistantPromptInput,
+                        showSendButton = settings.showAssistantSendButton && settings.showAssistantPromptInput,
+                    ),
+                )
+                currentEvent.value = updated
+                if (lastAssistantEvent?.id == current.id) lastAssistantEvent = updated
+                if (current.assistant.interactivePanel && !expanded) {
+                    if (settings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
+                        settings.manualAutoHideEnabled
+                    ) scheduleDismiss() else dismissJob?.cancel()
+                }
+                syncWindowSize()
+            }
+        }
     }
 
     /**
@@ -966,7 +993,10 @@ class IslandOverlayController(private val context: Context) {
 
     /** Only the manually opened assistant panel is persistent; mirrored responses time out. */
     private fun isPinnedAssistant(): Boolean =
-        assistantActive && currentEvent.value?.assistant?.interactivePanel == true
+        assistantActive &&
+            currentEvent.value?.assistant?.interactivePanel == true &&
+            !(assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
+                assistantSettings.manualAutoHideEnabled && !expanded)
 
     /** Any live tile (music, a call, a running timer, or assistant) is currently pinned up. */
     private fun isPinnedLiveTile(): Boolean =
@@ -2370,6 +2400,9 @@ class IslandOverlayController(private val context: Context) {
         val scheduledEventId = currentEvent.value?.id ?: return
         // A system event with its own duration override wins; everything else uses the global normal.
         val seconds = when {
+            currentEvent.value?.assistant?.interactivePanel == true &&
+                assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL ->
+                assistantSettings.manualPillToHiddenTimeoutSeconds
             currentEvent.value?.assistant != null -> assistantSettings.pillTimeoutSeconds
             currentSystemEventType != null -> eventDurations[currentSystemEventType]
                 ?: behaviourState.value.normalDurationSeconds
@@ -2384,6 +2417,13 @@ class IslandOverlayController(private val context: Context) {
                 return@launch
             }
             if (promoteSatelliteCollapsed()) return@launch
+            if (currentEvent.value?.assistant?.interactivePanel == true &&
+                assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
+                assistantSettings.manualAutoHideEnabled
+            ) {
+                assistantActive = false
+                lastAssistantEvent = null
+            }
             val livePill = livePillToReturnTo()
             when {
                 // Return to the pinned preview if settings is still open.
