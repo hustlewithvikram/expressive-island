@@ -604,12 +604,15 @@ class IslandOverlayController(private val context: Context) {
                         swipeToDismiss = behaviour.swipeToDismiss,
                         swipeDismissDirection = behaviour.swipeDismissDirection,
                         swipeDismissTarget = behaviour.swipeDismissTarget,
-                        showsWhenEmpty = (behaviour.showsWhenEmpty || assistantSettings.tapToOpenAssistant) && behaviour.cutoutEnabled,
+                        showsWhenEmpty = (behaviour.showsWhenEmpty ||
+                                (assistantSettings.tapToOpenAssistant && currentEvent.value == null &&
+                                        satelliteEvent.value == null && !previewPinned)) && behaviour.cutoutEnabled,
                         assistantTapEnabled = false,
                         onAssistantTap = ::openAssistantPanel,
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
                         emptyIconColor = behaviour.showsWhenEmptyIconColor,
-                        emptyOpensCenter = assistantSettings.tapToOpenAssistant ||
+                        emptyOpensCenter = (assistantSettings.tapToOpenAssistant && currentEvent.value == null &&
+                                satelliteEvent.value == null && !previewPinned) ||
                                 behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
                         centerShortcuts = behaviour.centerShortcuts,
                         centerShowLabels = behaviour.centerShowLabels,
