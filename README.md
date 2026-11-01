@@ -103,6 +103,8 @@ Everything is designed around Material Expressive shapes, motion, colours, and c
 
 [![Download the latest release](https://img.shields.io/badge/Download-latest%20release-005AC1?style=for-the-badge\&logo=github\&logoColor=white)](https://github.com/hustlewithvikram/expressive-island/releases)
 
+[![Download from Orion Store](https://img.shields.io/badge/Download-from%20Orion%20Store-6C5CE7?style=for-the-badge)](https://rookieenough.github.io/Orion-Data/app/?id=expressive-island)
+
 </div>
 
 ### Android requirements
