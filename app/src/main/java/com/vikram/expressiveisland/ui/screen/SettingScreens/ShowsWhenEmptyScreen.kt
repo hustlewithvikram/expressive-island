@@ -101,7 +101,6 @@ internal fun ShowsWhenEmptyScreen(
 ) {
     val context = LocalContext.current
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
-    val assistant by viewModel.assistantTile.collectAsStateWithLifecycle()
     val showIcon = behaviour.showsWhenEmptyShowIcon
     val source = behaviour.showsWhenEmptyIcon
     val containerColor = behaviour.showsWhenEmptyIconColor
@@ -133,14 +132,6 @@ internal fun ShowsWhenEmptyScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        SettingsToggleCard(
-            shape = RoundedCornerShape(32.dp),
-            title = stringResource(R.string.assistant_tap_to_open_title),
-            description = stringResource(R.string.assistant_tap_to_open_desc),
-            checked = assistant.tapToOpenAssistant,
-            onCheckedChange = viewModel::setAssistantTapToOpen,
-        )
-
         SettingsToggleCard(
             shape = RoundedCornerShape(32.dp),
             title = stringResource(R.string.shows_when_empty_show_icon),
@@ -201,11 +192,10 @@ internal fun ShowsWhenEmptyScreen(
                     text = stringResource(R.string.shows_when_empty_on_click),
                     style = MaterialTheme.typography.titleMedium,
                 )
-                EmptyClickAction.entries.forEach { action ->
+                EmptyClickAction.entries.filter { it != EmptyClickAction.OPEN_CENTER }.forEach { action ->
                     val label = when (action) {
                         EmptyClickAction.NONE -> stringResource(R.string.shows_when_empty_click_none)
                         EmptyClickAction.OPEN_APP -> stringResource(R.string.shows_when_empty_click_open_app)
-                        EmptyClickAction.OPEN_CENTER -> stringResource(R.string.shows_when_empty_click_open_center)
                     }
                     Row(
                         modifier = Modifier
@@ -241,7 +231,7 @@ internal fun ShowsWhenEmptyScreen(
             )
         }
 
-        // Once "Open center" is chosen, edit the shortcuts shown in the expanded center.
+        // Configure the shortcuts shown in the Persistent Pill's quick-actions center.
         AnimatedVisibility(visible = true) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SettingsToggleCard(
