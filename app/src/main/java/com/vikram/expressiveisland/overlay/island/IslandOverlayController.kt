@@ -606,14 +606,16 @@ class IslandOverlayController(private val context: Context) {
                         swipeDismissDirection = behaviour.swipeDismissDirection,
                         swipeDismissTarget = behaviour.swipeDismissTarget,
                         showsWhenEmpty = (behaviour.showsWhenEmpty ||
-                                (assistantSettings.tapToOpenAssistant && currentEvent.value == null &&
-                                        satelliteEvent.value == null && !previewPinned)) && behaviour.cutoutEnabled,
+                                (assistantSettings.tapToOpenAssistant &&
+                                        !behaviour.cameraHoleTapEnabled &&
+                                        currentEvent.value == null &&
+                                        satelliteEvent.value == null &&
+                                        !previewPinned)) && behaviour.cutoutEnabled,
                         assistantTapEnabled = false,
                         onAssistantTap = ::openAssistantPanel,
                         cameraHoleTapEnabled = behaviour.cameraHoleTapEnabled &&
                                 behaviour.cutoutEnabled &&
                                 !behaviour.showsWhenEmpty &&
-                                !assistantSettings.tapToOpenAssistant &&
                                 !previewPinned &&
                                 !overlayHidden &&
                                 event == null &&
@@ -627,8 +629,11 @@ class IslandOverlayController(private val context: Context) {
                         },
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
                         emptyIconColor = behaviour.showsWhenEmptyIconColor,
-                        emptyOpensCenter = (assistantSettings.tapToOpenAssistant && currentEvent.value == null &&
-                                satelliteEvent.value == null && !previewPinned) ||
+                        emptyOpensCenter = (assistantSettings.tapToOpenAssistant &&
+                                !behaviour.cameraHoleTapEnabled &&
+                                currentEvent.value == null &&
+                                satelliteEvent.value == null &&
+                                !previewPinned) ||
                                 behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
                         centerShortcuts = behaviour.centerShortcuts,
                         centerShowLabels = behaviour.centerShowLabels,
