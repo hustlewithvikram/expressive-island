@@ -177,7 +177,7 @@ fun AssistantExpandedContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f, fill = false)
-                    .verticalScroll(remember(event.id) { androidx.compose.foundation.ScrollState(0) }),
+                    .verticalScroll(rememberScrollState()),
             ) {
                 if (voiceMode || promptMode) {
                     Column(
