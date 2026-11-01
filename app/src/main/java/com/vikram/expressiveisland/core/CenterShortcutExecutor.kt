@@ -5,6 +5,7 @@ import android.content.Intent
 import android.hardware.camera2.CameraManager
 import android.os.Build
 import androidx.core.content.getSystemService
+import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.RadioToggle
 import com.vikram.expressiveisland.service.CutoutAccessibilityService
@@ -75,10 +76,11 @@ object CenterShortcutExecutor {
             }
 
             val wasEnabled = state == "1"
+            val verb = if (wasEnabled) "disable" else "enable"
             val command = when (radio) {
-                RadioToggle.WIFI -> "svc wifi ${if (wasEnabled) "disable" else "enable"}"
-                RadioToggle.BLUETOOTH -> "svc bluetooth ${if (wasEnabled) "disable" else "enable"}"
-                RadioToggle.MOBILE_DATA -> "svc data ${if (wasEnabled) "disable" else "enable"}"
+                RadioToggle.WIFI -> "svc wifi $verb"
+                RadioToggle.BLUETOOTH -> "svc bluetooth $verb"
+                RadioToggle.MOBILE_DATA -> "svc data $verb"
             }
             val output = runShizukuShell("$command >/dev/null 2>&1; sleep 1; settings get global $key")?.trim()
             val expected = if (wasEnabled) "0" else "1"
