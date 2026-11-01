@@ -220,6 +220,44 @@ internal fun AssistantScreen(
             defaultLabel = stringResource(R.string.music_default_accent),
             defaultColor = Color(DynamicTile.ASSISTANT.accent),
         )
+
+        var surfaceOpacity by remember(settings.surfaceOpacityPercent) {
+            mutableFloatStateOf(settings.surfaceOpacityPercent.toFloat())
+        }
+        SettingsSliderCard(
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+            title = "Assistant surface opacity",
+            description = "Adjust the transparency of the assistant island background without fading its content.",
+            valueText = "${surfaceOpacity.toInt()}%",
+            value = surfaceOpacity,
+            valueRange = 10f..100f,
+            step = 1f,
+            onValueChange = { surfaceOpacity = it },
+            onCommit = { viewModel.setAssistantSurfaceOpacityPercent(surfaceOpacity.toInt()) },
+        )
+        SettingsToggleCard(
+            shape = RoundedCornerShape(4.dp),
+            title = "Backdrop blur",
+            description = "Blur the screen content behind the expanded assistant panel. Requires Android 17 or newer and device support.",
+            checked = settings.backdropBlurEnabled,
+            onCheckedChange = viewModel::setAssistantBackdropBlurEnabled,
+        )
+        AnimatedVisibility(visible = settings.backdropBlurEnabled) {
+            var blurRadius by remember(settings.backdropBlurRadiusDp) {
+                mutableFloatStateOf(settings.backdropBlurRadiusDp.toFloat())
+            }
+            SettingsSliderCard(
+                shape = RoundedCornerShape(4.dp),
+                title = "Blur intensity",
+                description = "Set the strength of the background blur.",
+                valueText = "${blurRadius.toInt()} dp",
+                value = blurRadius,
+                valueRange = 1f..80f,
+                step = 1f,
+                onValueChange = { blurRadius = it },
+                onCommit = { viewModel.setAssistantBackdropBlurRadiusDp(blurRadius.toInt()) },
+            )
+        }
         SettingsToggleCard(
             shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 32.dp, bottomEnd = 32.dp),
             title = stringResource(R.string.assistant_animated_icon_title),
