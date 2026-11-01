@@ -81,14 +81,6 @@ internal fun AssistantScreen(
 
         SettingsToggleCard(
             shape = RoundedCornerShape(4.dp),
-            title = stringResource(R.string.assistant_tap_to_open_title),
-            description = stringResource(R.string.assistant_tap_to_open_desc),
-            checked = settings.tapToOpenAssistant,
-            onCheckedChange = viewModel::setAssistantTapToOpen,
-        )
-
-        SettingsToggleCard(
-            shape = RoundedCornerShape(4.dp),
             title = stringResource(R.string.assistant_auto_expand_title),
             description = stringResource(R.string.assistant_auto_expand_desc),
             checked = settings.autoExpandAssistantResponses,
