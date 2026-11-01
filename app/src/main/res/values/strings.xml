@@ -499,15 +499,15 @@
     <string name="swipe_dir_right">Right</string>
     <string name="swipe_dir_both">Both</string>
     <string name="behaviour_swipe_target">Dismiss from</string>
-    <string name="behaviour_empty_pill">Shows when empty</string>
-    <string name="behaviour_empty_pill_desc">When no notification is displayed, the cutout stays on the screen</string>
+    <string name="behaviour_empty_pill">Resting Pill &amp; Quick Actions</string>
+    <string name="behaviour_empty_pill_desc">Configure the idle cutout, camera-notch tap action and Quick Actions launcher.</string>
     <string name="shows_when_empty_show_icon">Show icon</string>
     <string name="shows_when_empty_show_icon_desc">Display an icon on the pill while it is empty</string>
     <string name="shows_when_empty_container_color">Container color</string>
     <string name="shows_when_empty_on_click">Resting pill tap action</string>
     <string name="shows_when_empty_click_none">None</string>
     <string name="shows_when_empty_click_open_app">Open app</string>
-    <string name="shows_when_empty_click_open_center">Shortcuts</string>
+    <string name="shows_when_empty_click_open_center">Open Quick Actions</string>
     <string name="shows_when_empty_choose_app">Choose app</string>
     <string name="shows_when_empty_no_app">No app selected</string>
     <string name="center_shortcuts_title">Shortcuts</string>
@@ -515,7 +515,7 @@
     <string name="shows_when_empty_center_title">Quick Actions</string>
     <string name="shows_when_empty_center_desc">Choose, reorder and manage the actions available when you tap the camera cutout.</string>
     <string name="shows_when_empty_center_labels">Display labels</string>
-    <string name="shows_when_empty_center_labels_desc">Show a name under each shortcut in the center</string>
+    <string name="shows_when_empty_center_labels_desc">Show a name under each Quick Action.</string>
     <string name="shows_when_empty_center_fill">Fill containers</string>
     <string name="shows_when_empty_center_fill_desc">Stretch each shortcut\'s coloured background into a pill</string>
     <string name="shows_when_empty_center_themed">Use themed icons</string>
