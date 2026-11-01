@@ -7,8 +7,8 @@
 
     <!-- Keep all artwork inside Android's adaptive-icon safe area. -->
     <group
-        android:scaleX="0.65"
-        android:scaleY="0.65"
+        android:scaleX="0.68"
+        android:scaleY="0.68"
         android:pivotX="54"
         android:pivotY="54">
 
