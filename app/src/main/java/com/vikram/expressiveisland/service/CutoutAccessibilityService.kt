@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.vikram.expressiveisland.core.CutoutSignal
+import com.vikram.expressiveisland.core.AssistantInteractionMode
 import com.vikram.expressiveisland.data.AssistantTilePreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -104,6 +105,7 @@ class CutoutAccessibilityService : AccessibilityService() {
             return
         }
 
+        val interactionMode = detectAssistantInteractionMode(textList)
         val title = textList.firstOrNull()?.take(MAX_TITLE_LENGTH)
         val responseText = textList.asSequence()
             .drop(1)
@@ -115,7 +117,7 @@ class CutoutAccessibilityService : AccessibilityService() {
             return
         }
 
-        val key = "$pkg|$title|$responseText".take(MAX_KEY_LENGTH)
+        val key = "$pkg|$interactionMode|$title|$responseText".take(MAX_KEY_LENGTH)
         if (key != lastAssistantKey) {
             lastAssistantKey = key
             lastAssistantPackage = pkg
@@ -126,8 +128,18 @@ class CutoutAccessibilityService : AccessibilityService() {
                     text = responseText,
                     contentIntent = null,
                     active = true,
+                    interactionMode = interactionMode,
                 )
             )
+        }
+    }
+
+    private fun detectAssistantInteractionMode(text: List<String>): AssistantInteractionMode {
+        val content = text.joinToString(" ").lowercase()
+        return when {
+            VOICE_MODE_PATTERNS.any(content::contains) -> AssistantInteractionMode.VOICE
+            PROMPT_MODE_PATTERNS.any(content::contains) -> AssistantInteractionMode.PROMPT
+            else -> AssistantInteractionMode.UNKNOWN
         }
     }
 
@@ -151,6 +163,17 @@ class CutoutAccessibilityService : AccessibilityService() {
             val remaining = MAX_RESPONSE_LENGTH - chars
             if (remaining > 0) {
                 val value = text.take(remaining)
+                list.add(value)
+                chars += value.length
+            }
+        }
+        val description = node.contentDescription?.toString()?.trim()
+        if (!description.isNullOrBlank() && description.length > 1 &&
+            description != text && description !in list && !isDisclaimer(description)
+        ) {
+            val remaining = MAX_RESPONSE_LENGTH - chars
+            if (remaining > 0) {
+                val value = description.take(remaining)
                 list.add(value)
                 chars += value.length
             }
@@ -206,6 +229,15 @@ class CutoutAccessibilityService : AccessibilityService() {
             "com.google.android.apps.bard", "com.google.android.apps.gemini",
             "com.samsung.android.bixby.agent", "com.samsung.android.bixby.service",
             "com.amazon.dee.app", "com.openai.chatgpt", "com.microsoft.copilot",
+        )
+        private val VOICE_MODE_PATTERNS = listOf(
+            "listening", "speak now", "stop listening", "voice mode", "microphone is on",
+            "talk to gemini", "gemini live", "live with gemini", "start voice chat",
+            "speak freely", "listening to you",
+        )
+        private val PROMPT_MODE_PATTERNS = listOf(
+            "ask gemini", "type a prompt", "enter a prompt", "message gemini",
+            "ask anything", "type your message", "enter a message",
         )
         private val DISCLAIMER_PATTERNS = listOf(
             "can make mistakes", "gemini is ai", "gemini is an ai", "display inaccurate info",
