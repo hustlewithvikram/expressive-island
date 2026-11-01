@@ -48,7 +48,6 @@ object CenterShortcutCatalog {
             SettingsPanel.VOLUME -> Icons.Rounded.VolumeUp
         }
         is CenterShortcut.LaunchApp -> Icons.Rounded.Android
-        is CenterShortcut.Assistant -> Icons.Rounded.Android
         is CenterShortcut.ShizukuRadio -> when (shortcut.radio) {
             RadioToggle.WIFI -> Icons.Rounded.Wifi
             RadioToggle.BLUETOOTH -> Icons.Rounded.Bluetooth
@@ -64,7 +63,6 @@ object CenterShortcutCatalog {
         is CenterShortcut.Global -> shortcut.action.labelRes
         is CenterShortcut.Panel -> shortcut.panel.labelRes
         is CenterShortcut.LaunchApp -> null
-        CenterShortcut.Assistant -> com.vikram.expressiveisland.R.string.center_action_assistant
         is CenterShortcut.ShizukuRadio -> shortcut.radio.labelRes
     }
 }
