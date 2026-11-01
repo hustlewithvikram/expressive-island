@@ -105,7 +105,7 @@ class CutoutAccessibilityService : AccessibilityService() {
             return
         }
 
-        val interactionMode = detectAssistantInteractionMode(textList)
+        val interactionMode = detectAssistantInteractionMode(textList, event.eventType)
         val title = textList.firstOrNull()?.take(MAX_TITLE_LENGTH)
         val responseText = textList.asSequence()
             .drop(1)
@@ -134,11 +134,15 @@ class CutoutAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun detectAssistantInteractionMode(text: List<String>): AssistantInteractionMode {
+    private fun detectAssistantInteractionMode(
+        text: List<String>,
+        eventType: Int,
+    ): AssistantInteractionMode {
         val content = text.joinToString(" ").lowercase()
         return when {
             VOICE_MODE_PATTERNS.any(content::contains) -> AssistantInteractionMode.VOICE
-            PROMPT_MODE_PATTERNS.any(content::contains) -> AssistantInteractionMode.PROMPT
+            eventType in PROMPT_INPUT_EVENT_TYPES && PROMPT_MODE_PATTERNS.any(content::contains) ->
+                AssistantInteractionMode.PROMPT
             else -> AssistantInteractionMode.UNKNOWN
         }
     }
@@ -234,6 +238,10 @@ class CutoutAccessibilityService : AccessibilityService() {
             "listening", "speak now", "stop listening", "voice mode", "microphone is on",
             "talk to gemini", "gemini live", "live with gemini", "start voice chat",
             "speak freely", "listening to you",
+        )
+        private val PROMPT_INPUT_EVENT_TYPES = setOf(
+            AccessibilityEvent.TYPE_VIEW_FOCUSED,
+            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED,
         )
         private val PROMPT_MODE_PATTERNS = listOf(
             "ask gemini", "type a prompt", "enter a prompt", "message gemini",
