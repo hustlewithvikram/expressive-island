@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -56,6 +57,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -89,6 +91,7 @@ fun AssistantExpandedContent(
     val density = LocalDensity.current.density
     val configuration = LocalConfiguration.current
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     val maxCutoutHeightDp =
         (configuration.screenHeightDp * assistant.maxCutoutHeightPercent / 100).dp
     val maxHeaderWidthDp = (configuration.screenWidthDp * 0.47f).dp
@@ -104,6 +107,7 @@ fun AssistantExpandedContent(
             query = ""
             promptMode = false
             voiceMode = false
+            focusManager.clearFocus(force = true)
             onInputFocusChange(false)
         }
     }
@@ -111,7 +115,7 @@ fun AssistantExpandedContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = maxCutoutHeightDp)
+            .heightIn(min = (collapsedHeightDp + 210).dp, max = maxCutoutHeightDp)
             .padding(
                 start = 18.dp,
                 end = 18.dp,
@@ -176,7 +180,8 @@ fun AssistantExpandedContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f, fill = false)
+                    .weight(1f, fill = true)
+                    .fillMaxHeight()
                     .verticalScroll(rememberScrollState()),
             ) {
                 if (voiceMode || promptMode) {
