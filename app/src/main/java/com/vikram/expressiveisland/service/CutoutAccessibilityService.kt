@@ -7,6 +7,15 @@ import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.vikram.expressiveisland.core.CutoutSignal
+import com.vikram.expressiveisland.data.AssistantTilePreferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import com.vikram.expressiveisland.core.ForegroundAppBus
 import com.vikram.expressiveisland.core.IslandEventBus
 import com.vikram.expressiveisland.events.MediaPlaybackMonitor
@@ -21,6 +30,10 @@ class CutoutAccessibilityService : AccessibilityService() {
     private var systemEvents: SystemEventMonitor? = null
     private var mediaPlayback: MediaPlaybackMonitor? = null
     private var lastAssistantKey: String? = null
+    private var lastAssistantPackage: String? = null
+    private var autoReadAssistantEvents = true
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var assistantSettingsJob: Job? = null
     private var lastAssistantInspectionAt = 0L
 
     override fun onServiceConnected() {
@@ -30,6 +43,16 @@ class CutoutAccessibilityService : AccessibilityService() {
         systemEvents = SystemEventMonitor(this).also { it.start() }
         mediaPlayback = MediaPlaybackMonitor(this).also { it.start() }
         instance = this
+        assistantSettingsJob?.cancel()
+        assistantSettingsJob = serviceScope.launch {
+            AssistantTilePreferences(this@CutoutAccessibilityService).settings
+                .map { it.autoReadAssistantEvents }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    autoReadAssistantEvents = enabled
+                    if (!enabled) lastAssistantPackage?.let(::clearAssistant)
+                }
+        }
         _bound.value = true
     }
 
@@ -64,6 +87,10 @@ class CutoutAccessibilityService : AccessibilityService() {
     }
 
     private fun inspectAssistantWindow(pkg: String, event: AccessibilityEvent) {
+        if (!autoReadAssistantEvents) {
+            clearAssistant(pkg)
+            return
+        }
         val rootNode = rootInActiveWindow ?: event.source
         if (rootNode == null) {
             clearAssistant(pkg)
@@ -91,6 +118,7 @@ class CutoutAccessibilityService : AccessibilityService() {
         val key = "$pkg|$title|$responseText".take(MAX_KEY_LENGTH)
         if (key != lastAssistantKey) {
             lastAssistantKey = key
+            lastAssistantPackage = pkg
             IslandEventBus.emit(
                 CutoutSignal.Assistant(
                     packageName = pkg,
@@ -106,6 +134,7 @@ class CutoutAccessibilityService : AccessibilityService() {
     private fun clearAssistant(pkg: String) {
         if (lastAssistantKey == null) return
         lastAssistantKey = null
+        lastAssistantPackage = null
         IslandEventBus.emit(CutoutSignal.Assistant(packageName = pkg, active = false))
     }
 
@@ -156,8 +185,11 @@ class CutoutAccessibilityService : AccessibilityService() {
     private fun teardown() {
         _bound.value = false
         instance = null
+        assistantSettingsJob?.cancel()
+        assistantSettingsJob = null
         teardownComponents()
         lastAssistantKey = null
+        lastAssistantPackage = null
         lastAssistantInspectionAt = 0L
     }
 
