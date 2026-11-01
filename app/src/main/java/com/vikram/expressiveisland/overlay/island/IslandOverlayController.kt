@@ -610,8 +610,7 @@ class IslandOverlayController(private val context: Context) {
                         showsWhenEmpty = behaviour.showsWhenEmpty && behaviour.cutoutEnabled,
                         assistantTapEnabled = false,
                         onAssistantTap = ::openAssistantPanel,
-                        cameraHoleTapEnabled = (behaviour.cameraHoleTapEnabled ||
-                                assistantSettings.tapToOpenAssistant) &&
+                        cameraHoleTapEnabled = behaviour.cameraHoleTapEnabled &&
                                 behaviour.cutoutEnabled &&
                                 !behaviour.showsWhenEmpty &&
                                 !previewPinned &&
@@ -623,9 +622,8 @@ class IslandOverlayController(private val context: Context) {
                         onCameraHoleQuickActionsDismiss = { cameraHoleQuickActions.value = false },
                         onCameraHoleTap = {
                             when {
-                                assistantSettings.tapToOpenAssistant -> openAssistantPanel()
-                                behaviour.cameraHoleTapAction == com.vikram.expressiveisland.data.CameraHoleTapAction.QUICK_ACTIONS ->
-                                    cameraHoleQuickActions.value = true
+                                behaviour.cameraHoleAssistantEnabled -> openAssistantPanel()
+                                assistantSettings.tapToOpenAssistant -> cameraHoleQuickActions.value = true
                                 else -> CenterShortcutExecutor.executeCameraHoleAction(
                                     behaviour.cameraHoleTapAction,
                                     context,
@@ -993,7 +991,7 @@ class IslandOverlayController(private val context: Context) {
             setTouchable(
                 event != null || satelliteEvent.value != null ||
                         (behaviour.showsWhenEmpty && behaviour.cutoutEnabled) ||
-                        ((behaviour.cameraHoleTapEnabled || assistantSettings.tapToOpenAssistant) &&
+                        (behaviour.cameraHoleTapEnabled &&
                                 behaviour.cutoutEnabled &&
                                 !behaviour.showsWhenEmpty &&
                                 !previewPinned),
