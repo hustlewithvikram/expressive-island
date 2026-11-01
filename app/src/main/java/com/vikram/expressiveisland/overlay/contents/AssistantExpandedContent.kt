@@ -115,7 +115,7 @@ fun AssistantExpandedContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = (collapsedHeightDp + 210).dp, max = maxCutoutHeightDp)
+            .heightIn(min = minOf((collapsedHeightDp + 210).dp, maxCutoutHeightDp), max = maxCutoutHeightDp)
             .padding(
                 start = 18.dp,
                 end = 18.dp,
