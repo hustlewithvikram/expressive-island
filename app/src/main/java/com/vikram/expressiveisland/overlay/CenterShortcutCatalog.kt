@@ -3,6 +3,7 @@ package com.vikram.expressiveisland.overlay
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Android
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.FlashlightOn
@@ -32,7 +33,7 @@ object CenterShortcutCatalog {
      *  should prefer the real launcher icon (see the empty-pill app picker). */
     fun iconFor(shortcut: CenterShortcut): ImageVector = when (shortcut) {
         CenterShortcut.Torch -> Icons.Rounded.FlashlightOn
-        CenterShortcut.Assistant -> Icons.Rounded.Android
+        CenterShortcut.Assistant -> Icons.Rounded.AutoAwesome
         is CenterShortcut.Global -> when (shortcut.action) {
             GlobalAction.LOCK_SCREEN -> Icons.Rounded.Lock
             GlobalAction.SCREENSHOT -> Icons.Rounded.Screenshot
