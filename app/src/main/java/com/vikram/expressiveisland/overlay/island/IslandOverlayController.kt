@@ -1591,9 +1591,12 @@ class IslandOverlayController(private val context: Context) {
         val event = currentEvent.value
         if (expanded && event?.assistant != null && event.assistant.displayAnswerInCutout) {
             val maxCutoutDp = (displayHeightDp * event.assistant.maxCutoutHeightPercent / 100)
+            // Start with the configured maximum so Compose can measure the full chat content;
+            // once measured, the callback above contracts the window and touchable region to its
+            // actual height instead of leaving a screen-sized invisible hit area behind.
             val measuredHeightDp = assistantContentHeightDp.takeIf {
                 assistantContentHeightEventId == event.id && it > 0
-            } ?: 110
+            } ?: maxCutoutDp
             val targetHeightDp = measuredHeightDp.coerceIn(110, maxCutoutDp)
             return targetHeightDp - layoutState.value.expanded.heightDp
         }
