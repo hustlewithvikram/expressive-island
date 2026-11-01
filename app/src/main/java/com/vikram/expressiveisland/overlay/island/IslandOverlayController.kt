@@ -609,6 +609,8 @@ class IslandOverlayController(private val context: Context) {
                         appearance = appearance,
                         showActions = behaviour.showActionButtons,
                         shrinkOnSwipeUp = behaviour.shrinkOnSwipeUp,
+                        assistantSwipeUpToCollapse = assistantSettings.swipeUpToCollapse,
+                        assistantTapToCollapse = assistantSettings.tapToCollapse,
                         swipeToDismiss = behaviour.swipeToDismiss,
                         swipeDismissDirection = behaviour.swipeDismissDirection,
                         swipeDismissTarget = behaviour.swipeDismissTarget,
