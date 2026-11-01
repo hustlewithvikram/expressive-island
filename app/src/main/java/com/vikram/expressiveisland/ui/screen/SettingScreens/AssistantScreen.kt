@@ -101,12 +101,21 @@ internal fun AssistantScreen(
                 modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
             )
 
+            SettingsToggleCard(
+                shape = RoundedCornerShape(24.dp),
+                title = "Automatically shrink expanded panel",
+                description = "Collapse the assistant panel back to its compact pill after the timeout below.",
+                checked = settings.manualAutoShrinkEnabled,
+                onCheckedChange = viewModel::setAssistantManualAutoShrinkEnabled,
+            )
+
+            AnimatedVisibility(visible = settings.manualAutoShrinkEnabled) {
             var expandedToPill by remember(settings.manualExpandedToPillTimeoutSeconds) {
                 mutableFloatStateOf(settings.manualExpandedToPillTimeoutSeconds.toFloat())
             }
             SettingsSliderCard(
                 shape = RoundedCornerShape(24.dp),
-                title = "Expanded to Pill timeout",
+                title = "Expansion timeout",
                 description = "How long the expanded assistant stays open before shrinking to the compact pill.",
                 valueText = stringResource(R.string.assistant_timeout_value, expandedToPill.toInt()),
                 value = expandedToPill,
@@ -115,10 +124,11 @@ internal fun AssistantScreen(
                 onValueChange = { expandedToPill = it },
                 onCommit = { viewModel.setAssistantManualExpandedToPillTimeoutSeconds(expandedToPill.toInt()) },
             )
+            }
 
             SettingsToggleCard(
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
-                title = "Auto hide after some time",
+                title = "Automatically hide compact pill",
                 description = "Automatically remove the compact assistant pill after its timeout.",
                 checked = settings.manualAutoHideEnabled,
                 onCheckedChange = viewModel::setAssistantManualAutoHideEnabled,
@@ -130,7 +140,7 @@ internal fun AssistantScreen(
                 }
                 SettingsSliderCard(
                     shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp),
-                    title = "Pill to Hidden timeout",
+                    title = "Compact pill visibility timeout",
                     description = "How long the compact assistant pill remains visible before it disappears.",
                     valueText = stringResource(R.string.assistant_timeout_value, pillToHidden.toInt()),
                     value = pillToHidden,
@@ -150,21 +160,21 @@ internal fun AssistantScreen(
 
             SettingsToggleCard(
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
-                title = "Microphone button",
+                title = "Show microphone button",
                 description = "Show or hide the voice assistant shortcut.",
                 checked = settings.showAssistantMicButton,
                 onCheckedChange = viewModel::setAssistantShowMicButton,
             )
             SettingsToggleCard(
                 shape = RoundedCornerShape(4.dp),
-                title = "Prompt input",
+                title = "Show text input",
                 description = "Show or hide the text prompt field.",
                 checked = settings.showAssistantPromptInput,
                 onCheckedChange = viewModel::setAssistantShowPromptInput,
             )
             SettingsToggleCard(
                 shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp),
-                title = "Send button",
+                title = "Show send button",
                 description = if (settings.showAssistantPromptInput) {
                     "Show the send button beside the prompt field. When hidden, Enter submits the prompt."
                 } else {
