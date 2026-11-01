@@ -991,7 +991,10 @@ class IslandOverlayController(private val context: Context) {
             setTouchable(
                 event != null || satelliteEvent.value != null ||
                         (behaviour.showsWhenEmpty && behaviour.cutoutEnabled) ||
-                        (assistantSettings.tapToOpenAssistant && behaviour.cutoutEnabled && !previewPinned),
+                        ((behaviour.cameraHoleTapEnabled || assistantSettings.tapToOpenAssistant) &&
+                                behaviour.cutoutEnabled &&
+                                !behaviour.showsWhenEmpty &&
+                                !previewPinned),
             )
         }
     }
