@@ -340,7 +340,7 @@ internal fun DynamicIsland(
         else -> collapsed
     }
 
-    var assistantContentHeightDp by remember(shownEvent?.assistant != null) { mutableIntStateOf(0) }
+    var assistantContentHeightDp by remember(shownEvent?.id) { mutableIntStateOf(0) }
     var centerContentHeightDp by remember { mutableIntStateOf(0) }
     val screenHeightDp = LocalConfiguration.current.screenHeightDp
 
@@ -865,8 +865,13 @@ internal fun DynamicIsland(
                                             },
                                             onDismiss = onDismiss,
                                             onHeightMeasured = { heightDp ->
-                                                assistantContentHeightDp = heightDp
-                                                onAssistantContentHeightChanged(e.id, heightDp)
+                                                // Measurements can become smaller when the overlay window
+                                                // contracts. Never feed that clipped viewport back as the
+                                                // content's natural height; only grow to a newly observed size.
+                                                if (heightDp > assistantContentHeightDp) {
+                                                    assistantContentHeightDp = heightDp
+                                                    onAssistantContentHeightChanged(e.id, heightDp)
+                                                }
                                             },
                                             onAssistantInputActiveChange = { active ->
                                                 assistantInputActive = active
