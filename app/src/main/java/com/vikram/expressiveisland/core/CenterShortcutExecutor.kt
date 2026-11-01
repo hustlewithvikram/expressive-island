@@ -76,9 +76,9 @@ object CenterShortcutExecutor {
 
             val wasEnabled = state == "1"
             val command = when (radio) {
-                RadioToggle.WIFI -> "svc wifi \${if (wasEnabled) "disable" else "enable"}"
-                RadioToggle.BLUETOOTH -> "svc bluetooth \${if (wasEnabled) "disable" else "enable"}"
-                RadioToggle.MOBILE_DATA -> "svc data \${if (wasEnabled) "disable" else "enable"}"
+                RadioToggle.WIFI -> "svc wifi ${if (wasEnabled) "disable" else "enable"}"
+                RadioToggle.BLUETOOTH -> "svc bluetooth ${if (wasEnabled) "disable" else "enable"}"
+                RadioToggle.MOBILE_DATA -> "svc data ${if (wasEnabled) "disable" else "enable"}"
             }
             val output = runShizukuShell("$command >/dev/null 2>&1; sleep 1; settings get global $key")?.trim()
             val expected = if (wasEnabled) "0" else "1"
