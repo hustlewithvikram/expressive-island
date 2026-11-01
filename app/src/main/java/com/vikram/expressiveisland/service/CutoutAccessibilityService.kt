@@ -9,6 +9,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.vikram.expressiveisland.core.CutoutSignal
 import com.vikram.expressiveisland.core.AssistantInteractionMode
 import com.vikram.expressiveisland.data.AssistantTilePreferences
+import com.vikram.expressiveisland.data.AssistantActivationMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -47,7 +48,7 @@ class CutoutAccessibilityService : AccessibilityService() {
         assistantSettingsJob?.cancel()
         assistantSettingsJob = serviceScope.launch {
             AssistantTilePreferences(this@CutoutAccessibilityService).settings
-                .map { it.autoReadAssistantEvents }
+                .map { it.activationMode == AssistantActivationMode.AUTO && it.autoReadAssistantEvents }
                 .distinctUntilChanged()
                 .collect { enabled ->
                     autoReadAssistantEvents = enabled

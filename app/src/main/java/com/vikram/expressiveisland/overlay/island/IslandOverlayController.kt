@@ -1680,7 +1680,8 @@ class IslandOverlayController(private val context: Context) {
                     musicSettings.expandOnPlay
 
                 is CutoutSignal.Assistant ->
-                    assistantSettings.displayAnswerInCutout &&
+                    assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.AUTO &&
+                            assistantSettings.displayAnswerInCutout &&
                             (assistantSettings.autoExpandAssistantResponses ||
                                     signal.interactionMode == AssistantInteractionMode.VOICE)
 

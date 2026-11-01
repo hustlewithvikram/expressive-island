@@ -19,6 +19,7 @@ import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.ReplyInputStyle
 import com.vikram.expressiveisland.data.SentAlignment
 import com.vikram.expressiveisland.data.AssistantTilePreferences
+import com.vikram.expressiveisland.data.AssistantActivationMode
 import com.vikram.expressiveisland.data.AssistantTileSettings
 import com.vikram.expressiveisland.data.BehaviourPreferences
 import com.vikram.expressiveisland.data.BehaviourSettings
@@ -441,6 +442,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setTimerAddButtonColor(color: CutoutColor) = viewModelScope.launch {
         timerTilePreferences.setAddButtonColor(color)
+    }
+
+    fun setAssistantActivationMode(mode: AssistantActivationMode) = viewModelScope.launch {
+        assistantTilePreferences.setActivationMode(mode)
     }
 
     fun setAssistantDisplayAnswerInCutout(enabled: Boolean) = viewModelScope.launch {

@@ -52,6 +52,7 @@ fun ExpressiveSegmentedRow(
     // Indices that read as greyed-out and can't be selected — e.g. an option that's coming soon.
     disabledIndices: Set<Int> = emptySet(),
     scrollable: Boolean = false,
+    allowFullLabels: Boolean = false,
 ) {
     val count = options.size.coerceAtLeast(1)
 
@@ -119,6 +120,7 @@ fun ExpressiveSegmentedRow(
                                     color = contentColor,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1,
+                                    overflow = if (allowFullLabels) TextOverflow.Clip else TextOverflow.Ellipsis,
                                     softWrap = false,
                                 )
                             }
@@ -190,7 +192,7 @@ fun ExpressiveSegmentedRow(
                             color = contentColor,
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                            overflow = if (allowFullLabels) TextOverflow.Clip else TextOverflow.Ellipsis,
                         )
                     }
                     if (index < count - 1) {

@@ -13,10 +13,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.json.JSONObject
 
+enum class AssistantActivationMode { AUTO, MANUAL }
+
 private val Context.assistantTileDataStore: DataStore<Preferences> by preferencesDataStore(name = "assistant_tile_prefs")
 
 /** The assistant tile's settings, edited on its dedicated settings screen. */
 data class AssistantTileSettings(
+    /** AUTO reads supported assistant windows; MANUAL only opens from explicit user actions. */
+    val activationMode: AssistantActivationMode = AssistantActivationMode.AUTO,
     /** Whether to display the text response of the assistant in the cutout. */
     val displayAnswerInCutout: Boolean = DEFAULT_DISPLAY_ANSWER_IN_CUTOUT,
     /** Maximum cutout height in percent of the screen height (10..80). */
@@ -53,6 +57,7 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
 
     val settings: Flow<AssistantTileSettings> = context.assistantTileDataStore.data.map { prefs ->
         AssistantTileSettings(
+            activationMode = runCatching { AssistantActivationMode.valueOf(prefs[ACTIVATION_MODE] ?: AssistantActivationMode.AUTO.name) }.getOrDefault(AssistantActivationMode.AUTO),
             displayAnswerInCutout = prefs[DISPLAY_ANSWER_IN_CUTOUT] ?: AssistantTileSettings.DEFAULT_DISPLAY_ANSWER_IN_CUTOUT,
             maxCutoutHeightPercent = prefs[MAX_CUTOUT_HEIGHT_PERCENT] ?: AssistantTileSettings.DEFAULT_MAX_CUTOUT_HEIGHT_PERCENT,
             iconContainerColor = CutoutColor.deserialize(prefs[ICON_CONTAINER_COLOR]),
@@ -69,6 +74,7 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
     override suspend fun toJson(): String {
         val s = settings.first()
         return JSONObject().apply {
+            put("activationMode", s.activationMode.name)
             put("displayAnswerInCutout", s.displayAnswerInCutout)
             put("maxCutoutHeightPercent", s.maxCutoutHeightPercent)
             put("iconContainerColor", s.iconContainerColor?.serialize() ?: JSONObject.NULL)
@@ -85,6 +91,10 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
     override suspend fun fromJson(json: String) {
         val obj = JSONObject(json)
         context.assistantTileDataStore.edit {
+            if (obj.has("activationMode")) {
+                val mode = runCatching { AssistantActivationMode.valueOf(obj.getString("activationMode")) }.getOrDefault(AssistantActivationMode.AUTO)
+                it[ACTIVATION_MODE] = mode.name
+            }
             if (obj.has("displayAnswerInCutout")) it[DISPLAY_ANSWER_IN_CUTOUT] = obj.getBoolean("displayAnswerInCutout")
             if (obj.has("maxCutoutHeightPercent")) it[MAX_CUTOUT_HEIGHT_PERCENT] = obj.getInt("maxCutoutHeightPercent").coerceIn(10, 80)
             if (obj.has("useAnimatedIcon")) it[USE_ANIMATED_ICON] = obj.getBoolean("useAnimatedIcon")
@@ -99,6 +109,10 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
                 if (color == null) it.remove(ICON_CONTAINER_COLOR) else it[ICON_CONTAINER_COLOR] = color.serialize()
             }
         }
+    }
+
+    suspend fun setActivationMode(mode: AssistantActivationMode) = context.assistantTileDataStore.edit {
+        it[ACTIVATION_MODE] = mode.name
     }
 
     suspend fun setDisplayAnswerInCutout(enabled: Boolean) = context.assistantTileDataStore.edit {
@@ -138,6 +152,7 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
     }
 
     private companion object {
+        val ACTIVATION_MODE = stringPreferencesKey("activation_mode")
         val DISPLAY_ANSWER_IN_CUTOUT = booleanPreferencesKey("display_answer_in_cutout")
         val MAX_CUTOUT_HEIGHT_PERCENT = intPreferencesKey("max_cutout_height_percent")
         val ICON_CONTAINER_COLOR = stringPreferencesKey("icon_container_color")

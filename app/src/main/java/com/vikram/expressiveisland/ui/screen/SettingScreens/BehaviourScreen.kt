@@ -19,6 +19,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -111,26 +114,43 @@ internal fun BehaviourScreen(
         )
 
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { showHorizontalCutoutDialog = true },
+            onClick = { showHorizontalCutoutDialog = true },
+            modifier = Modifier.fillMaxWidth(),
             shape = groupedShape(isFirst = false, isLast = false),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         ) {
-            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.behaviour_horizontal_cutout),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = when (behaviour.horizontalCutoutMode) {
+                            HorizontalCutoutMode.HIDDEN -> stringResource(R.string.horizontal_cutout_hidden)
+                            HorizontalCutoutMode.NORMAL_ONLY -> stringResource(R.string.horizontal_cutout_normal_only)
+                            HorizontalCutoutMode.STICK_TO_CAMERA -> stringResource(R.string.horizontal_cutout_stick_to_camera)
+                            HorizontalCutoutMode.CENTER -> stringResource(R.string.horizontal_cutout_center)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(
-                    text = stringResource(R.string.behaviour_horizontal_cutout),
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "Change",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
                 )
-                Text(
-                    text = when (behaviour.horizontalCutoutMode) {
-                        HorizontalCutoutMode.HIDDEN -> stringResource(R.string.horizontal_cutout_hidden)
-                        HorizontalCutoutMode.NORMAL_ONLY -> stringResource(R.string.horizontal_cutout_normal_only)
-                        HorizontalCutoutMode.STICK_TO_CAMERA -> stringResource(R.string.horizontal_cutout_stick_to_camera)
-                        HorizontalCutoutMode.CENTER -> stringResource(R.string.horizontal_cutout_center)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = "Choose horizontal cutout mode",
+                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
         }
