@@ -30,6 +30,7 @@ fun ExpandedContent(
     onDismiss: () -> Unit = {},
     onHeightMeasured: ((Int) -> Unit)? = null,
     onAssistantInputActiveChange: (Boolean) -> Unit = {},
+    onAssistantSwipeUpCollapse: () -> Unit = {},
     onMediaInteraction: () -> Unit = {},
 ) {
     val wifiState by WifiBus.state.collectAsStateWithLifecycle()
@@ -109,6 +110,7 @@ fun ExpandedContent(
             onDismiss = onDismiss,
             onHeightMeasured = onHeightMeasured,
             onInputFocusChange = onAssistantInputActiveChange,
+            onSwipeUpCollapse = onAssistantSwipeUpCollapse,
         )
         return
     }
