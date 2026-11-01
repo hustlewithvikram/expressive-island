@@ -59,7 +59,7 @@ object CenterShortcutExecutor {
      * unsupported OEM command behaviour is reported instead of pretending the toggle worked.
      */
     fun executeCameraHoleAction(action: CameraHoleTapAction, context: Context): Boolean = when (action) {
-        CameraHoleTapAction.NONE -> false
+        CameraHoleTapAction.NONE, CameraHoleTapAction.QUICK_ACTIONS -> false
         CameraHoleTapAction.SCREENSHOT -> execute(CenterShortcut.Global(GlobalAction.SCREENSHOT), context)
         CameraHoleTapAction.LOCK_SCREEN -> execute(CenterShortcut.Global(GlobalAction.LOCK_SCREEN), context)
         CameraHoleTapAction.POWER_MENU -> execute(CenterShortcut.Global(GlobalAction.POWER_DIALOG), context)
