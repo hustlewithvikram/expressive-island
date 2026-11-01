@@ -660,6 +660,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         behaviourPreferences.setCenterThemedIcons(enabled)
     }
 
+    fun setCameraHoleTapEnabled(enabled: Boolean) = viewModelScope.launch {
+        behaviourPreferences.setCameraHoleTapEnabled(enabled)
+    }
+
+    fun setCameraHoleTapAction(action: CameraHoleTapAction) = viewModelScope.launch {
+        behaviourPreferences.setCameraHoleTapAction(action)
+    }
+
+    fun setCameraHoleTapHaptics(enabled: Boolean) = viewModelScope.launch {
+        behaviourPreferences.setCameraHoleTapHaptics(enabled)
+    }
+
     fun setSwipeDismissDirection(direction: SwipeDismissDirection) = viewModelScope.launch {
         behaviourPreferences.setSwipeDismissDirection(direction)
     }
