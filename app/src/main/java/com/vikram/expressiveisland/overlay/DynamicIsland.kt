@@ -198,6 +198,7 @@ internal fun DynamicIsland(
     onReply: (IslandAction, String) -> Unit,
     onReplyActiveChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
+    onAssistantContentHeightChanged: (String?, Int) -> Unit = { _, _ -> },
     collapseRequest: Int = 0,
     satellite: IslandEvent? = null,
     satellitePosition: SatellitePosition = SatellitePosition.RIGHT,
@@ -863,7 +864,10 @@ internal fun DynamicIsland(
                                                 replyingTo = null
                                             },
                                             onDismiss = onDismiss,
-                                            onHeightMeasured = { assistantContentHeightDp = it },
+                                            onHeightMeasured = { heightDp ->
+                                                assistantContentHeightDp = heightDp
+                                                onAssistantContentHeightChanged(e.id, heightDp)
+                                            },
                                             onAssistantInputActiveChange = { active ->
                                                 assistantInputActive = active
                                                 onReplyActiveChange(active)
