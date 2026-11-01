@@ -176,6 +176,7 @@ internal fun DynamicIsland(
     onAssistantTap: () -> Unit = {},
     cameraHoleTapEnabled: Boolean = false,
     cameraHoleTapHaptics: Boolean = true,
+    cameraHoleQuickActions: Boolean = false,
     onCameraHoleTap: () -> Unit = {},
     centerShortcuts: List<CenterShortcut> = emptyList(),
     centerShowLabels: Boolean = true,
@@ -210,7 +211,7 @@ internal fun DynamicIsland(
     val chargingState by ChargingBus.state.collectAsStateWithLifecycle()
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
     val mediaActive = shownEvent?.media != null
-    val emptyPill = event == null && showsWhenEmpty
+    val emptyPill = event == null && (showsWhenEmpty || cameraHoleQuickActions)
 
     val initialExpandedState =
         if (forcedExpanded == false) false else (shownEvent?.initiallyExpanded ?: false)
@@ -226,6 +227,10 @@ internal fun DynamicIsland(
         mutableStateOf(initialExpandedState)
     }
 
+    LaunchedEffect(cameraHoleQuickActions) {
+        if (cameraHoleQuickActions) tapExpanded = true
+    }
+
     var centerInteraction by remember { mutableIntStateOf(0) }
     var mediaInteraction by remember { mutableIntStateOf(0) }
     var replyingTo by remember(shownEvent?.id) { mutableStateOf<IslandAction?>(null) }
@@ -236,7 +241,7 @@ internal fun DynamicIsland(
     val isAssistantNormalOnly =
         shownEvent?.assistant != null && !shownEvent.assistant.displayAnswerInCutout
     val isNormalOnly = isCall || isAssistantNormalOnly || shownEvent?.normalOnly == true
-    val centerExpanded = emptyPill && emptyOpensCenter && tapExpanded
+    val centerExpanded = emptyPill && (emptyOpensCenter || cameraHoleQuickActions) && tapExpanded
 
     val isExpanded = when {
         forcedExpanded == false -> false
@@ -364,7 +369,7 @@ internal fun DynamicIsland(
         else -> 0
     }
 
-    val present = event != null || showsWhenEmpty
+    val present = event != null || showsWhenEmpty || cameraHoleQuickActions
     val reveal = remember { Animatable(0f) }
 
     LaunchedEffect(present) {
