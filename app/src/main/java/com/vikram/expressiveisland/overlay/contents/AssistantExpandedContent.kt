@@ -170,7 +170,7 @@ fun AssistantExpandedContent(
         // The conversation is the only vertically scrollable region.
         Column(
             modifier = Modifier
-                .weight(1f)
+                .weight(1f, fill = assistant.interactivePanel)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState()),
         ) {
