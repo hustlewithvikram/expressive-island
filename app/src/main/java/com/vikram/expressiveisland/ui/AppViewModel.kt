@@ -673,6 +673,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         behaviourPreferences.setCameraHoleTapHaptics(enabled)
     }
 
+    fun setCameraHoleAssistantEnabled(enabled: Boolean) = viewModelScope.launch {
+        behaviourPreferences.setCameraHoleAssistantEnabled(enabled)
+    }
+
     fun setSwipeDismissDirection(direction: SwipeDismissDirection) = viewModelScope.launch {
         behaviourPreferences.setSwipeDismissDirection(direction)
     }
