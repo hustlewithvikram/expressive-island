@@ -181,6 +181,10 @@ class IslandOverlayController(private val context: Context) {
     private val displayHeightDp: Int = (displayHeightPx / density).toInt()
 
     private val currentEvent = MutableStateFlow<IslandEvent?>(null)
+    // Matches the assistant panel's measured Compose height so the overlay window and touch region
+    // never extend to the configured maximum when the actual chat is shorter.
+    private var assistantContentHeightEventId: String? = null
+    private var assistantContentHeightDp: Int = 0
 
     // One visible satellite plus a queue for other active persistent tiles.
     private val satelliteEvent = MutableStateFlow<IslandEvent?>(null)
@@ -666,6 +670,13 @@ class IslandOverlayController(private val context: Context) {
                         onCenterShortcut = ::onCenterShortcut,
                         collapseRequest = collapseRequestValue,
                         onExpandedChange = ::onExpandedChanged,
+                        onAssistantContentHeightChanged = { eventId, heightDp ->
+                            if (assistantContentHeightEventId != eventId || assistantContentHeightDp != heightDp) {
+                                assistantContentHeightEventId = eventId
+                                assistantContentHeightDp = heightDp
+                                if (expanded && currentEvent.value?.id == eventId) syncWindowSize()
+                            }
+                        },
                         onActivate = ::onActivate,
                         onAction = ::onAction,
                         onReply = ::onReply,
@@ -1580,10 +1591,11 @@ class IslandOverlayController(private val context: Context) {
         val event = currentEvent.value
         if (expanded && event?.assistant != null && event.assistant.displayAnswerInCutout) {
             val maxCutoutDp = (displayHeightDp * event.assistant.maxCutoutHeightPercent / 100)
-            return maxOf(
-                expandedActionsBonusDp(),
-                maxCutoutDp - layoutState.value.expanded.heightDp
-            )
+            val measuredHeightDp = assistantContentHeightDp.takeIf {
+                assistantContentHeightEventId == event.id && it > 0
+            } ?: 110
+            val targetHeightDp = measuredHeightDp.coerceIn(110, maxCutoutDp)
+            return targetHeightDp - layoutState.value.expanded.heightDp
         }
         return when {
             // The empty pill's expanded "center" (no event) claims room for its shortcut row.
