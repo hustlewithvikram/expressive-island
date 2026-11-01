@@ -504,7 +504,7 @@
     <string name="shows_when_empty_show_icon">Show icon</string>
     <string name="shows_when_empty_show_icon_desc">Display an icon on the pill while it is empty</string>
     <string name="shows_when_empty_container_color">Container color</string>
-    <string name="shows_when_empty_on_click">On click</string>
+    <string name="shows_when_empty_on_click">Resting pill tap action</string>
     <string name="shows_when_empty_click_none">None</string>
     <string name="shows_when_empty_click_open_app">Open app</string>
     <string name="shows_when_empty_click_open_center">Shortcuts</string>
@@ -512,8 +512,8 @@
     <string name="shows_when_empty_no_app">No app selected</string>
     <string name="center_shortcuts_title">Shortcuts</string>
     <string name="center_shortcuts_empty">No shortcuts yet</string>
-    <string name="shows_when_empty_center_title">Center shortcuts</string>
-    <string name="shows_when_empty_center_desc">Shortcuts shown when the pill expands into the center</string>
+    <string name="shows_when_empty_center_title">Quick Actions</string>
+    <string name="shows_when_empty_center_desc">Choose, reorder and manage the actions available when you tap the camera cutout.</string>
     <string name="shows_when_empty_center_labels">Display labels</string>
     <string name="shows_when_empty_center_labels_desc">Show a name under each shortcut in the center</string>
     <string name="shows_when_empty_center_fill">Fill containers</string>
