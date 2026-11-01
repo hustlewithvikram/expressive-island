@@ -232,6 +232,7 @@ internal fun SettingsToggleNavCard(
     onCheckedChange: (Boolean) -> Unit,
     onClick: () -> Unit,
     leading: @Composable (() -> Unit)? = null,
+    showChevron: Boolean = true,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -267,12 +268,13 @@ internal fun SettingsToggleNavCard(
                 )
             }
 
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                contentDescription = null,
-            )
-
-            Spacer(Modifier.width(12.dp))
+            if (showChevron) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                )
+                Spacer(Modifier.width(12.dp))
+            }
 
             Box(
                 modifier = Modifier
