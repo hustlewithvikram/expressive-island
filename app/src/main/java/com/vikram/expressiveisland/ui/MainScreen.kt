@@ -261,6 +261,7 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                             onOpenBackground = { settingsRoute = SettingsRoute.Background },
                             onOpenActionButtons = { settingsRoute = SettingsRoute.ActionButtons },
                             onOpenShizuku = { settingsRoute = SettingsRoute.Shizuku },
+                            onOpenIntegrations = { settingsRoute = SettingsRoute.Integrations },
                             onOpenPermissionDot = { settingsRoute = SettingsRoute.PermissionDot },
                         )
 
