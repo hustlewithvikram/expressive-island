@@ -165,6 +165,8 @@ internal fun DynamicIsland(
     appearance: AppearanceSettings,
     showActions: Boolean,
     shrinkOnSwipeUp: Boolean,
+    assistantSwipeUpToCollapse: Boolean = true,
+    assistantTapToCollapse: Boolean = false,
     swipeToDismiss: Boolean,
     swipeDismissDirection: SwipeDismissDirection,
     swipeDismissTarget: SwipeDismissTarget,
@@ -685,6 +687,14 @@ internal fun DynamicIsland(
                                             return@detectTapGestures
                                         }
 
+                                        // Assistant collapse is opt-in and is ignored while its input owns focus.
+                                        if (shownEvent?.assistant?.interactivePanel == true &&
+                                            isExpanded && assistantTapToCollapse && !assistantInputActive
+                                        ) {
+                                            tapExpanded = false
+                                            return@detectTapGestures
+                                        }
+
                                         // While typing a reply, ignore taps on the surface itself.
                                         if (replying) return@detectTapGestures
 
@@ -716,12 +726,14 @@ internal fun DynamicIsland(
                                 isExpanded,
                                 replying,
                                 shrinkOnSwipeUp,
+                                assistantSwipeUpToCollapse,
                                 emptyPill,
                                 shownEvent?.id
                             ) {
                                 // The resting empty cutout has no expanded state to shrink back from, so
                                 // don't install the detector at all — it would only swallow vertical drags.
-                                if (forcedExpanded != null || !shrinkOnSwipeUp || emptyPill) return@pointerInput
+                                val swipeCollapseEnabled = if (shownEvent?.assistant?.interactivePanel == true) assistantSwipeUpToCollapse else shrinkOnSwipeUp
+                                if (forcedExpanded != null || !swipeCollapseEnabled || emptyPill) return@pointerInput
                                 val threshold = SWIPE_UP_SHRINK_THRESHOLD_DP.dp.toPx()
                                 var dragTotal = 0f
                                 detectVerticalDragGestures(
