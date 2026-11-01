@@ -460,6 +460,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         assistantTilePreferences.setIconContainerColor(color)
     }
 
+    fun setAssistantSurfaceOpacityPercent(percent: Int) = viewModelScope.launch {
+        assistantTilePreferences.setSurfaceOpacityPercent(percent)
+    }
+
+    fun setAssistantBackdropBlurEnabled(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setBackdropBlurEnabled(enabled)
+    }
+
+    fun setAssistantBackdropBlurRadiusDp(radius: Int) = viewModelScope.launch {
+        assistantTilePreferences.setBackdropBlurRadiusDp(radius)
+    }
+
     fun setAssistantUseAnimatedIcon(enabled: Boolean) = viewModelScope.launch {
         assistantTilePreferences.setUseAnimatedIcon(enabled)
     }
