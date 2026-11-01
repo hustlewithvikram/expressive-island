@@ -185,7 +185,7 @@ internal fun AssistantScreen(
         SettingsToggleCard(
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
             title = "Swipe up to collapse",
-            description = "Swipe up on the expanded assistant to return to the pill.",
+            description = "Swipe up on the assistant header to return to the pill.",
             checked = settings.swipeUpToCollapse,
             onCheckedChange = viewModel::setAssistantSwipeUpToCollapse,
         )
