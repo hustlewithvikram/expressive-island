@@ -174,6 +174,9 @@ internal fun DynamicIsland(
     emptyOpensCenter: Boolean = false,
     assistantTapEnabled: Boolean = false,
     onAssistantTap: () -> Unit = {},
+    cameraHoleTapEnabled: Boolean = false,
+    cameraHoleTapHaptics: Boolean = true,
+    onCameraHoleTap: () -> Unit = {},
     centerShortcuts: List<CenterShortcut> = emptyList(),
     centerShowLabels: Boolean = true,
     centerFillContainers: Boolean = false,
@@ -504,20 +507,32 @@ internal fun DynamicIsland(
             val stickPaddingStart = if (isStickToCamera && !isRotation270) offsetYDp.dp else 0.dp
             val stickPaddingEnd = if (isStickToCamera && isRotation270) offsetYDp.dp else 0.dp
 
-            // When the empty island is disabled there is no IslandSurface to receive taps.
-            // Keep a transparent hit target over the physical cutout so Assistant can still be
-            // opened on demand, but only while no event owns the island.
-            if (event == null && assistantTapEnabled && !showsWhenEmpty && !isStickToCamera) {
+            // Transparent hit target for actions assigned to the physical camera-hole area.
+            // It is deliberately separate from the visible Empty Island pill and only receives
+            // taps while the island has no event and no resting pill is being displayed.
+            if (event == null &&
+                (assistantTapEnabled || cameraHoleTapEnabled) &&
+                !showsWhenEmpty &&
+                !isStickToCamera
+            ) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .offset(x = offsetX, y = offsetY)
                         .width(width)
                         .height(collapsed.heightDp.dp)
-                        .pointerInput(assistantTapEnabled) {
+                        .pointerInput(assistantTapEnabled, cameraHoleTapEnabled, cameraHoleTapHaptics) {
                             detectTapGestures(
                                 onTap = {
-                                    if (assistantTapEnabled) onAssistantTap()
+                                    when {
+                                        assistantTapEnabled -> onAssistantTap()
+                                        cameraHoleTapEnabled -> {
+                                            if (cameraHoleTapHaptics) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                            onCameraHoleTap()
+                                        }
+                                    }
                                 }
                             )
                         },
