@@ -177,6 +177,7 @@ internal fun DynamicIsland(
     cameraHoleTapEnabled: Boolean = false,
     cameraHoleTapHaptics: Boolean = true,
     cameraHoleQuickActions: Boolean = false,
+    onCameraHoleQuickActionsDismiss: () -> Unit = {},
     onCameraHoleTap: () -> Unit = {},
     centerShortcuts: List<CenterShortcut> = emptyList(),
     centerShowLabels: Boolean = true,
@@ -660,7 +661,11 @@ internal fun DynamicIsland(
                                             // click" action (e.g. open an app) runs via onEmptyClick.
                                             if (emptyOpensCenter) {
                                                 if (forcedExpanded == null) {
+                                                    val wasExpanded = tapExpanded
                                                     tapExpanded = !tapExpanded
+                                                    if (wasExpanded && cameraHoleQuickActions) {
+                                                        onCameraHoleQuickActionsDismiss()
+                                                    }
                                                     if (tapExpanded) {
                                                         scope.launch {
                                                             motion.pop(
