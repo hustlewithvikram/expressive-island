@@ -11,6 +11,7 @@ import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.core.SystemEventType
+import com.vikram.expressiveisland.core.AssistantInteractionMode
 import com.vikram.expressiveisland.service.ProgressData
 
 /**
@@ -152,6 +153,7 @@ data class AssistantTileOptions(
     val answerText: String?,
     /** True for the on-demand conversational panel, rather than a mirrored assistant response. */
     val interactivePanel: Boolean = false,
+    val interactionMode: AssistantInteractionMode = AssistantInteractionMode.UNKNOWN,
 )
 
 /** Which parts of the timer tile to render (and how its buttons look), per the tile's settings. */
