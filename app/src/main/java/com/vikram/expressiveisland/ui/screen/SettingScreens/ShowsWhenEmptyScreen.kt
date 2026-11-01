@@ -133,7 +133,7 @@ internal fun ShowsWhenEmptyScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SettingsToggleCard(
-            shape = RoundedCornerShape(32.dp),
+            shape = RoundedCornerShape(24.dp),
             title = stringResource(R.string.shows_when_empty_show_icon),
             description = stringResource(R.string.shows_when_empty_show_icon_desc),
             checked = showIcon,
@@ -622,7 +622,7 @@ private fun AppPickerSheet(
             singleLine = true,
             leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
             placeholder = { Text(stringResource(R.string.apps_search_hint)) },
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(24.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp),
