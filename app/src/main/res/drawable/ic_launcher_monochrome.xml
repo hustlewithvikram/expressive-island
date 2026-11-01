@@ -8,8 +8,8 @@
     <!-- Keep the monochrome artwork aligned with the foreground safe area.
          evenOdd removes the sparkle shapes so the launcher tint shows through. -->
     <group
-        android:scaleX="0.65"
-        android:scaleY="0.65"
+        android:scaleX="0.68"
+        android:scaleY="0.68"
         android:pivotX="54"
         android:pivotY="54">
 
