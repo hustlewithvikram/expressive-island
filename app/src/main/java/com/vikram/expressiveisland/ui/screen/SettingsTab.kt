@@ -106,6 +106,7 @@ fun SettingsTab(
     onOpenApps: () -> Unit,
     onOpenBehaviour: () -> Unit,
     onOpenShowsWhenEmpty: () -> Unit,
+    onOpenCameraHoleTap: () -> Unit,
     onOpenAnimation: () -> Unit,
     onOpenAppearance: () -> Unit,
     onOpenBackground: () -> Unit,
@@ -172,6 +173,7 @@ fun SettingsTab(
             )
 
             SettingsRoute.ShowsWhenEmpty -> ShowsWhenEmptyScreen(viewModel, contentPadding)
+            SettingsRoute.CameraHoleTap -> CameraHoleTapScreen(viewModel, contentPadding)
             SettingsRoute.Animation -> AnimationScreen(viewModel, contentPadding)
             SettingsRoute.Appearance -> AppearanceScreen(
                 viewModel,
@@ -190,7 +192,7 @@ fun SettingsTab(
 
 /** The screens reachable from the Settings tab. Hoisted to MainScreen so the bottom bar can
  *  switch to a back pill on the detail screens. */
-enum class SettingsRoute { List, SizePosition, EventIcons, EventDetail, DynamicTiles, DynamicTileDetail, Apps, Behaviour, ShowsWhenEmpty, Animation, Appearance, Background, ActionButtons, Shizuku, PermissionDot }
+enum class SettingsRoute { List, SizePosition, EventIcons, EventDetail, DynamicTiles, DynamicTileDetail, Apps, Behaviour, ShowsWhenEmpty, CameraHoleTap, Animation, Appearance, Background, ActionButtons, Shizuku, PermissionDot }
 
 /**
  * The screen that back navigation returns to. Most detail screens go straight back to the list,
@@ -201,7 +203,7 @@ val SettingsRoute.parent: SettingsRoute
         SettingsRoute.Background, SettingsRoute.ActionButtons -> SettingsRoute.Appearance
         SettingsRoute.DynamicTileDetail -> SettingsRoute.DynamicTiles
         SettingsRoute.EventDetail -> SettingsRoute.EventIcons
-        SettingsRoute.ShowsWhenEmpty -> SettingsRoute.Behaviour
+        SettingsRoute.ShowsWhenEmpty, SettingsRoute.CameraHoleTap -> SettingsRoute.Behaviour
         else -> SettingsRoute.List
     }
 
@@ -210,7 +212,7 @@ val SettingsRoute.depth: Int
     get() = when (this) {
         SettingsRoute.List -> 0
         SettingsRoute.Background, SettingsRoute.ActionButtons, SettingsRoute.DynamicTileDetail,
-        SettingsRoute.EventDetail, SettingsRoute.ShowsWhenEmpty,
+        SettingsRoute.EventDetail, SettingsRoute.ShowsWhenEmpty, SettingsRoute.CameraHoleTap,
             -> 2
 
         else -> 1
