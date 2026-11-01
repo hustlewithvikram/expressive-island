@@ -29,6 +29,8 @@ data class AssistantTileSettings(
     val tapToOpenAssistant: Boolean = DEFAULT_TAP_TO_OPEN_ASSISTANT,
     /** Automatically expand assistant response events instead of only showing the collapsed pill. */
     val autoExpandAssistantResponses: Boolean = DEFAULT_AUTO_EXPAND_ASSISTANT_RESPONSES,
+    /** Read assistant app windows and publish their visible text into the island. */
+    val autoReadAssistantEvents: Boolean = DEFAULT_AUTO_READ_ASSISTANT_EVENTS,
     /** Seconds a collapsed assistant response stays visible before it is dismissed. */
     val pillTimeoutSeconds: Int = DEFAULT_PILL_TIMEOUT_SECONDS,
     /** Seconds an expanded assistant response stays open before collapsing. */
@@ -40,6 +42,7 @@ data class AssistantTileSettings(
         const val DEFAULT_USE_ANIMATED_ICON = false
         const val DEFAULT_TAP_TO_OPEN_ASSISTANT = false
         const val DEFAULT_AUTO_EXPAND_ASSISTANT_RESPONSES = false
+        const val DEFAULT_AUTO_READ_ASSISTANT_EVENTS = true
         const val DEFAULT_PILL_TIMEOUT_SECONDS = 6
         const val DEFAULT_EXPANDED_TIMEOUT_SECONDS = 18
     }
@@ -56,6 +59,7 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             useAnimatedIcon = prefs[USE_ANIMATED_ICON] ?: AssistantTileSettings.DEFAULT_USE_ANIMATED_ICON,
             tapToOpenAssistant = prefs[TAP_TO_OPEN_ASSISTANT] ?: AssistantTileSettings.DEFAULT_TAP_TO_OPEN_ASSISTANT,
             autoExpandAssistantResponses = prefs[AUTO_EXPAND_ASSISTANT_RESPONSES] ?: AssistantTileSettings.DEFAULT_AUTO_EXPAND_ASSISTANT_RESPONSES,
+            autoReadAssistantEvents = prefs[AUTO_READ_ASSISTANT_EVENTS] ?: AssistantTileSettings.DEFAULT_AUTO_READ_ASSISTANT_EVENTS,
             pillTimeoutSeconds = prefs[PILL_TIMEOUT_SECONDS] ?: AssistantTileSettings.DEFAULT_PILL_TIMEOUT_SECONDS,
             expandedTimeoutSeconds = prefs[EXPANDED_TIMEOUT_SECONDS] ?: AssistantTileSettings.DEFAULT_EXPANDED_TIMEOUT_SECONDS,
         )
@@ -71,6 +75,7 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             put("useAnimatedIcon", s.useAnimatedIcon)
             put("tapToOpenAssistant", s.tapToOpenAssistant)
             put("autoExpandAssistantResponses", s.autoExpandAssistantResponses)
+            put("autoReadAssistantEvents", s.autoReadAssistantEvents)
             put("pillTimeoutSeconds", s.pillTimeoutSeconds)
             put("expandedTimeoutSeconds", s.expandedTimeoutSeconds)
         }.toString()
@@ -85,6 +90,7 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             if (obj.has("useAnimatedIcon")) it[USE_ANIMATED_ICON] = obj.getBoolean("useAnimatedIcon")
             if (obj.has("tapToOpenAssistant")) it[TAP_TO_OPEN_ASSISTANT] = obj.getBoolean("tapToOpenAssistant")
             if (obj.has("autoExpandAssistantResponses")) it[AUTO_EXPAND_ASSISTANT_RESPONSES] = obj.getBoolean("autoExpandAssistantResponses")
+            if (obj.has("autoReadAssistantEvents")) it[AUTO_READ_ASSISTANT_EVENTS] = obj.getBoolean("autoReadAssistantEvents")
             if (obj.has("pillTimeoutSeconds")) it[PILL_TIMEOUT_SECONDS] = obj.getInt("pillTimeoutSeconds").coerceIn(2, 30)
             if (obj.has("expandedTimeoutSeconds")) it[EXPANDED_TIMEOUT_SECONDS] = obj.getInt("expandedTimeoutSeconds").coerceIn(5, 60)
             if (obj.has("iconContainerColor")) {
@@ -113,13 +119,14 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
 
     suspend fun setTapToOpenAssistant(enabled: Boolean) = context.assistantTileDataStore.edit {
         it[TAP_TO_OPEN_ASSISTANT] = enabled
-        // Enabling the interactive panel starts in manual mode; users can opt back into
-        // automatic response expansion with its dedicated setting.
-        if (enabled) it[AUTO_EXPAND_ASSISTANT_RESPONSES] = false
     }
 
     suspend fun setAutoExpandAssistantResponses(enabled: Boolean) = context.assistantTileDataStore.edit {
         it[AUTO_EXPAND_ASSISTANT_RESPONSES] = enabled
+    }
+
+    suspend fun setAutoReadAssistantEvents(enabled: Boolean) = context.assistantTileDataStore.edit {
+        it[AUTO_READ_ASSISTANT_EVENTS] = enabled
     }
 
     suspend fun setPillTimeoutSeconds(seconds: Int) = context.assistantTileDataStore.edit {
@@ -137,6 +144,7 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
         val USE_ANIMATED_ICON = booleanPreferencesKey("use_animated_icon")
         val TAP_TO_OPEN_ASSISTANT = booleanPreferencesKey("tap_to_open_assistant")
         val AUTO_EXPAND_ASSISTANT_RESPONSES = booleanPreferencesKey("auto_expand_assistant_responses")
+        val AUTO_READ_ASSISTANT_EVENTS = booleanPreferencesKey("auto_read_assistant_events")
         val PILL_TIMEOUT_SECONDS = intPreferencesKey("pill_timeout_seconds")
         val EXPANDED_TIMEOUT_SECONDS = intPreferencesKey("expanded_timeout_seconds")
     }
