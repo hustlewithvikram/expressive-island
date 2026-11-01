@@ -112,6 +112,7 @@ fun SettingsTab(
     onOpenBackground: () -> Unit,
     onOpenActionButtons: () -> Unit,
     onOpenShizuku: () -> Unit,
+    onOpenIntegrations: () -> Unit,
     onOpenPermissionDot: () -> Unit,
 ) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -152,7 +153,8 @@ fun SettingsTab(
                     onOpenBehaviour = onOpenBehaviour,
                     onOpenAnimation = onOpenAnimation,
                     onOpenAppearance = onOpenAppearance,
-                    onOpenShizuku = onOpenShizuku
+                    onOpenShizuku = onOpenShizuku,
+                    onOpenIntegrations = onOpenIntegrations,
                 )
             }
 
@@ -186,6 +188,7 @@ fun SettingsTab(
             SettingsRoute.Background -> BackgroundScreen(viewModel, contentPadding)
             SettingsRoute.ActionButtons -> ButtonScreen(viewModel, contentPadding)
             SettingsRoute.Shizuku -> ShizukuScreen(viewModel, contentPadding, onOpenPermissionDot)
+            SettingsRoute.Integrations -> AssistantIntegrationScreen(contentPadding)
             SettingsRoute.PermissionDot -> PermissionDotScreen(viewModel, contentPadding)
         }
     }
@@ -193,7 +196,7 @@ fun SettingsTab(
 
 /** The screens reachable from the Settings tab. Hoisted to MainScreen so the bottom bar can
  *  switch to a back pill on the detail screens. */
-enum class SettingsRoute { List, SizePosition, EventIcons, EventDetail, DynamicTiles, DynamicTileDetail, Apps, Behaviour, ShowsWhenEmpty, CameraHoleTap, Animation, Appearance, Background, ActionButtons, Shizuku, PermissionDot }
+enum class SettingsRoute { List, SizePosition, EventIcons, EventDetail, DynamicTiles, DynamicTileDetail, Apps, Behaviour, ShowsWhenEmpty, CameraHoleTap, Animation, Appearance, Background, ActionButtons, Shizuku, Integrations, PermissionDot }
 
 /**
  * The screen that back navigation returns to. Most detail screens go straight back to the list,
@@ -236,6 +239,7 @@ private fun SettingsList(
     onOpenBehaviour: () -> Unit,
     onOpenAnimation: () -> Unit,
     onOpenShizuku: () -> Unit,
+    onOpenIntegrations: () -> Unit,
     onOpenAppearance: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -520,6 +524,7 @@ private fun SettingsList(
                 if (matches(stringResource(R.string.shizuku_options_title), stringResource(R.string.settings_shizuku_subtitle), "shizuku permission dot status bar accessibility")) {
                     resultCount++
                     SettingsListItem(Icons.Rounded.Terminal, stringResource(R.string.shizuku_options_title), stringResource(R.string.settings_shizuku_subtitle), onOpenShizuku)
+                    SettingsListItem(Icons.Rounded.Apps, "Integrations", "Configure Assistant API providers and connected services", onOpenIntegrations)
                 }
                 if (matches(stringResource(R.string.dynamic_tiles_title), stringResource(R.string.settings_dynamic_tiles_subtitle), "dynamic tiles music timer stopwatch phone call battery charging wifi download recording flashlight")) {
                     resultCount++
@@ -683,6 +688,12 @@ private fun SettingsList(
                 title = stringResource(R.string.shizuku_options_title),
                 subtitle = stringResource(R.string.settings_shizuku_subtitle),
                 onClick = onOpenShizuku,
+            )
+            SettingsListItem(
+                icon = Icons.Rounded.Apps,
+                title = "Integrations",
+                subtitle = "Configure Assistant API providers and connected services",
+                onClick = onOpenIntegrations,
             )
         }
 
