@@ -37,7 +37,7 @@
     <string name="profile_updater_title">Updater</string>
     <string name="profile_updater_description">Check for updates and install the latest version.</string>
     <string name="accessibility_service_label">Expressive Island overlay</string>
-    <string name="accessibility_service_description">Draws a small dynamic island over the camera cutout to surface notifications and system events. No screen content is read or stored.</string>
+    <string name="accessibility_service_description">Draws the island over the camera cutout. When assistant auto-read is enabled, it reads visible text only in supported assistant apps to show activity and responses. Text is processed on-device and not stored.</string>
     <string name="notification_service_label">Expressive Island notifications</string>
 
     <!-- System event labels shown inside the island -->
@@ -135,7 +135,7 @@
     <string name="perm_notifications_title">Notification access</string>
     <string name="perm_notifications_desc">Lets the island mirror incoming app notifications.</string>
     <string name="perm_accessibility_title">Overlay access</string>
-    <string name="perm_accessibility_desc">Draws the island over the cutout. No screen content is read.</string>
+    <string name="perm_accessibility_desc">Draws the island over the cutout. If assistant auto-read is enabled, visible text in supported assistant apps is read on-device to display activity and responses; it is not stored.</string>
     <string name="perm_battery_title">Ignore battery optimisation</string>
     <string name="settings_access_missing">Overlay access is missing. Enable it now to see the island</string>
     <string name="music_art_stroke_title">Ring around the cover</string>
