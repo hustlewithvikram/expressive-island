@@ -3,6 +3,7 @@ package com.vikram.expressiveisland.overlay
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Android
+import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.FlashlightOn
 import androidx.compose.material.icons.rounded.Lock
@@ -18,6 +19,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.GlobalAction
 import com.vikram.expressiveisland.data.SettingsPanel
+import com.vikram.expressiveisland.data.RadioToggle
 
 /**
  * Maps a [CenterShortcut] to what the UI draws for it: a glyph and a label. Kept out of the data
@@ -45,6 +47,11 @@ object CenterShortcutCatalog {
             SettingsPanel.VOLUME -> Icons.Rounded.VolumeUp
         }
         is CenterShortcut.LaunchApp -> Icons.Rounded.Android
+        is CenterShortcut.ShizukuRadio -> when (shortcut.radio) {
+            RadioToggle.WIFI -> Icons.Rounded.Wifi
+            RadioToggle.BLUETOOTH -> Icons.Rounded.Bluetooth
+            RadioToggle.MOBILE_DATA -> Icons.Rounded.SignalCellularAlt
+        }
     }
 
     /** The label string resource, or null for [CenterShortcut.LaunchApp] (resolved from PackageManager). */
@@ -54,5 +61,6 @@ object CenterShortcutCatalog {
         is CenterShortcut.Global -> shortcut.action.labelRes
         is CenterShortcut.Panel -> shortcut.panel.labelRes
         is CenterShortcut.LaunchApp -> null
+        is CenterShortcut.ShizukuRadio -> shortcut.radio.labelRes
     }
 }
