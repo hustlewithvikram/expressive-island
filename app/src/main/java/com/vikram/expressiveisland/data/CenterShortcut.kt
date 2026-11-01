@@ -121,12 +121,6 @@ enum class GlobalAction(
     RECENTS(AccessibilityService.GLOBAL_ACTION_RECENTS, 16, R.string.center_action_recents),
 }
 
-enum class RadioToggle(@param:StringRes val labelRes: Int) {
-    WIFI(R.string.center_action_wifi_shizuku),
-    BLUETOOTH(R.string.center_action_bluetooth_shizuku),
-    MOBILE_DATA(R.string.center_action_mobile_data_shizuku),
-}
-
 /** System settings slide-up panels opened with a plain intent (all available from our minSdk 29). */
 enum class SettingsPanel(
     val action: String,
