@@ -671,7 +671,11 @@ class IslandOverlayController(private val context: Context) {
                         collapseRequest = collapseRequestValue,
                         onExpandedChange = ::onExpandedChanged,
                         onAssistantContentHeightChanged = { eventId, heightDp ->
-                            if (assistantContentHeightEventId != eventId || assistantContentHeightDp != heightDp) {
+                            val isNewEvent = assistantContentHeightEventId != eventId
+                            // The overlay's own resize can make Compose report a smaller, clipped
+                            // viewport. Keep the largest real measurement for this event so the
+                            // window cannot enter a shrink-feedback loop.
+                            if (isNewEvent || heightDp > assistantContentHeightDp) {
                                 assistantContentHeightEventId = eventId
                                 assistantContentHeightDp = heightDp
                                 if (expanded && currentEvent.value?.id == eventId) syncWindowSize()
