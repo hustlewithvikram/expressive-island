@@ -102,6 +102,10 @@ data class BehaviourSettings(
     val centerShowLabels: Boolean = CENTER_SHOW_LABELS,
     val centerFillContainers: Boolean = CENTER_FILL_CONTAINERS,
     val centerThemedIcons: Boolean = CENTER_THEMED_ICONS,
+    /** Independent action for tapping the physical camera hole while no island is shown. */
+    val cameraHoleTapEnabled: Boolean = DEFAULT_CAMERA_HOLE_TAP_ENABLED,
+    val cameraHoleTapAction: CameraHoleTapAction = DEFAULT_CAMERA_HOLE_TAP_ACTION,
+    val cameraHoleTapHaptics: Boolean = DEFAULT_CAMERA_HOLE_TAP_HAPTICS,
     val vibrateOnTap: Boolean = DEFAULT_VIBRATE_ON_TAP,
     val hapticsOnPop: Boolean = DEFAULT_HAPTICS_ON_POP,
     val dismissNotifications: Boolean = DEFAULT_DISMISS_NOTIFICATIONS,
@@ -146,6 +150,9 @@ data class BehaviourSettings(
         const val CENTER_SHOW_LABELS = true
         const val CENTER_FILL_CONTAINERS = false
         const val CENTER_THEMED_ICONS = false
+        const val DEFAULT_CAMERA_HOLE_TAP_ENABLED = false
+        val DEFAULT_CAMERA_HOLE_TAP_ACTION = CameraHoleTapAction.SCREENSHOT
+        const val DEFAULT_CAMERA_HOLE_TAP_HAPTICS = true
         const val DEFAULT_DISMISS_NOTIFICATIONS = false
         const val DEFAULT_DISPLAY_WHILE_DND = false
         const val DEFAULT_ALERT_ON_NOTIFICATION = false
@@ -237,6 +244,11 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             centerFillContainers = prefs[CENTER_FILL_CONTAINERS]
                 ?: BehaviourSettings.CENTER_FILL_CONTAINERS,
             centerThemedIcons = prefs[CENTER_THEMED_ICONS] ?: BehaviourSettings.CENTER_THEMED_ICONS,
+            cameraHoleTapEnabled = prefs[CAMERA_HOLE_TAP_ENABLED] ?: BehaviourSettings.DEFAULT_CAMERA_HOLE_TAP_ENABLED,
+            cameraHoleTapAction = prefs[CAMERA_HOLE_TAP_ACTION]
+                ?.let { runCatching { CameraHoleTapAction.valueOf(it) }.getOrNull() }
+                ?: BehaviourSettings.DEFAULT_CAMERA_HOLE_TAP_ACTION,
+            cameraHoleTapHaptics = prefs[CAMERA_HOLE_TAP_HAPTICS] ?: BehaviourSettings.DEFAULT_CAMERA_HOLE_TAP_HAPTICS,
             vibrateOnTap = prefs[VIBRATE_ON_TAP] ?: BehaviourSettings.DEFAULT_VIBRATE_ON_TAP,
             /** If enabled, haptic feedback fires when the cutout appears and disappears */
             hapticsOnPop = prefs[HAPTICS_ON_POP] ?: BehaviourSettings.DEFAULT_HAPTICS_ON_POP,
@@ -295,6 +307,9 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("centerShowLabels", s.centerShowLabels)
             put("centerFillContainers", s.centerFillContainers)
             put("centerThemedIcons", s.centerThemedIcons)
+            put("cameraHoleTapEnabled", s.cameraHoleTapEnabled)
+            put("cameraHoleTapAction", s.cameraHoleTapAction.name)
+            put("cameraHoleTapHaptics", s.cameraHoleTapHaptics)
             put("vibrateOnTap", s.vibrateOnTap)
             put("hapticsOnPop", s.hapticsOnPop)
             put("dismissNotifications", s.dismissNotifications)
@@ -413,6 +428,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
                 obj.getBoolean("centerFillContainers")
             if (obj.has("centerThemedIcons")) it[CENTER_THEMED_ICONS] =
                 obj.getBoolean("centerThemedIcons")
+            if (obj.has("cameraHoleTapEnabled")) it[CAMERA_HOLE_TAP_ENABLED] = obj.getBoolean("cameraHoleTapEnabled")
+            parseEnum<CameraHoleTapAction>(obj, "cameraHoleTapAction")
+                ?.let { action -> it[CAMERA_HOLE_TAP_ACTION] = action.name }
+            if (obj.has("cameraHoleTapHaptics")) it[CAMERA_HOLE_TAP_HAPTICS] = obj.getBoolean("cameraHoleTapHaptics")
             if (obj.has("vibrateOnTap")) it[VIBRATE_ON_TAP] = obj.getBoolean("vibrateOnTap")
             if (obj.has("hapticsOnPop")) it[HAPTICS_ON_POP] = obj.getBoolean("hapticsOnPop")
             if (obj.has("dismissNotifications")) it[DISMISS_NOTIFICATIONS] =
@@ -601,6 +620,18 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[CENTER_THEMED_ICONS] = enabled
     }
 
+    suspend fun setCameraHoleTapEnabled(enabled: Boolean) = context.behaviourDataStore.edit {
+        it[CAMERA_HOLE_TAP_ENABLED] = enabled
+    }
+
+    suspend fun setCameraHoleTapAction(action: CameraHoleTapAction) = context.behaviourDataStore.edit {
+        it[CAMERA_HOLE_TAP_ACTION] = action.name
+    }
+
+    suspend fun setCameraHoleTapHaptics(enabled: Boolean) = context.behaviourDataStore.edit {
+        it[CAMERA_HOLE_TAP_HAPTICS] = enabled
+    }
+
     /** Sets whether the cutout vibrates on tap */
     suspend fun setVibrateOnTap(enabled: Boolean) = context.behaviourDataStore.edit {
         it[VIBRATE_ON_TAP] = enabled
@@ -666,6 +697,9 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val CENTER_SHOW_LABELS = booleanPreferencesKey("center_show_labels")
         val CENTER_FILL_CONTAINERS = booleanPreferencesKey("center_fill_containers")
         val CENTER_THEMED_ICONS = booleanPreferencesKey("center_themed_icons")
+        val CAMERA_HOLE_TAP_ENABLED = booleanPreferencesKey("camera_hole_tap_enabled")
+        val CAMERA_HOLE_TAP_ACTION = stringPreferencesKey("camera_hole_tap_action")
+        val CAMERA_HOLE_TAP_HAPTICS = booleanPreferencesKey("camera_hole_tap_haptics")
         val VIBRATE_ON_TAP = booleanPreferencesKey("vibrate_on_tap")
         val HAPTICS_ON_POP = booleanPreferencesKey("haptics_on_pop")
         val DISMISS_NOTIFICATIONS = booleanPreferencesKey("dismiss_notifications")
