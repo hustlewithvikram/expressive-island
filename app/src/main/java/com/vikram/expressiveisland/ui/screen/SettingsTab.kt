@@ -169,7 +169,8 @@ fun SettingsTab(
             SettingsRoute.Behaviour -> BehaviourScreen(
                 viewModel,
                 contentPadding,
-                onOpenShowsWhenEmpty
+                onOpenShowsWhenEmpty,
+                onOpenCameraHoleTap,
             )
 
             SettingsRoute.ShowsWhenEmpty -> ShowsWhenEmptyScreen(viewModel, contentPadding)
