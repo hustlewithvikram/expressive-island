@@ -144,6 +144,7 @@ sealed interface CutoutSignal {
         val text: String? = null,
         val contentIntent: PendingIntent? = null,
         val active: Boolean = true,
+        val interactionMode: AssistantInteractionMode = AssistantInteractionMode.UNKNOWN,
     ) : CutoutSignal
 }
 
