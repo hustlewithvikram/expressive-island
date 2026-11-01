@@ -45,10 +45,6 @@ data class AssistantTileSettings(
     val showAssistantMicButton: Boolean = DEFAULT_SHOW_ASSISTANT_MIC_BUTTON,
     val showAssistantPromptInput: Boolean = DEFAULT_SHOW_ASSISTANT_PROMPT_INPUT,
     val showAssistantSendButton: Boolean = DEFAULT_SHOW_ASSISTANT_SEND_BUTTON,
-    /** Collapse the expanded assistant when the user swipes upward. */
-    val swipeUpToCollapse: Boolean = DEFAULT_SWIPE_UP_TO_COLLAPSE,
-    /** Collapse the expanded assistant when the user taps its background. */
-    val tapToCollapse: Boolean = DEFAULT_TAP_TO_COLLAPSE,
 ) {
     companion object {
         const val DEFAULT_DISPLAY_ANSWER_IN_CUTOUT = true
@@ -65,8 +61,6 @@ data class AssistantTileSettings(
         const val DEFAULT_SHOW_ASSISTANT_MIC_BUTTON = true
         const val DEFAULT_SHOW_ASSISTANT_PROMPT_INPUT = true
         const val DEFAULT_SHOW_ASSISTANT_SEND_BUTTON = true
-        const val DEFAULT_SWIPE_UP_TO_COLLAPSE = true
-        const val DEFAULT_TAP_TO_COLLAPSE = false
     }
 }
 
@@ -92,8 +86,6 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             showAssistantPromptInput = prefs[SHOW_ASSISTANT_PROMPT_INPUT] ?: AssistantTileSettings.DEFAULT_SHOW_ASSISTANT_PROMPT_INPUT,
             showAssistantSendButton = (prefs[SHOW_ASSISTANT_SEND_BUTTON] ?: AssistantTileSettings.DEFAULT_SHOW_ASSISTANT_SEND_BUTTON) &&
                 (prefs[SHOW_ASSISTANT_PROMPT_INPUT] ?: AssistantTileSettings.DEFAULT_SHOW_ASSISTANT_PROMPT_INPUT),
-            swipeUpToCollapse = prefs[SWIPE_UP_TO_COLLAPSE] ?: AssistantTileSettings.DEFAULT_SWIPE_UP_TO_COLLAPSE,
-            tapToCollapse = prefs[TAP_TO_COLLAPSE] ?: AssistantTileSettings.DEFAULT_TAP_TO_COLLAPSE,
         )
     }
 
@@ -117,8 +109,6 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             put("showAssistantMicButton", s.showAssistantMicButton)
             put("showAssistantPromptInput", s.showAssistantPromptInput)
             put("showAssistantSendButton", s.showAssistantSendButton)
-            put("swipeUpToCollapse", s.swipeUpToCollapse)
-            put("tapToCollapse", s.tapToCollapse)
         }.toString()
     }
 
@@ -147,8 +137,6 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
                 it[SHOW_ASSISTANT_PROMPT_INPUT] = showPrompt
                 if (!showPrompt) it[SHOW_ASSISTANT_SEND_BUTTON] = false
             }
-            if (obj.has("swipeUpToCollapse")) it[SWIPE_UP_TO_COLLAPSE] = obj.getBoolean("swipeUpToCollapse")
-            if (obj.has("tapToCollapse")) it[TAP_TO_COLLAPSE] = obj.getBoolean("tapToCollapse")
             if (obj.has("showAssistantSendButton")) {
                 it[SHOW_ASSISTANT_SEND_BUTTON] =
                     obj.getBoolean("showAssistantSendButton") && (it[SHOW_ASSISTANT_PROMPT_INPUT] ?: true)
@@ -226,14 +214,6 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
         it[SHOW_ASSISTANT_SEND_BUTTON] = enabled && (it[SHOW_ASSISTANT_PROMPT_INPUT] ?: true)
     }
 
-    suspend fun setSwipeUpToCollapse(enabled: Boolean) = context.assistantTileDataStore.edit {
-        it[SWIPE_UP_TO_COLLAPSE] = enabled
-    }
-
-    suspend fun setTapToCollapse(enabled: Boolean) = context.assistantTileDataStore.edit {
-        it[TAP_TO_COLLAPSE] = enabled
-    }
-
     private companion object {
         val MANUAL_EXPANDED_TO_PILL_TIMEOUT_SECONDS = intPreferencesKey("manual_expanded_to_pill_timeout_seconds")
         val MANUAL_AUTO_HIDE_ENABLED = booleanPreferencesKey("manual_auto_hide_enabled")
@@ -241,8 +221,6 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
         val SHOW_ASSISTANT_MIC_BUTTON = booleanPreferencesKey("show_assistant_mic_button")
         val SHOW_ASSISTANT_PROMPT_INPUT = booleanPreferencesKey("show_assistant_prompt_input")
         val SHOW_ASSISTANT_SEND_BUTTON = booleanPreferencesKey("show_assistant_send_button")
-        val SWIPE_UP_TO_COLLAPSE = booleanPreferencesKey("swipe_up_to_collapse")
-        val TAP_TO_COLLAPSE = booleanPreferencesKey("tap_to_collapse")
         val ACTIVATION_MODE = stringPreferencesKey("activation_mode")
         val DISPLAY_ANSWER_IN_CUTOUT = booleanPreferencesKey("display_answer_in_cutout")
         val MAX_CUTOUT_HEIGHT_PERCENT = intPreferencesKey("max_cutout_height_percent")
