@@ -508,6 +508,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         assistantTilePreferences.setShowAssistantSendButton(enabled)
     }
 
+    fun setAssistantSwipeUpToCollapse(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setSwipeUpToCollapse(enabled)
+    }
+
+    fun setAssistantTapToCollapse(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setTapToCollapse(enabled)
+    }
+
     fun setMusicSkipColor(color: CutoutColor?) = viewModelScope.launch {
         musicTilePreferences.setSkipColor(color)
     }
