@@ -40,7 +40,7 @@ object CenterShortcutCatalog {
             GlobalAction.RECENTS -> Icons.Rounded.Apps
         }
         is CenterShortcut.Panel -> when (shortcut.panel) {
-            SettingsPanel.INTERNET -> Icons.Rounded.SignalCellularAlt
+            SettingsPanel.INTERNET -> Icons.Rounded.Wifi
             SettingsPanel.WIFI -> Icons.Rounded.Wifi
             SettingsPanel.NFC -> Icons.Rounded.Nfc
             SettingsPanel.VOLUME -> Icons.Rounded.VolumeUp
