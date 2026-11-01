@@ -22,6 +22,9 @@ sealed interface CenterShortcut {
     /** Opens a system settings slide-up panel (Wi-Fi, internet, NFC, volume). */
     data class Panel(val panel: SettingsPanel) : CenterShortcut
 
+    /** A radio toggle executed with Shizuku shell privileges; never falls back to Settings panels. */
+    data class ShizukuRadio(val radio: RadioToggle) : CenterShortcut
+
     /** Launches an installed app by package name (reuses the empty-pill app picker). */
     data class LaunchApp(val packageName: String) : CenterShortcut
 
@@ -34,12 +37,14 @@ sealed interface CenterShortcut {
         get() = when (this) {
             Torch -> true
             is Global, is Panel, is LaunchApp -> false
+            is ShizukuRadio -> true
         }
 
     fun encode(): String = when (this) {
         is Global -> "$GLOBAL_TAG$SEPARATOR${action.name}"
         Torch -> TORCH_TAG
         is Panel -> "$PANEL_TAG$SEPARATOR${panel.name}"
+        is ShizukuRadio -> "$SHIZUKU_TAG$SEPARATOR${radio.name}"
         is LaunchApp -> "$APP_TAG$SEPARATOR$packageName"
     }
 
@@ -48,6 +53,7 @@ sealed interface CenterShortcut {
         private const val TORCH_TAG = "torch"
         private const val PANEL_TAG = "panel"
         private const val APP_TAG = "app"
+        private const val SHIZUKU_TAG = "shizuku_radio"
         private const val SEPARATOR = "|"
         private const val LIST_SEPARATOR = "\n"
 
@@ -60,7 +66,8 @@ sealed interface CenterShortcut {
             if (value.isEmpty()) return null
             return when (raw.substring(0, index)) {
                 GLOBAL_TAG -> runCatching { GlobalAction.valueOf(value) }.getOrNull()?.let(::Global)
-                PANEL_TAG -> runCatching { SettingsPanel.valueOf(value) }.getOrNull()?.let(::Panel)
+                PANEL_TAG -> null // Legacy Settings-panel shortcuts are intentionally retired.
+                SHIZUKU_TAG -> runCatching { RadioToggle.valueOf(value) }.getOrNull()?.let(::ShizukuRadio)
                 APP_TAG -> LaunchApp(value)
                 else -> null
             }
@@ -91,7 +98,7 @@ sealed interface CenterShortcut {
         val BUILTINS: List<CenterShortcut> =
             listOf(Torch) +
                 GlobalAction.entries.map(::Global) +
-                SettingsPanel.entries.map(::Panel)
+                RadioToggle.entries.map(::ShizukuRadio)
     }
 }
 
@@ -111,6 +118,12 @@ enum class GlobalAction(
     NOTIFICATIONS(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS, 16, R.string.center_action_notifications),
     QUICK_SETTINGS(AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS, 17, R.string.center_action_quick_settings),
     RECENTS(AccessibilityService.GLOBAL_ACTION_RECENTS, 16, R.string.center_action_recents),
+}
+
+enum class RadioToggle(@param:StringRes val labelRes: Int) {
+    WIFI(R.string.center_action_wifi_shizuku),
+    BLUETOOTH(R.string.center_action_bluetooth_shizuku),
+    MOBILE_DATA(R.string.center_action_mobile_data_shizuku),
 }
 
 /** System settings slide-up panels opened with a plain intent (all available from our minSdk 29). */
