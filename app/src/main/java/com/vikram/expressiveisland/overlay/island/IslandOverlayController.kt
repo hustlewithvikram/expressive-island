@@ -604,15 +604,13 @@ class IslandOverlayController(private val context: Context) {
                         swipeToDismiss = behaviour.swipeToDismiss,
                         swipeDismissDirection = behaviour.swipeDismissDirection,
                         swipeDismissTarget = behaviour.swipeDismissTarget,
-                        showsWhenEmpty = behaviour.showsWhenEmpty && behaviour.cutoutEnabled,
-                        assistantTapEnabled = assistantSettings.tapToOpenAssistant &&
-                                behaviour.cutoutEnabled && !behaviour.showsWhenEmpty &&
-                                !previewPinned && currentEvent.value == null &&
-                                satelliteEvent.value == null,
+                        showsWhenEmpty = (behaviour.showsWhenEmpty || assistantSettings.tapToOpenAssistant) && behaviour.cutoutEnabled,
+                        assistantTapEnabled = false,
                         onAssistantTap = ::openAssistantPanel,
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
                         emptyIconColor = behaviour.showsWhenEmptyIconColor,
-                        emptyOpensCenter = behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
+                        emptyOpensCenter = assistantSettings.tapToOpenAssistant ||
+                                behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
                         centerShortcuts = behaviour.centerShortcuts,
                         centerShowLabels = behaviour.centerShowLabels,
                         centerFillContainers = behaviour.centerFillContainers,
@@ -2064,6 +2062,10 @@ class IslandOverlayController(private val context: Context) {
      * we give that collapse a beat to finish so the overlay isn't in the shot / behind the dialog.
      */
     private fun onCenterShortcut(shortcut: CenterShortcut) {
+        if (shortcut == CenterShortcut.Assistant) {
+            openAssistantPanel()
+            return
+        }
         val settleFirst = shortcut is CenterShortcut.Global &&
                 (shortcut.action == GlobalAction.SCREENSHOT || shortcut.action == GlobalAction.POWER_DIALOG)
         if (settleFirst) {
@@ -2082,8 +2084,7 @@ class IslandOverlayController(private val context: Context) {
      * notification, music session, call, timer, or another active tile.
      */
     private fun openAssistantPanel() {
-        if (!assistantSettings.tapToOpenAssistant ||
-            !behaviourState.value.cutoutEnabled ||
+        if (!behaviourState.value.cutoutEnabled ||
             previewPinned ||
             overlayHidden ||
             currentEvent.value != null ||
