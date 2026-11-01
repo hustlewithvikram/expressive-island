@@ -108,7 +108,7 @@ internal fun CameraHoleTapScreen(
                 }
 
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(24.dp),
                     title = stringResource(R.string.camera_hole_haptics_title),
                     description = stringResource(R.string.camera_hole_haptics_desc),
                     checked = behaviour.cameraHoleTapHaptics,
