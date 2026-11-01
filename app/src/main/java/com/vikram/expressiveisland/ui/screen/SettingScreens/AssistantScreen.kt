@@ -177,27 +177,6 @@ internal fun AssistantScreen(
         }
 
         Text(
-            text = "Collapse gestures",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp, top = 14.dp, bottom = 4.dp),
-        )
-        SettingsToggleCard(
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
-            title = "Swipe up to collapse",
-            description = "Swipe up on the assistant header to return to the pill.",
-            checked = settings.swipeUpToCollapse,
-            onCheckedChange = viewModel::setAssistantSwipeUpToCollapse,
-        )
-        SettingsToggleCard(
-            shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp),
-            title = "Tap to collapse",
-            description = "Tap the expanded assistant background to return to the pill.",
-            checked = settings.tapToCollapse,
-            onCheckedChange = viewModel::setAssistantTapToCollapse,
-        )
-
-        Text(
             text = "Expanded layout",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
