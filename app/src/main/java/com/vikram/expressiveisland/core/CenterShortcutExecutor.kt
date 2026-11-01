@@ -42,6 +42,7 @@ object CenterShortcutExecutor {
         CenterShortcut.Torch -> toggleTorch(context)
         is CenterShortcut.Panel -> false // Settings panels are intentionally not offered as quick actions.
         is CenterShortcut.ShizukuRadio -> toggleShizukuRadio(shortcut.radio, context)
+        CenterShortcut.Assistant -> false // Routed by IslandOverlayController to the assistant panel.
         is CenterShortcut.LaunchApp -> launchApp(shortcut.packageName, context)
     }
 
