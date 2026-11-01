@@ -5,22 +5,24 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Blue Island: height reduced by 5%, 10% left gap -->
-    <path
-        android:fillColor="#005AC1"
-        android:pathData="
-            M37.7325,27.0675
-            H108
-            V80.9325
-            H37.7325
-            A26.9325,26.9325 0,0 1 37.7325,27.0675
-            Z" />
-
-    <!-- Stars: vertically adjusted by 5% -->
+    <!-- Keep all artwork inside Android's adaptive-icon safe area. -->
     <group
-        android:scaleY="0.95"
-        android:pivotX="0"
+        android:scaleX="0.65"
+        android:scaleY="0.65"
+        android:pivotX="54"
         android:pivotY="54">
+
+        <!-- Blue island with a true semicircular left cap. -->
+        <path
+            android:fillColor="#005AC1"
+            android:pathData="
+                M37.7325,27.0675
+                H108
+                V80.9325
+                H37.7325
+                A26.9325,26.9325 0,0 1 10.8,54
+                A26.9325,26.9325 0,0 1 37.7325,27.0675
+                Z" />
 
         <!-- Main sparkle -->
         <path
@@ -43,7 +45,5 @@
                 C90,64 88,62 83,60
                 C88,58 90,56 91,52
                 Z" />
-
     </group>
-
 </vector>
