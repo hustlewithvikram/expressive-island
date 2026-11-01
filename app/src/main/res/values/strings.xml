@@ -530,6 +530,7 @@
     <string name="center_action_wifi_shizuku">Wi‑Fi</string>
     <string name="center_action_bluetooth_shizuku">Bluetooth</string>
     <string name="center_action_mobile_data_shizuku">Mobile data</string>
+    <string name="center_shizuku_help">Wi-Fi, Bluetooth and mobile data require Shizuku to be running with permission granted.</string>
     <string name="center_shizuku_required">Start Shizuku and grant Expressive Island permission to use this action.</string>
     <string name="center_shizuku_state_unavailable">Could not read this radio state on this device.</string>
     <string name="center_shizuku_toggle_success">System toggle updated.</string>
