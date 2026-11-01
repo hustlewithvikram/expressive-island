@@ -22,9 +22,6 @@ sealed interface CenterShortcut {
     /** Opens a system settings slide-up panel (Wi-Fi, internet, NFC, volume). */
     data class Panel(val panel: SettingsPanel) : CenterShortcut
 
-    /** A radio toggle executed with Shizuku shell privileges; never falls back to Settings panels. */
-    data class ShizukuRadio(val radio: RadioToggle) : CenterShortcut
-
     /** Opens the app's interactive assistant composer from the quick-actions launcher. */
     data object Assistant : CenterShortcut
 
@@ -40,7 +37,6 @@ sealed interface CenterShortcut {
         get() = when (this) {
             Torch -> true
             is Global, is Panel, is LaunchApp -> false
-            is ShizukuRadio -> true
             Assistant -> false
         }
 
@@ -48,7 +44,6 @@ sealed interface CenterShortcut {
         is Global -> "$GLOBAL_TAG$SEPARATOR${action.name}"
         Torch -> TORCH_TAG
         is Panel -> "$PANEL_TAG$SEPARATOR${panel.name}"
-        is ShizukuRadio -> "$SHIZUKU_TAG$SEPARATOR${radio.name}"
         Assistant -> ASSISTANT_TAG
         is LaunchApp -> "$APP_TAG$SEPARATOR$packageName"
     }
@@ -58,7 +53,6 @@ sealed interface CenterShortcut {
         private const val TORCH_TAG = "torch"
         private const val PANEL_TAG = "panel"
         private const val APP_TAG = "app"
-        private const val SHIZUKU_TAG = "shizuku_radio"
         private const val ASSISTANT_TAG = "assistant"
         private const val SEPARATOR = "|"
         private const val LIST_SEPARATOR = "\n"
@@ -73,8 +67,7 @@ sealed interface CenterShortcut {
             if (value.isEmpty()) return null
             return when (raw.substring(0, index)) {
                 GLOBAL_TAG -> runCatching { GlobalAction.valueOf(value) }.getOrNull()?.let(::Global)
-                PANEL_TAG -> null // Legacy Settings-panel shortcuts are intentionally retired.
-                SHIZUKU_TAG -> runCatching { RadioToggle.valueOf(value) }.getOrNull()?.let(::ShizukuRadio)
+                PANEL_TAG -> runCatching { SettingsPanel.valueOf(value) }.getOrNull()?.let(::Panel)
                 APP_TAG -> LaunchApp(value)
                 else -> null
             }
@@ -106,7 +99,7 @@ sealed interface CenterShortcut {
         val BUILTINS: List<CenterShortcut> =
             listOf(Torch, Assistant) +
                 GlobalAction.entries.map(::Global) +
-                RadioToggle.entries.map(::ShizukuRadio)
+                SettingsPanel.entries.map(::Panel)
     }
 }
 
