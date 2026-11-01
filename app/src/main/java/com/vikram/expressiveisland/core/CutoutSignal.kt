@@ -34,6 +34,9 @@ import com.vikram.expressiveisland.service.ProgressData
  * notification listener, the system-event monitor) stay free of any UI or icon logic;
  * resolving a signal into something displayable is the overlay's responsibility.
  */
+/** Distinguishes a live microphone session from a visible typed-prompt interface. */
+enum class AssistantInteractionMode { UNKNOWN, VOICE, PROMPT }
+
 sealed interface CutoutSignal {
 
     /** A notification was posted by another app. */
@@ -136,9 +139,6 @@ sealed interface CutoutSignal {
         val contentIntent: PendingIntent? = null,
         val actions: List<Notification.Action> = emptyList(),
     ) : CutoutSignal
-
-    /** Distinguishes a live microphone session from a visible typed-prompt interface. */
-enum class AssistantInteractionMode { UNKNOWN, VOICE, PROMPT }
 
     /** Voice assistant activity or response (surfaced from voice assistant media session / app). */
     data class Assistant(
