@@ -10,7 +10,6 @@ import com.vikram.expressiveisland.R
  */
 enum class CameraHoleTapAction(@param:StringRes val labelRes: Int) {
     NONE(R.string.camera_hole_action_none),
-    QUICK_ACTIONS(R.string.camera_hole_action_quick_actions),
     SCREENSHOT(R.string.center_action_screenshot),
     LOCK_SCREEN(R.string.center_action_lock),
     POWER_MENU(R.string.center_action_power),
