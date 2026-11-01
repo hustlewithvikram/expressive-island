@@ -518,6 +518,7 @@ internal fun DynamicIsland(
             if (event == null &&
                 (assistantTapEnabled || cameraHoleTapEnabled) &&
                 !showsWhenEmpty &&
+                !cameraHoleQuickActions &&
                 !isStickToCamera
             ) {
                 Box(
