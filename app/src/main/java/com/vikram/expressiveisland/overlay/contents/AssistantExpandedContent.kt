@@ -108,74 +108,77 @@ fun AssistantExpandedContent(
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = maxCutoutHeightDp)
-            .verticalScroll(rememberScrollState())
             .padding(
                 start = 18.dp,
                 end = 18.dp,
                 top = 14.dp + collapsedHeightDp.dp,
                 bottom = 14.dp,
-            ),
+            )
+            .onGloballyPositioned { coordinates ->
+                val hDp = (coordinates.size.height / density).toInt()
+                if (hDp > 0) onHeightMeasured?.invoke(hDp + 28 + collapsedHeightDp)
+            },
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .onGloballyPositioned { coordinates ->
-                    val hDp = (coordinates.size.height / density).toInt()
-                    if (hDp > 0) onHeightMeasured?.invoke(hDp + 28 + collapsedHeightDp)
-                },
+        // Fixed header: it must never scroll away with the conversation.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f).widthIn(max = maxHeaderWidthDp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.weight(1f).widthIn(max = maxHeaderWidthDp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconBadge(event = event, badgeSize = 36.dp, iconSize = 22.dp)
-                    Spacer(Modifier.width(10.dp))
-                    Column {
-                        TileTitle(title = event.label)
-                        if (assistant.interactivePanel) {
-                            Text(
-                                text = "Ready when you are",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = contentColor.copy(alpha = 0.68f),
-                            )
-                        }
+                IconBadge(event = event, badgeSize = 36.dp, iconSize = 22.dp)
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    TileTitle(title = event.label)
+                    if (assistant.interactivePanel) {
+                        Text(
+                            text = "Ready when you are",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = contentColor.copy(alpha = 0.68f),
+                        )
                     }
                 }
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Close Assistant")
-                }
             }
-
-            Spacer(Modifier.height(12.dp))
-
-            if (!assistant.interactivePanel && assistant.interactionMode != AssistantInteractionMode.UNKNOWN) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    AssistantSiriVisual(
-                        modifier = Modifier.width(if (assistant.interactionMode == AssistantInteractionMode.VOICE) 112.dp else 64.dp)
-                            .height(if (assistant.interactionMode == AssistantInteractionMode.VOICE) 112.dp else 64.dp),
-                    )
-                    Text(
-                        text = if (assistant.interactionMode == AssistantInteractionMode.VOICE) "Listening" else "Prompt mode",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = contentColor.copy(alpha = 0.76f),
-                    )
-                }
-                Spacer(Modifier.height(10.dp))
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Rounded.Close, contentDescription = "Close Assistant")
             }
+        }
 
-            if (assistant.interactivePanel) {
+        Spacer(Modifier.height(12.dp))
+
+        if (!assistant.interactivePanel && assistant.interactionMode != AssistantInteractionMode.UNKNOWN) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                AssistantSiriVisual(
+                    modifier = Modifier.width(if (assistant.interactionMode == AssistantInteractionMode.VOICE) 112.dp else 64.dp)
+                        .height(if (assistant.interactionMode == AssistantInteractionMode.VOICE) 112.dp else 64.dp),
+                )
+                Text(
+                    text = if (assistant.interactionMode == AssistantInteractionMode.VOICE) "Listening" else "Prompt mode",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = contentColor.copy(alpha = 0.76f),
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+
+        if (assistant.interactivePanel) {
+            // Scrollable conversation only. The header above and composer below stay fixed.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+                    .verticalScroll(remember(event.id) { androidx.compose.foundation.ScrollState(0) }),
+            ) {
                 if (voiceMode || promptMode) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -216,71 +219,6 @@ fun AssistantExpandedContent(
                     }
                 }
 
-                Spacer(Modifier.height(12.dp))
-
-                if (assistant.showPromptInput || assistant.showMicButton) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        if (assistant.showPromptInput) {
-                            OutlinedTextField(
-                                value = query,
-                                onValueChange = {
-                                    query = it
-                                    promptMode = it.isNotBlank()
-                                    if (it.isNotBlank()) voiceMode = false
-                                },
-                                modifier = Modifier.weight(1f).onFocusChanged {
-                                    onInputFocusChange(it.isFocused)
-                                    if (it.isFocused) promptMode = true
-                                },
-                                placeholder = { Text("Ask anything…") },
-                                shape = RoundedCornerShape(24.dp),
-                                singleLine = !assistant.showSendButton,
-                                maxLines = if (assistant.showSendButton) 3 else 1,
-                                keyboardOptions = KeyboardOptions(
-                                    imeAction = if (assistant.showSendButton) ImeAction.Default else ImeAction.Send,
-                                ),
-                                keyboardActions = KeyboardActions(
-                                    onSend = { if (!assistant.showSendButton) submitPrompt() },
-                                ),
-                            )
-                        }
-                        if (assistant.showMicButton) {
-                            IconButton(
-                                onClick = {
-                                    voiceMode = true
-                                    promptMode = false
-                                    scope.launch {
-                                        delay(650)
-                                        val voiceIntent = Intent(Intent.ACTION_VOICE_COMMAND).apply {
-                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        }
-                                        runCatching { context.startActivity(voiceIntent) }.onFailure {
-                                            val fallback = Intent(RecognizerIntent.ACTION_WEB_SEARCH).apply {
-                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                            }
-                                            runCatching { context.startActivity(fallback) }
-                                        }
-                                    }
-                                },
-                            ) {
-                                Icon(Icons.Rounded.Mic, contentDescription = "Open voice assistant")
-                            }
-                        }
-                        if (assistant.showPromptInput && assistant.showSendButton) {
-                            IconButton(
-                                enabled = query.isNotBlank(),
-                                onClick = submitPrompt,
-                            ) {
-                                Icon(Icons.Rounded.Send, contentDescription = "Send prompt")
-                            }
-                        }
-                    }
-                }
-
                 submittedPrompt?.let { prompt ->
                     Spacer(Modifier.height(12.dp))
                     Surface(
@@ -304,38 +242,103 @@ fun AssistantExpandedContent(
                         }
                     }
                 }
-
-            } else if (assistant.displayAnswerInCutout) {
-                val textToDisplay =
-                    assistant.answerText.takeIf { !it.isNullOrBlank() } ?: "Assistant response received."
-                Text(
-                    text = textToDisplay,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = contentColor.copy(alpha = 0.88f),
-                )
             }
 
-            if (showActions && !assistant.interactivePanel) {
-                Spacer(Modifier.height(14.dp))
-                val chipFill = appearance.actionButtonColor?.resolve() ?: event.accent
-                val full = appearance.actionButtonAlignment == ActionButtonAlignment.FULL
+            Spacer(Modifier.height(12.dp))
+
+            // Fixed composer: always stays at the bottom, outside the conversation scroll.
+            if (assistant.showPromptInput || assistant.showMicButton) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(
-                        8.dp,
-                        appearance.actionButtonAlignment.toHorizontal(),
-                    ),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    ActionChip(
-                        action = IslandAction(label = "Close"),
-                        style = appearance.actionButtonStyle,
-                        fill = chipFill,
-                        heightDp = appearance.actionButtonHeightDp,
-                        onClick = onDismiss,
-                        modifier = if (full) Modifier.weight(1f) else Modifier,
-                    )
+                    if (assistant.showPromptInput) {
+                        OutlinedTextField(
+                            value = query,
+                            onValueChange = {
+                                query = it
+                                promptMode = it.isNotBlank()
+                                if (it.isNotBlank()) voiceMode = false
+                            },
+                            modifier = Modifier.weight(1f).onFocusChanged {
+                                onInputFocusChange(it.isFocused)
+                                if (it.isFocused) promptMode = true
+                            },
+                            placeholder = { Text("Ask anything…") },
+                            shape = RoundedCornerShape(24.dp),
+                            singleLine = !assistant.showSendButton,
+                            maxLines = if (assistant.showSendButton) 3 else 1,
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = if (assistant.showSendButton) ImeAction.Default else ImeAction.Send,
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onSend = { if (!assistant.showSendButton) submitPrompt() },
+                            ),
+                        )
+                    }
+                    if (assistant.showMicButton) {
+                        IconButton(
+                            onClick = {
+                                voiceMode = true
+                                promptMode = false
+                                scope.launch {
+                                    delay(650)
+                                    val voiceIntent = Intent(Intent.ACTION_VOICE_COMMAND).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    runCatching { context.startActivity(voiceIntent) }.onFailure {
+                                        val fallback = Intent(RecognizerIntent.ACTION_WEB_SEARCH).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        runCatching { context.startActivity(fallback) }
+                                    }
+                                }
+                            },
+                        ) {
+                            Icon(Icons.Rounded.Mic, contentDescription = "Open voice assistant")
+                        }
+                    }
+                    if (assistant.showPromptInput && assistant.showSendButton) {
+                        IconButton(
+                            enabled = query.isNotBlank(),
+                            onClick = submitPrompt,
+                        ) {
+                            Icon(Icons.Rounded.Send, contentDescription = "Send prompt")
+                        }
+                    }
                 }
+            }
+        } else if (assistant.displayAnswerInCutout) {
+            val textToDisplay =
+                assistant.answerText.takeIf { !it.isNullOrBlank() } ?: "Assistant response received."
+            Text(
+                text = textToDisplay,
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor.copy(alpha = 0.88f),
+            )
+        }
+
+        if (showActions && !assistant.interactivePanel) {
+            Spacer(Modifier.height(14.dp))
+            val chipFill = appearance.actionButtonColor?.resolve() ?: event.accent
+            val full = appearance.actionButtonAlignment == ActionButtonAlignment.FULL
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    8.dp,
+                    appearance.actionButtonAlignment.toHorizontal(),
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ActionChip(
+                    action = IslandAction(label = "Close"),
+                    style = appearance.actionButtonStyle,
+                    fill = chipFill,
+                    heightDp = appearance.actionButtonHeightDp,
+                    onClick = onDismiss,
+                    modifier = if (full) Modifier.weight(1f) else Modifier,
+                )
             }
         }
     }
