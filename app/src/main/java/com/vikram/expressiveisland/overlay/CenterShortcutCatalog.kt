@@ -32,6 +32,7 @@ object CenterShortcutCatalog {
      *  should prefer the real launcher icon (see the empty-pill app picker). */
     fun iconFor(shortcut: CenterShortcut): ImageVector = when (shortcut) {
         CenterShortcut.Torch -> Icons.Rounded.FlashlightOn
+        CenterShortcut.Assistant -> Icons.Rounded.Android
         is CenterShortcut.Global -> when (shortcut.action) {
             GlobalAction.LOCK_SCREEN -> Icons.Rounded.Lock
             GlobalAction.SCREENSHOT -> Icons.Rounded.Screenshot
@@ -47,6 +48,7 @@ object CenterShortcutCatalog {
             SettingsPanel.VOLUME -> Icons.Rounded.VolumeUp
         }
         is CenterShortcut.LaunchApp -> Icons.Rounded.Android
+        is CenterShortcut.Assistant -> Icons.Rounded.Android
         is CenterShortcut.ShizukuRadio -> when (shortcut.radio) {
             RadioToggle.WIFI -> Icons.Rounded.Wifi
             RadioToggle.BLUETOOTH -> Icons.Rounded.Bluetooth
@@ -58,9 +60,11 @@ object CenterShortcutCatalog {
     @StringRes
     fun labelResFor(shortcut: CenterShortcut): Int? = when (shortcut) {
         CenterShortcut.Torch -> com.vikram.expressiveisland.R.string.center_action_torch
+        CenterShortcut.Assistant -> com.vikram.expressiveisland.R.string.center_action_assistant
         is CenterShortcut.Global -> shortcut.action.labelRes
         is CenterShortcut.Panel -> shortcut.panel.labelRes
         is CenterShortcut.LaunchApp -> null
+        CenterShortcut.Assistant -> com.vikram.expressiveisland.R.string.center_action_assistant
         is CenterShortcut.ShizukuRadio -> shortcut.radio.labelRes
     }
 }
