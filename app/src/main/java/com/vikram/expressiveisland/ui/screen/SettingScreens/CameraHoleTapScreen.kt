@@ -53,16 +53,24 @@ internal fun CameraHoleTapScreen(
             onCheckedChange = viewModel::setCameraHoleTapEnabled,
         )
 
-        SettingsToggleCard(
-            shape = RoundedCornerShape(24.dp),
-            title = stringResource(R.string.assistant_tap_to_open_title),
-            description = stringResource(R.string.assistant_tap_to_open_desc),
-            checked = assistant.tapToOpenAssistant,
-            onCheckedChange = viewModel::setAssistantTapToOpen,
-        )
-
         AnimatedVisibility(visible = behaviour.cameraHoleTapEnabled) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = stringResource(R.string.camera_hole_quick_actions_title),
+                    description = stringResource(R.string.camera_hole_quick_actions_desc),
+                    checked = assistant.tapToOpenAssistant,
+                    onCheckedChange = viewModel::setAssistantTapToOpen,
+                )
+
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = stringResource(R.string.camera_hole_assistant_title),
+                    description = stringResource(R.string.camera_hole_assistant_desc),
+                    checked = behaviour.cameraHoleAssistantEnabled,
+                    onCheckedChange = viewModel::setCameraHoleAssistantEnabled,
+                )
+
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
