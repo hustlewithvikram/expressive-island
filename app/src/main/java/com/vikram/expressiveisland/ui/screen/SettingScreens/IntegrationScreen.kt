@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,7 +26,7 @@ import com.vikram.expressiveisland.data.AssistantIntegrationPreferences
 @Composable
 internal fun AssistantIntegrationScreen(contentPadding: PaddingValues) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 4.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
@@ -52,10 +54,10 @@ private fun AssistantIntegrationSection() {
     var streaming by remember { mutableStateOf(integration.streamResponses) }
     var includeContext by remember { mutableStateOf(integration.includeConversationContext) }
 
-    SectionHeader(
-        title = "Assistant API",
-        description = "Connect an OpenAI-compatible provider to generate answers inside the Assistant panel. Your API key is encrypted with Android Keystore before it is saved.",
-    )
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text("Assistant API", style = MaterialTheme.typography.titleMedium)
+        Text("Connect an OpenAI-compatible provider to generate answers inside the Assistant panel. Your API key is encrypted with Android Keystore before it is saved.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     androidx.compose.foundation.layout.Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         androidx.compose.material3.OutlinedTextField(
             value = provider,
