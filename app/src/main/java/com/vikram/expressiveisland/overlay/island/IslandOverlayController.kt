@@ -37,6 +37,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.core.CenterShortcutExecutor
 import com.vikram.expressiveisland.core.CutoutSignal
+import com.vikram.expressiveisland.core.AssistantInteractionMode
 import com.vikram.expressiveisland.core.DynamicTile
 import com.vikram.expressiveisland.core.ForegroundAppBus
 import com.vikram.expressiveisland.core.IslandEventBus
@@ -1647,7 +1648,8 @@ class IslandOverlayController(private val context: Context) {
 
                 is CutoutSignal.Assistant ->
                     assistantSettings.displayAnswerInCutout &&
-                            assistantSettings.autoExpandAssistantResponses
+                            (assistantSettings.autoExpandAssistantResponses ||
+                                    signal.interactionMode == AssistantInteractionMode.VOICE)
 
                 is CutoutSignal.System ->
                     false
