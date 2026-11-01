@@ -2122,8 +2122,7 @@ class IslandOverlayController(private val context: Context) {
             previewPinned ||
             overlayHidden ||
             currentEvent.value != null ||
-            satelliteEvent.value != null ||
-            tileEnabled[DynamicTile.ASSISTANT] == false
+            satelliteEvent.value != null
         ) return
 
         val signal = CutoutSignal.Assistant(
