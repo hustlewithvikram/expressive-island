@@ -165,8 +165,6 @@ internal fun DynamicIsland(
     appearance: AppearanceSettings,
     showActions: Boolean,
     shrinkOnSwipeUp: Boolean,
-    assistantSwipeUpToCollapse: Boolean = true,
-    assistantTapToCollapse: Boolean = false,
     swipeToDismiss: Boolean,
     swipeDismissDirection: SwipeDismissDirection,
     swipeDismissTarget: SwipeDismissTarget,
@@ -586,7 +584,7 @@ internal fun DynamicIsland(
                                 pressWidens,
                                 shownEvent?.id
                             ) {
-                                if (forcedExpanded == true) {
+                                if (forcedExpanded == true || shownEvent?.assistant?.interactivePanel == true) {
                                     return@pointerInput
                                 }
 
@@ -687,14 +685,6 @@ internal fun DynamicIsland(
                                             return@detectTapGestures
                                         }
 
-                                        // Assistant collapse is opt-in and is ignored while its input owns focus.
-                                        if (shownEvent?.assistant?.interactivePanel == true &&
-                                            isExpanded && assistantTapToCollapse && !assistantInputActive
-                                        ) {
-                                            tapExpanded = false
-                                            return@detectTapGestures
-                                        }
-
                                         // While typing a reply, ignore taps on the surface itself.
                                         if (replying) return@detectTapGestures
 
@@ -726,16 +716,12 @@ internal fun DynamicIsland(
                                 isExpanded,
                                 replying,
                                 shrinkOnSwipeUp,
-                                assistantSwipeUpToCollapse,
                                 emptyPill,
                                 shownEvent?.id
                             ) {
                                 // The resting empty cutout has no expanded state to shrink back from, so
                                 // don't install the detector at all — it would only swallow vertical drags.
-                                val swipeCollapseEnabled = if (shownEvent?.assistant?.interactivePanel == true) assistantSwipeUpToCollapse else shrinkOnSwipeUp
-                                // The assistant chat owns vertical scrolling; its header has a dedicated collapse gesture.
-                                if (shownEvent?.assistant?.interactivePanel == true) return@pointerInput
-                                if (forcedExpanded != null || !swipeCollapseEnabled || emptyPill) return@pointerInput
+                                if (shownEvent?.assistant?.interactivePanel == true || forcedExpanded != null || !shrinkOnSwipeUp || emptyPill) return@pointerInput
                                 val threshold = SWIPE_UP_SHRINK_THRESHOLD_DP.dp.toPx()
                                 var dragTotal = 0f
                                 detectVerticalDragGestures(
@@ -882,7 +868,6 @@ internal fun DynamicIsland(
                                                 assistantInputActive = active
                                                 onReplyActiveChange(active)
                                             },
-                                            onAssistantSwipeUpCollapse = { tapExpanded = false },
                                             onMediaInteraction = { mediaInteraction++ },
                                         )
                                     } else {
