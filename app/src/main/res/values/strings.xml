@@ -114,8 +114,8 @@
     <string name="assistant_display_answer_desc">Show response text received from supported assistant notifications.</string>
     <string name="assistant_auto_read_title">Read assistant screen and app events</string>
     <string name="assistant_auto_read_desc">Automatically detect supported assistant activity and show its visible response in the island. Turn this off to stop reading assistant screens.</string>
-    <string name="assistant_tap_to_open_title">Tap camera cutout to open Assistant</string>
-    <string name="assistant_tap_to_open_desc">When the island is otherwise idle, tap the cutout to open the Assistant panel. Notifications and active tiles keep priority.</string>
+    <string name="assistant_tap_to_open_title">Tap camera cutout to open Quick Actions</string>
+    <string name="assistant_tap_to_open_desc">When the island is idle, tap the camera cutout to open your configurable action launcher. Active notifications and tiles keep priority.</string>
     <string name="assistant_auto_expand_title">Auto-expand assistant responses</string>
     <string name="assistant_auto_expand_desc">Automatically expand when a supported assistant response arrives. Turn this off to keep responses collapsed.</string>
     <string name="assistant_pill_timeout_title">Pill timeout</string>
@@ -526,6 +526,14 @@
     <string name="center_move_down">Move down</string>
     <string name="center_remove">Remove</string>
     <string name="center_action_torch">Flashlight</string>
+    <string name="center_action_assistant">Assistant</string>
+    <string name="center_action_wifi_shizuku">Wi‑Fi</string>
+    <string name="center_action_bluetooth_shizuku">Bluetooth</string>
+    <string name="center_action_mobile_data_shizuku">Mobile data</string>
+    <string name="center_shizuku_required">Start Shizuku and grant Expressive Island permission to use this action.</string>
+    <string name="center_shizuku_state_unavailable">Could not read this radio state on this device.</string>
+    <string name="center_shizuku_toggle_success">System toggle updated.</string>
+    <string name="center_shizuku_toggle_failed">Android did not confirm the requested change.</string>
     <string name="center_action_lock">Lock screen</string>
     <string name="center_action_screenshot">Screenshot</string>
     <string name="center_action_power">Power menu</string>
