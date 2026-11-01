@@ -90,9 +90,10 @@ sealed interface CenterShortcut {
             return raw.split(LIST_SEPARATOR).mapNotNull { if (it.isBlank()) null else decode(it) }
         }
 
-        /** The starter row shown before the user customises: flashlight, screenshot, lock, quick settings. */
+        /** The starter row shown before the user customises: flashlight, assistant, screenshot, lock and quick settings. */
         val DEFAULTS: List<CenterShortcut> = listOf(
             Torch,
+            Assistant,
             Global(GlobalAction.SCREENSHOT),
             Global(GlobalAction.LOCK_SCREEN),
             Global(GlobalAction.QUICK_SETTINGS),
