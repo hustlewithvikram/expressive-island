@@ -30,8 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Performs a [CenterShortcut]. Global actions go through the live accessibility service
- * ([CutoutAccessibilityService.Companion.performGlobal]); torch and app launches use platform
- * platform APIs. Every call is best-effort and swallows failures, so a dead service, a device without
+ * ([CutoutAccessibilityService.Companion.performGlobal]); torch and app launches use platform APIs. Every call is best-effort and swallows failures, so a dead service, a device without
  * a flash, or a missing app never crashes the overlay — it just returns false.
  */
 object CenterShortcutExecutor {
