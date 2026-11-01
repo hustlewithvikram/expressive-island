@@ -233,7 +233,7 @@ internal fun ShowsWhenEmptyScreen(
         }
 
         // Once "Open center" is chosen, edit the shortcuts shown in the expanded center.
-        AnimatedVisibility(visible = clickAction == EmptyClickAction.OPEN_CENTER) {
+        AnimatedVisibility(visible = true) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SettingsToggleCard(
                     shape = RoundedCornerShape(32.dp),
