@@ -36,6 +36,7 @@ internal fun CameraHoleTapScreen(
     contentPadding: PaddingValues,
 ) {
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
+    val assistant by viewModel.assistantTile.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -45,18 +46,26 @@ internal fun CameraHoleTapScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         SettingsToggleCard(
-            shape = RoundedCornerShape(32.dp),
+            shape = RoundedCornerShape(24.dp),
             title = stringResource(R.string.camera_hole_enabled_title),
             description = stringResource(R.string.camera_hole_enabled_desc),
             checked = behaviour.cameraHoleTapEnabled,
             onCheckedChange = viewModel::setCameraHoleTapEnabled,
         )
 
+        SettingsToggleCard(
+            shape = RoundedCornerShape(24.dp),
+            title = stringResource(R.string.assistant_tap_to_open_title),
+            description = stringResource(R.string.assistant_tap_to_open_desc),
+            checked = assistant.tapToOpenAssistant,
+            onCheckedChange = viewModel::setAssistantTapToOpen,
+        )
+
         AnimatedVisibility(visible = behaviour.cameraHoleTapEnabled) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Column(
