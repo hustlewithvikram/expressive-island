@@ -21,3 +21,6 @@ enum class CameraHoleTapAction(@param:StringRes val labelRes: Int) {
     MOBILE_DATA(R.string.center_action_mobile_data_shizuku),
     FLASHLIGHT(R.string.center_action_torch),
 }
+
+/** Shizuku-only radio toggles, deliberately excluded from Empty Island shortcuts. */
+enum class RadioToggle { WIFI, BLUETOOTH, MOBILE_DATA }
