@@ -438,7 +438,7 @@ internal fun BehaviourScreen(
 
         // Empty Island
         CardSectionHeader(
-            text = "Empty Island",
+            text = "Persistent Pill",
             padding = PaddingValues(
                 start = 6.dp,
                 top = 8.dp,
