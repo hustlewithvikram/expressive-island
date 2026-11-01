@@ -99,14 +99,19 @@ class CutoutAccessibilityService : AccessibilityService() {
         }
 
         val textList = ArrayList<String>(MAX_TEXT_NODES)
-        collectTextNodes(rootNode, textList, 0, 0)
-        if (textList.isEmpty()) {
+        val modeHints = ArrayList<String>(MAX_TEXT_NODES)
+        collectTextNodes(rootNode, textList, modeHints, 0, 0)
+        if (textList.isEmpty() && modeHints.isEmpty()) {
             clearAssistant(pkg)
             return
         }
 
-        val interactionMode = detectAssistantInteractionMode(textList, event.eventType)
-        val title = textList.firstOrNull()?.take(MAX_TITLE_LENGTH)
+        val interactionMode = detectAssistantInteractionMode(textList + modeHints, event.eventType)
+        val title = textList.firstOrNull()?.take(MAX_TITLE_LENGTH) ?: when (interactionMode) {
+            AssistantInteractionMode.VOICE -> "Listening"
+            AssistantInteractionMode.PROMPT -> "Prompt"
+            AssistantInteractionMode.UNKNOWN -> null
+        }
         val responseText = textList.asSequence()
             .drop(1)
             .joinToString("\n")
@@ -157,6 +162,7 @@ class CutoutAccessibilityService : AccessibilityService() {
     private fun collectTextNodes(
         node: AccessibilityNodeInfo?,
         list: MutableList<String>,
+        modeHints: MutableList<String>,
         depth: Int,
         totalChars: Int,
     ): Int {
@@ -172,19 +178,12 @@ class CutoutAccessibilityService : AccessibilityService() {
             }
         }
         val description = node.contentDescription?.toString()?.trim()
-        if (!description.isNullOrBlank() && description.length > 1 &&
-            description != text && description !in list && !isDisclaimer(description)
-        ) {
-            val remaining = MAX_RESPONSE_LENGTH - chars
-            if (remaining > 0) {
-                val value = description.take(remaining)
-                list.add(value)
-                chars += value.length
-            }
+        if (!description.isNullOrBlank() && description.length > 1 && description !in modeHints) {
+            modeHints.add(description)
         }
         for (i in 0 until minOf(node.childCount, MAX_CHILDREN_PER_NODE)) {
             if (list.size >= MAX_TEXT_NODES || chars >= MAX_RESPONSE_LENGTH) break
-            chars = collectTextNodes(node.getChild(i), list, depth + 1, chars)
+            chars = collectTextNodes(node.getChild(i), list, modeHints, depth + 1, chars)
         }
         return chars
     }
