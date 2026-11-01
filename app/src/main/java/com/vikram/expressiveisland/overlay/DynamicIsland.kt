@@ -733,6 +733,8 @@ internal fun DynamicIsland(
                                 // The resting empty cutout has no expanded state to shrink back from, so
                                 // don't install the detector at all — it would only swallow vertical drags.
                                 val swipeCollapseEnabled = if (shownEvent?.assistant?.interactivePanel == true) assistantSwipeUpToCollapse else shrinkOnSwipeUp
+                                // The assistant chat owns vertical scrolling; its header has a dedicated collapse gesture.
+                                if (shownEvent?.assistant?.interactivePanel == true) return@pointerInput
                                 if (forcedExpanded != null || !swipeCollapseEnabled || emptyPill) return@pointerInput
                                 val threshold = SWIPE_UP_SHRINK_THRESHOLD_DP.dp.toPx()
                                 var dragTotal = 0f
@@ -880,6 +882,7 @@ internal fun DynamicIsland(
                                                 assistantInputActive = active
                                                 onReplyActiveChange(active)
                                             },
+                                            onAssistantSwipeUpCollapse = { tapExpanded = false },
                                             onMediaInteraction = { mediaInteraction++ },
                                         )
                                     } else {
