@@ -165,7 +165,7 @@ internal fun AssistantScreen(
             SettingsToggleCard(
                 shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp),
                 title = "Send button",
-                description = if (settings.showPromptInput) {
+                description = if (settings.showAssistantPromptInput) {
                     "Show the send button beside the prompt field. When hidden, Enter submits the prompt."
                 } else {
                     "Enable Prompt input first. The send button is automatically hidden when the prompt field is off."
