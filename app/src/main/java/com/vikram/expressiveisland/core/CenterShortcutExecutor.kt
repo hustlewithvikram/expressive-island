@@ -1,30 +1,36 @@
 package com.vikram.expressiveisland.core
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.ServiceConnection
 import android.content.Intent
 import android.hardware.camera2.CameraManager
 import android.os.Build
+import android.os.IBinder
+import android.os.Parcel
 import androidx.core.content.getSystemService
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.RadioToggle
 import com.vikram.expressiveisland.service.CutoutAccessibilityService
+import com.vikram.expressiveisland.system.ShizukuCommandService
 import com.vikram.expressiveisland.system.ShizukuState
 import com.vikram.expressiveisland.system.ShizukuStatus
 import android.widget.Toast
 import rikka.shizuku.Shizuku
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Performs a [CenterShortcut]. Global actions go through the live accessibility service
- * ([CutoutAccessibilityService.Companion.performGlobal]); torch, settings panels and app launches use plain
+ * ([CutoutAccessibilityService.Companion.performGlobal]); torch and app launches use platform
  * platform APIs. Every call is best-effort and swallows failures, so a dead service, a device without
  * a flash, or a missing app never crashes the overlay — it just returns false.
  */
@@ -54,7 +60,11 @@ object CenterShortcutExecutor {
      */
     private fun toggleShizukuRadio(radio: RadioToggle, context: Context): Boolean {
         ShizukuState.refresh()
-        if (ShizukuState.status.value != ShizukuStatus.READY) {
+        val status = ShizukuState.status.value
+        if (status != ShizukuStatus.READY) {
+            if (status == ShizukuStatus.PERMISSION_REQUIRED) {
+                ShizukuState.requestPermission()
+            }
             scope.launch {
                 Toast.makeText(context, R.string.center_shizuku_required, Toast.LENGTH_SHORT).show()
             }
@@ -62,34 +72,13 @@ object CenterShortcutExecutor {
         }
 
         scope.launch(Dispatchers.IO) {
-            val key = when (radio) {
-                RadioToggle.WIFI -> "wifi_on"
-                RadioToggle.BLUETOOTH -> "bluetooth_on"
-                RadioToggle.MOBILE_DATA -> "mobile_data"
+            val result = runShizukuToggle(context, radio)
+            val message = when (result) {
+                ShizukuCommandService.RESULT_OK -> R.string.center_shizuku_toggle_success
+                ShizukuCommandService.RESULT_STATE_UNKNOWN -> R.string.center_shizuku_state_unavailable
+                else -> R.string.center_shizuku_toggle_failed
             }
-            val state = runShizukuShell("settings get global $key")?.trim()
-            if (state != "0" && state != "1") {
-                scope.launch {
-                    Toast.makeText(context, R.string.center_shizuku_state_unavailable, Toast.LENGTH_SHORT).show()
-                }
-                return@launch
-            }
-
-            val wasEnabled = state == "1"
-            val verb = if (wasEnabled) "disable" else "enable"
-            val command = when (radio) {
-                RadioToggle.WIFI -> "svc wifi $verb"
-                RadioToggle.BLUETOOTH -> "svc bluetooth $verb"
-                RadioToggle.MOBILE_DATA -> "svc data $verb"
-            }
-            val output = runShizukuShell("$command >/dev/null 2>&1; sleep 1; settings get global $key")?.trim()
-            val expected = if (wasEnabled) "0" else "1"
             scope.launch {
-                val message = if (output == expected) {
-                    R.string.center_shizuku_toggle_success
-                } else {
-                    R.string.center_shizuku_toggle_failed
-                }
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }
         }
@@ -97,29 +86,73 @@ object CenterShortcutExecutor {
     }
 
     /**
-     * Executes a fixed, app-authored shell command through Shizuku's remote process bridge.
-     * The command surface is deliberately not user-editable. Reflection isolates the deprecated
-     * newProcess entry point so it can be replaced with UserService without changing callers.
+     * Uses Shizuku's supported UserService API rather than the deprecated private newProcess bridge.
+     * The remote service accepts only a radio enum, never an arbitrary shell command.
      */
-    private fun runShizukuShell(command: String): String? = runCatching {
-        check(Shizuku.pingBinder()) { "Shizuku binder is unavailable" }
-        check(Shizuku.checkSelfPermission() == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            "Shizuku permission is missing"
+    private suspend fun runShizukuToggle(context: Context, radio: RadioToggle): String? {
+        val args = Shizuku.UserServiceArgs(
+            ComponentName(context, ShizukuCommandService::class.java),
+        )
+            .processNameSuffix("radio_actions")
+            .tag("expressive-island-radio-actions")
+            .version(1)
+            .daemon(false)
+
+        return withContext(Dispatchers.Main.immediate) {
+            suspendCancellableCoroutine { continuation ->
+                val completed = AtomicBoolean(false)
+                lateinit var connection: ServiceConnection
+
+                fun finish(result: String?) {
+                    if (completed.compareAndSet(false, true)) {
+                        if (continuation.isActive) continuation.resume(result)
+                        runCatching { Shizuku.unbindUserService(args, connection, true) }
+                    }
+                }
+
+                connection = object : ServiceConnection {
+                    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                        val result = runCatching {
+                            val data = Parcel.obtain()
+                            val reply = Parcel.obtain()
+                            try {
+                                data.writeInterfaceToken(ShizukuCommandService.DESCRIPTOR)
+                                data.writeInt(
+                                    when (radio) {
+                                        RadioToggle.WIFI -> ShizukuCommandService.RADIO_WIFI
+                                        RadioToggle.BLUETOOTH -> ShizukuCommandService.RADIO_BLUETOOTH
+                                        RadioToggle.MOBILE_DATA -> ShizukuCommandService.RADIO_MOBILE_DATA
+                                    },
+                                )
+                                check(
+                                    requireNotNull(service).transact(
+                                        ShizukuCommandService.TRANSACTION_TOGGLE_RADIO,
+                                        data,
+                                        reply,
+                                        0,
+                                    ),
+                                )
+                                reply.readException()
+                                reply.readString()
+                            } finally {
+                                data.recycle()
+                                reply.recycle()
+                            }
+                        }.getOrNull()
+                        finish(result)
+                    }
+
+                    override fun onServiceDisconnected(name: ComponentName?) {
+                        finish(null)
+                    }
+                }
+
+                continuation.invokeOnCancellation { finish(null) }
+                runCatching { Shizuku.bindUserService(args, connection) }
+                    .onFailure { finish(null) }
+            }
         }
-        val method = Shizuku::class.java.getDeclaredMethod(
-            "newProcess",
-            Array<String>::class.java,
-            Array<String>::class.java,
-            String::class.java,
-        ).apply { isAccessible = true }
-        val process = method.invoke(null, arrayOf("sh", "-c", "$command 2>&1"), null, null) as Process
-        if (!process.waitFor(5, TimeUnit.SECONDS)) {
-            process.destroy()
-            return null
-        }
-        val output = process.inputStream.bufferedReader().use { it.readText() }.trim()
-        if (process.exitValue() == 0) output else null
-    }.getOrNull()
+    }
 
     private fun performGlobal(shortcut: CenterShortcut.Global): Boolean {
         if (Build.VERSION.SDK_INT < shortcut.action.minSdk) return false
