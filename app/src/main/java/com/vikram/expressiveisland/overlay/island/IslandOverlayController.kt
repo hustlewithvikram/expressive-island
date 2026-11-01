@@ -633,12 +633,7 @@ class IslandOverlayController(private val context: Context) {
                         },
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
                         emptyIconColor = behaviour.showsWhenEmptyIconColor,
-                        emptyOpensCenter = (assistantSettings.tapToOpenAssistant &&
-                                !behaviour.cameraHoleTapEnabled &&
-                                currentEvent.value == null &&
-                                satelliteEvent.value == null &&
-                                !previewPinned) ||
-                                behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
+                        emptyOpensCenter = behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
                         centerShortcuts = behaviour.centerShortcuts,
                         centerShowLabels = behaviour.centerShowLabels,
                         centerFillContainers = behaviour.centerFillContainers,
