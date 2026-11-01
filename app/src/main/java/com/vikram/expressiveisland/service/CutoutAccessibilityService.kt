@@ -169,6 +169,12 @@ class CutoutAccessibilityService : AccessibilityService() {
         if (node == null || depth > MAX_NODE_DEPTH || list.size >= MAX_TEXT_NODES || totalChars >= MAX_RESPONSE_LENGTH) return totalChars
         var chars = totalChars
         val text = node.text?.toString()?.trim()
+        if (!text.isNullOrBlank() &&
+            PROMPT_MODE_PATTERNS.any(text.lowercase()::contains) &&
+            text !in modeHints
+        ) {
+            modeHints.add(text)
+        }
         if (!text.isNullOrBlank() && text.length > 1 && !isDisclaimer(text)) {
             val remaining = MAX_RESPONSE_LENGTH - chars
             if (remaining > 0) {
@@ -234,9 +240,9 @@ class CutoutAccessibilityService : AccessibilityService() {
             "com.amazon.dee.app", "com.openai.chatgpt", "com.microsoft.copilot",
         )
         private val VOICE_MODE_PATTERNS = listOf(
-            "listening", "speak now", "stop listening", "voice mode", "microphone is on",
-            "talk to gemini", "gemini live", "live with gemini", "start voice chat",
-            "speak freely", "listening to you",
+            "listening", "speak now", "stop listening", "microphone is on",
+            "voice mode active", "end live", "pause live", "live conversation",
+            "voice chat active", "listening to you",
         )
         private val PROMPT_INPUT_EVENT_TYPES = setOf(
             AccessibilityEvent.TYPE_VIEW_FOCUSED,
