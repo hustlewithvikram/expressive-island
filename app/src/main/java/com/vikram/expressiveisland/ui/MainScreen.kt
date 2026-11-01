@@ -255,6 +255,7 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                             onOpenApps = { settingsRoute = SettingsRoute.Apps },
                             onOpenBehaviour = { settingsRoute = SettingsRoute.Behaviour },
                             onOpenShowsWhenEmpty = { settingsRoute = SettingsRoute.ShowsWhenEmpty },
+                            onOpenCameraHoleTap = { settingsRoute = SettingsRoute.CameraHoleTap },
                             onOpenAnimation = { settingsRoute = SettingsRoute.Animation },
                             onOpenAppearance = { settingsRoute = SettingsRoute.Appearance },
                             onOpenBackground = { settingsRoute = SettingsRoute.Background },
@@ -345,6 +346,7 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                     SettingsRoute.Apps -> stringResource(R.string.apps_title)
                     SettingsRoute.Behaviour -> stringResource(R.string.behaviour_title)
                     SettingsRoute.ShowsWhenEmpty -> stringResource(R.string.behaviour_empty_pill)
+                    SettingsRoute.CameraHoleTap -> stringResource(R.string.camera_hole_title)
                     SettingsRoute.Animation -> stringResource(R.string.animation_title)
                     SettingsRoute.Appearance -> stringResource(R.string.appearance_section_title)
                     SettingsRoute.Background -> stringResource(R.string.appearance_background_color)
