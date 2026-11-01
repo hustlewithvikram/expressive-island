@@ -620,6 +620,7 @@ class IslandOverlayController(private val context: Context) {
                                 satelliteEvent.value == null,
                         cameraHoleTapHaptics = behaviour.cameraHoleTapHaptics,
                         cameraHoleQuickActions = cameraHoleQuickActionsValue,
+                        onCameraHoleQuickActionsDismiss = { cameraHoleQuickActions.value = false },
                         onCameraHoleTap = {
                             when {
                                 assistantSettings.tapToOpenAssistant -> openAssistantPanel()
@@ -633,7 +634,8 @@ class IslandOverlayController(private val context: Context) {
                         },
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
                         emptyIconColor = behaviour.showsWhenEmptyIconColor,
-                        emptyOpensCenter = behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
+                        emptyOpensCenter = cameraHoleQuickActionsValue ||
+                                behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
                         centerShortcuts = behaviour.centerShortcuts,
                         centerShowLabels = behaviour.centerShowLabels,
                         centerFillContainers = behaviour.centerFillContainers,
