@@ -27,6 +27,12 @@ data class AssistantTileSettings(
     val maxCutoutHeightPercent: Int = DEFAULT_MAX_CUTOUT_HEIGHT_PERCENT,
     /** Colour of the icon container (the disc behind the assistant glyph). Null = default. */
     val iconContainerColor: CutoutColor? = null,
+    /** Opacity of the assistant island surface, in percent. */
+    val surfaceOpacityPercent: Int = DEFAULT_SURFACE_OPACITY_PERCENT,
+    /** Whether the Android 17 backdrop blur is enabled behind the expanded assistant panel. */
+    val backdropBlurEnabled: Boolean = DEFAULT_BACKDROP_BLUR_ENABLED,
+    /** Backdrop blur radius in dp. */
+    val backdropBlurRadiusDp: Int = DEFAULT_BACKDROP_BLUR_RADIUS_DP,
     /** Whether to use the animated sparkles Lottie icon instead of the static glyph. */
     val useAnimatedIcon: Boolean = DEFAULT_USE_ANIMATED_ICON,
     /** Allow a tap on the otherwise-hidden cutout to open the interactive assistant panel. */
@@ -51,6 +57,9 @@ data class AssistantTileSettings(
         const val DEFAULT_DISPLAY_ANSWER_IN_CUTOUT = true
         const val DEFAULT_MAX_CUTOUT_HEIGHT_PERCENT = 35
         const val DEFAULT_USE_ANIMATED_ICON = false
+        const val DEFAULT_SURFACE_OPACITY_PERCENT = 100
+        const val DEFAULT_BACKDROP_BLUR_ENABLED = false
+        const val DEFAULT_BACKDROP_BLUR_RADIUS_DP = 24
         const val DEFAULT_TAP_TO_OPEN_ASSISTANT = false
         const val DEFAULT_AUTO_EXPAND_ASSISTANT_RESPONSES = false
         const val DEFAULT_AUTO_READ_ASSISTANT_EVENTS = true
@@ -75,6 +84,9 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             displayAnswerInCutout = prefs[DISPLAY_ANSWER_IN_CUTOUT] ?: AssistantTileSettings.DEFAULT_DISPLAY_ANSWER_IN_CUTOUT,
             maxCutoutHeightPercent = prefs[MAX_CUTOUT_HEIGHT_PERCENT] ?: AssistantTileSettings.DEFAULT_MAX_CUTOUT_HEIGHT_PERCENT,
             iconContainerColor = CutoutColor.deserialize(prefs[ICON_CONTAINER_COLOR]),
+            surfaceOpacityPercent = (prefs[SURFACE_OPACITY_PERCENT] ?: AssistantTileSettings.DEFAULT_SURFACE_OPACITY_PERCENT).coerceIn(10, 100),
+            backdropBlurEnabled = prefs[BACKDROP_BLUR_ENABLED] ?: AssistantTileSettings.DEFAULT_BACKDROP_BLUR_ENABLED,
+            backdropBlurRadiusDp = (prefs[BACKDROP_BLUR_RADIUS_DP] ?: AssistantTileSettings.DEFAULT_BACKDROP_BLUR_RADIUS_DP).coerceIn(1, 80),
             useAnimatedIcon = prefs[USE_ANIMATED_ICON] ?: AssistantTileSettings.DEFAULT_USE_ANIMATED_ICON,
             tapToOpenAssistant = prefs[TAP_TO_OPEN_ASSISTANT] ?: AssistantTileSettings.DEFAULT_TAP_TO_OPEN_ASSISTANT,
             autoExpandAssistantResponses = prefs[AUTO_EXPAND_ASSISTANT_RESPONSES] ?: AssistantTileSettings.DEFAULT_AUTO_EXPAND_ASSISTANT_RESPONSES,
@@ -100,6 +112,9 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             put("displayAnswerInCutout", s.displayAnswerInCutout)
             put("maxCutoutHeightPercent", s.maxCutoutHeightPercent)
             put("iconContainerColor", s.iconContainerColor?.serialize() ?: JSONObject.NULL)
+            put("surfaceOpacityPercent", s.surfaceOpacityPercent)
+            put("backdropBlurEnabled", s.backdropBlurEnabled)
+            put("backdropBlurRadiusDp", s.backdropBlurRadiusDp)
             put("useAnimatedIcon", s.useAnimatedIcon)
             put("tapToOpenAssistant", s.tapToOpenAssistant)
             put("autoExpandAssistantResponses", s.autoExpandAssistantResponses)
@@ -126,6 +141,9 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             }
             if (obj.has("displayAnswerInCutout")) it[DISPLAY_ANSWER_IN_CUTOUT] = obj.getBoolean("displayAnswerInCutout")
             if (obj.has("maxCutoutHeightPercent")) it[MAX_CUTOUT_HEIGHT_PERCENT] = obj.getInt("maxCutoutHeightPercent").coerceIn(10, 80)
+            if (obj.has("surfaceOpacityPercent")) it[SURFACE_OPACITY_PERCENT] = obj.getInt("surfaceOpacityPercent").coerceIn(10, 100)
+            if (obj.has("backdropBlurEnabled")) it[BACKDROP_BLUR_ENABLED] = obj.getBoolean("backdropBlurEnabled")
+            if (obj.has("backdropBlurRadiusDp")) it[BACKDROP_BLUR_RADIUS_DP] = obj.getInt("backdropBlurRadiusDp").coerceIn(1, 80)
             if (obj.has("useAnimatedIcon")) it[USE_ANIMATED_ICON] = obj.getBoolean("useAnimatedIcon")
             if (obj.has("tapToOpenAssistant")) it[TAP_TO_OPEN_ASSISTANT] = obj.getBoolean("tapToOpenAssistant")
             if (obj.has("autoExpandAssistantResponses")) it[AUTO_EXPAND_ASSISTANT_RESPONSES] = obj.getBoolean("autoExpandAssistantResponses")
@@ -168,6 +186,18 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
 
     suspend fun setIconContainerColor(color: CutoutColor?) = context.assistantTileDataStore.edit {
         if (color == null) it.remove(ICON_CONTAINER_COLOR) else it[ICON_CONTAINER_COLOR] = color.serialize()
+    }
+
+    suspend fun setSurfaceOpacityPercent(percent: Int) = context.assistantTileDataStore.edit {
+        it[SURFACE_OPACITY_PERCENT] = percent.coerceIn(10, 100)
+    }
+
+    suspend fun setBackdropBlurEnabled(enabled: Boolean) = context.assistantTileDataStore.edit {
+        it[BACKDROP_BLUR_ENABLED] = enabled
+    }
+
+    suspend fun setBackdropBlurRadiusDp(radius: Int) = context.assistantTileDataStore.edit {
+        it[BACKDROP_BLUR_RADIUS_DP] = radius.coerceIn(1, 80)
     }
 
     suspend fun setUseAnimatedIcon(enabled: Boolean) = context.assistantTileDataStore.edit {
@@ -233,6 +263,9 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
         val DISPLAY_ANSWER_IN_CUTOUT = booleanPreferencesKey("display_answer_in_cutout")
         val MAX_CUTOUT_HEIGHT_PERCENT = intPreferencesKey("max_cutout_height_percent")
         val ICON_CONTAINER_COLOR = stringPreferencesKey("icon_container_color")
+        val SURFACE_OPACITY_PERCENT = intPreferencesKey("surface_opacity_percent")
+        val BACKDROP_BLUR_ENABLED = booleanPreferencesKey("backdrop_blur_enabled")
+        val BACKDROP_BLUR_RADIUS_DP = intPreferencesKey("backdrop_blur_radius_dp")
         val USE_ANIMATED_ICON = booleanPreferencesKey("use_animated_icon")
         val TAP_TO_OPEN_ASSISTANT = booleanPreferencesKey("tap_to_open_assistant")
         val AUTO_EXPAND_ASSISTANT_RESPONSES = booleanPreferencesKey("auto_expand_assistant_responses")
