@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
@@ -82,6 +84,7 @@ fun AssistantExpandedContent(
     onDismiss: () -> Unit,
     onHeightMeasured: ((Int) -> Unit)? = null,
     onInputFocusChange: (Boolean) -> Unit = {},
+    onSwipeUpCollapse: () -> Unit = {},
 ) {
     val assistant = event.assistant ?: return
     val contentColor = LocalContentColor.current
@@ -125,7 +128,19 @@ fun AssistantExpandedContent(
     ) {
         // Fixed header: it never participates in conversation scrolling.
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .pointerInput(onSwipeUpCollapse) {
+                    val threshold = 24.dp.toPx()
+                    var dragTotal = 0f
+                    detectVerticalDragGestures(
+                        onDragStart = { dragTotal = 0f },
+                        onDragEnd = { if (dragTotal <= -threshold) onSwipeUpCollapse() },
+                    ) { change, dragAmount ->
+                        dragTotal += dragAmount
+                        change.consume()
+                    }
+                },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
