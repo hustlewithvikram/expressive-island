@@ -306,6 +306,8 @@ fun AssistantExpandedContent(
                 }
             }
         }
+    }
+}
 
 /**
  * A compact Siri-inspired spectral orb used while voice input is starting/listening and while a
@@ -383,7 +385,5 @@ private fun AssistantSiriVisual(modifier: Modifier = Modifier) {
             radius = radius * 0.24f,
             center = center,
         )
-    }
-}
     }
 }
