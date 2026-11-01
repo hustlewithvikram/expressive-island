@@ -46,8 +46,7 @@ object CenterShortcutExecutor {
     fun execute(shortcut: CenterShortcut, context: Context): Boolean = when (shortcut) {
         is CenterShortcut.Global -> performGlobal(shortcut)
         CenterShortcut.Torch -> toggleTorch(context)
-        is CenterShortcut.Panel -> false // Settings panels are intentionally not offered as quick actions.
-        is CenterShortcut.ShizukuRadio -> toggleShizukuRadio(shortcut.radio, context)
+        is CenterShortcut.Panel -> startIntent(Intent(shortcut.panel.action), context)
         CenterShortcut.Assistant -> false // Routed by IslandOverlayController to the assistant panel.
         is CenterShortcut.LaunchApp -> launchApp(shortcut.packageName, context)
     }
@@ -57,6 +56,9 @@ object CenterShortcutExecutor {
      * No Settings-page fallback is opened. State is read before toggling and verified afterwards;
      * unsupported OEM command behaviour is reported instead of pretending the toggle worked.
      */
+    fun executeRadioToggle(radio: RadioToggle, context: Context): Boolean =
+        toggleShizukuRadio(radio, context)
+
     private fun toggleShizukuRadio(radio: RadioToggle, context: Context): Boolean {
         ShizukuState.refresh()
         val status = ShizukuState.status.value
