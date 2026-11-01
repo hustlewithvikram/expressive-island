@@ -584,7 +584,7 @@ internal fun DynamicIsland(
                                 pressWidens,
                                 shownEvent?.id
                             ) {
-                                if (forcedExpanded == true || shownEvent?.assistant?.interactivePanel == true) {
+                                if (forcedExpanded == true) {
                                     return@pointerInput
                                 }
 
