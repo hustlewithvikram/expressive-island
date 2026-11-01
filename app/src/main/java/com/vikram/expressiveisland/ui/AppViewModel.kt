@@ -466,6 +466,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         assistantTilePreferences.setAutoExpandAssistantResponses(enabled)
     }
 
+    fun setAssistantAutoReadEvents(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setAutoReadAssistantEvents(enabled)
+    }
+
     fun setAssistantPillTimeoutSeconds(seconds: Int) = viewModelScope.launch {
         assistantTilePreferences.setPillTimeoutSeconds(seconds)
     }
