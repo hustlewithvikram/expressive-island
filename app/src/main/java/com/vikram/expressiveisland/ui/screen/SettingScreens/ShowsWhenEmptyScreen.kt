@@ -146,7 +146,7 @@ internal fun ShowsWhenEmptyScreen(
                 // Hero: the chosen icon at a glance, plus the "change icon" action.
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(32.dp),
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Column(
@@ -157,7 +157,10 @@ internal fun ShowsWhenEmptyScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         EmptyIconThumbnail(source = source, containerColor = containerColor, size = 76.dp)
-                        FilledTonalButton(onClick = { showIconSheet = true }) {
+                        FilledTonalButton(
+                            onClick = { showIconSheet = true },
+                            shape = RoundedCornerShape(24.dp),
+                        ) {
                             Icon(imageVector = Icons.Rounded.Edit, contentDescription = null)
                             Text(
                                 text = stringResource(R.string.event_change_icon),
@@ -181,7 +184,7 @@ internal fun ShowsWhenEmptyScreen(
         // What tapping the resting pill does: nothing, open an app, or expand the shortcut center.
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(32.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         ) {
             Column(
@@ -235,14 +238,14 @@ internal fun ShowsWhenEmptyScreen(
         AnimatedVisibility(visible = true) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(32.dp),
+                    shape = RoundedCornerShape(24.dp),
                     title = stringResource(R.string.shows_when_empty_center_labels),
                     description = stringResource(R.string.shows_when_empty_center_labels_desc),
                     checked = behaviour.centerShowLabels,
                     onCheckedChange = viewModel::setCenterShowLabels,
                 )
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(32.dp),
+                    shape = RoundedCornerShape(24.dp),
                     title = stringResource(R.string.shows_when_empty_center_fill),
                     description = stringResource(R.string.shows_when_empty_center_fill_desc),
                     checked = behaviour.centerFillContainers,
@@ -251,7 +254,7 @@ internal fun ShowsWhenEmptyScreen(
                 // Only meaningful when the row includes an app — themed icons apply to app shortcuts.
                 if (behaviour.centerShortcuts.any { it is CenterShortcut.LaunchApp }) {
                     SettingsToggleCard(
-                        shape = RoundedCornerShape(32.dp),
+                        shape = RoundedCornerShape(24.dp),
                         title = stringResource(R.string.shows_when_empty_center_themed),
                         description = stringResource(R.string.shows_when_empty_center_themed_desc),
                         checked = behaviour.centerThemedIcons,
@@ -352,7 +355,7 @@ private fun <T> List<T>.moved(index: Int, delta: Int): List<T> {
 private fun AppChoiceCard(packageName: String?, onChoose: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
@@ -405,7 +408,7 @@ private fun CenterShortcutsCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
