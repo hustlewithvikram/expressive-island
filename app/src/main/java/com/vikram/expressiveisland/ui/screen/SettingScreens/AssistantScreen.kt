@@ -47,6 +47,14 @@ internal fun AssistantScreen(
     ) {
         SettingsToggleCard(
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+            title = stringResource(R.string.assistant_auto_read_title),
+            description = stringResource(R.string.assistant_auto_read_desc),
+            checked = settings.autoReadAssistantEvents,
+            onCheckedChange = viewModel::setAssistantAutoReadEvents,
+        )
+
+        SettingsToggleCard(
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
             title = stringResource(R.string.assistant_display_answer_title),
             description = stringResource(R.string.assistant_display_answer_desc),
             checked = settings.displayAnswerInCutout,
@@ -79,15 +87,13 @@ internal fun AssistantScreen(
             onCheckedChange = viewModel::setAssistantTapToOpen,
         )
 
-        AnimatedVisibility(visible = settings.tapToOpenAssistant) {
-            SettingsToggleCard(
-                shape = RoundedCornerShape(4.dp),
-                title = stringResource(R.string.assistant_auto_expand_title),
-                description = stringResource(R.string.assistant_auto_expand_desc),
-                checked = settings.autoExpandAssistantResponses,
-                onCheckedChange = viewModel::setAssistantAutoExpandResponses,
-            )
-        }
+        SettingsToggleCard(
+            shape = RoundedCornerShape(4.dp),
+            title = stringResource(R.string.assistant_auto_expand_title),
+            description = stringResource(R.string.assistant_auto_expand_desc),
+            checked = settings.autoExpandAssistantResponses,
+            onCheckedChange = viewModel::setAssistantAutoExpandResponses,
+        )
 
         AnimatedVisibility(visible = settings.displayAnswerInCutout) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
