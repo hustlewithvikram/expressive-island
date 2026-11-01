@@ -2,6 +2,7 @@ package com.vikram.expressiveisland.overlay.contents
 
 import android.app.SearchManager
 import android.content.Intent
+import android.net.Uri
 import android.speech.RecognizerIntent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -255,20 +256,26 @@ fun AssistantExpandedContent(
                                 voiceMode = false
                                 scope.launch {
                                     delay(420)
-                                    val intent = Intent(Intent.ACTION_WEB_SEARCH).apply {
-                                        putExtra(SearchManager.QUERY, text)
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    val geminiIntent = Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://gemini.google.com/app?q=${Uri.encode(text)}"),
+                                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    runCatching { context.startActivity(geminiIntent) }.onFailure {
+                                        val fallback = Intent(Intent.ACTION_WEB_SEARCH).apply {
+                                            putExtra(SearchManager.QUERY, text)
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        runCatching { context.startActivity(fallback) }
                                     }
-                                    runCatching { context.startActivity(intent) }
                                 }
                             }
                         },
                     ) {
-                        Icon(Icons.Rounded.Send, contentDescription = "Search question")
+                        Icon(Icons.Rounded.Send, contentDescription = "Send prompt to Gemini")
                     }
                 }
                 Text(
-                    text = "Text questions open web search; voice uses your configured Android assistant.",
+                    text = "Text prompts open Gemini; voice uses your configured Android assistant.",
                     style = MaterialTheme.typography.labelSmall,
                     color = contentColor.copy(alpha = 0.58f),
                     modifier = Modifier.padding(start = 8.dp, top = 4.dp),
