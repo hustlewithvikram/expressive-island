@@ -58,6 +58,7 @@ internal fun BehaviourScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
     onOpenShowsWhenEmpty: () -> Unit,
+    onOpenCameraHoleTap: () -> Unit,
 ) {
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
     var normalSeconds by remember(behaviour.normalDurationSeconds) {
@@ -394,7 +395,7 @@ internal fun BehaviourScreen(
         )
 
         SettingsToggleNavCard(
-            shape = groupedShape(isFirst = true, isLast = true),
+            shape = groupedShape(isFirst = true, isLast = false),
             title = stringResource(R.string.behaviour_empty_pill),
             description = stringResource(R.string.behaviour_empty_pill_desc),
             checked = behaviour.showsWhenEmpty,
@@ -402,6 +403,18 @@ internal fun BehaviourScreen(
             onClick = {
                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onOpenShowsWhenEmpty()
+            },
+        )
+
+        SettingsToggleNavCard(
+            shape = groupedShape(isFirst = false, isLast = true),
+            title = stringResource(R.string.camera_hole_title),
+            description = stringResource(R.string.camera_hole_desc),
+            checked = behaviour.cameraHoleTapEnabled,
+            onCheckedChange = viewModel::setCameraHoleTapEnabled,
+            onClick = {
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onOpenCameraHoleTap()
             },
         )
         }
