@@ -610,6 +610,21 @@ class IslandOverlayController(private val context: Context) {
                                         satelliteEvent.value == null && !previewPinned)) && behaviour.cutoutEnabled,
                         assistantTapEnabled = false,
                         onAssistantTap = ::openAssistantPanel,
+                        cameraHoleTapEnabled = behaviour.cameraHoleTapEnabled &&
+                                behaviour.cutoutEnabled &&
+                                !behaviour.showsWhenEmpty &&
+                                !assistantSettings.tapToOpenAssistant &&
+                                !previewPinned &&
+                                !overlayHidden &&
+                                event == null &&
+                                satelliteEvent.value == null,
+                        cameraHoleTapHaptics = behaviour.cameraHoleTapHaptics,
+                        onCameraHoleTap = {
+                            CenterShortcutExecutor.executeCameraHoleAction(
+                                behaviour.cameraHoleTapAction,
+                                context,
+                            )
+                        },
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
                         emptyIconColor = behaviour.showsWhenEmptyIconColor,
                         emptyOpensCenter = (assistantSettings.tapToOpenAssistant && currentEvent.value == null &&
