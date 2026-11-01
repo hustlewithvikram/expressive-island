@@ -335,6 +335,7 @@ class IconResolver(private val context: Context) {
                 displayAnswerInCutout = settings.displayAnswerInCutout,
                 maxCutoutHeightPercent = settings.maxCutoutHeightPercent,
                 answerText = answerText,
+                interactionMode = signal.interactionMode,
             ),
         )
     }
