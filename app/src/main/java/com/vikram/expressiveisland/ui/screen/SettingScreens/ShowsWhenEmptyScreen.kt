@@ -101,6 +101,7 @@ internal fun ShowsWhenEmptyScreen(
 ) {
     val context = LocalContext.current
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
+    val assistant by viewModel.assistantTile.collectAsStateWithLifecycle()
     val showIcon = behaviour.showsWhenEmptyShowIcon
     val source = behaviour.showsWhenEmptyIcon
     val containerColor = behaviour.showsWhenEmptyIconColor
@@ -132,6 +133,14 @@ internal fun ShowsWhenEmptyScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        SettingsToggleCard(
+            shape = RoundedCornerShape(32.dp),
+            title = stringResource(R.string.assistant_tap_to_open_title),
+            description = stringResource(R.string.assistant_tap_to_open_desc),
+            checked = assistant.tapToOpenAssistant,
+            onCheckedChange = viewModel::setAssistantTapToOpen,
+        )
+
         SettingsToggleCard(
             shape = RoundedCornerShape(32.dp),
             title = stringResource(R.string.shows_when_empty_show_icon),
