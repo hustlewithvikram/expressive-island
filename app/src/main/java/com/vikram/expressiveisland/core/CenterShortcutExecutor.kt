@@ -11,6 +11,8 @@ import android.os.Parcel
 import androidx.core.content.getSystemService
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.CenterShortcut
+import com.vikram.expressiveisland.data.CameraHoleTapAction
+import com.vikram.expressiveisland.data.GlobalAction
 import com.vikram.expressiveisland.data.RadioToggle
 import com.vikram.expressiveisland.service.CutoutAccessibilityService
 import com.vikram.expressiveisland.system.ShizukuCommandService
@@ -56,6 +58,20 @@ object CenterShortcutExecutor {
      * No Settings-page fallback is opened. State is read before toggling and verified afterwards;
      * unsupported OEM command behaviour is reported instead of pretending the toggle worked.
      */
+    fun executeCameraHoleAction(action: CameraHoleTapAction, context: Context): Boolean = when (action) {
+        CameraHoleTapAction.NONE -> false
+        CameraHoleTapAction.SCREENSHOT -> execute(CenterShortcut.Global(GlobalAction.SCREENSHOT), context)
+        CameraHoleTapAction.LOCK_SCREEN -> execute(CenterShortcut.Global(GlobalAction.LOCK_SCREEN), context)
+        CameraHoleTapAction.POWER_MENU -> execute(CenterShortcut.Global(GlobalAction.POWER_DIALOG), context)
+        CameraHoleTapAction.NOTIFICATIONS -> execute(CenterShortcut.Global(GlobalAction.NOTIFICATIONS), context)
+        CameraHoleTapAction.QUICK_SETTINGS -> execute(CenterShortcut.Global(GlobalAction.QUICK_SETTINGS), context)
+        CameraHoleTapAction.RECENTS -> execute(CenterShortcut.Global(GlobalAction.RECENTS), context)
+        CameraHoleTapAction.WIFI -> executeRadioToggle(RadioToggle.WIFI, context)
+        CameraHoleTapAction.BLUETOOTH -> executeRadioToggle(RadioToggle.BLUETOOTH, context)
+        CameraHoleTapAction.MOBILE_DATA -> executeRadioToggle(RadioToggle.MOBILE_DATA, context)
+        CameraHoleTapAction.FLASHLIGHT -> execute(CenterShortcut.Torch, context)
+    }
+
     fun executeRadioToggle(radio: RadioToggle, context: Context): Boolean =
         toggleShizukuRadio(radio, context)
 
