@@ -598,7 +598,7 @@ class IslandOverlayController(private val context: Context) {
                         animationDurationMs = behaviour.animationDurationMs,
                         autoCollapse = when {
                             cameraHoleQuickActionsValue && !behaviour.showsWhenEmpty -> true
-                            event?.assistant?.interactivePanel == true -> assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL
+                            event?.assistant?.interactivePanel == true -> assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL && assistantSettings.manualAutoShrinkEnabled
                             event?.assistant != null -> true
                             else -> behaviour.expandedAutoCollapse
                         },
