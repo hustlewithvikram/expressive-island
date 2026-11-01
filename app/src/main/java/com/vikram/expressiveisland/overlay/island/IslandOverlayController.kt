@@ -183,7 +183,7 @@ class IslandOverlayController(private val context: Context) {
     private val currentEvent = MutableStateFlow<IslandEvent?>(null)
     // Matches the assistant panel's measured Compose height so the overlay window and touch region
     // never extend to the configured maximum when the actual chat is shorter.
-    private var assistantContentHeightEventId: String? = null
+    private var assistantContentHeightEventId: Long? = null
     private var assistantContentHeightDp: Int = 0
 
     // One visible satellite plus a queue for other active persistent tiles.
