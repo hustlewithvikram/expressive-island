@@ -2,6 +2,7 @@ package com.vikram.expressiveisland.overlay.contents
 
 import android.content.Intent
 import android.speech.RecognizerIntent
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -9,7 +10,15 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import com.vikram.expressiveisland.core.AssistantInteractionMode
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,18 +30,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -46,33 +54,25 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.vikram.expressiveisland.core.AssistantInteractionMode
 import com.vikram.expressiveisland.data.ActionButtonAlignment
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.overlay.island.IslandAction
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.overlay.toHorizontal
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
- * Assistant layout with a pinned header and composer. Only the conversation area scrolls,
- * keeping the prompt controls in place at every expanded height.
+ * Assistant expanded layout. On-demand activation renders an interactive prompt composer; assistant
+ * response events keep the legacy response view. The whole content is measured independently of the
+ * animated viewport and capped to the user's configured share of screen height.
  */
 @Composable
 fun AssistantExpandedContent(
@@ -83,7 +83,6 @@ fun AssistantExpandedContent(
     onDismiss: () -> Unit,
     onHeightMeasured: ((Int) -> Unit)? = null,
     onInputFocusChange: (Boolean) -> Unit = {},
-    onSwipeUpCollapse: () -> Unit = {},
 ) {
     val assistant = event.assistant ?: return
     val contentColor = LocalContentColor.current
@@ -98,7 +97,6 @@ fun AssistantExpandedContent(
     var promptMode by remember(event.id) { mutableStateOf(assistant.interactionMode == AssistantInteractionMode.PROMPT) }
     var submittedPrompt by remember(event.id) { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-
     val submitPrompt: () -> Unit = {
         val prompt = query.trim()
         if (prompt.isNotEmpty()) {
@@ -110,69 +108,54 @@ fun AssistantExpandedContent(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = maxCutoutHeightDp)
+            .verticalScroll(rememberScrollState())
             .padding(
                 start = 18.dp,
                 end = 18.dp,
                 top = 14.dp + collapsedHeightDp.dp,
                 bottom = 14.dp,
-            )
-            .onGloballyPositioned { coordinates ->
-                val heightDp = (coordinates.size.height / density).toInt()
-                if (heightDp > 0) onHeightMeasured?.invoke(heightDp + 28 + collapsedHeightDp)
-            },
+            ),
     ) {
-        // Fixed header: it never participates in conversation scrolling.
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .pointerInput(onSwipeUpCollapse) {
-                    val threshold = 24.dp.toPx()
-                    var dragTotal = 0f
-                    detectVerticalDragGestures(
-                        onDragStart = { dragTotal = 0f },
-                        onDragEnd = { if (dragTotal <= -threshold) onSwipeUpCollapse() },
-                    ) { change, dragAmount ->
-                        dragTotal += dragAmount
-                        change.consume()
-                    }
-                },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                modifier = Modifier.weight(1f).widthIn(max = maxHeaderWidthDp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconBadge(event = event, badgeSize = 36.dp, iconSize = 22.dp)
-                Spacer(Modifier.width(10.dp))
-                Column {
-                    TileTitle(title = event.label)
-                    if (assistant.interactivePanel) {
-                        Text(
-                            text = "Ready when you are",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = contentColor.copy(alpha = 0.68f),
-                        )
-                    }
-                }
-            }
-            IconButton(onClick = onDismiss) {
-                Icon(Icons.Rounded.Close, contentDescription = "Close Assistant")
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // The conversation is the only vertically scrollable region.
         Column(
             modifier = Modifier
-                .weight(1f, fill = assistant.interactivePanel)
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
+                .onGloballyPositioned { coordinates ->
+                    val hDp = (coordinates.size.height / density).toInt()
+                    if (hDp > 0) onHeightMeasured?.invoke(hDp + 28 + collapsedHeightDp)
+                },
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f).widthIn(max = maxHeaderWidthDp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconBadge(event = event, badgeSize = 36.dp, iconSize = 22.dp)
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        TileTitle(title = event.label)
+                        if (assistant.interactivePanel) {
+                            Text(
+                                text = "Ready when you are",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = contentColor.copy(alpha = 0.68f),
+                            )
+                        }
+                    }
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Rounded.Close, contentDescription = "Close Assistant")
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
             if (!assistant.interactivePanel && assistant.interactionMode != AssistantInteractionMode.UNKNOWN) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -180,8 +163,7 @@ fun AssistantExpandedContent(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     AssistantSiriVisual(
-                        modifier = Modifier
-                            .width(if (assistant.interactionMode == AssistantInteractionMode.VOICE) 112.dp else 64.dp)
+                        modifier = Modifier.width(if (assistant.interactionMode == AssistantInteractionMode.VOICE) 112.dp else 64.dp)
                             .height(if (assistant.interactionMode == AssistantInteractionMode.VOICE) 112.dp else 64.dp),
                     )
                     Text(
@@ -201,8 +183,7 @@ fun AssistantExpandedContent(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         AssistantSiriVisual(
-                            modifier = Modifier
-                                .width(if (voiceMode) 112.dp else 64.dp)
+                            modifier = Modifier.width(if (voiceMode) 112.dp else 64.dp)
                                 .height(if (voiceMode) 112.dp else 64.dp),
                         )
                         Text(
@@ -235,6 +216,71 @@ fun AssistantExpandedContent(
                     }
                 }
 
+                Spacer(Modifier.height(12.dp))
+
+                if (assistant.showPromptInput || assistant.showMicButton) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (assistant.showPromptInput) {
+                            OutlinedTextField(
+                                value = query,
+                                onValueChange = {
+                                    query = it
+                                    promptMode = it.isNotBlank()
+                                    if (it.isNotBlank()) voiceMode = false
+                                },
+                                modifier = Modifier.weight(1f).onFocusChanged {
+                                    onInputFocusChange(it.isFocused)
+                                    if (it.isFocused) promptMode = true
+                                },
+                                placeholder = { Text("Ask anything…") },
+                                shape = RoundedCornerShape(24.dp),
+                                singleLine = !assistant.showSendButton,
+                                maxLines = if (assistant.showSendButton) 3 else 1,
+                                keyboardOptions = KeyboardOptions(
+                                    imeAction = if (assistant.showSendButton) ImeAction.Default else ImeAction.Send,
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onSend = { if (!assistant.showSendButton) submitPrompt() },
+                                ),
+                            )
+                        }
+                        if (assistant.showMicButton) {
+                            IconButton(
+                                onClick = {
+                                    voiceMode = true
+                                    promptMode = false
+                                    scope.launch {
+                                        delay(650)
+                                        val voiceIntent = Intent(Intent.ACTION_VOICE_COMMAND).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        runCatching { context.startActivity(voiceIntent) }.onFailure {
+                                            val fallback = Intent(RecognizerIntent.ACTION_WEB_SEARCH).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+                                            runCatching { context.startActivity(fallback) }
+                                        }
+                                    }
+                                },
+                            ) {
+                                Icon(Icons.Rounded.Mic, contentDescription = "Open voice assistant")
+                            }
+                        }
+                        if (assistant.showPromptInput && assistant.showSendButton) {
+                            IconButton(
+                                enabled = query.isNotBlank(),
+                                onClick = submitPrompt,
+                            ) {
+                                Icon(Icons.Rounded.Send, contentDescription = "Send prompt")
+                            }
+                        }
+                    }
+                }
+
                 submittedPrompt?.let { prompt ->
                     Spacer(Modifier.height(12.dp))
                     Surface(
@@ -258,6 +304,7 @@ fun AssistantExpandedContent(
                         }
                     }
                 }
+
             } else if (assistant.displayAnswerInCutout) {
                 val textToDisplay =
                     assistant.answerText.takeIf { !it.isNullOrBlank() } ?: "Assistant response received."
@@ -288,71 +335,6 @@ fun AssistantExpandedContent(
                         onClick = onDismiss,
                         modifier = if (full) Modifier.weight(1f) else Modifier,
                     )
-                }
-            }
-        }
-
-        // Fixed composer: keyboard and message scrolling must not move this out of the island.
-        if (assistant.interactivePanel && (assistant.showPromptInput || assistant.showMicButton)) {
-            Spacer(Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (assistant.showPromptInput) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = {
-                            query = it
-                            promptMode = it.isNotBlank()
-                            if (it.isNotBlank()) voiceMode = false
-                        },
-                        modifier = Modifier.weight(1f).onFocusChanged {
-                            onInputFocusChange(it.isFocused)
-                            if (it.isFocused) promptMode = true
-                        },
-                        placeholder = { Text("Ask anything…") },
-                        shape = RoundedCornerShape(24.dp),
-                        singleLine = !assistant.showSendButton,
-                        maxLines = if (assistant.showSendButton) 3 else 1,
-                        keyboardOptions = KeyboardOptions(
-                            imeAction = if (assistant.showSendButton) ImeAction.Default else ImeAction.Send,
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onSend = { if (!assistant.showSendButton) submitPrompt() },
-                        ),
-                    )
-                }
-                if (assistant.showMicButton) {
-                    IconButton(
-                        onClick = {
-                            voiceMode = true
-                            promptMode = false
-                            scope.launch {
-                                delay(650)
-                                val voiceIntent = Intent(Intent.ACTION_VOICE_COMMAND).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                runCatching { context.startActivity(voiceIntent) }.onFailure {
-                                    val fallback = Intent(RecognizerIntent.ACTION_WEB_SEARCH).apply {
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    }
-                                    runCatching { context.startActivity(fallback) }
-                                }
-                            }
-                        },
-                    ) {
-                        Icon(Icons.Rounded.Mic, contentDescription = "Open voice assistant")
-                    }
-                }
-                if (assistant.showPromptInput && assistant.showSendButton) {
-                    IconButton(
-                        enabled = query.isNotBlank(),
-                        onClick = submitPrompt,
-                    ) {
-                        Icon(Icons.Rounded.Send, contentDescription = "Send prompt")
-                    }
                 }
             }
         }
