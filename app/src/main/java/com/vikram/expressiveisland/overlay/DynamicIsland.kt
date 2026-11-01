@@ -236,6 +236,7 @@ internal fun DynamicIsland(
     var mediaInteraction by remember { mutableIntStateOf(0) }
     var replyingTo by remember(shownEvent?.id) { mutableStateOf<IslandAction?>(null) }
     val replying = replyingTo != null
+    var assistantInputActive by remember(shownEvent?.id) { mutableStateOf(false) }
     var sentReply by remember(shownEvent?.id) { mutableStateOf<Pair<IslandAction, String>?>(null) }
     val confirmingSent = sentReply != null
     val isCall = shownEvent?.call != null
@@ -285,8 +286,9 @@ internal fun DynamicIsland(
         centerInteraction,
         mediaInteraction,
         cameraHoleQuickActions,
+        assistantInputActive,
     ) {
-        if (forcedExpanded == null && tapExpanded && autoCollapse && !replying && !confirmingSent) {
+        if (forcedExpanded == null && tapExpanded && autoCollapse && !replying && !confirmingSent && !assistantInputActive) {
             delay(autoCollapseMs.milliseconds)
             tapExpanded = false
             if (cameraHoleQuickActions) onCameraHoleQuickActionsDismiss()
@@ -862,7 +864,10 @@ internal fun DynamicIsland(
                                             },
                                             onDismiss = onDismiss,
                                             onHeightMeasured = { assistantContentHeightDp = it },
-                                            onAssistantInputActiveChange = onReplyActiveChange,
+                                            onAssistantInputActiveChange = { active ->
+                                                assistantInputActive = active
+                                                onReplyActiveChange(active)
+                                            },
                                             onMediaInteraction = { mediaInteraction++ },
                                         )
                                     } else {
