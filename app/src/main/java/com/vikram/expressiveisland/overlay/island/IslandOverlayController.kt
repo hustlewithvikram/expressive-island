@@ -2243,11 +2243,11 @@ class IslandOverlayController(private val context: Context) {
     private fun loadAssistantSessions(): List<AssistantChatSession> = runCatching {
         val raw = assistantSessionPrefs.getString("sessions", "[]") ?: "[]"
         val array = JSONArray(raw)
-        (0 until array.length()).mapNotNull { index ->
-            val item = array.optJSONObject(index) ?: return@mapNotNull null
+        (0 until array.length()).mapNotNull sessionLoop@ { index ->
+            val item = array.optJSONObject(index) ?: return@sessionLoop null
             val turnsJson = item.optJSONArray("turns") ?: JSONArray()
-            val turns = (0 until turnsJson.length()).mapNotNull { turnIndex ->
-                val turn = turnsJson.optJSONObject(turnIndex) ?: return@mapNotNull null
+            val turns = (0 until turnsJson.length()).mapNotNull turnLoop@ { turnIndex ->
+                val turn = turnsJson.optJSONObject(turnIndex) ?: return@turnLoop null
                 AssistantChatTurn(turn.optString("role"), turn.optString("content"))
             }
             AssistantChatSession(item.optString("id"), item.optString("title"), item.optLong("updatedAt"), turns)
