@@ -295,13 +295,19 @@ private fun AssistantIntegrationSection() {
                 color = MaterialTheme.colorScheme.primary,
             )
             if (selectedId == "custom") {
-                OutlinedTextField(
+                TextField(
                     value = endpoint,
                     onValueChange = { endpoint = it; integration.endpoint = it },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("API base URL") },
                     placeholder = { Text("https://your-provider.example/v1") },
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                    ),
                     singleLine = true,
                 )
             } else {
@@ -323,7 +329,13 @@ private fun AssistantIntegrationSection() {
                 label = { Text("Model ID") },
                 placeholder = { Text(selectedProvider.defaultModel.ifBlank { "Enter model ID" }) },
                 supportingText = { Text("Use the exact model identifier supported by your provider.") },
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                ),
                 singleLine = true,
             )
             OutlinedTextField(
@@ -353,9 +365,9 @@ private fun AssistantIntegrationSection() {
         }
     }
 
-    CardSectionHeader(text = "Response generation", padding = PaddingValues(start = 4.dp, top = 4.dp))
+    CardSectionHeader(text = "Response generation", padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 4.dp))
     SettingsSliderCard(
-        shape = RoundedCornerShape(26.dp),
+        shape = groupedShape(true, false),
         title = "Response length",
         description = "Maximum output tokens requested from the selected model.",
         valueText = maxTokens.toInt().toString(),
@@ -366,7 +378,7 @@ private fun AssistantIntegrationSection() {
         onCommit = { integration.maxOutputTokens = maxTokens.toInt() },
     )
     SettingsSliderCard(
-        shape = RoundedCornerShape(26.dp),
+        shape = groupedShape(false, false),
         title = "Creativity",
         description = "Lower values are more focused; higher values allow more varied responses.",
         valueText = String.format(java.util.Locale.US, "%.1f", temperature),
@@ -377,7 +389,7 @@ private fun AssistantIntegrationSection() {
         onCommit = { integration.temperature = temperature },
     )
     SettingsSliderCard(
-        shape = RoundedCornerShape(26.dp),
+        shape = groupedShape(false, true),
         title = "Request timeout",
         description = "Maximum time to wait for a provider response.",
         valueText = "${timeout.toInt()} sec",
@@ -390,14 +402,14 @@ private fun AssistantIntegrationSection() {
 
     CardSectionHeader(text = "Assistant behaviour", padding = PaddingValues(start = 4.dp, top = 8.dp))
     SettingsToggleCard(
-        shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp, bottomStart = 8.dp, bottomEnd = 8.dp),
+        shape = groupedShape(true, false),
         title = "Stream responses",
         description = "Show generated text progressively as it arrives.",
         checked = streaming,
         onCheckedChange = { streaming = it; integration.streamResponses = it },
     )
     SettingsToggleCard(
-        shape = RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp),
+        shape = groupedShape(false, true),
         title = "Include conversation context",
         description = "Include recent conversation turns when supported by the generation service.",
         checked = includeContext,
