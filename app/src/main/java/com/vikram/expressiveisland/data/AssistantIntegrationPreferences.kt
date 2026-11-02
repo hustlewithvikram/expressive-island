@@ -65,8 +65,8 @@ class AssistantIntegrationPreferences(context: Context) {
     fun getApiKey(providerId: String): String = runCatching {
         val preferenceKey = apiKeyPreferenceKey(providerId)
         val encoded = prefs.getString(preferenceKey, null)
-            ?: if (providerId == "openai") prefs.getString("api_key", null) else null
-            ?: return ""
+            ?: (if (providerId == "openai") prefs.getString("api_key", null) else null)
+            ?: return@runCatching ""
         val packed = Base64.decode(encoded, Base64.NO_WRAP)
         val ivSize = packed[0].toInt()
         val iv = packed.copyOfRange(1, 1 + ivSize)
