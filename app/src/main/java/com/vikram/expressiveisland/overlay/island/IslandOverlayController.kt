@@ -2350,6 +2350,26 @@ class IslandOverlayController(private val context: Context) {
                     else -> error.message ?: "Unable to generate a response. Check your provider settings."
                 }
             }
+            if (result.isSuccess && assistantGenerationClient.streamResponsesEnabled()) {
+                val words = answer.split(Regex("\\s+")).filter { it.isNotBlank() }
+                var visible = ""
+                words.forEachIndexed { index, word ->
+                    visible = if (visible.isEmpty()) word else "$visible $word"
+                    if (activeAssistantSessionId == requestSessionId && assistantTurnIndex in assistantConversation.indices) {
+                        assistantConversation[assistantTurnIndex] = AssistantChatTurn("assistant", visible)
+                        val latest = currentEvent.value
+                        if (latest?.assistant?.interactivePanel == true && latest.assistant.activeSessionId == requestSessionId) {
+                            val updated = latest.copy(assistant = latest.assistant.copy(
+                                answerText = visible,
+                                conversation = assistantConversation.toList(),
+                            ))
+                            currentEvent.value = updated
+                            lastAssistantEvent = updated
+                        }
+                    }
+                    if (index < words.lastIndex) kotlinx.coroutines.delay(32L)
+                }
+            }
             val completedTurns = requestTurns.toMutableList().apply {
                 val responseIndex = indexOfLast { it.role == "assistant" }
                 if (responseIndex >= 0) this[responseIndex] = AssistantChatTurn("assistant", answer)
