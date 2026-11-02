@@ -113,7 +113,7 @@ fun AssistantExpandedContent(
     val maxCutoutHeightDp =
         (configuration.screenHeightDp * assistant.maxCutoutHeightPercent / 100).dp
     val maxHeaderWidthDp = (configuration.screenWidthDp * 0.47f).dp
-    var query by remember(event.id) { mutableStateOf("") }
+    var query by remember(event.id, assistant.activeSessionId) { mutableStateOf("") }
     var showChatHistory by remember { mutableStateOf(false) }
     val conversationScrollState = rememberScrollState()
     LaunchedEffect(assistant.conversation) {
