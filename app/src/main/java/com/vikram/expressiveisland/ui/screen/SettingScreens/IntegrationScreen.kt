@@ -190,6 +190,7 @@ private fun AssistantIntegrationSection() {
     var apiKey by remember { mutableStateOf(integration.getApiKey(integration.selectedProviderId)) }
     var showKey by remember { mutableStateOf(false) }
     var providerDialogOpen by remember { mutableStateOf(false) }
+    var modelDialogOpen by remember { mutableStateOf(false) }
     var pendingProviderId by remember { mutableStateOf(selectedId) }
     var maxTokens by remember { mutableStateOf(integration.maxOutputTokens.toFloat()) }
     var temperature by remember { mutableStateOf(integration.temperature) }
@@ -324,22 +325,60 @@ private fun AssistantIntegrationSection() {
                     )
                 }
             }
-            TextField(
-                value = model,
-                onValueChange = { model = it; integration.model = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Model ID") },
-                placeholder = { Text(selectedProvider.defaultModel.ifBlank { "Enter model ID" }) },
-                supportingText = { Text("Use the exact model identifier supported by your provider.") },
+            Card(
+                modifier = Modifier.fillMaxWidth().clickable { modelDialogOpen = true },
                 shape = RoundedCornerShape(18.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
-                ),
-                singleLine = true,
-            )
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text("MODEL", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(model.ifBlank { "Choose a model" }, style = MaterialTheme.typography.titleMedium)
+                        Text("Model IDs for ${selectedProvider.name}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Icon(Icons.Rounded.ExpandMore, contentDescription = "Choose model")
+                }
+            }
+            if (modelDialogOpen) {
+                val modelOptions = when (selectedId) {
+                    "openai" -> listOf("gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini", "gpt-4o", "o4-mini")
+                    "gemini" -> listOf("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-2.0-flash-lite")
+                    "anthropic" -> listOf("claude-sonnet-4-5", "claude-opus-4-1", "claude-haiku-4-5")
+                    "deepseek" -> listOf("deepseek-chat", "deepseek-reasoner")
+                    "groq" -> listOf("llama-3.3-70b-versatile", "openai/gpt-oss-120b", "qwen/qwen3-32b")
+                    "openrouter" -> listOf("openai/gpt-4o-mini", "anthropic/claude-sonnet-4", "google/gemini-2.5-flash")
+                    "mistral" -> listOf("mistral-small-latest", "mistral-medium-latest", "mistral-large-latest", "codestral-latest")
+                    "xai" -> listOf("grok-3-mini", "grok-3", "grok-2")
+                    else -> listOf(model).filter { it.isNotBlank() }
+                }
+                AlertDialog(
+                    onDismissRequest = { modelDialogOpen = false },
+                    title = { Text("Choose ${selectedProvider.name} model") },
+                    text = {
+                        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            modelOptions.forEach { option ->
+                                Row(
+                                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                        .clickable { model = option; integration.model = option; modelDialogOpen = false }
+                                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    RadioButton(selected = model == option, onClick = { model = option; integration.model = option; modelDialogOpen = false })
+                                    Text(option, modifier = Modifier.padding(start = 8.dp), style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                            if (selectedId == "custom") {
+                                Text("Set a custom model ID in your provider configuration.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    },
+                    confirmButton = { TextButton(onClick = { modelDialogOpen = false }) { Text("Close") } },
+                )
+            }
             TextField(
                 value = apiKey,
                 onValueChange = { apiKey = it; integration.setApiKey(selectedId, it) },
@@ -430,7 +469,7 @@ private fun AssistantIntegrationSection() {
     ) {
         Icon(Icons.Rounded.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
         Text(
-            "Provider selection and credentials are saved locally. Provider-specific request execution is not yet connected to the Assistant generation service.",
+            "Provider selection, model choice and credentials are saved locally. Model availability depends on your provider and API access.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
