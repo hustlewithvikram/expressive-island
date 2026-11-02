@@ -58,30 +58,47 @@ class AssistantIntegrationPreferences(context: Context) {
         set(value) { prefs.edit().putBoolean("include_context", value).apply() }
 
     var apiKey: String
-        get() = runCatching {
-            val packed = Base64.decode(prefs.getString("api_key", null), Base64.NO_WRAP)
-            val ivSize = packed[0].toInt()
-            val iv = packed.copyOfRange(1, 1 + ivSize)
-            val encrypted = packed.copyOfRange(1 + ivSize, packed.size)
-            val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), GCMParameterSpec(128, iv))
-            String(cipher.doFinal(encrypted), Charsets.UTF_8)
-        }.getOrDefault("")
-        set(value) {
-            if (value.isBlank()) {
-                prefs.edit().remove("api_key").apply()
-            } else {
-                runCatching {
-                    val cipher = Cipher.getInstance(TRANSFORMATION)
-                    cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
-                    val encrypted = cipher.doFinal(value.toByteArray(Charsets.UTF_8))
-                    val packed = byteArrayOf(cipher.iv.size.toByte()) + cipher.iv + encrypted
-                    prefs.edit().putString("api_key", Base64.encodeToString(packed, Base64.NO_WRAP)).apply()
-                }
-            }
-        }
+        get() = getApiKey(selectedProviderId)
+        set(value) = setApiKey(selectedProviderId, value)
 
-    fun hasApiKey(): Boolean = prefs.contains("api_key")
+    /** Each provider keeps its own encrypted credential instead of overwriting another provider's key. */
+    fun getApiKey(providerId: String): String = runCatching {
+        val preferenceKey = apiKeyPreferenceKey(providerId)
+        val encoded = prefs.getString(preferenceKey, null)
+            ?: if (providerId == "openai") prefs.getString("api_key", null) else null
+            ?: return ""
+        val packed = Base64.decode(encoded, Base64.NO_WRAP)
+        val ivSize = packed[0].toInt()
+        val iv = packed.copyOfRange(1, 1 + ivSize)
+        val encrypted = packed.copyOfRange(1 + ivSize, packed.size)
+        val cipher = Cipher.getInstance(TRANSFORMATION)
+        cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), GCMParameterSpec(128, iv))
+        String(cipher.doFinal(encrypted), Charsets.UTF_8)
+    }.getOrDefault("")
+
+    fun setApiKey(providerId: String, value: String) {
+        val preferenceKey = apiKeyPreferenceKey(providerId)
+        if (value.isBlank()) {
+            prefs.edit().remove(preferenceKey).apply()
+            if (providerId == "openai") prefs.edit().remove("api_key").apply()
+            return
+        }
+        runCatching {
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
+            val encrypted = cipher.doFinal(value.toByteArray(Charsets.UTF_8))
+            val packed = byteArrayOf(cipher.iv.size.toByte()) + cipher.iv + encrypted
+            prefs.edit().putString(preferenceKey, Base64.encodeToString(packed, Base64.NO_WRAP)).apply()
+            if (providerId == "openai") prefs.edit().remove("api_key").apply()
+        }
+    }
+
+    fun hasApiKey(): Boolean =
+        prefs.contains(apiKeyPreferenceKey(selectedProviderId)) ||
+            (selectedProviderId == "openai" && prefs.contains("api_key"))
+
+    private fun apiKeyPreferenceKey(providerId: String): String =
+        "api_key_${providerId.lowercase().replace(Regex("[^a-z0-9_-]"), "_")}"
 
     private fun getOrCreateKey(): SecretKey {
         val store = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
