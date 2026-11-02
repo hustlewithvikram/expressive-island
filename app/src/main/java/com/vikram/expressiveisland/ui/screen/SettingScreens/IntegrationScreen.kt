@@ -81,77 +81,60 @@ private val aiProviders = listOf(
     AiProvider("custom", "Custom API", "OpenAI-compatible or self-hosted endpoint", "", "", "Custom API"),
 )
 
-private enum class IntegrationSection(val title: String, val description: String) {
-    AI("AI Assistant", "Choose the AI provider that powers Assistant responses."),
-    NOTIFICATIONS("Notification intelligence", "Prepare smart summaries, suggested replies and contextual actions."),
-    AUTOMATION("Automation & webhooks", "Connect workflows to supported island events."),
-    DEVICE("Device services", "Connect Android system capabilities and companion services."),
+@Composable
+internal fun IntegrationsScreen(
+    contentPadding: PaddingValues,
+    onOpenAI: () -> Unit,
+    onOpenNotifications: () -> Unit,
+    onOpenAutomation: () -> Unit,
+    onOpenDevice: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column(modifier = Modifier.padding(top = 4.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Integrations", style = MaterialTheme.typography.headlineSmall)
+            Text("Connect the services that make your island more capable.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        IntegrationCategoryCard(Icons.Rounded.AutoAwesome, "AI Assistant", "Choose the AI provider that powers Assistant responses.", "Configure", onOpenAI)
+        IntegrationCategoryCard(Icons.Rounded.NotificationsActive, "Notification intelligence", "Smart summaries, suggested replies and contextual actions.", "Coming soon", onOpenNotifications)
+        IntegrationCategoryCard(Icons.Rounded.Webhook, "Automation & webhooks", "Connect workflows to supported island events.", "Coming soon", onOpenAutomation)
+        IntegrationCategoryCard(Icons.Rounded.Devices, "Device services", "Connect Android system capabilities and companion services.", "Coming soon", onOpenDevice)
+    }
+}
+
+@Composable
+internal fun IntegrationDetailScreen(contentPadding: PaddingValues, title: String, description: String) {
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("This integration is planned for a future update.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
 }
 
 @Composable
 internal fun AssistantIntegrationScreen(contentPadding: PaddingValues) {
-    var selectedSection by remember { mutableStateOf(IntegrationSection.AI) }
-
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(contentPadding)
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(top = 6.dp, bottom = 2.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp),
-        ) {
-            Text("Integrations", style = MaterialTheme.typography.headlineSmall)
-            Text(
-                "Connect the services that make your island more capable.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Column(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("AI Assistant", style = MaterialTheme.typography.headlineSmall)
+            Text("Configure the provider and response behaviour.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            IntegrationCategoryCard(
-                icon = Icons.Rounded.AutoAwesome,
-                title = IntegrationSection.AI.title,
-                description = IntegrationSection.AI.description,
-                selected = selectedSection == IntegrationSection.AI,
-                status = "Configure",
-                onClick = { selectedSection = IntegrationSection.AI },
-            )
-            IntegrationCategoryCard(
-                icon = Icons.Rounded.NotificationsActive,
-                title = IntegrationSection.NOTIFICATIONS.title,
-                description = IntegrationSection.NOTIFICATIONS.description,
-                selected = selectedSection == IntegrationSection.NOTIFICATIONS,
-                status = "Coming soon",
-                onClick = { selectedSection = IntegrationSection.NOTIFICATIONS },
-            )
-            IntegrationCategoryCard(
-                icon = Icons.Rounded.Webhook,
-                title = IntegrationSection.AUTOMATION.title,
-                description = IntegrationSection.AUTOMATION.description,
-                selected = selectedSection == IntegrationSection.AUTOMATION,
-                status = "Coming soon",
-                onClick = { selectedSection = IntegrationSection.AUTOMATION },
-            )
-            IntegrationCategoryCard(
-                icon = Icons.Rounded.Devices,
-                title = IntegrationSection.DEVICE.title,
-                description = IntegrationSection.DEVICE.description,
-                selected = selectedSection == IntegrationSection.DEVICE,
-                status = "Coming soon",
-                onClick = { selectedSection = IntegrationSection.DEVICE },
-            )
-        }
-
-        when (selectedSection) {
-            IntegrationSection.AI -> AssistantIntegrationSection()
-            else -> IntegrationPlaceholder(selectedSection)
-        }
-
+        AssistantIntegrationSection()
         Spacer(Modifier.size(8.dp))
     }
 }
@@ -161,14 +144,11 @@ private fun IntegrationCategoryCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     description: String,
-    selected: Boolean,
     status: String,
     onClick: () -> Unit,
 ) {
-    val container = if (selected) MaterialTheme.colorScheme.secondaryContainer
-        else MaterialTheme.colorScheme.surfaceContainerLow
-    val content = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
-        else MaterialTheme.colorScheme.onSurface
+    val container = MaterialTheme.colorScheme.surfaceContainerLow
+    val content = MaterialTheme.colorScheme.onSurface
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(24.dp),
@@ -181,20 +161,19 @@ private fun IntegrationCategoryCard(
         ) {
             Box(
                 modifier = Modifier.size(44.dp).clip(RoundedCornerShape(16.dp))
-                    .background(if (selected) MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
-                    else MaterialTheme.colorScheme.surfaceContainerHighest),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, contentDescription = null, tint = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary)
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, color = content, fontWeight = FontWeight.SemiBold)
-                Text(description, style = MaterialTheme.typography.bodySmall, color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
                 status,
                 style = MaterialTheme.typography.labelMedium,
-                color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
