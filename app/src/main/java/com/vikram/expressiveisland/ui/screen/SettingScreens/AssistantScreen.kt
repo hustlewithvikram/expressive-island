@@ -220,6 +220,13 @@ internal fun AssistantScreen(
             defaultLabel = stringResource(R.string.music_default_accent),
             defaultColor = Color(DynamicTile.ASSISTANT.accent),
         )
+        ColorPickerCard(
+            label = "Expanded chat background",
+            selected = settings.expandedBackgroundColor,
+            onSelect = viewModel::setAssistantExpandedBackgroundColor,
+            defaultLabel = "Island default",
+            defaultColor = MaterialTheme.colorScheme.surface,
+        )
 
         var surfaceOpacity by remember(settings.surfaceOpacityPercent) {
             mutableFloatStateOf(settings.surfaceOpacityPercent.toFloat())
