@@ -21,6 +21,14 @@ class AssistantIntegrationPreferences(context: Context) {
         get() = prefs.getString("provider", "OpenAI-compatible") ?: "OpenAI-compatible"
         set(value) { prefs.edit().putString("provider", value).apply() }
 
+    /** Stable provider identifier used by the Integrations provider selector. */
+    var selectedProviderId: String
+        get() = prefs.getString("provider_id", null) ?: when (provider.lowercase()) {
+            "openai-compatible", "openai", "chatgpt" -> "openai"
+            else -> "custom"
+        }
+        set(value) { prefs.edit().putString("provider_id", value).apply() }
+
     var endpoint: String
         get() = prefs.getString("endpoint", "https://api.openai.com/v1") ?: "https://api.openai.com/v1"
         set(value) { prefs.edit().putString("endpoint", value.trim()).apply() }
