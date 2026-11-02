@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.MusicButtonStyle
+import com.vikram.expressiveisland.data.AssistantChatTurn
 import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.core.AssistantInteractionMode
 import com.vikram.expressiveisland.service.ProgressData
@@ -159,6 +160,8 @@ data class AssistantTileOptions(
     val showSendButton: Boolean = true,
     /** Last submitted prompt, retained in the event so collapsing/recomposing does not erase the chat. */
     val promptText: String? = null,
+    /** Complete ordered conversation, retained by the event across island collapse/recomposition. */
+    val conversation: List<AssistantChatTurn> = emptyList(),
 )
 
 /** Which parts of the timer tile to render (and how its buttons look), per the tile's settings. */
