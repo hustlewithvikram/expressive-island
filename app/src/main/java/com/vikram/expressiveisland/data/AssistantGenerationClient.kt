@@ -11,6 +11,13 @@ import java.net.URL
 
 data class AssistantChatTurn(val role: String, val content: String)
 
+data class AssistantChatSession(
+    val id: String,
+    val title: String,
+    val updatedAt: Long,
+    val turns: List<AssistantChatTurn>,
+)
+
 /**
  * Small provider adapter for the APIs exposed by the Integrations screen.
  * OpenAI-compatible vendors share /chat/completions; Gemini and Anthropic use their native APIs.
