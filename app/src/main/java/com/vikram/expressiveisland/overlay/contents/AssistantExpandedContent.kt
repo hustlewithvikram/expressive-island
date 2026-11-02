@@ -15,8 +15,6 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -208,7 +206,7 @@ fun AssistantExpandedContent(
                     Text(
                         text = "Type something...",
                         modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Start,
                         color = Color.White.copy(alpha = 0.55f),
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -267,7 +265,7 @@ fun AssistantExpandedContent(
                         TextField(
                             value = query,
                             onValueChange = { query = it },
-                            modifier = Modifier.weight(1f).onFocusChanged { onInputFocusChange(it.isFocused) },
+                            modifier = Modifier.weight(1f).height(48.dp).onFocusChanged { onInputFocusChange(it.isFocused) },
                             placeholder = { Text("Type your message...", color = Color.White.copy(alpha = 0.58f)) },
                             shape = RoundedCornerShape(28.dp),
                             singleLine = !assistant.showSendButton,
@@ -358,33 +356,43 @@ fun AssistantExpandedContent(
         }
     }
     if (showChatHistory) {
-        AlertDialog(
-            onDismissRequest = { showChatHistory = false },
-            title = { Text("Chat history") },
-            text = {
-                Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
-                    if (assistant.sessions.isEmpty()) {
-                        Text("Your previous chats will appear here.")
-                    } else {
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shadowElevation = 8.dp,
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Chat history", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, color = Color.White)
+                    IconButton(onClick = { showChatHistory = false }) {
+                        Icon(Icons.Rounded.Close, contentDescription = "Close chat history", tint = Color.White)
+                    }
+                }
+                if (assistant.sessions.isEmpty()) {
+                    Text("Your previous chats will appear here.", color = Color.White.copy(alpha = 0.7f))
+                } else {
+                    Column(Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState())) {
                         assistant.sessions.sortedByDescending { it.updatedAt }.forEach { session ->
-                            TextButton(
-                                onClick = {
-                                    onSelectAssistantChat(session.id)
-                                    showChatHistory = false
-                                },
-                                modifier = Modifier.fillMaxWidth(),
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                                    .clickable {
+                                        onSelectAssistantChat(session.id)
+                                        showChatHistory = false
+                                    },
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surface,
                             ) {
-                                Column(Modifier.fillMaxWidth()) {
-                                    Text(session.title, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
-                                    Text(session.turns.size.let { "$it messages" }, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+                                Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                                    Text(session.title.ifBlank { "New chat" }, color = Color.White, maxLines = 1)
+                                    Text("\${session.turns.size} messages", color = Color.White.copy(alpha = 0.65f), style = MaterialTheme.typography.labelSmall)
                                 }
                             }
                         }
                     }
                 }
-            },
-            confirmButton = { TextButton(onClick = { showChatHistory = false }) { Text("Close") } },
-        )
+            }
+        }
     }
 
 }
@@ -423,7 +431,7 @@ private fun ExpressiveAssistantButton(
             .then(if (circular) Modifier.width(48.dp).height(48.dp) else Modifier.width(58.dp).height(48.dp))
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clickable(interactionSource = interaction, indication = null, enabled = enabled, onClick = onClick),
-        shape = if (circular) RoundedCornerShape(50) else RoundedCornerShape(17.dp),
+        shape = RoundedCornerShape(50),
         color = if (enabled) Color(0xFF344F91) else Color(0xFF283044),
     ) {
         Box(contentAlignment = Alignment.Center) { content() }
