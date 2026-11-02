@@ -24,13 +24,13 @@ internal fun AssistantMarkdownText(
 ) {
     val bodyStyle = MaterialTheme.typography.bodyMedium
     val rendered = buildAnnotatedString {
-        markdown.replace("\\r\\n", "\\n").lines().forEachIndexed { index, rawLine ->
+        markdown.replace("\r\n", "\n").lines().forEachIndexed { index, rawLine ->
             val line = rawLine.trimEnd()
             val trimmed = line.trimStart()
             val heading = trimmed.takeWhile { it == '#' }.length.takeIf { it in 1..6 && trimmed.getOrNull(it) == ' ' }
             val content = if (heading != null) trimmed.drop(heading + 1) else trimmed
             val listLine = content.startsWith("- ") || content.startsWith("* ") || Regex("^\\d+[.)] ").containsMatchIn(content)
-            if (index > 0) append("\\n")
+            if (index > 0) append("\n")
             if (heading != null) {
                 withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = (bodyStyle.fontSize.value + (7 - heading) * 1.5f).sp)) {
                     appendInlineMarkdown(content, color)
