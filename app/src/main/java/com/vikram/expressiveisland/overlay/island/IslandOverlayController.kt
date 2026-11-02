@@ -50,6 +50,9 @@ import com.vikram.expressiveisland.data.AppPreferences
 import com.vikram.expressiveisland.data.AppearancePreferences
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.AssistantTilePreferences
+import com.vikram.expressiveisland.data.AssistantIntegrationPreferences
+import com.vikram.expressiveisland.data.AssistantGenerationClient
+import com.vikram.expressiveisland.data.AssistantChatTurn
 import com.vikram.expressiveisland.data.AssistantTileSettings
 import com.vikram.expressiveisland.data.BehaviourPreferences
 import com.vikram.expressiveisland.data.BehaviourSettings
@@ -151,6 +154,9 @@ class IslandOverlayController(private val context: Context) {
     private val phoneTilePreferences = PhoneTilePreferences(context)
     private val timerTilePreferences = TimerTilePreferences(context)
     private val assistantTilePreferences = AssistantTilePreferences(context)
+    private val assistantIntegrationPreferences = AssistantIntegrationPreferences(context)
+    private val assistantGenerationClient = AssistantGenerationClient(assistantIntegrationPreferences)
+    private val assistantConversation = mutableListOf<AssistantChatTurn>()
     private val appPreferences = AppPreferences(context)
     private val permissionDotPreferences = PermissionDotPreferences(context)
     private val density = context.resources.displayMetrics.density
@@ -619,6 +625,7 @@ class IslandOverlayController(private val context: Context) {
                         showsWhenEmpty = behaviour.showsWhenEmpty && behaviour.cutoutEnabled,
                         assistantTapEnabled = false,
                         onAssistantTap = ::openAssistantPanel,
+                        onAssistantPrompt = ::submitAssistantPrompt,
                         cameraHoleTapEnabled = behaviour.cameraHoleTapEnabled &&
                                 behaviour.cutoutEnabled &&
                                 !behaviour.showsWhenEmpty &&
@@ -2195,6 +2202,7 @@ class IslandOverlayController(private val context: Context) {
             eventColors,
             appearanceState.value.preferDynamicIconColor,
         )
+        assistantConversation.clear()
         val panelEvent = resolved.copy(
             initiallyExpanded = true,
             assistant = resolved.assistant?.copy(
@@ -2212,6 +2220,43 @@ class IslandOverlayController(private val context: Context) {
         lastAssistantEvent = panelEvent
         assistantActive = true
         syncWindowSize()
+    }
+
+    private fun submitAssistantPrompt(prompt: String, onComplete: (String) -> Unit) {
+        val active = currentEvent.value
+        if (active?.assistant?.interactivePanel != true) {
+            onComplete("Assistant panel is no longer active. Open it again and retry.")
+            return
+        }
+        currentEvent.value = active.copy(
+            assistant = active.assistant.copy(answerText = "Thinking…"),
+        )
+        lastAssistantEvent = currentEvent.value
+        scope.launch {
+            val result = runCatching {
+                assistantGenerationClient.generate(prompt, assistantConversation.toList())
+            }
+            val answer = result.getOrElse { error ->
+                when {
+                    error.message?.contains("Unable to resolve host", ignoreCase = true) == true ->
+                        "No internet connection. Check your network and try again."
+                    error.message?.contains("timeout", ignoreCase = true) == true ->
+                        "The request timed out. Try again or increase the request timeout."
+                    else -> error.message ?: "Unable to generate a response. Check your provider settings."
+                }
+            }
+            if (result.isSuccess) {
+                assistantConversation += AssistantChatTurn("user", prompt)
+                assistantConversation += AssistantChatTurn("assistant", answer)
+            }
+            val latest = currentEvent.value
+            if (latest?.assistant?.interactivePanel == true) {
+                val updated = latest.copy(assistant = latest.assistant.copy(answerText = answer))
+                currentEvent.value = updated
+                lastAssistantEvent = updated
+            }
+            onComplete(answer)
+        }
     }
 
     private fun onActivate() {
