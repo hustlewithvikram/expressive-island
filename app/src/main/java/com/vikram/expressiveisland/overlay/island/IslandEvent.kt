@@ -165,6 +165,7 @@ data class AssistantTileOptions(
     val conversation: List<AssistantChatTurn> = emptyList(),
     /** Recent and archived assistant chat sessions available from the history action. */
     val sessions: List<AssistantChatSession> = emptyList(),
+    val activeSessionId: String? = null,
 )
 
 /** Which parts of the timer tile to render (and how its buttons look), per the tile's settings. */
