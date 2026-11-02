@@ -2313,11 +2313,13 @@ class IslandOverlayController(private val context: Context) {
             onComplete("Assistant panel is no longer active. Open it again and retry.")
             return
         }
+        val requestSessionId = activeAssistantSessionId
         val history = assistantConversation.toList()
         assistantConversation += AssistantChatTurn("user", prompt)
         val assistantTurnIndex = assistantConversation.size
         assistantConversation += AssistantChatTurn("assistant", "Thinking…")
         val pendingConversation = assistantConversation.toList()
+        val requestTurns = pendingConversation.toMutableList()
         currentEvent.value = active.copy(
             assistant = active.assistant.copy(
                 promptText = prompt,
@@ -2340,22 +2342,32 @@ class IslandOverlayController(private val context: Context) {
                     else -> error.message ?: "Unable to generate a response. Check your provider settings."
                 }
             }
-            if (assistantTurnIndex in assistantConversation.indices) {
-                assistantConversation[assistantTurnIndex] = AssistantChatTurn("assistant", answer)
+            val completedTurns = requestTurns.toMutableList().apply {
+                val responseIndex = indexOfLast { it.role == "assistant" }
+                if (responseIndex >= 0) this[responseIndex] = AssistantChatTurn("assistant", answer)
             }
-            val completedConversation = assistantConversation.toList()
-            saveActiveAssistantSession(prompt)
-            val latest = currentEvent.value
-            if (latest?.assistant?.interactivePanel == true) {
-                val updated = latest.copy(
-                    assistant = latest.assistant.copy(
-                        answerText = answer,
-                        conversation = completedConversation,
-                        sessions = assistantSessions.toList(),
-                    ),
-                )
-                currentEvent.value = updated
-                lastAssistantEvent = updated
+            if (activeAssistantSessionId == requestSessionId) {
+                if (assistantTurnIndex in assistantConversation.indices) {
+                    assistantConversation[assistantTurnIndex] = AssistantChatTurn("assistant", answer)
+                }
+                saveActiveAssistantSession()
+                val latest = currentEvent.value
+                if (latest?.assistant?.interactivePanel == true && latest.assistant.activeSessionId == requestSessionId) {
+                    val updated = latest.copy(
+                        assistant = latest.assistant.copy(
+                            answerText = answer,
+                            conversation = assistantConversation.toList(),
+                            sessions = assistantSessions.toList(),
+                        ),
+                    )
+                    currentEvent.value = updated
+                    lastAssistantEvent = updated
+                }
+            } else if (requestSessionId != null) {
+                val title = completedTurns.firstOrNull { it.role == "user" }?.content?.take(64) ?: "New chat"
+                assistantSessions.removeAll { it.id == requestSessionId }
+                assistantSessions.add(AssistantChatSession(requestSessionId, title, System.currentTimeMillis(), completedTurns))
+                persistAssistantSessions()
             }
             onComplete(answer)
         }
