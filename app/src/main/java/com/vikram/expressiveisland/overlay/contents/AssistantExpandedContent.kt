@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.graphics.graphicsLayer
@@ -426,45 +427,6 @@ private fun ExpressiveAssistantButton(
     ) {
         Box(contentAlignment = Alignment.Center) { content() }
     }
-}
-
-@Composable
-private fun ThreeDotThinkingLoader() {
-    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "assistantThinking")
-    Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(start = 6.dp, top = 10.dp, bottom = 10.dp)) {
-        repeat(3) { index ->
-            val alpha by transition.animateFloat(
-                initialValue = 0.35f, targetValue = 1f,
-                animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-                    animation = androidx.compose.animation.core.tween(520, delayMillis = index * 150),
-                    repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
-                ), label = "thinkingDot$index",
-            )
-            Box(Modifier.width(7.dp).height(7.dp).background(Color.White.copy(alpha = alpha), RoundedCornerShape(50)))
-        }
-    }
-}
-
-@Composable
-private fun ExpressiveAssistantButton(
-    contentDescription: String,
-    circular: Boolean,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (pressed) 0.88f else 1f, animationSpec = spring(dampingRatio = 0.55f, stiffness = 500f), label = "assistantButtonScale")
-    Surface(
-        modifier = Modifier
-            .then(if (circular) Modifier.width(48.dp).height(48.dp) else Modifier.width(58.dp).height(48.dp))
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clickable(interactionSource = interaction, indication = null, enabled = enabled, onClick = onClick),
-        shape = if (circular) RoundedCornerShape(50) else RoundedCornerShape(17.dp),
-        color = if (enabled) Color(0xFF344F91) else Color(0xFF283044),
-    ) { Box(contentAlignment = Alignment.Center) { content() } }
 }
 
 /**
