@@ -1,7 +1,9 @@
 package com.vikram.expressiveisland.overlay.contents
 
 import android.content.Intent
-import android.speech.RecognizerIntent
+import com.vikram.expressiveisland.AssistantSpeechActivity
+import com.vikram.expressiveisland.AssistantSpeechResultBus
+import kotlinx.coroutines.flow.collect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -61,6 +63,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -112,6 +115,7 @@ fun AssistantExpandedContent(
         (configuration.screenHeightDp * assistant.maxCutoutHeightPercent / 100).dp
     val maxHeaderWidthDp = (configuration.screenWidthDp * 0.47f).dp
     var query by remember(event.id, assistant.activeSessionId) { mutableStateOf("") }
+    LaunchedEffect(Unit) { AssistantSpeechResultBus.results.collect { spoken -> query = listOf(query.trim(), spoken).filter { it.isNotBlank() }.joinToString(" ") } }
     var showChatHistory by remember { mutableStateOf(false) }
     val conversationScrollState = rememberScrollState()
     LaunchedEffect(assistant.conversation) {
@@ -277,8 +281,7 @@ fun AssistantExpandedContent(
                             if (it == "Thinking…") {
                                 ThreeDotThinkingLoader()
                             } else {
-                                Text(it, modifier = Modifier.widthIn(max = maxHeaderWidthDp * 1.8f).padding(horizontal = 4.dp, vertical = 6.dp),
-                                    style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                                AssistantMarkdownText(it, modifier = Modifier.widthIn(max = maxHeaderWidthDp * 1.8f).padding(horizontal = 4.dp, vertical = 6.dp), color = Color.White)
                             }
                         }
                         Spacer(Modifier.height(8.dp))
@@ -313,8 +316,8 @@ fun AssistantExpandedContent(
                             modifier = Modifier.weight(1f).height(56.dp).onFocusChanged { onInputFocusChange(it.isFocused) },
                             placeholder = { Text("Type your message...", color = Color.White.copy(alpha = 0.58f)) },
                             shape = RoundedCornerShape(28.dp),
-                            singleLine = !assistant.showSendButton,
-                            maxLines = if (assistant.showSendButton) 3 else 1,
+                            singleLine = false,
+                            maxLines = 4,
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color(0xFF17233D),
                                 unfocusedContainerColor = Color(0xFF121D33),
@@ -341,15 +344,7 @@ fun AssistantExpandedContent(
                             circular = true,
                             enabled = true,
                             onClick = {
-                                val voiceIntent = Intent(Intent.ACTION_VOICE_COMMAND).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                runCatching { context.startActivity(voiceIntent) }.onFailure {
-                                    val fallback = Intent(RecognizerIntent.ACTION_WEB_SEARCH).apply {
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    }
-                                    runCatching { context.startActivity(fallback) }
-                                }
+                                runCatching { context.startActivity(Intent(context, AssistantSpeechActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                             },
                         ) {
                             Icon(Icons.Rounded.Mic, contentDescription = null, tint = Color.White)
