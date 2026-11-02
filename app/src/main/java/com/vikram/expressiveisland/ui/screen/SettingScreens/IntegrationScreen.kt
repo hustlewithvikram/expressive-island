@@ -1,6 +1,5 @@
 package com.vikram.expressiveisland.ui.screen
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +24,6 @@ import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.NotificationsActive
-import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Webhook
@@ -125,7 +123,7 @@ private fun AssistantIntegrationSection() {
     var selectedId by remember { mutableStateOf(integration.selectedProviderId) }
     var endpoint by remember { mutableStateOf(integration.endpoint) }
     var model by remember { mutableStateOf(integration.model) }
-    var apiKey by remember { mutableStateOf(integration.apiKey) }
+    var apiKey by remember { mutableStateOf(integration.getApiKey(integration.selectedProviderId)) }
     var showKey by remember { mutableStateOf(false) }
     var providerMenuExpanded by remember { mutableStateOf(false) }
     var maxTokens by remember { mutableStateOf(integration.maxOutputTokens.toFloat()) }
@@ -210,6 +208,7 @@ private fun AssistantIntegrationSection() {
                                 onClick = {
                                     selectedId = provider.id
                                     integration.selectedProviderId = provider.id
+                                    apiKey = integration.getApiKey(provider.id)
                                     integration.provider = provider.name
                                     if (provider.id != "custom") {
                                         endpoint = provider.endpoint
@@ -232,6 +231,12 @@ private fun AssistantIntegrationSection() {
                     Text(selectedProvider.unavailableReason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
             }
+
+            Text(
+                "API format · ${selectedProvider.format}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
 
             if (selectedId == "custom") {
                 OutlinedTextField(
@@ -271,7 +276,7 @@ private fun AssistantIntegrationSection() {
 
             OutlinedTextField(
                 value = apiKey,
-                onValueChange = { apiKey = it; integration.apiKey = it },
+                onValueChange = { apiKey = it; integration.setApiKey(selectedId, it) },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("API key") },
                 placeholder = { Text("Paste your provider API key") },
