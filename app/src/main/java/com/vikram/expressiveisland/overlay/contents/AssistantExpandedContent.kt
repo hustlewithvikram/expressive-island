@@ -85,6 +85,8 @@ fun AssistantExpandedContent(
     onHeightMeasured: ((Int) -> Unit)? = null,
     onInputFocusChange: (Boolean) -> Unit = {},
     onAssistantPrompt: (String, (String) -> Unit) -> Unit = { _, complete -> complete("Assistant generation is unavailable.") },
+    onNewAssistantChat: () -> Unit = {},
+    onSelectAssistantChat: (String) -> Unit = {},
 ) {
     val assistant = event.assistant ?: return
     val contentColor = LocalContentColor.current
@@ -147,6 +149,8 @@ fun AssistantExpandedContent(
                     }
                 }
             }
+            IconButton(onClick = onNewAssistantChat) { Icon(Icons.Rounded.Add, contentDescription = "New chat") }
+            IconButton(onClick = { showChatHistory = true }) { Icon(Icons.Rounded.History, contentDescription = "Chat history") }
             IconButton(onClick = onDismiss) {
                 Icon(Icons.Rounded.Close, contentDescription = "Close Assistant")
             }
