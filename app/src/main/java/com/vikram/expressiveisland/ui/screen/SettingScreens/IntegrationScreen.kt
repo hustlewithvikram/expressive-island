@@ -90,7 +90,7 @@ internal fun IntegrationsScreen(
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Column(modifier = Modifier.padding(top = 4.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Integrations", style = MaterialTheme.typography.headlineSmall)
@@ -243,7 +243,7 @@ private fun AssistantIntegrationSection() {
                         onDismissRequest = { providerDialogOpen = false },
                         title = { Text("Choose AI provider") },
                         text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 aiProviders.filter { it.available }.forEach { provider ->
                                     Row(
                                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
