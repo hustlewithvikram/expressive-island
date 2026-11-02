@@ -2079,7 +2079,14 @@ class IslandOverlayController(private val context: Context) {
         // Keep the conversational Assistant event alive when it is collapsed to the pill.
         // Its prompt/answer live on IslandEvent, not in the expanded composable's disposable state.
         if (!targetExpanded && currentEvent.value?.assistant?.interactivePanel == true) {
-            dismissJob?.cancel()
+            if (assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
+                assistantSettings.manualAutoHideEnabled
+            ) {
+                scheduleDismiss()
+            } else {
+                dismissJob?.cancel()
+                currentDeadlineMs = null
+            }
             syncWindowSize()
             return
         }
@@ -2575,8 +2582,13 @@ class IslandOverlayController(private val context: Context) {
     private fun scheduleDismiss() {
         dismissJob?.cancel()
         currentDeadlineMs = null
-        // Never time out a live cutout while it's active — it stays until playback / the call stops.
-        if (isPinnedLiveTile()) return
+        // Keep active media/calls/timers pinned. A manually opened Assistant panel is the
+        // exception when its explicit auto-hide option is enabled.
+        val autoHideManualAssistant =
+            currentEvent.value?.assistant?.interactivePanel == true &&
+                assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
+                assistantSettings.manualAutoHideEnabled
+        if (isPinnedLiveTile() && !autoHideManualAssistant) return
 
         // Capture both the event identity and its deadline. Unlock, notification and other transient
         // signals can arrive in the same frame; a timeout from the previous signal must never clear
