@@ -2226,6 +2226,7 @@ class IslandOverlayController(private val context: Context) {
                 interactivePanel = true,
                 conversation = emptyList(),
                 sessions = assistantSessions.toList(),
+                activeSessionId = activeAssistantSessionId,
             ),
         )
         dismissJob?.cancel()
@@ -2283,7 +2284,7 @@ class IslandOverlayController(private val context: Context) {
         activeAssistantSessionId = UUID.randomUUID().toString()
         val updated = active.copy(assistant = active.assistant.copy(
             promptText = null, answerText = null, conversation = emptyList(),
-            sessions = assistantSessions.toList(),
+            sessions = assistantSessions.toList(), activeSessionId = activeAssistantSessionId,
         ))
         currentEvent.value = updated
         lastAssistantEvent = updated
@@ -2300,7 +2301,7 @@ class IslandOverlayController(private val context: Context) {
         val lastAnswer = session.turns.lastOrNull { it.role == "assistant" }?.content
         val updated = active.copy(assistant = active.assistant.copy(
             promptText = lastPrompt, answerText = lastAnswer,
-            conversation = session.turns, sessions = assistantSessions.toList(),
+            conversation = session.turns, sessions = assistantSessions.toList(), activeSessionId = activeAssistantSessionId,
         ))
         currentEvent.value = updated
         lastAssistantEvent = updated
