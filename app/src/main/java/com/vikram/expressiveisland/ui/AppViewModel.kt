@@ -460,6 +460,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         assistantTilePreferences.setIconContainerColor(color)
     }
 
+    fun setAssistantExpandedBackgroundColor(color: CutoutColor?) = viewModelScope.launch {
+        assistantTilePreferences.setExpandedBackgroundColor(color)
+    }
+
     fun setAssistantSurfaceOpacityPercent(percent: Int) = viewModelScope.launch {
         assistantTilePreferences.setSurfaceOpacityPercent(percent)
     }
