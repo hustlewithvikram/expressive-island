@@ -343,6 +343,17 @@ private fun AssistantIntegrationSection() {
                     Icon(Icons.Rounded.ExpandMore, contentDescription = "Choose model")
                 }
             }
+            if (selectedId == "custom") {
+                TextField(
+                    value = model,
+                    onValueChange = { model = it; integration.model = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Custom model ID") },
+                    placeholder = { Text("Enter the exact model ID") },
+                    shape = RoundedCornerShape(18.dp),
+                    singleLine = true,
+                )
+            }
             if (modelDialogOpen) {
                 val modelOptions = when (selectedId) {
                     "openai" -> listOf("gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini", "gpt-4o", "o4-mini")
