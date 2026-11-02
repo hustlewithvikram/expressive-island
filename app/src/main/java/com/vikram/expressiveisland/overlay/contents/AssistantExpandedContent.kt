@@ -357,8 +357,20 @@ fun AssistantExpandedContent(
                                     animationSpec = infiniteRepeatable(tween(600), repeatMode = RepeatMode.Reverse),
                                     label = "assistantMicPulse",
                                 )
-                                Icon(Icons.Rounded.Mic, contentDescription = null, tint = Color.White,
-                                    modifier = Modifier.graphicsLayer(scaleX = pulse, scaleY = pulse))
+                                Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                                    androidx.compose.foundation.Canvas(Modifier.size(48.dp)) {
+                                        drawCircle(
+                                            color = Color(0xFFFF5252).copy(alpha = 0.22f * (1.15f - pulse)),
+                                            radius = size.minDimension / 2 * pulse,
+                                        )
+                                        drawCircle(
+                                            color = Color(0xFFFF5252).copy(alpha = 0.45f),
+                                            radius = size.minDimension / 2 * 0.58f,
+                                        )
+                                    }
+                                    Icon(Icons.Rounded.Mic, contentDescription = null, tint = Color.White,
+                                        modifier = Modifier.graphicsLayer(scaleX = pulse, scaleY = pulse))
+                                }
                             } else Icon(Icons.Rounded.Mic, contentDescription = null, tint = Color.White)
                         }
                     }
