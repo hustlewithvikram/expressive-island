@@ -13,13 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
@@ -57,7 +57,7 @@ private data class AiProvider(
     val description: String,
     val endpoint: String,
     val defaultModel: String,
-    val format: String = "OpenAI-compatible",
+    val format: String = "OpenAI-compatible API",
     val available: Boolean = true,
     val unavailableReason: String = "",
 )
@@ -73,46 +73,149 @@ private val aiProviders = listOf(
     AiProvider("xai", "xAI", "Grok models", "https://api.x.ai/v1", "grok-3-mini"),
     AiProvider("cohere", "Cohere", "Command models", "https://api.cohere.com/compatibility/v1", "command-r"),
     AiProvider("together", "Together AI", "Hosted open-source models", "https://api.together.xyz/v1", "meta-llama/Llama-3.3-70B-Instruct-Turbo"),
-    AiProvider("fireworks", "Fireworks AI", "Fast inference for open models", "https://api.fireworks.ai/inference/v1", "accounts/fireworks/models/llama-v3p3-70b-instruct"),
+    AiProvider("fireworks", "Fireworks AI", "Hosted open-source models", "https://api.fireworks.ai/inference/v1", "accounts/fireworks/models/llama-v3p3-70b-instruct"),
     AiProvider("perplexity", "Perplexity", "Sonar search and answer models", "https://api.perplexity.ai", "sonar"),
-    AiProvider("copilot", "Microsoft Copilot", "Consumer Copilot is not a standard API-key provider", "", "", available = false, unavailableReason = "No generally available personal API-key endpoint"),
+    AiProvider("cerebras", "Cerebras", "Fast inference for open models", "https://api.cerebras.ai/v1", "llama3.1-8b"),
+    AiProvider("sambanova", "SambaNova", "Hosted open-source models", "https://api.sambanova.ai/v1", "Meta-Llama-3.3-70B-Instruct"),
+    AiProvider("copilot", "Microsoft Copilot", "Consumer Copilot does not expose a standard personal API-key endpoint", "", "", available = false, unavailableReason = "Not available through a supported personal API-key integration"),
     AiProvider("custom", "Custom API", "OpenAI-compatible or self-hosted endpoint", "", "", "Custom API"),
 )
 
+private enum class IntegrationSection(val title: String, val description: String) {
+    AI("AI Assistant", "Choose the AI provider that powers Assistant responses."),
+    NOTIFICATIONS("Notification intelligence", "Prepare smart summaries, suggested replies and contextual actions."),
+    AUTOMATION("Automation & webhooks", "Connect workflows to supported island events."),
+    DEVICE("Device services", "Connect Android system capabilities and companion services."),
+}
+
 @Composable
 internal fun AssistantIntegrationScreen(contentPadding: PaddingValues) {
+    var selectedSection by remember { mutableStateOf(IntegrationSection.AI) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(contentPadding)
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Column(
-            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(top = 6.dp, bottom = 2.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             Text("Integrations", style = MaterialTheme.typography.headlineSmall)
             Text(
-                "Connect services that make Expressive Island more capable.",
+                "Connect the services that make your island more capable.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
-        AssistantIntegrationSection()
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            IntegrationCategoryCard(
+                icon = Icons.Rounded.AutoAwesome,
+                title = IntegrationSection.AI.title,
+                description = IntegrationSection.AI.description,
+                selected = selectedSection == IntegrationSection.AI,
+                status = "Configure",
+                onClick = { selectedSection = IntegrationSection.AI },
+            )
+            IntegrationCategoryCard(
+                icon = Icons.Rounded.NotificationsActive,
+                title = IntegrationSection.NOTIFICATIONS.title,
+                description = IntegrationSection.NOTIFICATIONS.description,
+                selected = selectedSection == IntegrationSection.NOTIFICATIONS,
+                status = "Coming soon",
+                onClick = { selectedSection = IntegrationSection.NOTIFICATIONS },
+            )
+            IntegrationCategoryCard(
+                icon = Icons.Rounded.Webhook,
+                title = IntegrationSection.AUTOMATION.title,
+                description = IntegrationSection.AUTOMATION.description,
+                selected = selectedSection == IntegrationSection.AUTOMATION,
+                status = "Coming soon",
+                onClick = { selectedSection = IntegrationSection.AUTOMATION },
+            )
+            IntegrationCategoryCard(
+                icon = Icons.Rounded.Devices,
+                title = IntegrationSection.DEVICE.title,
+                description = IntegrationSection.DEVICE.description,
+                selected = selectedSection == IntegrationSection.DEVICE,
+                status = "Coming soon",
+                onClick = { selectedSection = IntegrationSection.DEVICE },
+            )
+        }
 
-        IntegrationComingSoonCard(
-            icon = Icons.Rounded.NotificationsActive,
-            title = "Notification intelligence",
-            description = "Smart notification summaries, contextual actions and suggested replies.",
-        )
-        IntegrationComingSoonCard(
-            icon = Icons.Rounded.Webhook,
-            title = "Automation & webhooks",
-            description = "Connect external workflows and trigger actions from supported island events.",
-        )
+        when (selectedSection) {
+            IntegrationSection.AI -> AssistantIntegrationSection()
+            else -> IntegrationPlaceholder(selectedSection)
+        }
+
+        Spacer(Modifier.size(8.dp))
+    }
+}
+
+@Composable
+private fun IntegrationCategoryCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    description: String,
+    selected: Boolean,
+    status: String,
+    onClick: () -> Unit,
+) {
+    val container = if (selected) MaterialTheme.colorScheme.secondaryContainer
+        else MaterialTheme.colorScheme.surfaceContainerLow
+    val content = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+        else MaterialTheme.colorScheme.onSurface
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = container),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                modifier = Modifier.size(44.dp).clip(RoundedCornerShape(16.dp))
+                    .background(if (selected) MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
+                    else MaterialTheme.colorScheme.surfaceContainerHighest),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, tint = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary)
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, color = content, fontWeight = FontWeight.SemiBold)
+                Text(description, style = MaterialTheme.typography.bodySmall, color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(
+                status,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun IntegrationPlaceholder(section: IntegrationSection) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
+            Text(section.title, style = MaterialTheme.typography.titleLarge)
+            Text(section.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("This integration category is planned for a future update.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        }
     }
 }
 
@@ -131,7 +234,6 @@ private fun AssistantIntegrationSection() {
     var timeout by remember { mutableStateOf(integration.requestTimeoutSeconds.toFloat()) }
     var streaming by remember { mutableStateOf(integration.streamResponses) }
     var includeContext by remember { mutableStateOf(integration.includeConversationContext) }
-
     val selectedProvider = aiProviders.firstOrNull { it.id == selectedId } ?: aiProviders.first()
 
     Card(
@@ -139,27 +241,21 @@ private fun AssistantIntegrationSection() {
         shape = RoundedCornerShape(30.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(17.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(17.dp)).background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("AI Assistant", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    Text("Choose the model that powers Assistant responses.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Provider and model configuration", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text("AI PROVIDER", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Box {
                     Card(
@@ -168,13 +264,13 @@ private fun AssistantIntegrationSection() {
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(selectedProvider.name, style = MaterialTheme.typography.titleMedium)
+                            Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text(selectedProvider.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                                 Text(selectedProvider.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Icon(Icons.Rounded.ExpandMore, contentDescription = "Choose provider")
@@ -183,7 +279,7 @@ private fun AssistantIntegrationSection() {
                     DropdownMenu(
                         expanded = providerMenuExpanded,
                         onDismissRequest = { providerMenuExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.88f).background(MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer),
                     ) {
                         aiProviders.forEach { provider ->
                             DropdownMenuItem(
@@ -198,46 +294,39 @@ private fun AssistantIntegrationSection() {
                                     }
                                 },
                                 leadingIcon = {
-                                    if (provider.id == selectedId) {
-                                        Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                    } else {
-                                        Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
+                                    if (provider.id == selectedId) Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    else Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 },
                                 enabled = provider.available,
                                 onClick = {
                                     selectedId = provider.id
                                     integration.selectedProviderId = provider.id
                                     apiKey = integration.getApiKey(provider.id)
+                                    showKey = false
                                     integration.provider = provider.name
-                                    if (provider.id != "custom") {
-                                        endpoint = provider.endpoint
-                                        model = provider.defaultModel
-                                        integration.endpoint = endpoint
-                                        integration.model = model
-                                    } else {
-                                        endpoint = ""
-                                        model = ""
-                                        integration.endpoint = ""
-                                        integration.model = ""
-                                    }
+                                    endpoint = provider.endpoint
+                                    model = provider.defaultModel
+                                    integration.endpoint = endpoint
+                                    integration.model = model
                                     providerMenuExpanded = false
                                 },
                             )
                         }
                     }
                 }
-                if (!selectedProvider.available) {
-                    Text(selectedProvider.unavailableReason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                }
+                Text(
+                    "Only providers with a supported API connection can be selected. Consumer Copilot is shown for clarity but does not currently offer a standard personal API-key connection.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
+            Text("CONNECTION", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 "API format · ${selectedProvider.format}",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.primary,
             )
-
             if (selectedId == "custom") {
                 OutlinedTextField(
                     value = endpoint,
@@ -249,31 +338,27 @@ private fun AssistantIntegrationSection() {
                     singleLine = true,
                 )
             } else {
-                Text(
-                    "API endpoint",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    endpoint,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainer).padding(14.dp),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("API endpoint", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        endpoint,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainer).padding(14.dp),
+                    )
+                }
             }
-
             OutlinedTextField(
                 value = model,
                 onValueChange = { model = it; integration.model = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Model") },
+                label = { Text("Model ID") },
                 placeholder = { Text(selectedProvider.defaultModel.ifBlank { "Enter model ID" }) },
-                supportingText = { Text("Use the exact model ID provided by your AI service.") },
+                supportingText = { Text("Use the exact model identifier supported by your provider.") },
                 shape = RoundedCornerShape(20.dp),
                 singleLine = true,
             )
-
             OutlinedTextField(
                 value = apiKey,
                 onValueChange = { apiKey = it; integration.setApiKey(selectedId, it) },
@@ -285,35 +370,23 @@ private fun AssistantIntegrationSection() {
                 visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     TextButton(onClick = { showKey = !showKey }) {
-                        Icon(
-                            if (showKey) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                            contentDescription = if (showKey) "Hide API key" else "Show API key",
-                        )
+                        Icon(if (showKey) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility, contentDescription = if (showKey) "Hide API key" else "Show API key")
                     }
                 },
             )
-
             Row(
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f))
-                    .padding(12.dp),
+                    .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)).padding(12.dp),
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Icon(Icons.Rounded.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                Text(
-                    "Your key is encrypted with Android Keystore and stored on this device.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
+                Text("Your key is encrypted with Android Keystore and stored on this device.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
         }
     }
 
-    CardSectionHeader(
-        text = "Response generation",
-        padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 0.dp),
-    )
+    CardSectionHeader(text = "Response generation", padding = PaddingValues(start = 4.dp, top = 4.dp))
     SettingsSliderCard(
         shape = RoundedCornerShape(26.dp),
         title = "Response length",
@@ -348,10 +421,7 @@ private fun AssistantIntegrationSection() {
         onCommit = { integration.requestTimeoutSeconds = timeout.toInt() },
     )
 
-    CardSectionHeader(
-        text = "Assistant behaviour",
-        padding = PaddingValues(start = 4.dp, top = 8.dp, bottom = 0.dp),
-    )
+    CardSectionHeader(text = "Assistant behaviour", padding = PaddingValues(start = 4.dp, top = 8.dp))
     SettingsToggleCard(
         shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp, bottomStart = 8.dp, bottomEnd = 8.dp),
         title = "Stream responses",
@@ -378,37 +448,5 @@ private fun AssistantIntegrationSection() {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-    }
-}
-
-@Composable
-private fun IntegrationComingSoonCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    description: String,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Box(
-                modifier = Modifier.size(44.dp).clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text("Soon", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
     }
 }
