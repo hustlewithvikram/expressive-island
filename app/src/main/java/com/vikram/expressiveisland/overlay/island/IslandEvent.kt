@@ -166,6 +166,8 @@ data class AssistantTileOptions(
     /** Recent and archived assistant chat sessions available from the history action. */
     val sessions: List<AssistantChatSession> = emptyList(),
     val activeSessionId: String? = null,
+    /** User-selected background for the expanded interactive assistant panel. */
+    val expandedBackgroundColor: CutoutColor? = null,
 )
 
 /** Which parts of the timer tile to render (and how its buttons look), per the tile's settings. */
