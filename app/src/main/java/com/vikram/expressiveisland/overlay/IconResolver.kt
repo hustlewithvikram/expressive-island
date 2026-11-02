@@ -339,6 +339,7 @@ class IconResolver(private val context: Context) {
                 showMicButton = settings.showAssistantMicButton,
                 showPromptInput = settings.showAssistantPromptInput,
                 showSendButton = settings.showAssistantSendButton && settings.showAssistantPromptInput,
+                expandedBackgroundColor = settings.expandedBackgroundColor,
             ),
         )
     }
