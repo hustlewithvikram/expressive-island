@@ -225,7 +225,9 @@ val SettingsRoute.depth: Int
     get() = when (this) {
         SettingsRoute.List -> 0
         SettingsRoute.Background, SettingsRoute.ActionButtons, SettingsRoute.DynamicTileDetail,
-        SettingsRoute.EventDetail, SettingsRoute.ShowsWhenEmpty, SettingsRoute.CameraHoleTap -> 2
+        SettingsRoute.EventDetail, SettingsRoute.ShowsWhenEmpty, SettingsRoute.CameraHoleTap,
+        SettingsRoute.IntegrationAI, SettingsRoute.IntegrationNotifications,
+        SettingsRoute.IntegrationAutomation, SettingsRoute.IntegrationDevice -> 2
 
         else -> 1
     }
