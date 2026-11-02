@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.vikram.expressiveisland.core.AssistantInteractionMode
 import androidx.compose.foundation.layout.Box
@@ -51,8 +50,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -97,15 +96,14 @@ fun AssistantExpandedContent(
         (configuration.screenHeightDp * assistant.maxCutoutHeightPercent / 100).dp
     val maxHeaderWidthDp = (configuration.screenWidthDp * 0.47f).dp
     var query by remember(event.id) { mutableStateOf("") }
-    var voiceMode by remember(event.id) { mutableStateOf(assistant.interactionMode == AssistantInteractionMode.VOICE) }
-    var promptMode by remember(event.id) { mutableStateOf(assistant.interactionMode == AssistantInteractionMode.PROMPT) }
-    val scope = rememberCoroutineScope()
+    val conversationScrollState = rememberScrollState()
+    LaunchedEffect(assistant.conversation) {
+        conversationScrollState.scrollTo(conversationScrollState.maxValue)
+    }
     val submitPrompt: () -> Unit = {
         val prompt = query.trim()
         if (prompt.isNotEmpty()) {
             query = ""
-            promptMode = false
-            voiceMode = false
             focusManager.clearFocus(force = true)
             onInputFocusChange(false)
             onAssistantPrompt(prompt) { /* The controller owns the persistent conversation state. */ }
@@ -182,73 +180,43 @@ fun AssistantExpandedContent(
                     .fillMaxWidth()
                     .weight(1f, fill = true)
                     .fillMaxHeight()
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(conversationScrollState),
             ) {
-                if (voiceMode || promptMode) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        AssistantSiriVisual(
-                            modifier = Modifier.width(if (voiceMode) 112.dp else 64.dp)
-                                .height(if (voiceMode) 112.dp else 64.dp),
-                        )
-                        Text(
-                            text = if (voiceMode) "Starting voice assistant…" else "Preparing your prompt…",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = contentColor.copy(alpha = 0.76f),
-                        )
-                    }
-                    Spacer(Modifier.height(10.dp))
-                }
-
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                ) {
-                    Column(Modifier.padding(14.dp)) {
-                        Text(
-                            text = "Hi! What can I help you with?",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = contentColor,
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            text = "Type a question below, or use the microphone to open your device's voice assistant.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = contentColor.copy(alpha = 0.72f),
-                        )
+                assistant.conversation.chunked(2).forEach { messages ->
+                    val prompt = messages.firstOrNull { it.role == "user" }?.content
+                    val response = messages.firstOrNull { it.role == "assistant" }?.content
+                    if (prompt != null || response != null) {
+                        Spacer(Modifier.height(12.dp))
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                        ) {
+                            Column(Modifier.padding(14.dp)) {
+                                prompt?.let {
+                                    Text(it, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = contentColor)
+                                }
+                                if (prompt != null && response != null) Spacer(Modifier.height(10.dp))
+                                response?.let {
+                                    Text(it, style = MaterialTheme.typography.bodyMedium, color = contentColor.copy(alpha = 0.82f))
+                                }
+                            }
+                        }
                     }
                 }
-
-                assistant.promptText?.let { prompt ->
-                    Spacer(Modifier.height(12.dp))
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                    ) {
-                        Column(Modifier.padding(14.dp)) {
-                            Text(
-                                text = prompt,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = contentColor,
-                            )
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                text = assistant.answerText ?: "Thinking…",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = contentColor.copy(alpha = 0.82f),
-                            )
+                if (assistant.conversation.isEmpty()) {
+                    assistant.promptText?.let { prompt ->
+                        Spacer(Modifier.height(12.dp))
+                        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                            Column(Modifier.padding(14.dp)) {
+                                Text(prompt, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = contentColor)
+                                Spacer(Modifier.height(10.dp))
+                                Text(assistant.answerText ?: "Thinking…", style = MaterialTheme.typography.bodyMedium, color = contentColor.copy(alpha = 0.82f))
+                            }
                         }
                     }
                 }
             }
-
             Spacer(Modifier.height(12.dp))
 
             // Fixed composer: always stays at the bottom, outside the conversation scroll.
@@ -263,12 +231,9 @@ fun AssistantExpandedContent(
                             value = query,
                             onValueChange = {
                                 query = it
-                                promptMode = it.isNotBlank()
-                                if (it.isNotBlank()) voiceMode = false
                             },
                             modifier = Modifier.weight(1f).onFocusChanged {
                                 onInputFocusChange(it.isFocused)
-                                if (it.isFocused) promptMode = true
                             },
                             placeholder = { Text("Ask anything…") },
                             shape = RoundedCornerShape(24.dp),
@@ -285,19 +250,14 @@ fun AssistantExpandedContent(
                     if (assistant.showMicButton) {
                         IconButton(
                             onClick = {
-                                voiceMode = true
-                                promptMode = false
-                                scope.launch {
-                                    delay(650)
-                                    val voiceIntent = Intent(Intent.ACTION_VOICE_COMMAND).apply {
+                                val voiceIntent = Intent(Intent.ACTION_VOICE_COMMAND).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                runCatching { context.startActivity(voiceIntent) }.onFailure {
+                                    val fallback = Intent(RecognizerIntent.ACTION_WEB_SEARCH).apply {
                                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                     }
-                                    runCatching { context.startActivity(voiceIntent) }.onFailure {
-                                        val fallback = Intent(RecognizerIntent.ACTION_WEB_SEARCH).apply {
-                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        }
-                                        runCatching { context.startActivity(fallback) }
-                                    }
+                                    runCatching { context.startActivity(fallback) }
                                 }
                             },
                         ) {
