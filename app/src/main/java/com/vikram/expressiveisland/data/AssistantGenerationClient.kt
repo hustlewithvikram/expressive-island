@@ -8,6 +8,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.SocketTimeoutException
 
 data class AssistantChatTurn(val role: String, val content: String)
 
@@ -46,26 +47,40 @@ class AssistantGenerationClient(private val preferences: AssistantIntegrationPre
                 "anthropic" -> openAnthropic(endpoint, key)
                 else -> openOpenAiCompatible(endpoint, key)
             }
-            connection.connectTimeout = preferences.requestTimeoutSeconds * 1000
-            connection.readTimeout = preferences.requestTimeoutSeconds * 1000
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json")
-            val body = when (provider) {
-                "gemini" -> geminiBody(model, prompt, history)
-                "anthropic" -> anthropicBody(model, prompt, history)
-                else -> openAiBody(model, prompt, history)
+            try {
+                val timeoutMs = preferences.requestTimeoutSeconds.coerceIn(30, 180) * 1_000
+                connection.connectTimeout = 20_000
+                connection.readTimeout = timeoutMs
+                connection.requestMethod = "POST"
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                val body = when (provider) {
+                    "gemini" -> geminiBody(model, prompt, history)
+                    "anthropic" -> anthropicBody(model, prompt, history)
+                    else -> openAiBody(model, prompt, history)
+                }
+                connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+                val status = connection.responseCode
+                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+                val response = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                if (status !in 200..299) {
+                    val json = runCatching { JSONObject(response) }.getOrNull()
+                    val detail = json?.optJSONObject("error")?.optString("message")
+                        ?.takeIf { it.isNotBlank() }
+                        ?: json?.optString("message")?.takeIf { it.isNotBlank() }
+                    throw IllegalStateException(
+                        detail ?: "Provider request failed (HTTP $status). Check the API key, model and endpoint."
+                    )
+                }
+                parseResponse(provider, response)
+            } catch (error: SocketTimeoutException) {
+                throw IllegalStateException(
+                    "The AI provider took too long to respond. Check your connection, or increase Request timeout in Integrations (up to 180 seconds).",
+                    error,
+                )
+            } finally {
+                connection.disconnect()
             }
-            connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-            val status = connection.responseCode
-            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-            val response = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
-            connection.disconnect()
-            if (status !in 200..299) {
-                val detail = runCatching { JSONObject(response).optJSONObject("error")?.optString("message") }.getOrNull()
-                throw IllegalStateException(detail?.takeIf { !it.isNullOrBlank() } ?: "Provider request failed (HTTP $status). Check the API key, model and endpoint.")
-            }
-            parseResponse(provider, response)
         }
 
     private fun openOpenAiCompatible(endpoint: String, key: String): HttpURLConnection {
