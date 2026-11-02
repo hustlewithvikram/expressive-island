@@ -71,8 +71,8 @@ private data class AiProvider(
 )
 
 private val aiProviders = listOf(
-    AiProvider("openai", "ChatGPT / OpenAI", "GPT models · Official API key", "https://api.openai.com/v1", "gpt-4o-mini"),
-    AiProvider("gemini", "Google Gemini", "Gemini models · Google AI Studio key", "https://generativelanguage.googleapis.com/v1beta", "gemini-2.5-flash", "Gemini API"),
+    AiProvider("openai", "ChatGPT / OpenAI", "GPT models · Official API key", "https://api.openai.com/v1", "gpt-4.1-mini"),
+    AiProvider("gemini", "Google Gemini", "Gemini models · Google AI Studio key", "https://generativelanguage.googleapis.com/v1beta", "gemini-3.8-flash", "Gemini API"),
     AiProvider("anthropic", "Anthropic Claude", "Claude models · Anthropic API key", "https://api.anthropic.com/v1", "claude-3-5-haiku-latest", "Anthropic Messages API"),
     AiProvider("deepseek", "DeepSeek", "DeepSeek Chat and Reasoner", "https://api.deepseek.com/v1", "deepseek-chat"),
     AiProvider("groq", "Groq", "Fast hosted open models", "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
@@ -273,7 +273,7 @@ private fun AssistantIntegrationSection() {
                                 showKey = false
                                 integration.provider = provider.name
                                 endpoint = if (provider.id == "custom") integration.endpoint else provider.endpoint
-                                model = if (provider.id == "custom") integration.model else provider.defaultModel
+                                model = integration.model.ifBlank { provider.defaultModel }
                                 integration.endpoint = endpoint
                                 integration.model = model
                                 providerDialogOpen = false
@@ -357,33 +357,33 @@ private fun AssistantIntegrationSection() {
             if (modelDialogOpen) {
                 val modelOptions = when (selectedId) {
                     "openai" -> listOf("gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini", "gpt-4o", "o4-mini")
-                    "gemini" -> listOf("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-2.0-flash-lite")
-                    "anthropic" -> listOf("claude-sonnet-4-5", "claude-opus-4-1", "claude-haiku-4-5")
+                    "gemini" -> listOf("gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite")
+                    "anthropic" -> listOf("claude-3-5-haiku-latest", "claude-sonnet-4-5", "claude-haiku-4-5")
                     "deepseek" -> listOf("deepseek-chat", "deepseek-reasoner")
                     "groq" -> listOf("llama-3.3-70b-versatile", "openai/gpt-oss-120b", "qwen/qwen3-32b")
-                    "openrouter" -> listOf("openai/gpt-4o-mini", "anthropic/claude-sonnet-4", "google/gemini-2.5-flash")
-                    "mistral" -> listOf("mistral-small-latest", "mistral-medium-latest", "mistral-large-latest", "codestral-latest")
-                    "xai" -> listOf("grok-3-mini", "grok-3", "grok-2")
+                    "openrouter" -> listOf("google/gemini-3.8-flash", "openai/gpt-4.1-mini", "deepseek/deepseek-chat")
+                    "mistral" -> listOf("mistral-small-latest", "mistral-medium-latest", "mistral-large-latest")
+                    "xai" -> listOf("grok-3-mini", "grok-3")
                     else -> listOf(model).filter { it.isNotBlank() }
                 }
                 AlertDialog(
                     onDismissRequest = { modelDialogOpen = false },
                     title = { Text("Choose ${selectedProvider.name} model") },
                     text = {
-                        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            modelOptions.forEach { option ->
-                                Row(
-                                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                                        .clickable { model = option; integration.model = option; modelDialogOpen = false }
-                                        .padding(horizontal = 8.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    RadioButton(selected = model == option, onClick = { model = option; integration.model = option; modelDialogOpen = false })
-                                    Text(option, modifier = Modifier.padding(start = 8.dp), style = MaterialTheme.typography.bodyMedium)
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Current selection: $model", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                modelOptions.forEach { option ->
+                                    Row(
+                                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                            .clickable { model = option; integration.model = option; modelDialogOpen = false }
+                                            .padding(horizontal = 8.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        RadioButton(selected = model == option, onClick = { model = option; integration.model = option; modelDialogOpen = false })
+                                        Text(option, modifier = Modifier.padding(start = 8.dp), style = MaterialTheme.typography.bodyMedium)
+                                    }
                                 }
-                            }
-                            if (selectedId == "custom") {
-                                Text("Set a custom model ID in your provider configuration.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     },
