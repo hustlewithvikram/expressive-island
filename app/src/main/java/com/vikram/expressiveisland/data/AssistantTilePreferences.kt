@@ -27,6 +27,8 @@ data class AssistantTileSettings(
     val maxCutoutHeightPercent: Int = DEFAULT_MAX_CUTOUT_HEIGHT_PERCENT,
     /** Colour of the icon container (the disc behind the assistant glyph). Null = default. */
     val iconContainerColor: CutoutColor? = null,
+    /** Background colour of the expanded interactive assistant chat. Null keeps the island default. */
+    val expandedBackgroundColor: CutoutColor? = null,
     /** Opacity of the assistant island surface, in percent. */
     val surfaceOpacityPercent: Int = DEFAULT_SURFACE_OPACITY_PERCENT,
     /** Whether the Android 17 backdrop blur is enabled behind the expanded assistant panel. */
@@ -84,6 +86,7 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             displayAnswerInCutout = prefs[DISPLAY_ANSWER_IN_CUTOUT] ?: AssistantTileSettings.DEFAULT_DISPLAY_ANSWER_IN_CUTOUT,
             maxCutoutHeightPercent = prefs[MAX_CUTOUT_HEIGHT_PERCENT] ?: AssistantTileSettings.DEFAULT_MAX_CUTOUT_HEIGHT_PERCENT,
             iconContainerColor = CutoutColor.deserialize(prefs[ICON_CONTAINER_COLOR]),
+            expandedBackgroundColor = CutoutColor.deserialize(prefs[EXPANDED_BACKGROUND_COLOR]),
             surfaceOpacityPercent = (prefs[SURFACE_OPACITY_PERCENT] ?: AssistantTileSettings.DEFAULT_SURFACE_OPACITY_PERCENT).coerceIn(10, 100),
             backdropBlurEnabled = prefs[BACKDROP_BLUR_ENABLED] ?: AssistantTileSettings.DEFAULT_BACKDROP_BLUR_ENABLED,
             backdropBlurRadiusDp = (prefs[BACKDROP_BLUR_RADIUS_DP] ?: AssistantTileSettings.DEFAULT_BACKDROP_BLUR_RADIUS_DP).coerceIn(1, 80),
@@ -112,6 +115,7 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
             put("displayAnswerInCutout", s.displayAnswerInCutout)
             put("maxCutoutHeightPercent", s.maxCutoutHeightPercent)
             put("iconContainerColor", s.iconContainerColor?.serialize() ?: JSONObject.NULL)
+            put("expandedBackgroundColor", s.expandedBackgroundColor?.serialize() ?: JSONObject.NULL)
             put("surfaceOpacityPercent", s.surfaceOpacityPercent)
             put("backdropBlurEnabled", s.backdropBlurEnabled)
             put("backdropBlurRadiusDp", s.backdropBlurRadiusDp)
@@ -164,6 +168,11 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
                 it[SHOW_ASSISTANT_SEND_BUTTON] =
                     obj.getBoolean("showAssistantSendButton") && (it[SHOW_ASSISTANT_PROMPT_INPUT] ?: true)
             }
+            if (obj.has("expandedBackgroundColor")) {
+                val raw = if (obj.isNull("expandedBackgroundColor")) null else obj.optString("expandedBackgroundColor")
+                val color = CutoutColor.deserialize(raw)
+                if (color == null) it.remove(EXPANDED_BACKGROUND_COLOR) else it[EXPANDED_BACKGROUND_COLOR] = color.serialize()
+            }
             if (obj.has("iconContainerColor")) {
                 val raw = if (obj.isNull("iconContainerColor")) null else obj.optString("iconContainerColor")
                 val color = CutoutColor.deserialize(raw)
@@ -182,6 +191,10 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
 
     suspend fun setMaxCutoutHeightPercent(percent: Int) = context.assistantTileDataStore.edit {
         it[MAX_CUTOUT_HEIGHT_PERCENT] = percent.coerceIn(10, 80)
+    }
+
+    suspend fun setExpandedBackgroundColor(color: CutoutColor?) = context.assistantTileDataStore.edit {
+        if (color == null) it.remove(EXPANDED_BACKGROUND_COLOR) else it[EXPANDED_BACKGROUND_COLOR] = color.serialize()
     }
 
     suspend fun setIconContainerColor(color: CutoutColor?) = context.assistantTileDataStore.edit {
@@ -263,6 +276,7 @@ class AssistantTilePreferences(private val context: Context) : JsonSerializable 
         val DISPLAY_ANSWER_IN_CUTOUT = booleanPreferencesKey("display_answer_in_cutout")
         val MAX_CUTOUT_HEIGHT_PERCENT = intPreferencesKey("max_cutout_height_percent")
         val ICON_CONTAINER_COLOR = stringPreferencesKey("icon_container_color")
+        val EXPANDED_BACKGROUND_COLOR = stringPreferencesKey("expanded_background_color")
         val SURFACE_OPACITY_PERCENT = intPreferencesKey("surface_opacity_percent")
         val BACKDROP_BLUR_ENABLED = booleanPreferencesKey("backdrop_blur_enabled")
         val BACKDROP_BLUR_RADIUS_DP = intPreferencesKey("backdrop_blur_radius_dp")
