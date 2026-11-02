@@ -1015,10 +1015,7 @@ class IslandOverlayController(private val context: Context) {
 
     /** Only the manually opened assistant panel is persistent; mirrored responses time out. */
     private fun isPinnedAssistant(): Boolean =
-        assistantActive &&
-            currentEvent.value?.assistant?.interactivePanel == true &&
-            !(assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
-                assistantSettings.manualAutoHideEnabled && !expanded)
+        assistantActive && currentEvent.value?.assistant?.interactivePanel == true
 
     /** Any live tile (music, a call, a running timer, or assistant) is currently pinned up. */
     private fun isPinnedLiveTile(): Boolean =
@@ -2070,6 +2067,14 @@ class IslandOverlayController(private val context: Context) {
         val wasExpanded = expanded
         expanded = targetExpanded
 
+        // Keep the conversational Assistant event alive when it is collapsed to the pill.
+        // Its prompt/answer live on IslandEvent, not in the expanded composable's disposable state.
+        if (!targetExpanded && currentEvent.value?.assistant?.interactivePanel == true) {
+            dismissJob?.cancel()
+            syncWindowSize()
+            return
+        }
+
         if (!targetExpanded && restoreSlotsOnCollapse) {
             restoreSlotsOnCollapse = false
             if (behaviourState.value.expandedDisappearOnShrink) {
@@ -2229,7 +2234,7 @@ class IslandOverlayController(private val context: Context) {
             return
         }
         currentEvent.value = active.copy(
-            assistant = active.assistant.copy(answerText = "Thinking…"),
+            assistant = active.assistant.copy(promptText = prompt, answerText = "Thinking…"),
         )
         lastAssistantEvent = currentEvent.value
         scope.launch {
