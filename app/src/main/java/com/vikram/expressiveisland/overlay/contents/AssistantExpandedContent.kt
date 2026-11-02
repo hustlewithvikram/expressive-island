@@ -85,6 +85,7 @@ fun AssistantExpandedContent(
     onDismiss: () -> Unit,
     onHeightMeasured: ((Int) -> Unit)? = null,
     onInputFocusChange: (Boolean) -> Unit = {},
+    onAssistantPrompt: (String, (String) -> Unit) -> Unit = { _, complete -> complete("Assistant generation is unavailable.") },
 ) {
     val assistant = event.assistant ?: return
     val contentColor = LocalContentColor.current
@@ -99,16 +100,19 @@ fun AssistantExpandedContent(
     var voiceMode by remember(event.id) { mutableStateOf(assistant.interactionMode == AssistantInteractionMode.VOICE) }
     var promptMode by remember(event.id) { mutableStateOf(assistant.interactionMode == AssistantInteractionMode.PROMPT) }
     var submittedPrompt by remember(event.id) { mutableStateOf<String?>(null) }
+    var assistantReply by remember(event.id) { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val submitPrompt: () -> Unit = {
         val prompt = query.trim()
         if (prompt.isNotEmpty()) {
             submittedPrompt = prompt
+            assistantReply = "Thinking…"
             query = ""
             promptMode = false
             voiceMode = false
             focusManager.clearFocus(force = true)
             onInputFocusChange(false)
+            onAssistantPrompt(prompt) { reply -> assistantReply = reply }
         }
     }
 
@@ -240,7 +244,7 @@ fun AssistantExpandedContent(
                             )
                             Spacer(Modifier.height(10.dp))
                             Text(
-                                text = "Please setup Assistant API for this to work",
+                                text = assistantReply ?: "Thinking…",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = contentColor.copy(alpha = 0.82f),
                             )
