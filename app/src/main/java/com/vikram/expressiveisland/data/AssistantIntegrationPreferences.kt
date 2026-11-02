@@ -46,8 +46,8 @@ class AssistantIntegrationPreferences(context: Context) {
         set(value) { prefs.edit().putFloat("temperature", value.coerceIn(0f, 2f)).apply() }
 
     var requestTimeoutSeconds: Int
-        get() = prefs.getInt("request_timeout_seconds", 90).coerceIn(30, 180)
-        set(value) { prefs.edit().putInt("request_timeout_seconds", value.coerceIn(30, 180)).apply() }
+        get() = prefs.getInt("request_timeout_seconds", 90).coerceIn(60, 180)
+        set(value) { prefs.edit().putInt("request_timeout_seconds", value.coerceIn(60, 180)).apply() }
 
     var streamResponses: Boolean
         get() = prefs.getBoolean("stream_responses", true)
