@@ -174,6 +174,7 @@ internal fun DynamicIsland(
     emptyOpensCenter: Boolean = false,
     assistantTapEnabled: Boolean = false,
     onAssistantTap: () -> Unit = {},
+    onAssistantPrompt: (String, (String) -> Unit) -> Unit = { _, complete -> complete("Assistant generation is unavailable.") },
     cameraHoleTapEnabled: Boolean = false,
     cameraHoleTapHaptics: Boolean = true,
     cameraHoleQuickActions: Boolean = false,
@@ -864,6 +865,7 @@ internal fun DynamicIsland(
                                                 replyingTo = null
                                             },
                                             onDismiss = onDismiss,
+                                            onAssistantPrompt = onAssistantPrompt,
                                             onHeightMeasured = { heightDp ->
                                                 // Measurements can become smaller when the overlay window
                                                 // contracts. Never feed that clipped viewport back as the
