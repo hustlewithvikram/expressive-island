@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -130,6 +131,7 @@ fun AssistantExpandedContent(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = minOf((collapsedHeightDp + 210).dp, maxCutoutHeightDp), max = maxCutoutHeightDp)
+            .then(assistant.expandedBackgroundColor?.let { Modifier.background(it.resolve(), RoundedCornerShape(30.dp)) } ?: Modifier)
             .padding(
                 start = 18.dp,
                 end = 18.dp,
@@ -200,9 +202,12 @@ fun AssistantExpandedContent(
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shadowElevation = 8.dp,
             ) {
-                Column(Modifier.padding(16.dp)) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Chat history", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, color = Color.White)
+                        Column(Modifier.weight(1f)) {
+                            Text("Your conversations", style = MaterialTheme.typography.titleMedium, color = Color.White)
+                            Text("${assistant.sessions.size} saved chats", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.65f))
+                        }
                         IconButton(onClick = { showChatHistory = false }) {
                             Icon(Icons.Rounded.Close, contentDescription = "Close chat history", tint = Color.White)
                         }
@@ -223,7 +228,9 @@ fun AssistantExpandedContent(
                                 ) {
                                     Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                                         Text(session.title.ifBlank { "New chat" }, color = Color.White, maxLines = 1)
-                                        Text("${session.turns.size} messages", color = Color.White.copy(alpha = 0.65f), style = MaterialTheme.typography.labelSmall)
+                                        Text(session.turns.lastOrNull()?.content?.takeIf { it.isNotBlank() } ?: "No messages yet", color = Color.White.copy(alpha = 0.68f), style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                        Spacer(Modifier.height(5.dp))
+                                        Text("${session.turns.size} messages", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                             }
@@ -303,7 +310,7 @@ fun AssistantExpandedContent(
                         TextField(
                             value = query,
                             onValueChange = { query = it },
-                            modifier = Modifier.weight(1f).height(48.dp).onFocusChanged { onInputFocusChange(it.isFocused) },
+                            modifier = Modifier.weight(1f).height(56.dp).onFocusChanged { onInputFocusChange(it.isFocused) },
                             placeholder = { Text("Type your message...", color = Color.White.copy(alpha = 0.58f)) },
                             shape = RoundedCornerShape(28.dp),
                             singleLine = !assistant.showSendButton,
@@ -427,7 +434,7 @@ private fun ExpressiveAssistantButton(
     val scale by animateFloatAsState(if (pressed) 0.88f else 1f, animationSpec = spring(dampingRatio = 0.55f, stiffness = 500f), label = "assistantButtonScale")
     Surface(
         modifier = Modifier
-            .then(if (circular) Modifier.width(48.dp).height(48.dp) else Modifier.width(58.dp).height(48.dp))
+            .then(if (circular) Modifier.width(56.dp).height(56.dp) else Modifier.width(56.dp).height(56.dp))
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clickable(interactionSource = interaction, indication = null, enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(50),
