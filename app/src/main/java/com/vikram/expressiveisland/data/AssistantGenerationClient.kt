@@ -43,7 +43,7 @@ class AssistantGenerationClient(private val preferences: AssistantIntegrationPre
             connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             val status = connection.responseCode
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-            val response = stream?.bufferedReader()?.use(BufferedReader::readText).orEmpty()
+            val response = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
             connection.disconnect()
             if (status !in 200..299) {
                 val detail = runCatching { JSONObject(response).optJSONObject("error")?.optString("message") }.getOrNull()
