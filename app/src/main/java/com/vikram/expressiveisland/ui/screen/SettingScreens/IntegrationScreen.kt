@@ -282,7 +282,7 @@ private fun AssistantIntegrationSection() {
                     )
                 }
                 Text(
-                    "Only providers with a supported API connection can be selected. Consumer Copilot is shown for clarity but does not currently offer a standard personal API-key connection.",
+                    "Choose a provider with an API key. Custom API supports compatible self-hosted endpoints.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -322,7 +322,7 @@ private fun AssistantIntegrationSection() {
                     )
                 }
             }
-            OutlinedTextField(
+            TextField(
                 value = model,
                 onValueChange = { model = it; integration.model = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -338,13 +338,14 @@ private fun AssistantIntegrationSection() {
                 ),
                 singleLine = true,
             )
-            OutlinedTextField(
+            TextField(
                 value = apiKey,
                 onValueChange = { apiKey = it; integration.setApiKey(selectedId, it) },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("API key") },
                 placeholder = { Text("Paste your provider API key") },
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = TextFieldDefaults.colors(focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh, unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer, focusedIndicatorColor = MaterialTheme.colorScheme.primary, unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant),
                 singleLine = true,
                 visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
