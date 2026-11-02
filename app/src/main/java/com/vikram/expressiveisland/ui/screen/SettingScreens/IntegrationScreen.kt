@@ -1,122 +1,318 @@
 package com.vikram.expressiveisland.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material.icons.rounded.Webhook
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.vikram.expressiveisland.data.AssistantIntegrationPreferences
 
+private data class AiProvider(
+    val id: String,
+    val name: String,
+    val description: String,
+    val endpoint: String,
+    val defaultModel: String,
+    val format: String = "OpenAI-compatible",
+    val available: Boolean = true,
+    val unavailableReason: String = "",
+)
+
+private val aiProviders = listOf(
+    AiProvider("openai", "ChatGPT / OpenAI", "GPT models · Official API key", "https://api.openai.com/v1", "gpt-4o-mini"),
+    AiProvider("gemini", "Google Gemini", "Gemini models · Google AI Studio key", "https://generativelanguage.googleapis.com/v1beta", "gemini-2.5-flash", "Gemini API"),
+    AiProvider("anthropic", "Anthropic Claude", "Claude models · Anthropic API key", "https://api.anthropic.com/v1", "claude-3-5-haiku-latest", "Anthropic Messages API"),
+    AiProvider("deepseek", "DeepSeek", "DeepSeek Chat and Reasoner", "https://api.deepseek.com/v1", "deepseek-chat"),
+    AiProvider("groq", "Groq", "Fast hosted open models", "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
+    AiProvider("openrouter", "OpenRouter", "One API for models from many providers", "https://openrouter.ai/api/v1", "openai/gpt-4o-mini"),
+    AiProvider("mistral", "Mistral AI", "Mistral and Ministral models", "https://api.mistral.ai/v1", "mistral-small-latest"),
+    AiProvider("xai", "xAI", "Grok models", "https://api.x.ai/v1", "grok-3-mini"),
+    AiProvider("cohere", "Cohere", "Command models", "https://api.cohere.com/compatibility/v1", "command-r"),
+    AiProvider("together", "Together AI", "Hosted open-source models", "https://api.together.xyz/v1", "meta-llama/Llama-3.3-70B-Instruct-Turbo"),
+    AiProvider("fireworks", "Fireworks AI", "Fast inference for open models", "https://api.fireworks.ai/inference/v1", "accounts/fireworks/models/llama-v3p3-70b-instruct"),
+    AiProvider("perplexity", "Perplexity", "Sonar search and answer models", "https://api.perplexity.ai", "sonar"),
+    AiProvider("copilot", "Microsoft Copilot", "Consumer Copilot is not a standard API-key provider", "", "", available = false, unavailableReason = "No generally available personal API-key endpoint"),
+    AiProvider("custom", "Custom API", "OpenAI-compatible or self-hosted endpoint", "", "", "Custom API"),
+)
+
 @Composable
 internal fun AssistantIntegrationScreen(contentPadding: PaddingValues) {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(contentPadding)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            text = "Integrations",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp),
-        )
+        Column(
+            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text("Integrations", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "Connect services that make Expressive Island more capable.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         AssistantIntegrationSection()
+
+        IntegrationComingSoonCard(
+            icon = Icons.Rounded.NotificationsActive,
+            title = "Notification intelligence",
+            description = "Smart notification summaries, contextual actions and suggested replies.",
+        )
+        IntegrationComingSoonCard(
+            icon = Icons.Rounded.Webhook,
+            title = "Automation & webhooks",
+            description = "Connect external workflows and trigger actions from supported island events.",
+        )
     }
 }
 
 @Composable
 private fun AssistantIntegrationSection() {
-
     val context = LocalContext.current
     val integration = remember(context) { AssistantIntegrationPreferences(context) }
-    var provider by remember { mutableStateOf(integration.provider) }
+    var selectedId by remember { mutableStateOf(integration.selectedProviderId) }
     var endpoint by remember { mutableStateOf(integration.endpoint) }
     var model by remember { mutableStateOf(integration.model) }
     var apiKey by remember { mutableStateOf(integration.apiKey) }
     var showKey by remember { mutableStateOf(false) }
+    var providerMenuExpanded by remember { mutableStateOf(false) }
     var maxTokens by remember { mutableStateOf(integration.maxOutputTokens.toFloat()) }
     var temperature by remember { mutableStateOf(integration.temperature) }
     var timeout by remember { mutableStateOf(integration.requestTimeoutSeconds.toFloat()) }
     var streaming by remember { mutableStateOf(integration.streamResponses) }
     var includeContext by remember { mutableStateOf(integration.includeConversationContext) }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text("Assistant API", style = MaterialTheme.typography.titleMedium)
-        Text("Connect an OpenAI-compatible provider to generate answers inside the Assistant panel. Your API key is encrypted with Android Keystore before it is saved.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-    androidx.compose.foundation.layout.Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        androidx.compose.material3.OutlinedTextField(
-            value = provider,
-            onValueChange = { provider = it; integration.provider = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Provider name") },
-            supportingText = { Text("Example: OpenAI, OpenRouter, or a self-hosted provider") },
-            shape = RoundedCornerShape(20.dp),
-            singleLine = true,
-        )
-        androidx.compose.material3.OutlinedTextField(
-            value = endpoint,
-            onValueChange = { endpoint = it; integration.endpoint = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("API base URL") },
-            placeholder = { Text("https://api.openai.com/v1") },
-            shape = RoundedCornerShape(20.dp),
-            singleLine = true,
-        )
-        androidx.compose.material3.OutlinedTextField(
-            value = model,
-            onValueChange = { model = it; integration.model = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Model ID") },
-            placeholder = { Text("gpt-4o-mini") },
-            shape = RoundedCornerShape(20.dp),
-            singleLine = true,
-        )
-        androidx.compose.material3.OutlinedTextField(
-            value = apiKey,
-            onValueChange = { apiKey = it; integration.apiKey = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("API key") },
-            placeholder = { Text("Paste provider API key") },
-            shape = RoundedCornerShape(20.dp),
-            singleLine = true,
-            visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                androidx.compose.material3.TextButton(onClick = { showKey = !showKey }) {
-                    Text(if (showKey) "Hide" else "Show")
+    val selectedProvider = aiProviders.firstOrNull { it.id == selectedId } ?: aiProviders.first()
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(30.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(17.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
-            },
-        )
-        Text(
-            text = "The key stays on this device and is encrypted at rest. Never share it in screenshots or logs.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp),
-        )
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("AI Assistant", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Text("Choose the model that powers Assistant responses.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("AI PROVIDER", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable { providerMenuExpanded = true },
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(selectedProvider.name, style = MaterialTheme.typography.titleMedium)
+                                Text(selectedProvider.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Icon(Icons.Rounded.ExpandMore, contentDescription = "Choose provider")
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = providerMenuExpanded,
+                        onDismissRequest = { providerMenuExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.88f).background(MaterialTheme.colorScheme.surfaceContainer),
+                    ) {
+                        aiProviders.forEach { provider ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(provider.name, style = MaterialTheme.typography.titleSmall)
+                                        Text(
+                                            if (provider.available) provider.description else provider.unavailableReason,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                },
+                                leadingIcon = {
+                                    if (provider.id == selectedId) {
+                                        Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    } else {
+                                        Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                },
+                                enabled = provider.available,
+                                onClick = {
+                                    selectedId = provider.id
+                                    integration.selectedProviderId = provider.id
+                                    integration.provider = provider.name
+                                    if (provider.id != "custom") {
+                                        endpoint = provider.endpoint
+                                        model = provider.defaultModel
+                                        integration.endpoint = endpoint
+                                        integration.model = model
+                                    } else {
+                                        endpoint = ""
+                                        model = ""
+                                        integration.endpoint = ""
+                                        integration.model = ""
+                                    }
+                                    providerMenuExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+                if (!selectedProvider.available) {
+                    Text(selectedProvider.unavailableReason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+
+            if (selectedId == "custom") {
+                OutlinedTextField(
+                    value = endpoint,
+                    onValueChange = { endpoint = it; integration.endpoint = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("API base URL") },
+                    placeholder = { Text("https://your-provider.example/v1") },
+                    shape = RoundedCornerShape(20.dp),
+                    singleLine = true,
+                )
+            } else {
+                Text(
+                    "API endpoint",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    endpoint,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer).padding(14.dp),
+                )
+            }
+
+            OutlinedTextField(
+                value = model,
+                onValueChange = { model = it; integration.model = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Model") },
+                placeholder = { Text(selectedProvider.defaultModel.ifBlank { "Enter model ID" }) },
+                supportingText = { Text("Use the exact model ID provided by your AI service.") },
+                shape = RoundedCornerShape(20.dp),
+                singleLine = true,
+            )
+
+            OutlinedTextField(
+                value = apiKey,
+                onValueChange = { apiKey = it; integration.apiKey = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("API key") },
+                placeholder = { Text("Paste your provider API key") },
+                shape = RoundedCornerShape(20.dp),
+                singleLine = true,
+                visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    TextButton(onClick = { showKey = !showKey }) {
+                        Icon(
+                            if (showKey) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                            contentDescription = if (showKey) "Hide API key" else "Show API key",
+                        )
+                    }
+                },
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(Icons.Rounded.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                Text(
+                    "Your key is encrypted with Android Keystore and stored on this device.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+        }
     }
 
     CardSectionHeader(
-        text = "Generation",
-        padding = PaddingValues(start = 4.dp, top = 12.dp, bottom = 4.dp),
+        text = "Response generation",
+        padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 0.dp),
     )
     SettingsSliderCard(
-        shape = RoundedCornerShape(24.dp),
-        title = "Response length limit",
-        description = "Maximum output tokens requested from the model.",
+        shape = RoundedCornerShape(26.dp),
+        title = "Response length",
+        description = "Maximum output tokens requested from the selected model.",
         valueText = maxTokens.toInt().toString(),
         value = maxTokens,
         valueRange = 128f..4096f,
@@ -125,9 +321,9 @@ private fun AssistantIntegrationSection() {
         onCommit = { integration.maxOutputTokens = maxTokens.toInt() },
     )
     SettingsSliderCard(
-        shape = RoundedCornerShape(24.dp),
-        title = "Response creativity",
-        description = "Lower values are more consistent; higher values are more varied.",
+        shape = RoundedCornerShape(26.dp),
+        title = "Creativity",
+        description = "Lower values are more focused; higher values allow more varied responses.",
         valueText = String.format(java.util.Locale.US, "%.1f", temperature),
         value = temperature,
         valueRange = 0f..2f,
@@ -136,9 +332,9 @@ private fun AssistantIntegrationSection() {
         onCommit = { integration.temperature = temperature },
     )
     SettingsSliderCard(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(26.dp),
         title = "Request timeout",
-        description = "How long to wait for the provider before reporting a timeout.",
+        description = "Maximum time to wait for a provider response.",
         valueText = "${timeout.toInt()} sec",
         value = timeout,
         valueRange = 10f..120f,
@@ -146,24 +342,68 @@ private fun AssistantIntegrationSection() {
         onValueChange = { timeout = it },
         onCommit = { integration.requestTimeoutSeconds = timeout.toInt() },
     )
+
+    CardSectionHeader(
+        text = "Assistant behaviour",
+        padding = PaddingValues(start = 4.dp, top = 8.dp, bottom = 0.dp),
+    )
     SettingsToggleCard(
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 6.dp, bottomEnd = 6.dp),
+        shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp, bottomStart = 8.dp, bottomEnd = 8.dp),
         title = "Stream responses",
-        description = "Display generated text as it arrives instead of waiting for the full answer.",
+        description = "Show generated text progressively as it arrives.",
         checked = streaming,
         onCheckedChange = { streaming = it; integration.streamResponses = it },
     )
     SettingsToggleCard(
-        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+        shape = RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp),
         title = "Include conversation context",
-        description = "Send recent conversation turns with each request when the chat implementation supports it.",
+        description = "Include recent conversation turns when supported by the generation service.",
         checked = includeContext,
         onCheckedChange = { includeContext = it; integration.includeConversationContext = it },
     )
-    Text(
-        text = "Provider settings are saved locally. API request execution and streaming will be connected to these preferences in the Assistant generation service.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(Icons.Rounded.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+        Text(
+            "Provider selection and credentials are saved locally. Provider-specific request execution is not yet connected to the Assistant generation service.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun IntegrationComingSoonCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    description: String,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                modifier = Modifier.size(44.dp).clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text("Soon", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
 }
