@@ -151,6 +151,8 @@ data class AssistantTileOptions(
     val displayAnswerInCutout: Boolean,
     val maxCutoutHeightPercent: Int,
     val answerText: String?,
+    /** Last submitted prompt, retained in the event so collapsing/recomposing does not erase the chat. */
+    val promptText: String? = null,
     /** True for the on-demand conversational panel, rather than a mirrored assistant response. */
     val interactivePanel: Boolean = false,
     val interactionMode: AssistantInteractionMode = AssistantInteractionMode.UNKNOWN,
