@@ -151,14 +151,14 @@ data class AssistantTileOptions(
     val displayAnswerInCutout: Boolean,
     val maxCutoutHeightPercent: Int,
     val answerText: String?,
-    /** Last submitted prompt, retained in the event so collapsing/recomposing does not erase the chat. */
-    val promptText: String? = null,
     /** True for the on-demand conversational panel, rather than a mirrored assistant response. */
     val interactivePanel: Boolean = false,
     val interactionMode: AssistantInteractionMode = AssistantInteractionMode.UNKNOWN,
     val showMicButton: Boolean = true,
     val showPromptInput: Boolean = true,
     val showSendButton: Boolean = true,
+    /** Last submitted prompt, retained in the event so collapsing/recomposing does not erase the chat. */
+    val promptText: String? = null,
 )
 
 /** Which parts of the timer tile to render (and how its buttons look), per the tile's settings. */
