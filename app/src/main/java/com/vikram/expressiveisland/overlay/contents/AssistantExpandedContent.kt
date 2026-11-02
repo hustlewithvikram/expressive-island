@@ -3,6 +3,11 @@ package com.vikram.expressiveisland.overlay.contents
 import android.content.Intent
 import com.vikram.expressiveisland.AssistantSpeechActivity
 import com.vikram.expressiveisland.AssistantSpeechResultBus
+import com.vikram.expressiveisland.AssistantSpeechController
+import androidx.compose.runtime.collectAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
 import kotlinx.coroutines.flow.collect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.animation.core.animateFloatAsState
@@ -116,6 +121,7 @@ fun AssistantExpandedContent(
     val maxHeaderWidthDp = (configuration.screenWidthDp * 0.47f).dp
     var query by remember(event.id, assistant.activeSessionId) { mutableStateOf("") }
     LaunchedEffect(Unit) { AssistantSpeechResultBus.results.collect { spoken -> query = spoken } }
+    val isListening by AssistantSpeechController.isListening.collectAsState()
     var showChatHistory by remember { mutableStateOf(false) }
     val conversationScrollState = rememberScrollState()
     LaunchedEffect(assistant.conversation) {
@@ -313,11 +319,12 @@ fun AssistantExpandedContent(
                         TextField(
                             value = query,
                             onValueChange = { query = it },
-                            modifier = Modifier.weight(1f).height(56.dp).onFocusChanged { onInputFocusChange(it.isFocused) },
+                            modifier = Modifier.weight(1f).heightIn(min = 56.dp, max = 132.dp).onFocusChanged { onInputFocusChange(it.isFocused) },
                             placeholder = { Text("Type your message...", color = Color.White.copy(alpha = 0.58f)) },
                             shape = RoundedCornerShape(28.dp),
                             singleLine = false,
-                            maxLines = 4,
+                            minLines = 1,
+                            maxLines = 5,
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color(0xFF17233D),
                                 unfocusedContainerColor = Color(0xFF121D33),
@@ -340,14 +347,23 @@ fun AssistantExpandedContent(
                     }
                     if (assistant.showMicButton) {
                         ExpressiveAssistantButton(
-                            contentDescription = "Open voice assistant",
+                            contentDescription = if (isListening) "Stop listening" else "Start voice input",
                             circular = true,
                             enabled = true,
                             onClick = {
-                                runCatching { context.startActivity(Intent(context, AssistantSpeechActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                                if (isListening) AssistantSpeechController.stopListening()
+                                else runCatching { context.startActivity(Intent(context, AssistantSpeechActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                             },
                         ) {
-                            Icon(Icons.Rounded.Mic, contentDescription = null, tint = Color.White)
+                            if (isListening) {
+                                val pulse by rememberInfiniteTransition(label = "assistantMic").animateFloat(
+                                    initialValue = 0.85f, targetValue = 1.15f,
+                                    animationSpec = infiniteRepeatable(tween(600), repeatMode = RepeatMode.Reverse),
+                                    label = "assistantMicPulse",
+                                )
+                                Icon(Icons.Rounded.Mic, contentDescription = null, tint = Color.White,
+                                    modifier = Modifier.graphicsLayer(scaleX = pulse, scaleY = pulse))
+                            } else Icon(Icons.Rounded.Mic, contentDescription = null, tint = Color.White)
                         }
                     }
                     if (assistant.showPromptInput && assistant.showSendButton) {
