@@ -262,6 +262,10 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                             onOpenActionButtons = { settingsRoute = SettingsRoute.ActionButtons },
                             onOpenShizuku = { settingsRoute = SettingsRoute.Shizuku },
                             onOpenIntegrations = { settingsRoute = SettingsRoute.Integrations },
+                            onOpenIntegrationAI = { settingsRoute = SettingsRoute.IntegrationAI },
+                            onOpenIntegrationNotifications = { settingsRoute = SettingsRoute.IntegrationNotifications },
+                            onOpenIntegrationAutomation = { settingsRoute = SettingsRoute.IntegrationAutomation },
+                            onOpenIntegrationDevice = { settingsRoute = SettingsRoute.IntegrationDevice },
                             onOpenPermissionDot = { settingsRoute = SettingsRoute.PermissionDot },
                         )
 
@@ -353,6 +357,11 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                     SettingsRoute.Background -> stringResource(R.string.appearance_background_color)
                     SettingsRoute.ActionButtons -> stringResource(R.string.action_buttons_title)
                     SettingsRoute.Shizuku -> stringResource(R.string.shizuku_options_title)
+                    SettingsRoute.Integrations -> "Integrations"
+                    SettingsRoute.IntegrationAI -> "AI Assistant"
+                    SettingsRoute.IntegrationNotifications -> "Notification intelligence"
+                    SettingsRoute.IntegrationAutomation -> "Automation & webhooks"
+                    SettingsRoute.IntegrationDevice -> "Device services"
                     else -> stringResource(R.string.section_icons_title)
                 }
                 BackNavBar(
