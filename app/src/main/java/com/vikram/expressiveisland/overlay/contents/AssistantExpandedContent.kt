@@ -99,20 +99,16 @@ fun AssistantExpandedContent(
     var query by remember(event.id) { mutableStateOf("") }
     var voiceMode by remember(event.id) { mutableStateOf(assistant.interactionMode == AssistantInteractionMode.VOICE) }
     var promptMode by remember(event.id) { mutableStateOf(assistant.interactionMode == AssistantInteractionMode.PROMPT) }
-    var submittedPrompt by remember(event.id) { mutableStateOf<String?>(null) }
-    var assistantReply by remember(event.id) { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val submitPrompt: () -> Unit = {
         val prompt = query.trim()
         if (prompt.isNotEmpty()) {
-            submittedPrompt = prompt
-            assistantReply = "Thinking…"
             query = ""
             promptMode = false
             voiceMode = false
             focusManager.clearFocus(force = true)
             onInputFocusChange(false)
-            onAssistantPrompt(prompt) { reply -> assistantReply = reply }
+            onAssistantPrompt(prompt) { /* The controller owns the persistent conversation state. */ }
         }
     }
 
@@ -228,7 +224,7 @@ fun AssistantExpandedContent(
                     }
                 }
 
-                submittedPrompt?.let { prompt ->
+                assistant.promptText?.let { prompt ->
                     Spacer(Modifier.height(12.dp))
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
@@ -244,7 +240,7 @@ fun AssistantExpandedContent(
                             )
                             Spacer(Modifier.height(10.dp))
                             Text(
-                                text = assistantReply ?: "Thinking…",
+                                text = assistant.answerText ?: "Thinking…",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = contentColor.copy(alpha = 0.82f),
                             )
