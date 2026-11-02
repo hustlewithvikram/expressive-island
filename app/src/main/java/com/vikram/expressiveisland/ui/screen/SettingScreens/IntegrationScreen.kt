@@ -187,7 +187,8 @@ private fun AssistantIntegrationSection() {
     var model by remember { mutableStateOf(integration.model) }
     var apiKey by remember { mutableStateOf(integration.getApiKey(integration.selectedProviderId)) }
     var showKey by remember { mutableStateOf(false) }
-    var providerMenuExpanded by remember { mutableStateOf(false) }
+    var providerDialogOpen by remember { mutableStateOf(false) }
+    var pendingProviderId by remember { mutableStateOf(selectedId) }
     var maxTokens by remember { mutableStateOf(integration.maxOutputTokens.toFloat()) }
     var temperature by remember { mutableStateOf(integration.temperature) }
     var timeout by remember { mutableStateOf(integration.requestTimeoutSeconds.toFloat()) }
@@ -216,62 +217,69 @@ private fun AssistantIntegrationSection() {
 
             Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text("AI PROVIDER", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Box {
-                    Card(
-                        modifier = Modifier.fillMaxWidth().clickable { providerMenuExpanded = true },
-                        shape = RoundedCornerShape(22.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        pendingProviderId = selectedId
+                        providerDialogOpen = true
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Text(selectedProvider.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                                Text(selectedProvider.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Icon(Icons.Rounded.ExpandMore, contentDescription = "Choose provider")
+                        Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(selectedProvider.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                            Text(selectedProvider.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
+                        Icon(androidx.compose.material.icons.rounded.ExpandMore, contentDescription = "Choose provider")
                     }
-                    DropdownMenu(
-                        expanded = providerMenuExpanded,
-                        onDismissRequest = { providerMenuExpanded = false },
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer),
-                    ) {
-                        aiProviders.forEach { provider ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Text(provider.name, style = MaterialTheme.typography.titleSmall)
-                                        Text(
-                                            if (provider.available) provider.description else provider.unavailableReason,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
+                }
+                if (providerDialogOpen) {
+                    AlertDialog(
+                        onDismissRequest = { providerDialogOpen = false },
+                        title = { Text("Choose AI provider") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                aiProviders.filter { it.available }.forEach { provider ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                                            .clickable { pendingProviderId = provider.id }
+                                            .padding(vertical = 8.dp, horizontal = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        RadioButton(selected = pendingProviderId == provider.id, onClick = { pendingProviderId = provider.id })
+                                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            Text(provider.name, style = MaterialTheme.typography.titleSmall)
+                                            Text(provider.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
                                     }
-                                },
-                                leadingIcon = {
-                                    if (provider.id == selectedId) Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                    else Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                },
-                                enabled = provider.available,
-                                onClick = {
-                                    selectedId = provider.id
-                                    integration.selectedProviderId = provider.id
-                                    apiKey = integration.getApiKey(provider.id)
-                                    showKey = false
-                                    integration.provider = provider.name
-                                    endpoint = provider.endpoint
-                                    model = provider.defaultModel
-                                    integration.endpoint = endpoint
-                                    integration.model = model
-                                    providerMenuExpanded = false
-                                },
-                            )
-                        }
-                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                val provider = aiProviders.first { it.id == pendingProviderId && it.available }
+                                selectedId = provider.id
+                                integration.selectedProviderId = provider.id
+                                apiKey = integration.getApiKey(provider.id)
+                                showKey = false
+                                integration.provider = provider.name
+                                endpoint = if (provider.id == "custom") integration.endpoint else provider.endpoint
+                                model = if (provider.id == "custom") integration.model else provider.defaultModel
+                                integration.endpoint = endpoint
+                                integration.model = model
+                                providerDialogOpen = false
+                            }) { Text("Confirm") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { providerDialogOpen = false }) { Text("Cancel") }
+                        },
+                    )
                 }
                 Text(
                     "Only providers with a supported API connection can be selected. Consumer Copilot is shown for clarity but does not currently offer a standard personal API-key connection.",
