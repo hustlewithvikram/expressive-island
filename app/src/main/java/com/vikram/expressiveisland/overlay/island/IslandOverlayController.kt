@@ -2233,13 +2233,22 @@ class IslandOverlayController(private val context: Context) {
             onComplete("Assistant panel is no longer active. Open it again and retry.")
             return
         }
+        val history = assistantConversation.toList()
+        assistantConversation += AssistantChatTurn("user", prompt)
+        val assistantTurnIndex = assistantConversation.size
+        assistantConversation += AssistantChatTurn("assistant", "Thinking…")
+        val pendingConversation = assistantConversation.toList()
         currentEvent.value = active.copy(
-            assistant = active.assistant.copy(promptText = prompt, answerText = "Thinking…"),
+            assistant = active.assistant.copy(
+                promptText = prompt,
+                answerText = "Thinking…",
+                conversation = pendingConversation,
+            ),
         )
         lastAssistantEvent = currentEvent.value
         scope.launch {
             val result = runCatching {
-                assistantGenerationClient.generate(prompt, assistantConversation.toList())
+                assistantGenerationClient.generate(prompt, history)
             }
             val answer = result.getOrElse { error ->
                 when {
@@ -2250,13 +2259,18 @@ class IslandOverlayController(private val context: Context) {
                     else -> error.message ?: "Unable to generate a response. Check your provider settings."
                 }
             }
-            if (result.isSuccess) {
-                assistantConversation += AssistantChatTurn("user", prompt)
-                assistantConversation += AssistantChatTurn("assistant", answer)
+            if (assistantTurnIndex in assistantConversation.indices) {
+                assistantConversation[assistantTurnIndex] = AssistantChatTurn("assistant", answer)
             }
+            val completedConversation = assistantConversation.toList()
             val latest = currentEvent.value
             if (latest?.assistant?.interactivePanel == true) {
-                val updated = latest.copy(assistant = latest.assistant.copy(answerText = answer))
+                val updated = latest.copy(
+                    assistant = latest.assistant.copy(
+                        answerText = answer,
+                        conversation = completedConversation,
+                    ),
+                )
                 currentEvent.value = updated
                 lastAssistantEvent = updated
             }
