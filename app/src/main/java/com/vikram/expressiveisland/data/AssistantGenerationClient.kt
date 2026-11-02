@@ -21,7 +21,16 @@ class AssistantGenerationClient(private val preferences: AssistantIntegrationPre
             val provider = preferences.selectedProviderId
             val key = preferences.getApiKey(provider).trim()
             require(key.isNotEmpty()) { "Add an API key for the selected provider in Integrations." }
-            val model = preferences.model.trim().ifBlank { "gpt-4o-mini" }
+            val configuredModel = preferences.model.trim()
+            // Gemini 2.5 Flash is no longer available to newly onboarded API users.
+            // Migrate the stale saved value and use the current model recommended by Google's error.
+            val model = when {
+                provider == "gemini" && (configuredModel.isBlank() || configuredModel == "gemini-2.5-flash" || configuredModel == "models/gemini-2.5-flash") ->
+                    "gemini-3.8-flash"
+                configuredModel.isBlank() -> "gpt-4o-mini"
+                else -> configuredModel.removePrefix("models/")
+            }
+            if (provider == "gemini" && model != configuredModel) preferences.model = model
             val endpoint = preferences.endpoint.trim().trimEnd('/')
             require(endpoint.isNotBlank()) { "The API endpoint is empty. Check the selected provider settings." }
 
