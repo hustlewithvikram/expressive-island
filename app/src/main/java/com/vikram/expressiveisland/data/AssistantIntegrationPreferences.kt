@@ -33,9 +33,23 @@ class AssistantIntegrationPreferences(context: Context) {
         get() = prefs.getString("endpoint", "https://api.openai.com/v1") ?: "https://api.openai.com/v1"
         set(value) { prefs.edit().putString("endpoint", value.trim()).apply() }
 
+    private fun defaultModel(providerId: String): String = when (providerId) {
+        "gemini" -> "gemini-3.8-flash"
+        "openai" -> "gpt-4.1-mini"
+        "anthropic" -> "claude-3-5-haiku-latest"
+        "deepseek" -> "deepseek-chat"
+        "groq" -> "llama-3.3-70b-versatile"
+        "openrouter" -> "google/gemini-3.8-flash"
+        "mistral" -> "mistral-small-latest"
+        "xai" -> "grok-3-mini"
+        else -> ""
+    }
+
     var model: String
-        get() = prefs.getString("model", "gpt-4o-mini") ?: "gpt-4o-mini"
-        set(value) { prefs.edit().putString("model", value.trim()).apply() }
+        get() = prefs.getString("model_$selectedProviderId", null)
+            ?: if (selectedProviderId == "openai") prefs.getString("model", defaultModel(selectedProviderId)) ?: defaultModel(selectedProviderId)
+            else defaultModel(selectedProviderId)
+        set(value) { prefs.edit().putString("model_$selectedProviderId", value.trim()).apply() }
 
     var maxOutputTokens: Int
         get() = prefs.getInt("max_output_tokens", 800).coerceIn(128, 4096)
