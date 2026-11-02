@@ -24,6 +24,8 @@ data class AssistantChatSession(
  * OpenAI-compatible vendors share /chat/completions; Gemini and Anthropic use their native APIs.
  */
 class AssistantGenerationClient(private val preferences: AssistantIntegrationPreferences) {
+    fun streamResponsesEnabled(): Boolean = preferences.streamResponses
+
     suspend fun generate(prompt: String, history: List<AssistantChatTurn>): String =
         withContext(Dispatchers.IO) {
             val provider = preferences.selectedProviderId
