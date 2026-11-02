@@ -367,6 +367,7 @@ private fun AssistantIntegrationSection() {
     }
 
     CardSectionHeader(text = "Response generation", padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 4.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
     SettingsSliderCard(
         shape = groupedShape(true, false),
         title = "Response length",
@@ -400,8 +401,10 @@ private fun AssistantIntegrationSection() {
         onValueChange = { timeout = it },
         onCommit = { integration.requestTimeoutSeconds = timeout.toInt() },
     )
+    }
 
     CardSectionHeader(text = "Assistant behaviour", padding = PaddingValues(start = 4.dp, top = 8.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
     SettingsToggleCard(
         shape = groupedShape(true, false),
         title = "Stream responses",
@@ -416,6 +419,7 @@ private fun AssistantIntegrationSection() {
         checked = includeContext,
         onCheckedChange = { includeContext = it; integration.includeConversationContext = it },
     )
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
