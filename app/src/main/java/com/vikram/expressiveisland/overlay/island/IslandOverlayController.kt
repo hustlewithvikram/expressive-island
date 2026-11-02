@@ -17,6 +17,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.UUID
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.Surface
@@ -53,6 +56,7 @@ import com.vikram.expressiveisland.data.AssistantTilePreferences
 import com.vikram.expressiveisland.data.AssistantIntegrationPreferences
 import com.vikram.expressiveisland.data.AssistantGenerationClient
 import com.vikram.expressiveisland.data.AssistantChatTurn
+import com.vikram.expressiveisland.data.AssistantChatSession
 import com.vikram.expressiveisland.data.AssistantTileSettings
 import com.vikram.expressiveisland.data.BehaviourPreferences
 import com.vikram.expressiveisland.data.BehaviourSettings
@@ -157,6 +161,9 @@ class IslandOverlayController(private val context: Context) {
     private val assistantIntegrationPreferences = AssistantIntegrationPreferences(context)
     private val assistantGenerationClient = AssistantGenerationClient(assistantIntegrationPreferences)
     private val assistantConversation = mutableListOf<AssistantChatTurn>()
+    private val assistantSessionPrefs = context.getSharedPreferences("assistant_chat_sessions", Context.MODE_PRIVATE)
+    private val assistantSessions = loadAssistantSessions().toMutableList()
+    private var activeAssistantSessionId: String? = null
     private val appPreferences = AppPreferences(context)
     private val permissionDotPreferences = PermissionDotPreferences(context)
     private val density = context.resources.displayMetrics.density
@@ -2208,12 +2215,15 @@ class IslandOverlayController(private val context: Context) {
             appearanceState.value.preferDynamicIconColor,
         )
         assistantConversation.clear()
+        activeAssistantSessionId = UUID.randomUUID().toString()
         val panelEvent = resolved.copy(
             initiallyExpanded = true,
             assistant = resolved.assistant?.copy(
                 displayAnswerInCutout = true,
                 answerText = null,
                 interactivePanel = true,
+                conversation = emptyList(),
+                sessions = assistantSessions.toList(),
             ),
         )
         dismissJob?.cancel()
@@ -2225,6 +2235,73 @@ class IslandOverlayController(private val context: Context) {
         lastAssistantEvent = panelEvent
         assistantActive = true
         syncWindowSize()
+    }
+
+    private fun loadAssistantSessions(): List<AssistantChatSession> = runCatching {
+        val raw = assistantSessionPrefs.getString("sessions", "[]") ?: "[]"
+        val array = JSONArray(raw)
+        (0 until array.length()).mapNotNull { index ->
+            val item = array.optJSONObject(index) ?: return@mapNotNull null
+            val turnsJson = item.optJSONArray("turns") ?: JSONArray()
+            val turns = (0 until turnsJson.length()).mapNotNull { turnIndex ->
+                val turn = turnsJson.optJSONObject(turnIndex) ?: return@mapNotNull null
+                AssistantChatTurn(turn.optString("role"), turn.optString("content"))
+            }
+            AssistantChatSession(item.optString("id"), item.optString("title"), item.optLong("updatedAt"), turns)
+        }
+    }.getOrDefault(emptyList())
+
+    private fun persistAssistantSessions() {
+        val array = JSONArray()
+        assistantSessions.sortedByDescending { it.updatedAt }.take(50).forEach { session ->
+            array.put(JSONObject().put("id", session.id).put("title", session.title)
+                .put("updatedAt", session.updatedAt).put("turns", JSONArray().apply {
+                    session.turns.forEach { put(JSONObject().put("role", it.role).put("content", it.content)) }
+                }))
+        }
+        assistantSessionPrefs.edit().putString("sessions", array.toString()).apply()
+    }
+
+    private fun saveActiveAssistantSession(latestPrompt: String? = null) {
+        val id = activeAssistantSessionId ?: return
+        if (assistantConversation.isEmpty()) return
+        val title = assistantConversation.firstOrNull { it.role == "user" }?.content
+            ?.take(64)?.ifBlank { "New chat" } ?: "New chat"
+        val session = AssistantChatSession(id, title, System.currentTimeMillis(), assistantConversation.toList())
+        assistantSessions.removeAll { it.id == id }
+        assistantSessions.add(session)
+        persistAssistantSessions()
+    }
+
+    private fun startNewAssistantChat() {
+        val active = currentEvent.value ?: return
+        if (active.assistant?.interactivePanel != true) return
+        saveActiveAssistantSession()
+        assistantConversation.clear()
+        activeAssistantSessionId = UUID.randomUUID().toString()
+        val updated = active.copy(assistant = active.assistant.copy(
+            promptText = null, answerText = null, conversation = emptyList(),
+            sessions = assistantSessions.toList(),
+        ))
+        currentEvent.value = updated
+        lastAssistantEvent = updated
+    }
+
+    private fun restoreAssistantSession(sessionId: String) {
+        val session = assistantSessions.firstOrNull { it.id == sessionId } ?: return
+        val active = currentEvent.value ?: return
+        if (active.assistant?.interactivePanel != true) return
+        assistantConversation.clear()
+        assistantConversation.addAll(session.turns)
+        activeAssistantSessionId = session.id
+        val lastPrompt = session.turns.lastOrNull { it.role == "user" }?.content
+        val lastAnswer = session.turns.lastOrNull { it.role == "assistant" }?.content
+        val updated = active.copy(assistant = active.assistant.copy(
+            promptText = lastPrompt, answerText = lastAnswer,
+            conversation = session.turns, sessions = assistantSessions.toList(),
+        ))
+        currentEvent.value = updated
+        lastAssistantEvent = updated
     }
 
     private fun submitAssistantPrompt(prompt: String, onComplete: (String) -> Unit) {
@@ -2243,6 +2320,7 @@ class IslandOverlayController(private val context: Context) {
                 promptText = prompt,
                 answerText = "Thinking…",
                 conversation = pendingConversation,
+                sessions = assistantSessions.toList(),
             ),
         )
         lastAssistantEvent = currentEvent.value
@@ -2263,12 +2341,14 @@ class IslandOverlayController(private val context: Context) {
                 assistantConversation[assistantTurnIndex] = AssistantChatTurn("assistant", answer)
             }
             val completedConversation = assistantConversation.toList()
+            saveActiveAssistantSession(prompt)
             val latest = currentEvent.value
             if (latest?.assistant?.interactivePanel == true) {
                 val updated = latest.copy(
                     assistant = latest.assistant.copy(
                         answerText = answer,
                         conversation = completedConversation,
+                        sessions = assistantSessions.toList(),
                     ),
                 )
                 currentEvent.value = updated
