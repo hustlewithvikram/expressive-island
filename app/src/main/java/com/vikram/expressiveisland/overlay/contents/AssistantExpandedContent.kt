@@ -59,7 +59,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -166,8 +165,10 @@ fun AssistantExpandedContent(
                     }
                 }
             }
-            IconButton(onClick = { showChatHistory = true }) { Icon(Icons.Rounded.History, contentDescription = "Chat history") }
-            IconButton(onClick = onNewAssistantChat) { Icon(Icons.Rounded.Add, contentDescription = "New chat") }
+            if (assistant.interactivePanel) {
+                IconButton(onClick = { showChatHistory = true }) { Icon(Icons.Rounded.History, contentDescription = "Chat history") }
+                IconButton(onClick = onNewAssistantChat) { Icon(Icons.Rounded.Add, contentDescription = "New chat") }
+            }
             IconButton(onClick = onDismiss) {
                 Icon(Icons.Rounded.Close, contentDescription = "Close Assistant")
             }
