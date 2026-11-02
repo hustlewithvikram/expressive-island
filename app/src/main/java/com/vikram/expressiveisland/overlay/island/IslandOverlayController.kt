@@ -633,6 +633,8 @@ class IslandOverlayController(private val context: Context) {
                         assistantTapEnabled = false,
                         onAssistantTap = ::openAssistantPanel,
                         onAssistantPrompt = ::submitAssistantPrompt,
+                        onNewAssistantChat = ::startNewAssistantChat,
+                        onSelectAssistantChat = ::restoreAssistantSession,
                         cameraHoleTapEnabled = behaviour.cameraHoleTapEnabled &&
                                 behaviour.cutoutEnabled &&
                                 !behaviour.showsWhenEmpty &&
