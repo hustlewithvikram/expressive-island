@@ -17,10 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Devices
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.NotificationsActive
@@ -29,13 +27,14 @@ import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Webhook
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.RadioButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +49,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.vikram.expressiveisland.data.AssistantIntegrationPreferences
+
+private fun groupedShape(isFirst: Boolean, isLast: Boolean) = RoundedCornerShape(
+    topStart = if (isFirst) 24.dp else 6.dp,
+    topEnd = if (isFirst) 24.dp else 6.dp,
+    bottomStart = if (isLast) 24.dp else 6.dp,
+    bottomEnd = if (isLast) 24.dp else 6.dp,
+)
 
 private data class AiProvider(
     val id: String,
@@ -71,13 +77,6 @@ private val aiProviders = listOf(
     AiProvider("openrouter", "OpenRouter", "One API for models from many providers", "https://openrouter.ai/api/v1", "openai/gpt-4o-mini"),
     AiProvider("mistral", "Mistral AI", "Mistral and Ministral models", "https://api.mistral.ai/v1", "mistral-small-latest"),
     AiProvider("xai", "xAI", "Grok models", "https://api.x.ai/v1", "grok-3-mini"),
-    AiProvider("cohere", "Cohere", "Command models", "https://api.cohere.com/compatibility/v1", "command-r"),
-    AiProvider("together", "Together AI", "Hosted open-source models", "https://api.together.xyz/v1", "meta-llama/Llama-3.3-70B-Instruct-Turbo"),
-    AiProvider("fireworks", "Fireworks AI", "Hosted open-source models", "https://api.fireworks.ai/inference/v1", "accounts/fireworks/models/llama-v3p3-70b-instruct"),
-    AiProvider("perplexity", "Perplexity", "Sonar search and answer models", "https://api.perplexity.ai", "sonar"),
-    AiProvider("cerebras", "Cerebras", "Fast inference for open models", "https://api.cerebras.ai/v1", "llama3.1-8b"),
-    AiProvider("sambanova", "SambaNova", "Hosted open-source models", "https://api.sambanova.ai/v1", "Meta-Llama-3.3-70B-Instruct"),
-    AiProvider("copilot", "Microsoft Copilot", "Consumer Copilot does not expose a standard personal API-key endpoint", "", "", available = false, unavailableReason = "Not available through a supported personal API-key integration"),
     AiProvider("custom", "Custom API", "OpenAI-compatible or self-hosted endpoint", "", "", "Custom API"),
 )
 
@@ -97,10 +96,10 @@ internal fun IntegrationsScreen(
             Text("Integrations", style = MaterialTheme.typography.headlineSmall)
             Text("Connect the services that make your island more capable.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        IntegrationCategoryCard(Icons.Rounded.AutoAwesome, "AI Assistant", "Choose the AI provider that powers Assistant responses.", "Configure", onOpenAI)
-        IntegrationCategoryCard(Icons.Rounded.NotificationsActive, "Notification intelligence", "Smart summaries, suggested replies and contextual actions.", "Coming soon", onOpenNotifications)
-        IntegrationCategoryCard(Icons.Rounded.Webhook, "Automation & webhooks", "Connect workflows to supported island events.", "Coming soon", onOpenAutomation)
-        IntegrationCategoryCard(Icons.Rounded.Devices, "Device services", "Connect Android system capabilities and companion services.", "Coming soon", onOpenDevice)
+        IntegrationCategoryCard(Icons.Rounded.AutoAwesome, "AI Assistant", "Choose the AI provider that powers Assistant responses.", groupedShape(true, false), onOpenAI)
+        IntegrationCategoryCard(Icons.Rounded.NotificationsActive, "Notification intelligence", "Smart summaries, suggested replies and contextual actions.", groupedShape(false, false), onOpenNotifications)
+        IntegrationCategoryCard(Icons.Rounded.Webhook, "Automation & webhooks", "Connect workflows to supported island events.", groupedShape(false, false), onOpenAutomation)
+        IntegrationCategoryCard(Icons.Rounded.Devices, "Device services", "Connect Android system capabilities and companion services.", groupedShape(false, true), onOpenDevice)
     }
 }
 
@@ -144,14 +143,14 @@ private fun IntegrationCategoryCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     description: String,
-    status: String,
+    shape: RoundedCornerShape,
     onClick: () -> Unit,
 ) {
     val container = MaterialTheme.colorScheme.surfaceContainerLow
     val content = MaterialTheme.colorScheme.onSurface
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = container),
     ) {
         Row(
@@ -170,10 +169,10 @@ private fun IntegrationCategoryCard(
                 Text(title, style = MaterialTheme.typography.titleMedium, color = content, fontWeight = FontWeight.SemiBold)
                 Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Text(
-                status,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Icon(
+                androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight,
+                contentDescription = "Open $title",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
