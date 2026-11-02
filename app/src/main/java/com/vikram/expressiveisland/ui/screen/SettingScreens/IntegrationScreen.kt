@@ -180,25 +180,6 @@ private fun IntegrationCategoryCard(
 }
 
 @Composable
-private fun IntegrationPlaceholder(section: IntegrationSection) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(22.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
-            Text(section.title, style = MaterialTheme.typography.titleLarge)
-            Text(section.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("This integration category is planned for a future update.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-        }
-    }
-}
-
-@Composable
 private fun AssistantIntegrationSection() {
     val context = LocalContext.current
     val integration = remember(context) { AssistantIntegrationPreferences(context) }
