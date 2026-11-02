@@ -172,7 +172,7 @@ private fun IntegrationCategoryCard(
                 Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Icon(
-                androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight,
+                Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                 contentDescription = "Open $title",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -237,7 +237,7 @@ private fun AssistantIntegrationSection() {
                             Text(selectedProvider.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                             Text(selectedProvider.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Icon(androidx.compose.material.icons.rounded.ExpandMore, contentDescription = "Choose provider")
+                        Icon(Icons.Rounded.ExpandMore, contentDescription = "Choose provider")
                     }
                 }
                 if (providerDialogOpen) {
