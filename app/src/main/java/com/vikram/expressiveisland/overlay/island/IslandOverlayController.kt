@@ -2368,6 +2368,12 @@ class IslandOverlayController(private val context: Context) {
                 assistantSessions.removeAll { it.id == requestSessionId }
                 assistantSessions.add(AssistantChatSession(requestSessionId, title, System.currentTimeMillis(), completedTurns))
                 persistAssistantSessions()
+                val latest = currentEvent.value
+                if (latest?.assistant?.interactivePanel == true) {
+                    val refreshed = latest.copy(assistant = latest.assistant.copy(sessions = assistantSessions.toList()))
+                    currentEvent.value = refreshed
+                    lastAssistantEvent = refreshed
+                }
             }
             onComplete(answer)
         }
