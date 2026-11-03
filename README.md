@@ -27,11 +27,10 @@ Notification content is handled on-device. Internet access is used by the in-app
 * [Features](#features)
 * [Screenshots](#screenshots)
 * [Download](#download)
-* [Requirements & Setup](#requirements--setup)
 * [Permissions](#permissions)
 * [Help with translations](#help-with-translations)
-* [Expressive Island vs Expressive Cutout](#expressive-island-vs-expressive-cutout)
 * [Credits & Inspiration](#credits--inspiration)
+* [FAQ](#faq)
 * [License](#license)
 
 ---
@@ -45,19 +44,6 @@ The project takes the original foundation and continues development under a new 
 The goal is simple:
 
 > **Make Android's camera cutout feel like a useful, expressive part of the interface instead of just a hole in the screen.**
-
-Notifications can appear directly around the cutout, while live tiles provide quick access to information such as:
-
-* Currently playing music
-* Active phone calls
-* Incoming calls
-* Running timers
-* Charging state
-* Battery warnings
-* Wi-Fi changes
-* Headphone connections
-* USB connections
-* Device unlock events
 
 Everything is designed around Material Expressive shapes, motion, colours, and customisation.
 
@@ -104,11 +90,16 @@ Everything is designed around Material Expressive shapes, motion, colours, and c
 
 [![Download the latest release](https://img.shields.io/badge/Download-latest%20release-005AC1?style=for-the-badge\&logo=github\&logoColor=white)](https://github.com/hustlewithvikram/expressive-island/releases)
 
-[![Download from Orion Store](https://img.shields.io/badge/Download-from%20Orion%20Store-6C5CE7?style=for-the-badge)](https://rookieenough.github.io/Orion-Data/app/?id=expressive-island)
+[![Download from Orion Store](https://img.shields.io/badge/Download-Orion%20Store-6C5CE7?style=for-the-badge)](https://rookieenough.github.io/Orion-Data/app/?id=expressive-island)
 
 </div>
 
-### Android requirements
+Two build types are available on the [Releases page](https://github.com/hustlewithvikram/expressive-island/releases):
+
+- **Stable release:** The recommended release build for everyday use.
+- **Debug build:** A development/nightly-style build generated after commits to the `dev` and `main` branches. It may contain work in progress and is intended for testing.
+
+# Android requirements
 
 Expressive Island requires:
 
@@ -118,28 +109,6 @@ Expressive Island requires:
 * Optional battery optimisation exemption
 
 On first launch, Expressive Island guides you through the permissions required for the island to work.
-
----
-
-# Requirements & Setup
-
-After installing Expressive Island, the app will guide you through the required setup.
-
-### 1. Notification access
-
-Required to mirror notifications into the island.
-
-### 2. Accessibility service
-
-Used to display the island as an overlay above other applications.
-
-Expressive Island does **not** use the accessibility service to read your screen contents.
-
-### 3. Battery optimisation
-
-Optional, but recommended.
-
-Some Android manufacturers aggressively terminate background applications. Allowing Expressive Island to ignore battery optimisation can improve reliability.
 
 ---
 
@@ -178,17 +147,11 @@ Expressive Island intentionally keeps its permissions to a minimum.
 | **Vibration**                   | Provides haptic feedback |
 | **Shizuku API**                 | Declares optional integration with compatible Shizuku versions |
 
-### Privacy
+# Privacy
 
 Expressive Island requests `INTERNET` access only for its in-app updater, which checks for and downloads app releases. The app does not upload notification content or usage analytics. Notification content is handled locally for display and is not sent to the updater.
 
 The app also declares `REQUEST_INSTALL_PACKAGES` so the updater can hand a downloaded APK to Android's package installer. Android still requires you to confirm installation.
-
----
-
-# Expressive Island vs Expressive Cutout
-
-Expressive Island is a community-developed fork of **Expressive Cutout by EvanKoe**. It builds on the original project's notification, overlay, music, call, timer, event, animation, and customisation foundations while adding ongoing fixes and new features.
 
 ---
 
@@ -214,6 +177,64 @@ Expressive Island currently includes **English, Hindi, and Marathi**. Would you 
 - Test the app with the contributed language before opening a pull request.
 
 Not sure where to start? Open an issue or pull request and mention the language you'd like to help with. Even small corrections are useful.
+
+---
+
+# FAQ
+
+<details>
+<summary>What is Expressive Island?</summary>
+
+Expressive Island is an Android dynamic island app that brings notifications, media controls, calls, timers, and system events around your device's camera cutout.
+</details>
+
+<details>
+<summary>Which Android versions are supported?</summary>
+
+Expressive Island requires Android 10 (API 29) or newer.
+</details>
+
+<details>
+<summary>Why does the app need Notification access?</summary>
+
+Notification access lets Expressive Island display notifications and provide supported notification actions inside the island.
+</details>
+
+<details>
+<summary>Why does the app need Accessibility service access?</summary>
+
+The accessibility service is used to display the island overlay and handle its interactions. It does not read your screen contents.
+</details>
+
+<details>
+<summary>What is the difference between Stable and Debug builds?</summary>
+
+Stable builds are recommended for everyday use. Debug builds are development/nightly-style builds generated after commits to the `dev` and `main` branches and may include unfinished changes. Both are available on the [Releases page](https://github.com/hustlewithvikram/expressive-island/releases).
+</details>
+
+<details>
+<summary>How do I use the AI Assistant?</summary>
+
+Add your AI provider's API key under **Settings → Integrations → AI Assistant**, select a provider and model, then open the Assistant tile. See [Using the AI Assistant](#using-the-ai-assistant) for setup steps.
+</details>
+
+<details>
+<summary>Is my notification data uploaded?</summary>
+
+No. Notification content is handled locally on your device. Internet access is used by the in-app updater to check for and download releases.
+</details>
+
+<details>
+<summary>Where can I report a bug or request a feature?</summary>
+
+Open an [Issue](https://github.com/hustlewithvikram/expressive-island/issues) and include your Android version, device model, and steps to reproduce the issue.
+</details>
+
+<details>
+<summary>How can I contribute or help with translations?</summary>
+
+Contributions are welcome. You can submit a pull request, report issues, or help improve the English, Hindi, and Marathi translations.
+</details>
 
 ---
 
@@ -243,8 +264,5 @@ See the [LICENSE](LICENSE) file for the complete terms.
 
 *An open-source, Material Expressive dynamic island for Android.*
 
-Built on the foundation of **Expressive Cutout by EvanKoe**.
-
-[GitHub](https://github.com/hustlewithvikram/expressive-island) · [Releases](https://github.com/hustlewithvikram/expressive-island/releases) · [Issues](https://github.com/hustlewithvikram/expressive-island/issues)
 
 </div>
