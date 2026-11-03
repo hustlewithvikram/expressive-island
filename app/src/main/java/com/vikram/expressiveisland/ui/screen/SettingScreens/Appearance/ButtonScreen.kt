@@ -120,7 +120,6 @@ internal fun ButtonScreen(
     // The preview reflects the in-flight height before it is persisted.
     val previewAppearance = appearance.copy(actionButtonHeightDp = buttonHeight.roundToInt())
 
-    val context = LocalContext.current
     val previewLabel = stringResource(R.string.preview_label)
     val previewDetail = stringResource(R.string.preview_detail)
     val replyLabel = stringResource(R.string.action_buttons_preview_reply)
