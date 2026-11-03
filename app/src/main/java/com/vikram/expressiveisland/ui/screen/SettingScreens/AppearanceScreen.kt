@@ -47,6 +47,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -60,7 +61,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -79,14 +79,16 @@ import kotlinx.coroutines.launch
 import com.vikram.expressiveisland.data.SatelliteRingPreferences
 import com.vikram.expressiveisland.data.SatelliteRingStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
-import com.vikram.expressiveisland.data.IslandLayout
-import com.vikram.expressiveisland.overlay.island.IslandEvent
-import com.vikram.expressiveisland.overlay.island.IslandIcon
+import com.vikram.expressiveisland.core.IslandPreviewBus
+import com.vikram.expressiveisland.permissions.Permissions
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
@@ -108,19 +110,33 @@ internal fun AppearanceScreen(
 ) {
     val haptics = LocalHapticFeedback.current
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
-    val layout by viewModel.layout.collectAsStateWithLifecycle()
-    val previewDark = isSystemInDarkTheme()
-    var previewExpanded by remember { mutableStateOf(false) }
-    val previewLabel = stringResource(R.string.preview_label)
-    val previewDetail = stringResource(R.string.preview_detail)
-    val previewEvent = remember(previewLabel, previewDetail) {
-        IslandEvent(
-            id = 0L,
-            icon = IslandIcon.Vector(Icons.Rounded.Notifications),
-            label = previewLabel,
-            detail = previewDetail,
-            accent = Color(0xFF60A5FA),
-        )
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Pin the real overlay to the device cutout while Appearance is visible. The overlay
+    // controller supplies its built-in demo event and observes appearance preferences live.
+    DisposableEffect(lifecycleOwner) {
+        fun refresh() {
+            IslandPreviewBus.setActive(Permissions.isAccessibilityGranted(context))
+        }
+
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> refresh()
+                Lifecycle.Event.ON_PAUSE -> IslandPreviewBus.setActive(false)
+                else -> Unit
+            }
+        }
+
+        refresh()
+        IslandPreviewBus.setExpandedPreview(true)
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            IslandPreviewBus.setActive(false)
+            IslandPreviewBus.setExpandedPreview(false)
+        }
     }
     var strokeWidth by remember(appearance.strokeWidthDp) { mutableStateOf(appearance.strokeWidthDp.toFloat()) }
     var selectedTab by remember { mutableStateOf(0) }
@@ -136,35 +152,6 @@ internal fun AppearanceScreen(
         CardSectionHeader(
             text = "Appearance",
             padding = PaddingValues(start = 4.dp, bottom = 2.dp)
-        )
-
-        CardSectionHeader(
-            text = "Live preview",
-            padding = PaddingValues(start = 4.dp, top = 2.dp, bottom = 0.dp),
-        )
-        Text(
-            text = "Tap the pill to preview its expanded layout. Changes apply here instantly.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp),
-        )
-        val previewDimensions = if (previewExpanded) layout.expanded else layout.collapsed
-        IslandPreviewPanel(
-            background = if (previewDark) Color(0xFF0B0B0C) else Color(0xFFEDEFF3),
-            cutout = rememberTopCutout(),
-            widthPercent = previewDimensions.widthPercent,
-            heightDp = previewDimensions.heightDp,
-            cornerTopLeftDp = previewDimensions.cornerTopLeftDp,
-            cornerTopRightDp = previewDimensions.cornerTopRightDp,
-            cornerBottomLeftDp = previewDimensions.cornerBottomLeftDp,
-            cornerBottomRightDp = previewDimensions.cornerBottomRightDp,
-            offsetXDp = previewDimensions.offsetXDp,
-            offsetYDp = previewDimensions.offsetYDp,
-            expanded = previewExpanded,
-            event = previewEvent,
-            appearance = appearance,
-            collapsedHeightDp = layout.collapsed.heightDp,
-            onIslandClick = { previewExpanded = !previewExpanded },
         )
 
         ExpressiveSegmentedRow(
