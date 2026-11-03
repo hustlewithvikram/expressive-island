@@ -67,6 +67,7 @@ Everything is designed around Material Expressive shapes, motion, colours, and c
 
 | Category                | Features                                                                                                                                                                                 |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AI Assistant**       | Interactive text and voice assistant · configurable AI provider and model · chat history · streaming responses · custom API support |
 | **Notifications**       | Mirrors notifications in the island · notification icons · automatic expansion · title and text · compact icon-only mode · notification actions · inline replies · swipe-to-dismiss      |
 | **Music**               | Song title and artist · album artwork · optional spinning artwork · playback state · previous / play-pause / next controls                                                               |
 | **Phone calls**         | Caller name · contact photo · live call duration · hang-up action · incoming call interface · answer / decline actions · open in-call screen · optional two-row incoming-call layout     |
@@ -139,6 +140,21 @@ Expressive Island does **not** use the accessibility service to read your screen
 Optional, but recommended.
 
 Some Android manufacturers aggressively terminate background applications. Allowing Expressive Island to ignore battery optimisation can improve reliability.
+
+---
+
+# Using the AI Assistant
+
+Connect an AI provider once, then use the Assistant tile to chat.
+
+1. **Get an API key** from your provider (for example, [OpenAI](https://platform.openai.com/api-keys), [Google AI Studio](https://aistudio.google.com/app/apikey), [Anthropic](https://console.anthropic.com/settings/keys), [Groq](https://console.groq.com/keys) or [OpenRouter](https://openrouter.ai/keys)). API access and usage may be billed separately by the provider.
+2. Open **Settings → Integrations → AI Assistant** in Expressive Island.
+3. Select your provider, choose a model, and paste its API key. For **Custom API**, also enter the base URL of your OpenAI-compatible endpoint.
+4. Your provider, model and key are saved locally. The API key is encrypted using Android Keystore.
+5. Open **Settings → Assistant**, select **Manual** mode, then go to **Settings → Behaviour → Camera Hole Touch**. Enable camera-hole touch and choose **App Assistant** as its action.
+6. Tap the camera-hole area to open the Assistant tile, type a message or use the microphone, and send it. Your configured provider generates the response.
+
+You can change response length, creativity, streaming and conversation context under **Integrations → AI Assistant**. Keep your API key private; never share it or include it in screenshots.
 
 ---
 
