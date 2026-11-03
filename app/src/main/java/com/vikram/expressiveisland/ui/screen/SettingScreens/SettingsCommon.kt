@@ -312,6 +312,7 @@ internal fun IslandPreviewPanel(
     appearance: AppearanceSettings = AppearanceSettings(),
     collapsedHeightDp: Int = IslandLayout.DEFAULT_COLLAPSED.heightDp,
     showActions: Boolean = true,
+    onIslandClick: (() -> Unit)? = null,
 ) {
     val cutoutOutline = Color.White.copy(alpha = 0.28f)
     // Grow the panel so the island (at its offset) always fits without clipping.
