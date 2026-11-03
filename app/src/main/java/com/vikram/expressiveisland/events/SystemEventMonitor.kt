@@ -319,10 +319,10 @@ class SystemEventMonitor(private val context: Context) {
                 )
             )
         } catch (e: SecurityException) {
-            Log.w(TAG, "Unable to read Wi-Fi state: permission unavailable", e)
+            Log.w("SystemEventMonitor", "Unable to read Wi-Fi state: permission unavailable", e)
             WifiBus.update(null)
         } catch (e: Exception) {
-            Log.w(TAG, "Unable to read Wi-Fi state", e)
+            Log.w("SystemEventMonitor", "Unable to read Wi-Fi state", e)
             WifiBus.update(null)
         }
     }
