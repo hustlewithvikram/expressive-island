@@ -349,10 +349,12 @@ internal fun IslandPreviewPanel(
 
         // The island, positioned exactly as the overlay would place it (top-centre + offset).
         Box(
-            modifier = Modifier.offset(
-                x = panelWidth / 2f + offsetXDp.dp - islandWidth / 2f,
-                y = offsetYDp.dp,
-            ),
+            modifier = Modifier
+                .offset(
+                    x = panelWidth / 2f + offsetXDp.dp - islandWidth / 2f,
+                    y = offsetYDp.dp,
+                )
+                .then(if (onIslandClick != null) Modifier.clickable(onClick = onIslandClick) else Modifier),
         ) {
             IslandPreview(
                 event = event,
