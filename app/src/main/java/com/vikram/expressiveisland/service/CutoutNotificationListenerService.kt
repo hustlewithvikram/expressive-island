@@ -150,6 +150,10 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     override fun onListenerConnected() {
         instance = this
         _bound.value = true
+        // Ranking updates are not guaranteed to arrive before the first posted notification.
+        // Seed the current snapshot so silent filtering and alert playback use the real channel
+        // importance/interruption policy immediately after the listener reconnects.
+        currentRanking = getCurrentRanking()
         observeBehaviour()
         seedMediaArt()
     }
