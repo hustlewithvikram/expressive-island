@@ -792,7 +792,7 @@ internal fun DynamicIsland(
                                             else -> it
                                         }
                                     }
-                                    scope.launch { dismissOffsetX.snapTo(next) }
+                                    dismissOffsetX.snapTo(next)
                                     change.consume()
                                 }
                             },
