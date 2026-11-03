@@ -106,6 +106,7 @@ class MediaPlaybackMonitor(private val context: Context) {
         watched.clear()
         scope.coroutineContext.cancelChildren()
         clearPendingShow()
+        requestedArtworkKey = null
         NowPlayingBus.update(null)
     }
 
@@ -172,6 +173,7 @@ class MediaPlaybackMonitor(private val context: Context) {
             validControllers.firstOrNull { it.isPlaying } ?: validControllers.firstOrNull()
         if (primary == null) {
             NowPlayingBus.update(null)
+            requestedArtworkKey = null
             clearPendingShow()
             return
         }
@@ -194,6 +196,7 @@ class MediaPlaybackMonitor(private val context: Context) {
         if (isAssistantPackage(primary.packageName)) {
             // Assistant sessions are handled exclusively via NotificationListenerService
             NowPlayingBus.update(null)
+            requestedArtworkKey = null
             clearPendingShow()
             return
         }
