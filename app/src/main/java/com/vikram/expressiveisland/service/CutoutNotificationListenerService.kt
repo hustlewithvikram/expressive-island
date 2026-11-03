@@ -559,14 +559,29 @@ class CutoutNotificationListenerService : NotificationListenerService() {
      */
     private fun StatusBarNotification.publishMediaArt() {
         if (notification.extras?.containsKey(Notification.EXTRA_MEDIA_SESSION) != true) return
+
         val sbnKey = key
         val packageName = packageName
-        val icon = notification.getLargeIcon() ?: return
+
+        // Claim ownership before decoding. The decode runs off-main and may finish after this
+        // notification is removed or a newer media notification is posted.
+        currentMediaArtKey = sbnKey
+        val icon = notification.getLargeIcon()
+        if (icon == null) {
+            MediaArtBus.update(null)
+            return
+        }
+
         scope.launch(Dispatchers.IO) {
-            val art = icon.loadImageBitmapOrNull(this@CutoutNotificationListenerService) ?: return@launch
+            val art = icon.loadImageBitmapOrNull(this@CutoutNotificationListenerService)
+                ?: return@launch
             withContext(Dispatchers.Main.immediate) {
-                if (instance !== this@CutoutNotificationListenerService) return@withContext
-                currentMediaArtKey = sbnKey
+                // Only the latest still-current media notification may publish its artwork.
+                // onNotificationRemoved clears currentMediaArtKey, invalidating an in-flight decode.
+                if (instance !== this@CutoutNotificationListenerService ||
+                    currentMediaArtKey != sbnKey
+                ) return@withContext
+
                 MediaArtBus.update(MediaArt(packageName = packageName, art = art))
             }
         }
