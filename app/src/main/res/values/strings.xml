@@ -115,7 +115,7 @@
     <string name="assistant_auto_read_title">Read assistant screen and app events</string>
     <string name="camera_hole_title">Camera hole Touch</string>
     <string name="camera_hole_desc">Choose what happens when you touch the camera hole while no island is visible.</string>
-    <string name="camera_hole_enabled_title">Enable camera hole Touch</string>
+    <string name="camera_hole_enabled_title">Enable Hole Touch</string>
     <string name="camera_hole_enabled_desc">Enable actions for the camera-hole touch area when no island or Persistent Pill is visible.</string>
     <string name="camera_hole_action_title">Touch action</string>
     <string name="camera_hole_action_desc">Choose what opens when you touch the camera hole. Device Assistant launches Gemini or your configured system assistant; App Assistant opens the assistant built into Expressive Island.</string>
@@ -125,7 +125,7 @@
     <string name="camera_hole_action_quick_actions">Open Quick Actions</string>
     <string name="camera_hole_action_device_assistant">Device Assistant</string>
     <string name="camera_hole_action_app_assistant">App Assistant</string>
-    <string name="camera_hole_section_touch">Touch</string>
+    <string name="camera_hole_section_touch">Hole</string>
     <string name="camera_hole_section_feedback">Feedback</string>
     <string name="camera_hole_section_requirements">Requirements</string>
     <string name="camera_hole_shizuku_note">Wi-Fi, Bluetooth and mobile data require Shizuku to be running with permission granted. No Settings page will be opened as a fallback.</string>
@@ -512,7 +512,7 @@
     <string name="behaviour_swipe_direction">Swipe direction</string>
     <string name="behaviour_ignore_silent_notif">Ignore silent notifications</string>
     <string name="behaviour_ignore_silent_notif_desc">Dont show a cutout bubble for notifications marked as silent</string>
-    <string name="behaviour_split_island">Split the island</string>
+    <string name="behaviour_split_island">Enable Island Bubble</string>
     <string name="behaviour_split_island_desc">Keep the previous notification visible in a small bubble beside the new one.</string>
     <string name="behaviour_satellite_position">Satellite position</string>
     <string name="satellite_position_left">Left</string>
