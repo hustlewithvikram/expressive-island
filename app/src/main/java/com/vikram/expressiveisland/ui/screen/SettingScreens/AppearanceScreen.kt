@@ -36,7 +36,6 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Colorize
 import androidx.compose.material.icons.rounded.FormatColorFill
 import androidx.compose.material.icons.rounded.RestartAlt
-import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
