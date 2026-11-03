@@ -128,7 +128,7 @@ internal fun AppearanceScreen(
         }
 
         refresh()
-        IslandPreviewBus.setExpandedPreview(true)
+        IslandPreviewBus.setExpandedPreview(false)
         lifecycleOwner.lifecycle.addObserver(observer)
 
         onDispose {
@@ -154,7 +154,7 @@ internal fun AppearanceScreen(
         )
 
         ExpressiveSegmentedRow(
-            options = listOf("Effects", "Content", "Controls", "Camera ring"),
+            options = listOf("Effects", "Content", "Controls", "Camera Ring"),
             selectedIndex = selectedTab,
             onSelect = { selectedTab = it },
             modifier = Modifier
@@ -305,7 +305,7 @@ private fun SatelliteRingSettingsSection() {
     var opacity by remember(settings.opacity) { mutableFloatStateOf(settings.opacity) }
     var ringSize by remember(settings.diameterScale) { mutableFloatStateOf(settings.diameterScale) }
 
-    CardSectionHeader(text = "Camera ring", padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp))
+    CardSectionHeader(text = "Camera Ring", padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp))
     SettingsToggleCard(
         shape = RoundedCornerShape(24.dp),
         title = "Show camera activity ring",
@@ -408,7 +408,7 @@ private fun BackgroundCard(onClick: () -> Unit) {
             Spacer(Modifier.width(20.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.appearance_background_color),
+                    text = "Background Color",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
@@ -434,8 +434,8 @@ private fun ActionButtonsCard(onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(
-            topStart = 0.dp,
-            topEnd = 0.dp,
+            topStart = 24.dp,
+            topEnd = 24.dp,
             bottomStart = 24.dp,
             bottomEnd = 24.dp
         ),
