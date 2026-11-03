@@ -27,7 +27,7 @@ import android.view.View
 import android.view.ViewTreeObserver
 import android.view.WindowManager
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
@@ -279,7 +279,7 @@ class IslandOverlayController(private val context: Context) {
     private val previewEvent by lazy {
         IslandEvent(
             id = -1L,
-            icon = IslandIcon.Vector(Icons.Rounded.Tune),
+            icon = IslandIcon.Vector(Icons.Rounded.Palette),
             label = context.getString(R.string.preview_label),
             detail = context.getString(R.string.preview_detail),
             accent = Color(0xFF60A5FA),
@@ -451,8 +451,8 @@ class IslandOverlayController(private val context: Context) {
         when {
             previewPinned -> {
                 dismissJob?.cancel()
-                forcedExpanded.value = previewExpanded
-                expanded = previewExpanded
+                forcedExpanded.value = null
+                expanded = false
                 currentEvent.value = previewEvent
             }
 
@@ -1667,8 +1667,8 @@ class IslandOverlayController(private val context: Context) {
                 val targetExpanded = if (isNoExpandLandscape) false else expandedTab
                 if (pinned) {
                     dismissJob?.cancel()
-                    forcedExpanded.value = targetExpanded
-                    expanded = targetExpanded
+                    forcedExpanded.value = null
+                    expanded = false
                     currentEvent.value = previewEvent
                 } else {
                     forcedExpanded.value = if (isNoExpandLandscape) false else null
