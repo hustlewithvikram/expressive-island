@@ -140,19 +140,20 @@ private fun PillWidget(
             val size = (heightDp * 0.48f).dp
             Box(
                 Modifier.size((heightDp * 0.72f).dp).clip(CircleShape)
-                    .then(if (disc != null) Modifier.background(disc) else Modifier),
+                    .then(if (disc != null) Modifier.background(disc) else Modifier)
+                    .graphicsLayer {
+                        if (type == PillWidgetType.ANIMATED_ICON) {
+                            scaleX = pulseScale
+                            scaleY = pulseScale
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 when {
                     bitmap != null -> Image(bitmap, null, contentScale = ContentScale.Crop, modifier = Modifier.size(size).clip(CircleShape))
                     materialIcon != null -> Icon(
                         imageVector = materialIcon, contentDescription = null, tint = glyphColor,
-                        modifier = Modifier.size(size).graphicsLayer {
-                            if (type == PillWidgetType.ANIMATED_ICON) {
-                                scaleX = pulseScale
-                                scaleY = pulseScale
-                            }
-                        },
+                        modifier = Modifier.size(size),
                     )
                     else -> Text("★", color = glyphColor, fontSize = 16.sp)
                 }
