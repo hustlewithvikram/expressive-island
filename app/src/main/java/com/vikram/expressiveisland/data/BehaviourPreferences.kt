@@ -327,7 +327,9 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("swipeDismissDirection", s.swipeDismissDirection.name)
             put("swipeDismissTarget", s.swipeDismissTarget.name)
             put("showsWhenEmpty", s.showsWhenEmpty)
-            put("showsWhenEmptyShowIcon", s.showsWhenEmptyShowIcon)\n            put("persistentPillLeftWidget", s.persistentPillLeftWidget.name)\n            put("persistentPillRightWidget", s.persistentPillRightWidget.name)
+            put("showsWhenEmptyShowIcon", s.showsWhenEmptyShowIcon)
+            put("persistentPillLeftWidget", s.persistentPillLeftWidget.name)
+            put("persistentPillRightWidget", s.persistentPillRightWidget.name)
             put("showsWhenEmptyIcon", s.showsWhenEmptyIcon?.encode() ?: JSONObject.NULL)
             put(
                 "showsWhenEmptyIconColor",
@@ -636,7 +638,12 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[SHOWS_WHEN_EMPTY_SHOW_ICON] = enabled
     }
 
-    suspend fun setPersistentPillWidget(left: Boolean, type: PillWidgetType) = context.behaviourDataStore.edit {\n        if (left) it[PILL_LEFT_WIDGET] = type.name else it[PILL_RIGHT_WIDGET] = type.name\n        if (left) it[SHOWS_WHEN_EMPTY_SHOW_ICON] = type == PillWidgetType.ICON || type == PillWidgetType.ANIMATED_ICON\n    }\n\n    suspend fun setShowsWhenEmptyIcon(icon: IconSource) = context.behaviourDataStore.edit {
+    suspend fun setPersistentPillWidget(left: Boolean, type: PillWidgetType) = context.behaviourDataStore.edit {
+        if (left) it[PILL_LEFT_WIDGET] = type.name else it[PILL_RIGHT_WIDGET] = type.name
+        if (left) it[SHOWS_WHEN_EMPTY_SHOW_ICON] = type == PillWidgetType.ICON || type == PillWidgetType.ANIMATED_ICON
+    }
+
+    suspend fun setShowsWhenEmptyIcon(icon: IconSource) = context.behaviourDataStore.edit {
         it[SHOWS_WHEN_EMPTY_ICON] = icon.encode()
     }
 
@@ -758,7 +765,9 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val SWIPE_DISMISS_DIRECTION = stringPreferencesKey("swipe_dismiss_direction")
         val SWIPE_DISMISS_TARGET = stringPreferencesKey("swipe_dismiss_target")
         val SHOWS_WHEN_EMPTY = booleanPreferencesKey("shows_when_empty")
-        val SHOWS_WHEN_EMPTY_SHOW_ICON = booleanPreferencesKey("shows_when_empty_show_icon")\n        val PILL_LEFT_WIDGET = stringPreferencesKey("persistent_pill_left_widget")\n        val PILL_RIGHT_WIDGET = stringPreferencesKey("persistent_pill_right_widget")
+        val SHOWS_WHEN_EMPTY_SHOW_ICON = booleanPreferencesKey("shows_when_empty_show_icon")
+        val PILL_LEFT_WIDGET = stringPreferencesKey("persistent_pill_left_widget")
+        val PILL_RIGHT_WIDGET = stringPreferencesKey("persistent_pill_right_widget")
         val SHOWS_WHEN_EMPTY_ICON = stringPreferencesKey("shows_when_empty_icon")
         val SHOWS_WHEN_EMPTY_ICON_COLOR = stringPreferencesKey("shows_when_empty_icon_color")
         val SHOWS_WHEN_EMPTY_CLICK_ACTION = stringPreferencesKey("shows_when_empty_click_action")
