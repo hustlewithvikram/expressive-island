@@ -837,6 +837,8 @@ internal fun DynamicIsland(
                                     EmptyPillContent(
                                         icon = emptyIcon,
                                         containerColor = emptyIconColor,
+                                        leftWidget = persistentPillLeftWidget,
+                                        rightWidget = persistentPillRightWidget,
                                         heightDp = collapsed.heightDp,
                                         isStickToCamera = isStickToCamera,
                                     )
