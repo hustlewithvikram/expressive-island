@@ -269,18 +269,39 @@ class SystemEventMonitor(private val context: Context) {
     private val vpnNetworkCallback =
         object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                val capabilities = connectivityManager?.getNetworkCapabilities(network)
-                if (capabilities?.hasTransport(TRANSPORT_VPN) == true && vpnNetworks.add(network)) {
-                    emit(SystemEventType.VPN_CONNECTED)
-                }
+                // Capabilities are not guaranteed to be populated at onAvailable time.
+                // onCapabilitiesChanged below is the authoritative follow-up.
+                updateVpnNetwork(network, connectivityManager?.getNetworkCapabilities(network))
+            }
+
+            override fun onCapabilitiesChanged(
+                network: Network,
+                capabilities: NetworkCapabilities,
+            ) {
+                updateVpnNetwork(network, capabilities)
             }
 
             override fun onLost(network: Network) {
                 if (vpnNetworks.remove(network) && vpnNetworks.isEmpty()) {
+                    Log.d("SystemEventMonitor", "VPN disconnected")
                     emit(SystemEventType.VPN_DISCONNECTED)
                 }
             }
         }
+
+    private fun updateVpnNetwork(
+        network: Network,
+        capabilities: NetworkCapabilities?,
+    ) {
+        val isVpn = capabilities?.hasTransport(TRANSPORT_VPN) == true
+        if (isVpn && vpnNetworks.add(network)) {
+            Log.d("SystemEventMonitor", "VPN connected: $network")
+            emit(SystemEventType.VPN_CONNECTED)
+        } else if (!isVpn && vpnNetworks.remove(network) && vpnNetworks.isEmpty()) {
+            Log.d("SystemEventMonitor", "VPN disconnected: $network")
+            emit(SystemEventType.VPN_DISCONNECTED)
+        }
+    }
 
     private fun updateWifiState(
         network: Network,
