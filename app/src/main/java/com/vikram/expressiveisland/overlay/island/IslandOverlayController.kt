@@ -2854,6 +2854,18 @@ class IslandOverlayController(private val context: Context) {
                 incomingType == SystemEventType.FLASHLIGHT_ENABLED ||
                         incomingType == SystemEventType.FLASHLIGHT_DISABLED
 
+            SystemEventType.DATA_SAVER_ENABLED,
+            SystemEventType.DATA_SAVER_DISABLED,
+                -> incomingType == SystemEventType.DATA_SAVER_ENABLED || incomingType == SystemEventType.DATA_SAVER_DISABLED
+
+            SystemEventType.AUTO_ROTATE_ENABLED,
+            SystemEventType.AUTO_ROTATE_DISABLED,
+                -> incomingType == SystemEventType.AUTO_ROTATE_ENABLED || incomingType == SystemEventType.AUTO_ROTATE_DISABLED
+
+            SystemEventType.THERMAL_WARNING,
+            SystemEventType.THERMAL_NORMAL,
+                -> incomingType == SystemEventType.THERMAL_WARNING || incomingType == SystemEventType.THERMAL_NORMAL
+
             SystemEventType.RINGER_NORMAL,
             SystemEventType.RINGER_VIBRATE,
             SystemEventType.RINGER_SILENT,
@@ -2903,6 +2915,13 @@ class IslandOverlayController(private val context: Context) {
 
             SystemEventType.DEVICE_LOCKED,
             SystemEventType.DEVICE_UNLOCKED,
+
+            SystemEventType.DATA_SAVER_ENABLED,
+            SystemEventType.DATA_SAVER_DISABLED,
+            SystemEventType.AUTO_ROTATE_ENABLED,
+            SystemEventType.AUTO_ROTATE_DISABLED,
+            SystemEventType.THERMAL_WARNING,
+            SystemEventType.THERMAL_NORMAL,
                 -> false
 
             else -> true
