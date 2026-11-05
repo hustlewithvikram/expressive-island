@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RectangleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -96,6 +97,7 @@ import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.MusicButtonStyle
+import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.MusicVisualizerStyle
 import com.vikram.expressiveisland.overlay.CenterShortcutCatalog
 import com.vikram.expressiveisland.overlay.DynamicIsland
@@ -354,9 +356,15 @@ fun IconBadge(
                 modifier = if (icon.tint) {
                     Modifier.size(iconSize)
                 } else {
+                    val iconShape = when (icon.notificationShape) {
+                        NotificationIconShape.CIRCLE -> CircleShape
+                        NotificationIconShape.SQUARE -> RectangleShape
+                        NotificationIconShape.ROUNDED_SQUARE -> RoundedCornerShape(22)
+                        NotificationIconShape.EXPRESSIVE -> RoundedCornerShape(38)
+                    }
                     Modifier
                         .size(badgeSize * 0.78f)
-                        .clip(CircleShape)
+                        .clip(iconShape)
                 },
             )
 
