@@ -103,6 +103,12 @@ enum class SystemEventFamily(
         ),
     ),
 
+    AIRPLANE_MODE(R.string.event_group_airplane, R.string.event_group_airplane_desc, listOf(SystemEventType.AIRPLANE_MODE_ENABLED, SystemEventType.AIRPLANE_MODE_DISABLED)),
+    DND(R.string.event_group_dnd, R.string.event_group_dnd_desc, listOf(SystemEventType.DND_ENABLED, SystemEventType.DND_DISABLED)),
+    BATTERY_SAVER(R.string.event_group_battery_saver, R.string.event_group_battery_saver_desc, listOf(SystemEventType.BATTERY_SAVER_ENABLED, SystemEventType.BATTERY_SAVER_DISABLED)),
+    NFC(R.string.event_group_nfc, R.string.event_group_nfc_desc, listOf(SystemEventType.NFC_ENABLED, SystemEventType.NFC_DISABLED)),
+    LOCATION(R.string.event_group_location, R.string.event_group_location_desc, listOf(SystemEventType.LOCATION_ENABLED, SystemEventType.LOCATION_DISABLED)),
+    FLASHLIGHT(R.string.event_group_flashlight, R.string.event_group_flashlight_desc, listOf(SystemEventType.FLASHLIGHT_ENABLED, SystemEventType.FLASHLIGHT_DISABLED)),
     RINGER(
         R.string.event_group_ringer,
         R.string.event_group_ringer_desc,
