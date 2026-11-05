@@ -504,7 +504,7 @@
     <string name="behaviour_notif_auto_expand">Auto-expand notifications</string>
     <string name="behaviour_notification_icon">Notification app icon</string>
     <string name="notification_icon_original">Original</string>
-    <string name="notification_icon_original_desc">Use the app's full-colour launcher icon. Falls back to monochrome or the default icon if unavailable.</string>
+    <string name="notification_icon_original_desc">Use the app\'s full-colour launcher icon. Falls back to monochrome or the default icon if unavailable.</string>
     <string name="notification_icon_monochrome">Monochrome</string>
     <string name="notification_icon_monochrome_desc">Use a monochrome app or notification icon when available.</string>
     <string name="notification_icon_automatic">Automatic</string>
