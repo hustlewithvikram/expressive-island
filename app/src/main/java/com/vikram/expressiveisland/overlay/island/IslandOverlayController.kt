@@ -2866,6 +2866,9 @@ class IslandOverlayController(private val context: Context) {
             SystemEventType.THERMAL_NORMAL,
                 -> incomingType == SystemEventType.THERMAL_WARNING || incomingType == SystemEventType.THERMAL_NORMAL
 
+            SystemEventType.REFRESH_RATE_CHANGED -> incomingType == SystemEventType.REFRESH_RATE_CHANGED
+            SystemEventType.AUDIO_OUTPUT_CHANGED -> incomingType == SystemEventType.AUDIO_OUTPUT_CHANGED
+
             SystemEventType.RINGER_NORMAL,
             SystemEventType.RINGER_VIBRATE,
             SystemEventType.RINGER_SILENT,
@@ -2922,6 +2925,8 @@ class IslandOverlayController(private val context: Context) {
             SystemEventType.AUTO_ROTATE_DISABLED,
             SystemEventType.THERMAL_WARNING,
             SystemEventType.THERMAL_NORMAL,
+            SystemEventType.REFRESH_RATE_CHANGED,
+            SystemEventType.AUDIO_OUTPUT_CHANGED,
                 -> false
 
             else -> true
