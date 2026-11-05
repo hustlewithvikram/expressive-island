@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package com.vikram.expressiveisland.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
@@ -43,6 +45,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.RadioButton
@@ -336,20 +340,20 @@ internal fun AppearanceScreen(
                                     Row(Modifier.fillMaxWidth().clickable { pendingNotificationIconShape = shape }.padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
                                         Box(Modifier.size(30.dp).clip(
                                             when (shape) {
-                                                NotificationIconShape.CIRCLE -> CircleShape
-                                                NotificationIconShape.SQUARE -> androidx.compose.foundation.shape.RectangleShape
+                                                NotificationIconShape.CIRCLE -> MaterialShapes.Circle.toShape()
+                                                NotificationIconShape.SQUARE -> MaterialShapes.Square.toShape()
                                                 NotificationIconShape.ROUNDED_SQUARE -> RoundedCornerShape(8.dp)
-                                                NotificationIconShape.EXPRESSIVE -> RoundedCornerShape(14.dp)
-                                                NotificationIconShape.PILL -> RoundedCornerShape(50)
-                                                NotificationIconShape.ARCH -> RoundedCornerShape(topStart = 15.dp, topEnd = 15.dp, bottomStart = 5.dp, bottomEnd = 5.dp)
-                                                NotificationIconShape.SLANTED -> androidx.compose.foundation.shape.CutCornerShape(8.dp)
-                                                NotificationIconShape.SEMI_CIRCLE -> RoundedCornerShape(topStart = 15.dp, topEnd = 15.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-                                                NotificationIconShape.COOKIE_4 -> RoundedCornerShape(9.dp)
-                                                NotificationIconShape.COOKIE_6 -> RoundedCornerShape(7.dp)
-                                                NotificationIconShape.COOKIE_7 -> RoundedCornerShape(11.dp)
-                                                NotificationIconShape.CLOVER_4 -> RoundedCornerShape(12.dp)
-                                                NotificationIconShape.CLOVER_8 -> RoundedCornerShape(14.dp)
-                                                NotificationIconShape.SUNNY -> RoundedCornerShape(13.dp)
+                                                NotificationIconShape.EXPRESSIVE -> MaterialShapes.Cookie9Sided.toShape()
+                                                NotificationIconShape.PILL -> MaterialShapes.Pill.toShape()
+                                                NotificationIconShape.ARCH -> MaterialShapes.Arch.toShape()
+                                                NotificationIconShape.SLANTED -> MaterialShapes.Slanted.toShape()
+                                                NotificationIconShape.SEMI_CIRCLE -> MaterialShapes.SemiCircle.toShape()
+                                                NotificationIconShape.COOKIE_4 -> MaterialShapes.Cookie4Sided.toShape()
+                                                NotificationIconShape.COOKIE_6 -> MaterialShapes.Cookie6Sided.toShape()
+                                                NotificationIconShape.COOKIE_7 -> MaterialShapes.Cookie7Sided.toShape()
+                                                NotificationIconShape.CLOVER_4 -> MaterialShapes.Clover4Leaf.toShape()
+                                                NotificationIconShape.CLOVER_8 -> MaterialShapes.Clover8Leaf.toShape()
+                                                NotificationIconShape.SUNNY -> MaterialShapes.Sunny.toShape()
                                             }
                                         ).background(MaterialTheme.colorScheme.primaryContainer))
                                         Text(shape.name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }, Modifier.weight(1f).padding(start = 12.dp))
