@@ -661,7 +661,7 @@ class IslandOverlayController(private val context: Context) {
                             }
                         },
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
-                        emptyIconColor = behaviour.showsWhenEmptyIconColor,
+                        emptyIconColor = behaviour.showsWhenEmptyIconColor,\n                        persistentPillLeftWidget = behaviour.persistentPillLeftWidget,\n                        persistentPillRightWidget = behaviour.persistentPillRightWidget,
                         emptyOpensCenter = cameraHoleQuickActionsValue ||
                                 behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
                         centerShortcuts = behaviour.centerShortcuts,
