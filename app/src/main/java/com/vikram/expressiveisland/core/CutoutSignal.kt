@@ -17,6 +17,8 @@ import androidx.compose.material.icons.rounded.DataSaverOff
 import androidx.compose.material.icons.rounded.ScreenRotation
 import androidx.compose.material.icons.rounded.ScreenLockRotation
 import androidx.compose.material.icons.rounded.DeviceThermostat
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Speaker
 import androidx.compose.material.icons.rounded.FlashOff
 import androidx.compose.material.icons.rounded.FlashOn
 import androidx.compose.material.icons.rounded.LocationOff
@@ -263,4 +265,6 @@ enum class SystemEventType(
     AUTO_ROTATE_DISABLED(Icons.Rounded.ScreenLockRotation, R.string.event_auto_rotate_disabled, 0xFF94A3B8),
     THERMAL_WARNING(Icons.Rounded.DeviceThermostat, R.string.event_thermal_warning, 0xFFF87171),
     THERMAL_NORMAL(Icons.Rounded.DeviceThermostat, R.string.event_thermal_normal, 0xFF4ADE80),
+    REFRESH_RATE_CHANGED(Icons.Rounded.Refresh, R.string.event_refresh_rate_changed, 0xFF60A5FA),
+    AUDIO_OUTPUT_CHANGED(Icons.Rounded.Speaker, R.string.event_audio_output_changed, 0xFFA78BFA),
 }
