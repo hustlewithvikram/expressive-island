@@ -20,6 +20,8 @@ import android.hardware.usb.UsbManager
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.hardware.display.DisplayManager
+import android.view.Display
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -61,6 +63,8 @@ class SystemEventMonitor(private val context: Context) {
 
     private val audioManager =
         context.getSystemService<AudioManager>()
+
+    private val displayManager = context.getSystemService<DisplayManager>()
 
     private val batteryManager =
         context.getSystemService<BatteryManager>()
@@ -115,6 +119,8 @@ class SystemEventMonitor(private val context: Context) {
     private val wifiNetworks = mutableSetOf<Network>()
     private val bluetoothDevices = mutableSetOf<String>()
     private val headphoneDevices = mutableSetOf<Int>()
+    private var audioOutputSnapshot: Set<String>? = null
+    private var lastRefreshRateHz: Int? = null
 
     @Volatile
     private var isLowBatteryState = false
@@ -276,6 +282,14 @@ class SystemEventMonitor(private val context: Context) {
         }
     }
 
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) = Unit
+        override fun onDisplayRemoved(displayId: Int) = Unit
+        override fun onDisplayChanged(displayId: Int) {
+            if (displayId == Display.DEFAULT_DISPLAY) updateRefreshRate()
+        }
+    }
+
     private val audioDeviceCallback = object : AudioDeviceCallback() {
 
         override fun onAudioDevicesAdded(
@@ -294,6 +308,7 @@ class SystemEventMonitor(private val context: Context) {
                         emit(SystemEventType.HEADPHONES_CONNECTED)
                     }
                 }
+            updateAudioOutputDevices()
         }
 
         override fun onAudioDevicesRemoved(
@@ -306,6 +321,7 @@ class SystemEventMonitor(private val context: Context) {
                 HeadphonesBus.update(null)
                 emit(SystemEventType.HEADPHONES_DISCONNECTED)
             }
+            updateAudioOutputDevices()
         }
     }
 
@@ -481,9 +497,12 @@ class SystemEventMonitor(private val context: Context) {
             ContextCompat.RECEIVER_EXPORTED,
         )
 
+        audioOutputSnapshot = currentAudioOutputSnapshot()
+        lastRefreshRateHz = currentRefreshRateHz()
+        displayManager?.registerDisplayListener(displayListener, mainHandler)
         audioManager?.registerAudioDeviceCallback(
             audioDeviceCallback,
-            null,
+            mainHandler,
         )
 
         context.contentResolver.registerContentObserver(
@@ -530,6 +549,9 @@ class SystemEventMonitor(private val context: Context) {
         audioManager?.unregisterAudioDeviceCallback(
             audioDeviceCallback
         )
+        displayManager?.unregisterDisplayListener(displayListener)
+        audioOutputSnapshot = null
+        lastRefreshRateHz = null
         context.contentResolver.unregisterContentObserver(locationObserver)
         context.contentResolver.unregisterContentObserver(autoRotateObserver)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -728,6 +750,31 @@ class SystemEventMonitor(private val context: Context) {
         val previous = thermalWarningActive
         thermalWarningActive = warning
         if (previous != null && previous != warning) emit(if (warning) SystemEventType.THERMAL_WARNING else SystemEventType.THERMAL_NORMAL)
+    }
+
+    private fun currentRefreshRateHz(): Int? = runCatching {
+        displayManager?.getDisplay(Display.DEFAULT_DISPLAY)?.refreshRate?.roundToInt()
+    }.getOrNull()
+
+    private fun updateRefreshRate() {
+        val current = currentRefreshRateHz() ?: return
+        val previous = lastRefreshRateHz
+        lastRefreshRateHz = current
+        if (previous != null && previous != current) emit(SystemEventType.REFRESH_RATE_CHANGED)
+    }
+
+    private fun currentAudioOutputSnapshot(): Set<String>? = runCatching {
+        audioManager?.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+            ?.filter { it.isSink }
+            ?.map { "${it.id}:${it.type}" }
+            ?.toSet()
+    }.getOrNull()
+
+    private fun updateAudioOutputDevices() {
+        val current = currentAudioOutputSnapshot() ?: return
+        val previous = audioOutputSnapshot
+        audioOutputSnapshot = current
+        if (previous != null && previous != current) emit(SystemEventType.AUDIO_OUTPUT_CHANGED)
     }
 
     private fun updateFlashlightState(enabled: Boolean) {
