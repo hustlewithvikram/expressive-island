@@ -109,7 +109,8 @@ internal fun ShowsWhenEmptyScreen(
 ) {
     val context = LocalContext.current
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
-    val showIcon = behaviour.persistentPillLeftWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON) ||\n        behaviour.persistentPillRightWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON)
+    val showIcon = behaviour.persistentPillLeftWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON) ||
+        behaviour.persistentPillRightWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON)
     val source = behaviour.showsWhenEmptyIcon
     val containerColor = behaviour.showsWhenEmptyIconColor
     val clickAction = behaviour.showsWhenEmptyClickAction
