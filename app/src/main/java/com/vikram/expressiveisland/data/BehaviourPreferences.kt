@@ -260,6 +260,12 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             showsWhenEmpty = prefs[SHOWS_WHEN_EMPTY] ?: BehaviourSettings.SHOWS_WHEN_EMPTY,
             showsWhenEmptyShowIcon = prefs[SHOWS_WHEN_EMPTY_SHOW_ICON]
                 ?: BehaviourSettings.SHOWS_WHEN_EMPTY_SHOW_ICON,
+            persistentPillLeftWidget = prefs[PILL_LEFT_WIDGET]
+                ?.let { runCatching { PillWidgetType.valueOf(it) }.getOrNull() }
+                ?: if (prefs[SHOWS_WHEN_EMPTY_SHOW_ICON] == true) PillWidgetType.ICON else PillWidgetType.NONE,
+            persistentPillRightWidget = prefs[PILL_RIGHT_WIDGET]
+                ?.let { runCatching { PillWidgetType.valueOf(it) }.getOrNull() }
+                ?: PillWidgetType.NONE,
             showsWhenEmptyIcon = prefs[SHOWS_WHEN_EMPTY_ICON]?.let { IconSource.decode(it) },
             showsWhenEmptyIconColor = CutoutColor.deserialize(prefs[SHOWS_WHEN_EMPTY_ICON_COLOR]),
             showsWhenEmptyClickAction = prefs[SHOWS_WHEN_EMPTY_CLICK_ACTION]
