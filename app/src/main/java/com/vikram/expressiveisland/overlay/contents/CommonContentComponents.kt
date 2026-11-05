@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package com.vikram.expressiveisland.overlay.contents
 
 import android.graphics.drawable.AdaptiveIconDrawable
@@ -44,6 +46,8 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -333,20 +337,20 @@ fun IconBadge(
         }
     }
     val notificationShape = when (event.notificationIconShape) {
-        NotificationIconShape.CIRCLE -> CircleShape
-        NotificationIconShape.SQUARE -> RectangleShape
+        NotificationIconShape.CIRCLE -> MaterialShapes.Circle.toShape()
+        NotificationIconShape.SQUARE -> MaterialShapes.Square.toShape()
         NotificationIconShape.ROUNDED_SQUARE -> RoundedCornerShape(22)
-        NotificationIconShape.EXPRESSIVE -> RoundedCornerShape(38)
-        NotificationIconShape.PILL -> RoundedCornerShape(50)
-        NotificationIconShape.ARCH -> RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
-        NotificationIconShape.SLANTED -> androidx.compose.foundation.shape.CutCornerShape(28)
-        NotificationIconShape.SEMI_CIRCLE -> RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 6.dp, bottomEnd = 6.dp)
-        NotificationIconShape.COOKIE_4 -> RoundedCornerShape(32)
-        NotificationIconShape.COOKIE_6 -> RoundedCornerShape(28)
-        NotificationIconShape.COOKIE_7 -> RoundedCornerShape(36)
-        NotificationIconShape.CLOVER_4 -> RoundedCornerShape(42)
-        NotificationIconShape.CLOVER_8 -> RoundedCornerShape(46)
-        NotificationIconShape.SUNNY -> RoundedCornerShape(40)
+        NotificationIconShape.EXPRESSIVE -> MaterialShapes.Cookie9Sided.toShape()
+        NotificationIconShape.PILL -> MaterialShapes.Pill.toShape()
+        NotificationIconShape.ARCH -> MaterialShapes.Arch.toShape()
+        NotificationIconShape.SLANTED -> MaterialShapes.Slanted.toShape()
+        NotificationIconShape.SEMI_CIRCLE -> MaterialShapes.SemiCircle.toShape()
+        NotificationIconShape.COOKIE_4 -> MaterialShapes.Cookie4Sided.toShape()
+        NotificationIconShape.COOKIE_6 -> MaterialShapes.Cookie6Sided.toShape()
+        NotificationIconShape.COOKIE_7 -> MaterialShapes.Cookie7Sided.toShape()
+        NotificationIconShape.CLOVER_4 -> MaterialShapes.Clover4Leaf.toShape()
+        NotificationIconShape.CLOVER_8 -> MaterialShapes.Clover8Leaf.toShape()
+        NotificationIconShape.SUNNY -> MaterialShapes.Sunny.toShape()
     }
     val badgeShape = if (event.notificationKey != null) notificationShape else CircleShape
     Box(
