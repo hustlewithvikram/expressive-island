@@ -25,7 +25,7 @@ enum class HorizontalCutoutMode { HIDDEN, NORMAL_ONLY, STICK_TO_CAMERA, CENTER }
 enum class NotificationIconMode { ORIGINAL, MONOCHROME, AUTOMATIC }
 
 /** Shape mask used for full-colour notification app artwork in the island. */
-enum class NotificationIconShape { CIRCLE, SQUARE, ROUNDED_SQUARE, EXPRESSIVE }
+enum class NotificationIconShape { CIRCLE, SQUARE, ROUNDED_SQUARE, EXPRESSIVE, PILL, ARCH, SLANTED, SEMI_CIRCLE, COOKIE_4, COOKIE_6, COOKIE_7, CLOVER_4, CLOVER_8, SUNNY }
 
 /** Which horizontal swipe directions dismiss the cutout, when swipe-to-dismiss is enabled. */
 enum class SwipeDismissDirection { LEFT, RIGHT, BOTH }
@@ -93,6 +93,8 @@ data class BehaviourSettings(
     val notificationsAutoExpand: Boolean = DEFAULT_NOTIFICATIONS_AUTO_EXPAND,
     val notificationIconMode: NotificationIconMode = DEFAULT_NOTIFICATION_ICON_MODE,
     val notificationIconShape: NotificationIconShape = DEFAULT_NOTIFICATION_ICON_SHAPE,
+    val notificationIconStrokeEnabled: Boolean = false,
+    val notificationIconStrokeColor: CutoutColor? = null,
     val ignoreSilentNotifications: Boolean = DEFAULT_IGNORE_SILENT_NOTIFICATIONS,
     val showActionButtons: Boolean = DEFAULT_SHOW_ACTION_BUTTONS,
     val toastOnAction: Boolean = DEFAULT_TOAST_ON_ACTION,
@@ -234,6 +236,8 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             notificationIconShape = prefs[NOTIFICATION_ICON_SHAPE]
                 ?.let { runCatching { NotificationIconShape.valueOf(it) }.getOrNull() }
                 ?: BehaviourSettings.DEFAULT_NOTIFICATION_ICON_SHAPE,
+            notificationIconStrokeEnabled = prefs[NOTIFICATION_ICON_STROKE_ENABLED] ?: false,
+            notificationIconStrokeColor = CutoutColor.deserialize(prefs[NOTIFICATION_ICON_STROKE_COLOR]),
             ignoreSilentNotifications = prefs[IGNORE_SILENT_NOTIFICATIONS]
                 ?: BehaviourSettings.DEFAULT_IGNORE_SILENT_NOTIFICATIONS,
             showActionButtons = prefs[SHOW_ACTION_BUTTONS]
@@ -308,6 +312,8 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("notificationsAutoExpand", s.notificationsAutoExpand)
             put("notificationIconMode", s.notificationIconMode.name)
             put("notificationIconShape", s.notificationIconShape.name)
+            put("notificationIconStrokeEnabled", s.notificationIconStrokeEnabled)
+            put("notificationIconStrokeColor", s.notificationIconStrokeColor?.serialize() ?: JSONObject.NULL)
             put("ignoreSilentNotifications", s.ignoreSilentNotifications)
             put("showActionButtons", s.showActionButtons)
             put("toastOnAction", s.toastOnAction)
@@ -403,6 +409,12 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             }
             parseEnum<NotificationIconShape>(obj, "notificationIconShape")?.let { shape ->
                 it[NOTIFICATION_ICON_SHAPE] = shape.name
+            }
+            if (obj.has("notificationIconStrokeEnabled")) it[NOTIFICATION_ICON_STROKE_ENABLED] = obj.getBoolean("notificationIconStrokeEnabled")
+            if (obj.has("notificationIconStrokeColor")) {
+                val raw = if (obj.isNull("notificationIconStrokeColor")) null else obj.optString("notificationIconStrokeColor")
+                val color = CutoutColor.deserialize(raw)
+                if (color == null) it.remove(NOTIFICATION_ICON_STROKE_COLOR) else it[NOTIFICATION_ICON_STROKE_COLOR] = color.serialize()
             }
             if (obj.has("ignoreSilentNotifications")) it[IGNORE_SILENT_NOTIFICATIONS] =
                 obj.getBoolean("ignoreSilentNotifications")
@@ -573,6 +585,14 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[NOTIFICATION_ICON_SHAPE] = shape.name
     }
 
+    suspend fun setNotificationIconStrokeEnabled(enabled: Boolean) = context.behaviourDataStore.edit {
+        it[NOTIFICATION_ICON_STROKE_ENABLED] = enabled
+    }
+
+    suspend fun setNotificationIconStrokeColor(color: CutoutColor?) = context.behaviourDataStore.edit {
+        if (color == null) it.remove(NOTIFICATION_ICON_STROKE_COLOR) else it[NOTIFICATION_ICON_STROKE_COLOR] = color.serialize()
+    }
+
     suspend fun setIgnoreSilentNotifications(enabled: Boolean) = context.behaviourDataStore.edit {
         it[IGNORE_SILENT_NOTIFICATIONS] = enabled
     }
@@ -723,6 +743,8 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val NOTIF_AUTO_EXPAND = booleanPreferencesKey("notifications_auto_expand")
         val NOTIFICATION_ICON_MODE = stringPreferencesKey("notification_icon_mode")
         val NOTIFICATION_ICON_SHAPE = stringPreferencesKey("notification_icon_shape")
+        val NOTIFICATION_ICON_STROKE_ENABLED = booleanPreferencesKey("notification_icon_stroke_enabled")
+        val NOTIFICATION_ICON_STROKE_COLOR = stringPreferencesKey("notification_icon_stroke_color")
         val IGNORE_SILENT_NOTIFICATIONS = booleanPreferencesKey("ignore_silent_notifications")
         val SHOW_ACTION_BUTTONS = booleanPreferencesKey("show_action_buttons")
         val TOAST_ON_ACTION = booleanPreferencesKey("toast_on_action")
