@@ -448,6 +448,8 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             if (obj.has("showsWhenEmpty")) it[SHOWS_WHEN_EMPTY] = obj.getBoolean("showsWhenEmpty")
             if (obj.has("showsWhenEmptyShowIcon")) it[SHOWS_WHEN_EMPTY_SHOW_ICON] =
                 obj.getBoolean("showsWhenEmptyShowIcon")
+            parseEnum<PillWidgetType>(obj, "persistentPillLeftWidget")?.let { widget -> it[PILL_LEFT_WIDGET] = widget.name }
+            parseEnum<PillWidgetType>(obj, "persistentPillRightWidget")?.let { widget -> it[PILL_RIGHT_WIDGET] = widget.name }
             if (obj.has("showsWhenEmptyIcon")) {
                 val raw =
                     if (obj.isNull("showsWhenEmptyIcon")) null else obj.optString("showsWhenEmptyIcon")
