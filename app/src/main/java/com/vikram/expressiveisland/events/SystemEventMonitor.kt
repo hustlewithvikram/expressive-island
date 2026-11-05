@@ -1,7 +1,15 @@
 package com.vikram.expressiveisland.events
 
 import android.bluetooth.BluetoothDevice
+import android.app.NotificationManager
 import android.bluetooth.BluetoothManager
+import android.hardware.camera2.CameraManager
+import android.location.LocationManager
+import android.nfc.NfcAdapter
+import android.os.PowerManager
+import android.os.Handler
+import android.os.Looper
+import android.database.ContentObserver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -60,6 +68,27 @@ class SystemEventMonitor(private val context: Context) {
 
     private val bluetoothManager =
         context.getSystemService<BluetoothManager>()
+
+    private val notificationManager = context.getSystemService<NotificationManager>()
+    private val powerManager = context.getSystemService<PowerManager>()
+    private val cameraManager = context.getSystemService<CameraManager>()
+    private val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var airplaneMode: Boolean? = null
+    private var dndEnabled: Boolean? = null
+    private var batterySaverEnabled: Boolean? = null
+    private var nfcEnabled: Boolean? = null
+    private var locationEnabled: Boolean? = null
+    private var flashlightEnabled: Boolean? = null
+
+    private val flashlightCallback = object : CameraManager.TorchCallback() {
+        override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
+            updateFlashlightState(enabled)
+        }
+    }
+    private val locationObserver = object : ContentObserver(mainHandler) {
+        override fun onChange(selfChange: Boolean) = updateLocationState()
+    }
 
     @Volatile
     private var defaultNetworkIsVpn = false
@@ -160,6 +189,12 @@ class SystemEventMonitor(private val context: Context) {
                         }
                     }
                 }
+
+                Intent.ACTION_AIRPLANE_MODE_CHANGED -> updateAirplaneModeState()
+                NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED -> updateDndState()
+                PowerManager.ACTION_POWER_SAVE_MODE_CHANGED -> updateBatterySaverState()
+                NfcAdapter.ACTION_ADAPTER_STATE_CHANGED -> updateNfcState()
+                LocationManager.MODE_CHANGED_ACTION -> updateLocationState()
 
                 "android.net.wifi.WIFI_AP_STATE_CHANGED" -> {
                     val state = intent.getIntExtra(
@@ -397,6 +432,13 @@ class SystemEventMonitor(private val context: Context) {
 
     fun start() {
 
+        airplaneMode = Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
+        dndEnabled = notificationManager?.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
+        batterySaverEnabled = powerManager?.isPowerSaveMode == true
+        nfcEnabled = runCatching { nfcAdapter?.isEnabled }.getOrNull()
+        locationEnabled = isLocationEnabled()
+        flashlightEnabled = false
+
         lastRingerMode = audioManager?.ringerMode
             ?: AudioManager.RINGER_MODE_NORMAL
 
@@ -412,12 +454,22 @@ class SystemEventMonitor(private val context: Context) {
             null,
         )
 
+        context.contentResolver.registerContentObserver(
+            Settings.Secure.getUriFor(Settings.Secure.LOCATION_MODE), false, locationObserver
+        )
+        cameraManager?.registerTorchCallback(flashlightCallback, mainHandler)
+
         connectivityManager?.registerNetworkCallback(
             wifiRequest(),
             wifiNetworkCallback,
         )
         connectivityManager?.registerDefaultNetworkCallback(defaultNetworkCallback)
         connectivityManager?.registerNetworkCallback(vpnRequest(), vpnNetworkCallback)
+        updateAirplaneModeState()
+        updateDndState()
+        updateBatterySaverState()
+        updateNfcState()
+        updateLocationState()
 
         // Populate charging state immediately if the monitor starts while
         // the device is already plugged in.
@@ -437,6 +489,8 @@ class SystemEventMonitor(private val context: Context) {
         audioManager?.unregisterAudioDeviceCallback(
             audioDeviceCallback
         )
+        context.contentResolver.unregisterContentObserver(locationObserver)
+        runCatching { cameraManager?.unregisterTorchCallback(flashlightCallback) }
 
         connectivityManager?.unregisterNetworkCallback(wifiNetworkCallback)
         connectivityManager?.unregisterNetworkCallback(defaultNetworkCallback)
@@ -567,6 +621,55 @@ class SystemEventMonitor(private val context: Context) {
         )
     }
 
+    private fun updateAirplaneModeState() {
+        val enabled = Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
+        val previous = airplaneMode
+        airplaneMode = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.AIRPLANE_MODE_ENABLED else SystemEventType.AIRPLANE_MODE_DISABLED)
+    }
+
+    private fun updateDndState() {
+        val enabled = notificationManager?.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
+        val previous = dndEnabled
+        dndEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.DND_ENABLED else SystemEventType.DND_DISABLED)
+    }
+
+    private fun updateBatterySaverState() {
+        val enabled = powerManager?.isPowerSaveMode == true
+        val previous = batterySaverEnabled
+        batterySaverEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.BATTERY_SAVER_ENABLED else SystemEventType.BATTERY_SAVER_DISABLED)
+    }
+
+    private fun updateNfcState() {
+        val enabled = runCatching { nfcAdapter?.isEnabled }.getOrNull() ?: return
+        val previous = nfcEnabled
+        nfcEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.NFC_ENABLED else SystemEventType.NFC_DISABLED)
+    }
+
+    private fun isLocationEnabled(): Boolean = runCatching {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            context.getSystemService<LocationManager>()?.isLocationEnabled == true
+        } else {
+            Settings.Secure.getInt(context.contentResolver, Settings.Secure.LOCATION_MODE, Settings.Secure.LOCATION_MODE_OFF) != Settings.Secure.LOCATION_MODE_OFF
+        }
+    }.getOrDefault(false)
+
+    private fun updateLocationState() {
+        val enabled = isLocationEnabled()
+        val previous = locationEnabled
+        locationEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.LOCATION_ENABLED else SystemEventType.LOCATION_DISABLED)
+    }
+
+    private fun updateFlashlightState(enabled: Boolean) {
+        val previous = flashlightEnabled
+        flashlightEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.FLASHLIGHT_ENABLED else SystemEventType.FLASHLIGHT_DISABLED)
+    }
+
     private fun emit(type: SystemEventType) {
         IslandEventBus.emit(
             CutoutSignal.System(type)
@@ -598,6 +701,11 @@ class SystemEventMonitor(private val context: Context) {
             addAction("android.net.wifi.WIFI_AP_STATE_CHANGED")
 
             addAction(AudioManager.RINGER_MODE_CHANGED_ACTION)
+            addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)
+            addAction(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED)
+            addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+            addAction(NfcAdapter.ACTION_ADAPTER_STATE_CHANGED)
+            addAction(LocationManager.MODE_CHANGED_ACTION)
         }
 
     private fun wifiRequest() =
