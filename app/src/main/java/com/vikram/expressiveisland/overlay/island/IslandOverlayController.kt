@@ -71,7 +71,8 @@ import com.vikram.expressiveisland.data.EventPreferences
 import com.vikram.expressiveisland.data.GlobalAction
 import com.vikram.expressiveisland.data.HorizontalCutoutMode
 import com.vikram.expressiveisland.data.IconPreferences
-import com.vikram.expressiveisland.data.IconSource\nimport com.vikram.expressiveisland.data.PillWidgetType
+import com.vikram.expressiveisland.data.IconSource
+import com.vikram.expressiveisland.data.PillWidgetType
 import com.vikram.expressiveisland.data.IslandDimensions
 import com.vikram.expressiveisland.data.IslandLayout
 import com.vikram.expressiveisland.data.LayoutPreferences
@@ -660,8 +661,13 @@ class IslandOverlayController(private val context: Context) {
                                 else -> CenterShortcutExecutor.executeCameraHoleAction(action, context)
                             }
                         },
-                        emptyIcon = behaviour.showsWhenEmptyIcon.takeIf {\n                            behaviour.persistentPillLeftWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON) ||\n                                behaviour.persistentPillRightWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON)\n                        },
-                        emptyIconColor = behaviour.showsWhenEmptyIconColor,\n                        persistentPillLeftWidget = behaviour.persistentPillLeftWidget,\n                        persistentPillRightWidget = behaviour.persistentPillRightWidget,
+                        emptyIcon = behaviour.showsWhenEmptyIcon.takeIf {
+                            behaviour.persistentPillLeftWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON) ||
+                                behaviour.persistentPillRightWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON)
+                        },
+                        emptyIconColor = behaviour.showsWhenEmptyIconColor,
+                        persistentPillLeftWidget = behaviour.persistentPillLeftWidget,
+                        persistentPillRightWidget = behaviour.persistentPillRightWidget,
                         emptyOpensCenter = cameraHoleQuickActionsValue ||
                                 behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
                         centerShortcuts = behaviour.centerShortcuts,
