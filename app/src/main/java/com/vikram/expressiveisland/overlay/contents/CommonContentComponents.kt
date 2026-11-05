@@ -19,6 +19,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -336,13 +337,24 @@ fun IconBadge(
         NotificationIconShape.SQUARE -> RectangleShape
         NotificationIconShape.ROUNDED_SQUARE -> RoundedCornerShape(22)
         NotificationIconShape.EXPRESSIVE -> RoundedCornerShape(38)
+        NotificationIconShape.PILL -> RoundedCornerShape(50)
+        NotificationIconShape.ARCH -> RoundedCornerShape(topStart = 50, topEnd = 50, bottomStart = 12, bottomEnd = 12)
+        NotificationIconShape.SLANTED -> androidx.compose.foundation.shape.CutCornerShape(28)
+        NotificationIconShape.SEMI_CIRCLE -> RoundedCornerShape(topStart = 50, topEnd = 50, bottomStart = 8, bottomEnd = 8)
+        NotificationIconShape.COOKIE_4 -> RoundedCornerShape(32)
+        NotificationIconShape.COOKIE_6 -> RoundedCornerShape(28)
+        NotificationIconShape.COOKIE_7 -> RoundedCornerShape(36)
+        NotificationIconShape.CLOVER_4 -> RoundedCornerShape(42)
+        NotificationIconShape.CLOVER_8 -> RoundedCornerShape(46)
+        NotificationIconShape.SUNNY -> RoundedCornerShape(40)
     }
     val badgeShape = if (event.notificationKey != null) notificationShape else CircleShape
     Box(
         modifier = modifier
             .size(badgeSize)
             .clip(badgeShape)
-            .background(badgeColor),
+            .background(badgeColor)
+            .then(if (event.notificationKey != null && event.notificationIconStrokeEnabled) Modifier.border(1.5.dp, event.notificationIconStrokeColor?.resolve() ?: event.accent, badgeShape) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         when (val icon = event.icon) {
