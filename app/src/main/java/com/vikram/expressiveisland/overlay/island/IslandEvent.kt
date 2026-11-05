@@ -10,7 +10,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.MusicButtonStyle
+import com.vikram.expressiveisland.data.NotificationIconShape
+import com.vikram.expressiveisland.data.AssistantChatTurn
+import com.vikram.expressiveisland.data.AssistantChatSession
 import com.vikram.expressiveisland.core.SystemEventType
+import com.vikram.expressiveisland.core.AssistantInteractionMode
 import com.vikram.expressiveisland.service.ProgressData
 
 /**
@@ -102,6 +106,10 @@ data class IslandEvent(
      * clear the real notification from the system, not just hide the pill. Null for everything else.
      */
     val notificationKey: String? = null,
+    /** Shape selected for this notification's app icon and badge. */
+    val notificationIconShape: NotificationIconShape = NotificationIconShape.CIRCLE,
+    val notificationIconStrokeEnabled: Boolean = false,
+    val notificationIconStrokeColor: CutoutColor? = null,
     /** The posting app's display name, resolved once while the notification is received. */
     val notificationAppName: String? = null,
     /** The notification's system post time, used to render its relative timestamp. */
@@ -152,6 +160,19 @@ data class AssistantTileOptions(
     val answerText: String?,
     /** True for the on-demand conversational panel, rather than a mirrored assistant response. */
     val interactivePanel: Boolean = false,
+    val interactionMode: AssistantInteractionMode = AssistantInteractionMode.UNKNOWN,
+    val showMicButton: Boolean = true,
+    val showPromptInput: Boolean = true,
+    val showSendButton: Boolean = true,
+    /** Last submitted prompt, retained in the event so collapsing/recomposing does not erase the chat. */
+    val promptText: String? = null,
+    /** Complete ordered conversation, retained by the event across island collapse/recomposition. */
+    val conversation: List<AssistantChatTurn> = emptyList(),
+    /** Recent and archived assistant chat sessions available from the history action. */
+    val sessions: List<AssistantChatSession> = emptyList(),
+    val activeSessionId: String? = null,
+    /** User-selected background for the expanded interactive assistant panel. */
+    val expandedBackgroundColor: CutoutColor? = null,
 )
 
 /** Which parts of the timer tile to render (and how its buttons look), per the tile's settings. */

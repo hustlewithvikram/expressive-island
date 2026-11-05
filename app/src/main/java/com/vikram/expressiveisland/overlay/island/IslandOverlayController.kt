@@ -17,6 +17,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.UUID
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.Surface
@@ -24,7 +27,7 @@ import android.view.View
 import android.view.ViewTreeObserver
 import android.view.WindowManager
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
@@ -37,6 +40,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.core.CenterShortcutExecutor
 import com.vikram.expressiveisland.core.CutoutSignal
+import com.vikram.expressiveisland.core.AssistantInteractionMode
 import com.vikram.expressiveisland.core.DynamicTile
 import com.vikram.expressiveisland.core.ForegroundAppBus
 import com.vikram.expressiveisland.core.IslandEventBus
@@ -49,9 +53,15 @@ import com.vikram.expressiveisland.data.AppPreferences
 import com.vikram.expressiveisland.data.AppearancePreferences
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.AssistantTilePreferences
+import com.vikram.expressiveisland.data.AssistantIntegrationPreferences
+import com.vikram.expressiveisland.data.AssistantGenerationClient
+import com.vikram.expressiveisland.data.AssistantChatTurn
+import com.vikram.expressiveisland.data.AssistantChatSession
 import com.vikram.expressiveisland.data.AssistantTileSettings
 import com.vikram.expressiveisland.data.BehaviourPreferences
 import com.vikram.expressiveisland.data.BehaviourSettings
+import com.vikram.expressiveisland.data.NotificationIconMode
+import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
@@ -150,6 +160,12 @@ class IslandOverlayController(private val context: Context) {
     private val phoneTilePreferences = PhoneTilePreferences(context)
     private val timerTilePreferences = TimerTilePreferences(context)
     private val assistantTilePreferences = AssistantTilePreferences(context)
+    private val assistantIntegrationPreferences = AssistantIntegrationPreferences(context)
+    private val assistantGenerationClient = AssistantGenerationClient(assistantIntegrationPreferences)
+    private val assistantConversation = mutableListOf<AssistantChatTurn>()
+    private val assistantSessionPrefs = context.getSharedPreferences("assistant_chat_sessions", Context.MODE_PRIVATE)
+    private val assistantSessions = loadAssistantSessions().toMutableList()
+    private var activeAssistantSessionId: String? = null
     private val appPreferences = AppPreferences(context)
     private val permissionDotPreferences = PermissionDotPreferences(context)
     private val density = context.resources.displayMetrics.density
@@ -180,6 +196,10 @@ class IslandOverlayController(private val context: Context) {
     private val displayHeightDp: Int = (displayHeightPx / density).toInt()
 
     private val currentEvent = MutableStateFlow<IslandEvent?>(null)
+    // Matches the assistant panel's measured Compose height so the overlay window and touch region
+    // never extend to the configured maximum when the actual chat is shorter.
+    private var assistantContentHeightEventId: Long? = null
+    private var assistantContentHeightDp: Int = 0
 
     // One visible satellite plus a queue for other active persistent tiles.
     private val satelliteEvent = MutableStateFlow<IslandEvent?>(null)
@@ -194,6 +214,7 @@ class IslandOverlayController(private val context: Context) {
 
     private val layoutState = MutableStateFlow(IslandLayout.DEFAULT)
     private val forcedExpanded = MutableStateFlow<Boolean?>(null)
+    private val cameraHoleQuickActions = MutableStateFlow(false)
     private val behaviourState = MutableStateFlow(BehaviourSettings())
     private val appearanceState = MutableStateFlow(AppearanceSettings())
     private var customIcons: Map<SystemEventType, IconSource> = emptyMap()
@@ -260,7 +281,7 @@ class IslandOverlayController(private val context: Context) {
     private val previewEvent by lazy {
         IslandEvent(
             id = -1L,
-            icon = IslandIcon.Vector(Icons.Rounded.Tune),
+            icon = IslandIcon.Vector(Icons.Rounded.Palette),
             label = context.getString(R.string.preview_label),
             detail = context.getString(R.string.preview_detail),
             accent = Color(0xFF60A5FA),
@@ -432,8 +453,8 @@ class IslandOverlayController(private val context: Context) {
         when {
             previewPinned -> {
                 dismissJob?.cancel()
-                forcedExpanded.value = previewExpanded
-                expanded = previewExpanded
+                forcedExpanded.value = null
+                expanded = false
                 currentEvent.value = previewEvent
             }
 
@@ -566,6 +587,7 @@ class IslandOverlayController(private val context: Context) {
                 val widthDp by displayWidthDp.collectAsStateWithLifecycle()
                 val orientation by orientationState.collectAsStateWithLifecycle()
                 val collapseRequestValue by collapseRequest.collectAsStateWithLifecycle()
+                val cameraHoleQuickActionsValue by cameraHoleQuickActions.collectAsStateWithLifecycle()
                 val isNoExpandLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE &&
                         (behaviour.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
                                 behaviour.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
@@ -590,14 +612,19 @@ class IslandOverlayController(private val context: Context) {
                         animationBounce = behaviour.animationBounce,
                         animationDurationMs = behaviour.animationDurationMs,
                         autoCollapse = when {
-                            event?.assistant?.interactivePanel == true -> false
+                            cameraHoleQuickActionsValue && !behaviour.showsWhenEmpty -> true
+                            event?.assistant?.interactivePanel == true -> assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL && assistantSettings.manualAutoShrinkEnabled
                             event?.assistant != null -> true
                             else -> behaviour.expandedAutoCollapse
                         },
-                        autoCollapseMs = event?.assistant
-                            ?.takeUnless { it.interactivePanel }
-                            ?.let { assistantSettings.expandedTimeoutSeconds * 1_000L }
-                            ?: (behaviour.expandedCollapseSeconds * 1_000L),
+                        autoCollapseMs = when {
+                            event?.assistant?.interactivePanel == true &&
+                                assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL ->
+                                assistantSettings.manualExpandedToPillTimeoutSeconds * 1_000L
+                            event?.assistant != null ->
+                                assistantSettings.expandedTimeoutSeconds * 1_000L
+                            else -> behaviour.expandedCollapseSeconds * 1_000L
+                        },
                         appearance = appearance,
                         showActions = behaviour.showActionButtons,
                         shrinkOnSwipeUp = behaviour.shrinkOnSwipeUp,
@@ -605,14 +632,38 @@ class IslandOverlayController(private val context: Context) {
                         swipeDismissDirection = behaviour.swipeDismissDirection,
                         swipeDismissTarget = behaviour.swipeDismissTarget,
                         showsWhenEmpty = behaviour.showsWhenEmpty && behaviour.cutoutEnabled,
-                        assistantTapEnabled = assistantSettings.tapToOpenAssistant &&
-                                behaviour.cutoutEnabled && !behaviour.showsWhenEmpty &&
-                                !previewPinned && currentEvent.value == null &&
-                                satelliteEvent.value == null,
+                        assistantTapEnabled = false,
                         onAssistantTap = ::openAssistantPanel,
+                        onAssistantPrompt = ::submitAssistantPrompt,
+                        onNewAssistantChat = ::startNewAssistantChat,
+                        onSelectAssistantChat = ::restoreAssistantSession,
+                        cameraHoleTapEnabled = behaviour.cameraHoleTapEnabled &&
+                                behaviour.cutoutEnabled &&
+                                !behaviour.showsWhenEmpty &&
+                                !previewPinned &&
+                                !overlayHidden &&
+                                event == null &&
+                                satelliteEvent.value == null,
+                        cameraHoleTapHaptics = behaviour.cameraHoleTapHaptics,
+                        cameraHoleQuickActions = cameraHoleQuickActionsValue,
+                        onCameraHoleQuickActionsDismiss = { cameraHoleQuickActions.value = false },
+                        onCameraHoleTap = {
+                            val action = when {
+                                behaviour.cameraHoleAssistantEnabled -> com.vikram.expressiveisland.data.CameraHoleTapAction.APP_ASSISTANT
+                                assistantSettings.tapToOpenAssistant -> com.vikram.expressiveisland.data.CameraHoleTapAction.QUICK_ACTIONS
+                                else -> behaviour.cameraHoleTapAction
+                            }
+                            when (action) {
+                                com.vikram.expressiveisland.data.CameraHoleTapAction.QUICK_ACTIONS -> cameraHoleQuickActions.value = true
+                                com.vikram.expressiveisland.data.CameraHoleTapAction.ASSISTANT -> CenterShortcutExecutor.execute(CenterShortcut.Assistant, context)
+                                com.vikram.expressiveisland.data.CameraHoleTapAction.APP_ASSISTANT -> openAssistantPanel()
+                                else -> CenterShortcutExecutor.executeCameraHoleAction(action, context)
+                            }
+                        },
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
                         emptyIconColor = behaviour.showsWhenEmptyIconColor,
-                        emptyOpensCenter = behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
+                        emptyOpensCenter = cameraHoleQuickActionsValue ||
+                                behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
                         centerShortcuts = behaviour.centerShortcuts,
                         centerShowLabels = behaviour.centerShowLabels,
                         centerFillContainers = behaviour.centerFillContainers,
@@ -637,6 +688,17 @@ class IslandOverlayController(private val context: Context) {
                         onCenterShortcut = ::onCenterShortcut,
                         collapseRequest = collapseRequestValue,
                         onExpandedChange = ::onExpandedChanged,
+                        onAssistantContentHeightChanged = { eventId, heightDp ->
+                            val isNewEvent = assistantContentHeightEventId != eventId
+                            // The overlay's own resize can make Compose report a smaller, clipped
+                            // viewport. Keep the largest real measurement for this event so the
+                            // window cannot enter a shrink-feedback loop.
+                            if (isNewEvent || heightDp > assistantContentHeightDp) {
+                                assistantContentHeightEventId = eventId
+                                assistantContentHeightDp = heightDp
+                                if (expanded && currentEvent.value?.id == eventId) syncWindowSize()
+                            }
+                        },
                         onActivate = ::onActivate,
                         onAction = ::onAction,
                         onReply = ::onReply,
@@ -678,7 +740,12 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeBehaviour() = scope.launch {
+        var previousShowsWhenEmpty: Boolean? = null
         behaviourPreferences.settings.collect {
+            if (previousShowsWhenEmpty == true && !it.showsWhenEmpty) {
+                cameraHoleQuickActions.value = false
+            }
+            previousShowsWhenEmpty = it.showsWhenEmpty
             behaviourState.value = it
             // Toggling "hide on lockscreen" (or first load while already locked) must take effect now.
             applyLockVisibility()
@@ -751,7 +818,31 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeAssistantSettings() = scope.launch {
-        assistantTilePreferences.settings.collect { assistantSettings = it }
+        assistantTilePreferences.settings.collect { settings ->
+            assistantSettings = settings
+            val current = currentEvent.value
+            if (current?.assistant != null) {
+                val updated = current.copy(
+                    iconContainerColor = settings.iconContainerColor,
+                    assistant = current.assistant.copy(
+                        displayAnswerInCutout = if (current.assistant.interactivePanel) true else settings.displayAnswerInCutout,
+                        maxCutoutHeightPercent = settings.maxCutoutHeightPercent,
+                        showMicButton = settings.showAssistantMicButton,
+                        showPromptInput = settings.showAssistantPromptInput,
+                        showSendButton = settings.showAssistantSendButton && settings.showAssistantPromptInput,
+                        expandedBackgroundColor = settings.expandedBackgroundColor,
+                    ),
+                )
+                currentEvent.value = updated
+                if (lastAssistantEvent?.id == current.id) lastAssistantEvent = updated
+                if (current.assistant.interactivePanel && !expanded) {
+                    if (settings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
+                        settings.manualAutoHideEnabled
+                    ) scheduleDismiss() else dismissJob?.cancel()
+                }
+                syncWindowSize()
+            }
+        }
     }
 
     /**
@@ -966,11 +1057,16 @@ class IslandOverlayController(private val context: Context) {
      * unaffected; the pill's own footprint does stop passing touches through.
      */
     private fun observeVisibility() = scope.launch {
-        combine(currentEvent, behaviourState, ::Pair).collect { (event, behaviour) ->
+        combine(currentEvent, behaviourState, cameraHoleQuickActions) { event, behaviour, quickActions ->
+            Triple(event, behaviour, quickActions)
+        }.collect { (event, behaviour, quickActions) ->
             setTouchable(
-                event != null || satelliteEvent.value != null ||
+                event != null || satelliteEvent.value != null || quickActions ||
                         (behaviour.showsWhenEmpty && behaviour.cutoutEnabled) ||
-                        (assistantSettings.tapToOpenAssistant && behaviour.cutoutEnabled && !previewPinned),
+                        (behaviour.cameraHoleTapEnabled &&
+                                behaviour.cutoutEnabled &&
+                                !behaviour.showsWhenEmpty &&
+                                !previewPinned),
             )
         }
     }
@@ -1515,10 +1611,14 @@ class IslandOverlayController(private val context: Context) {
         val event = currentEvent.value
         if (expanded && event?.assistant != null && event.assistant.displayAnswerInCutout) {
             val maxCutoutDp = (displayHeightDp * event.assistant.maxCutoutHeightPercent / 100)
-            return maxOf(
-                expandedActionsBonusDp(),
-                maxCutoutDp - layoutState.value.expanded.heightDp
-            )
+            // Start with the configured maximum so Compose can measure the full chat content;
+            // once measured, the callback above contracts the window and touchable region to its
+            // actual height instead of leaving a screen-sized invisible hit area behind.
+            val measuredHeightDp = assistantContentHeightDp.takeIf {
+                assistantContentHeightEventId == event.id && it > 0
+            } ?: maxCutoutDp
+            val targetHeightDp = measuredHeightDp.coerceIn(110, maxCutoutDp)
+            return targetHeightDp - layoutState.value.expanded.heightDp
         }
         return when {
             // The empty pill's expanded "center" (no event) claims room for its shortcut row.
@@ -1569,8 +1669,8 @@ class IslandOverlayController(private val context: Context) {
                 val targetExpanded = if (isNoExpandLandscape) false else expandedTab
                 if (pinned) {
                     dismissJob?.cancel()
-                    forcedExpanded.value = targetExpanded
-                    expanded = targetExpanded
+                    forcedExpanded.value = null
+                    expanded = false
                     currentEvent.value = previewEvent
                 } else {
                     forcedExpanded.value = if (isNoExpandLandscape) false else null
@@ -1645,10 +1745,10 @@ class IslandOverlayController(private val context: Context) {
                     musicSettings.expandOnPlay
 
                 is CutoutSignal.Assistant ->
-                    assistantSettings.displayAnswerInCutout &&
-                            assistantSettings.autoExpandAssistantResponses &&
-                            !assistantSettings.tapToOpenAssistant &&
-                            assistantSettings.autoExpandAssistantResponses
+                    assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.AUTO &&
+                            assistantSettings.displayAnswerInCutout &&
+                            (assistantSettings.autoExpandAssistantResponses ||
+                                    signal.interactionMode == AssistantInteractionMode.VOICE)
 
                 is CutoutSignal.System ->
                     false
@@ -1679,7 +1779,14 @@ class IslandOverlayController(private val context: Context) {
                 eventAnimatedIconLoops,
                 eventColors,
                 appearanceState.value.preferDynamicIconColor,
-            ).copy(initiallyExpanded = autoExpand, normalOnly = normalOnly)
+                behaviourState.value.notificationIconMode,
+                behaviourState.value.notificationIconShape,
+            ).copy(
+                notificationIconStrokeEnabled = behaviourState.value.notificationIconStrokeEnabled,
+                notificationIconStrokeColor = behaviourState.value.notificationIconStrokeColor,
+                initiallyExpanded = autoExpand,
+                normalOnly = normalOnly,
+            )
 
             if (overlayHidden) {
                 if (behaviourState.value.cutoutEnabled) {
@@ -1979,6 +2086,21 @@ class IslandOverlayController(private val context: Context) {
         val wasExpanded = expanded
         expanded = targetExpanded
 
+        // Keep the conversational Assistant event alive when it is collapsed to the pill.
+        // Its prompt/answer live on IslandEvent, not in the expanded composable's disposable state.
+        if (!targetExpanded && currentEvent.value?.assistant?.interactivePanel == true) {
+            if (assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
+                assistantSettings.manualAutoHideEnabled
+            ) {
+                scheduleDismiss()
+            } else {
+                dismissJob?.cancel()
+                currentDeadlineMs = null
+            }
+            syncWindowSize()
+            return
+        }
+
         if (!targetExpanded && restoreSlotsOnCollapse) {
             restoreSlotsOnCollapse = false
             if (behaviourState.value.expandedDisappearOnShrink) {
@@ -2049,6 +2171,7 @@ class IslandOverlayController(private val context: Context) {
      * the press animation the pill already plays.
      */
     private fun onEmptyClick() {
+        cameraHoleQuickActions.value = false
         val behaviour = behaviourState.value
         if (behaviour.showsWhenEmptyClickAction != EmptyClickAction.OPEN_APP) return
         val packageName = behaviour.showsWhenEmptyClickPackage ?: return
@@ -2064,6 +2187,7 @@ class IslandOverlayController(private val context: Context) {
      * we give that collapse a beat to finish so the overlay isn't in the shot / behind the dialog.
      */
     private fun onCenterShortcut(shortcut: CenterShortcut) {
+        cameraHoleQuickActions.value = false
         val settleFirst = shortcut is CenterShortcut.Global &&
                 (shortcut.action == GlobalAction.SCREENSHOT || shortcut.action == GlobalAction.POWER_DIALOG)
         if (settleFirst) {
@@ -2082,13 +2206,11 @@ class IslandOverlayController(private val context: Context) {
      * notification, music session, call, timer, or another active tile.
      */
     private fun openAssistantPanel() {
-        if (!assistantSettings.tapToOpenAssistant ||
-            !behaviourState.value.cutoutEnabled ||
+        if (!behaviourState.value.cutoutEnabled ||
             previewPinned ||
             overlayHidden ||
             currentEvent.value != null ||
-            satelliteEvent.value != null ||
-            tileEnabled[DynamicTile.ASSISTANT] == false
+            satelliteEvent.value != null
         ) return
 
         val signal = CutoutSignal.Assistant(
@@ -2111,12 +2233,17 @@ class IslandOverlayController(private val context: Context) {
             eventColors,
             appearanceState.value.preferDynamicIconColor,
         )
+        assistantConversation.clear()
+        activeAssistantSessionId = UUID.randomUUID().toString()
         val panelEvent = resolved.copy(
             initiallyExpanded = true,
             assistant = resolved.assistant?.copy(
                 displayAnswerInCutout = true,
                 answerText = null,
                 interactivePanel = true,
+                conversation = emptyList(),
+                sessions = assistantSessions.toList(),
+                activeSessionId = activeAssistantSessionId,
             ),
         )
         dismissJob?.cancel()
@@ -2128,6 +2255,165 @@ class IslandOverlayController(private val context: Context) {
         lastAssistantEvent = panelEvent
         assistantActive = true
         syncWindowSize()
+    }
+
+    private fun loadAssistantSessions(): List<AssistantChatSession> = runCatching {
+        val raw = assistantSessionPrefs.getString("sessions", "[]") ?: "[]"
+        val array = JSONArray(raw)
+        (0 until array.length()).mapNotNull sessionLoop@ { index ->
+            val item = array.optJSONObject(index) ?: return@sessionLoop null
+            val turnsJson = item.optJSONArray("turns") ?: JSONArray()
+            val turns = (0 until turnsJson.length()).mapNotNull turnLoop@ { turnIndex ->
+                val turn = turnsJson.optJSONObject(turnIndex) ?: return@turnLoop null
+                AssistantChatTurn(turn.optString("role"), turn.optString("content"))
+            }
+            AssistantChatSession(item.optString("id"), item.optString("title"), item.optLong("updatedAt"), turns)
+        }
+    }.getOrDefault(emptyList())
+
+    private fun persistAssistantSessions() {
+        val array = JSONArray()
+        assistantSessions.sortedByDescending { it.updatedAt }.take(50).forEach { session ->
+            array.put(JSONObject().put("id", session.id).put("title", session.title)
+                .put("updatedAt", session.updatedAt).put("turns", JSONArray().apply {
+                    session.turns.forEach { put(JSONObject().put("role", it.role).put("content", it.content)) }
+                }))
+        }
+        assistantSessionPrefs.edit().putString("sessions", array.toString()).apply()
+    }
+
+    private fun saveActiveAssistantSession(latestPrompt: String? = null) {
+        val id = activeAssistantSessionId ?: return
+        if (assistantConversation.isEmpty()) return
+        val title = assistantConversation.firstOrNull { it.role == "user" }?.content
+            ?.take(64)?.ifBlank { "New chat" } ?: "New chat"
+        val session = AssistantChatSession(id, title, System.currentTimeMillis(), assistantConversation.toList())
+        assistantSessions.removeAll { it.id == id }
+        assistantSessions.add(session)
+        persistAssistantSessions()
+    }
+
+    private fun startNewAssistantChat() {
+        val active = currentEvent.value ?: return
+        if (active.assistant?.interactivePanel != true) return
+        saveActiveAssistantSession()
+        assistantConversation.clear()
+        activeAssistantSessionId = UUID.randomUUID().toString()
+        val updated = active.copy(assistant = active.assistant.copy(
+            promptText = null, answerText = null, conversation = emptyList(),
+            sessions = assistantSessions.toList(), activeSessionId = activeAssistantSessionId,
+        ))
+        currentEvent.value = updated
+        lastAssistantEvent = updated
+    }
+
+    private fun restoreAssistantSession(sessionId: String) {
+        val session = assistantSessions.firstOrNull { it.id == sessionId } ?: return
+        val active = currentEvent.value ?: return
+        if (active.assistant?.interactivePanel != true) return
+        assistantConversation.clear()
+        assistantConversation.addAll(session.turns)
+        activeAssistantSessionId = session.id
+        val lastPrompt = session.turns.lastOrNull { it.role == "user" }?.content
+        val lastAnswer = session.turns.lastOrNull { it.role == "assistant" }?.content
+        val updated = active.copy(assistant = active.assistant.copy(
+            promptText = lastPrompt, answerText = lastAnswer,
+            conversation = session.turns, sessions = assistantSessions.toList(), activeSessionId = activeAssistantSessionId,
+        ))
+        currentEvent.value = updated
+        lastAssistantEvent = updated
+    }
+
+    private fun submitAssistantPrompt(prompt: String, onComplete: (String) -> Unit) {
+        val active = currentEvent.value
+        if (active?.assistant?.interactivePanel != true) {
+            onComplete("Assistant panel is no longer active. Open it again and retry.")
+            return
+        }
+        val requestSessionId = activeAssistantSessionId
+        val history = assistantConversation.toList()
+        assistantConversation += AssistantChatTurn("user", prompt)
+        val assistantTurnIndex = assistantConversation.size
+        assistantConversation += AssistantChatTurn("assistant", "Thinking…")
+        val pendingConversation = assistantConversation.toList()
+        val requestTurns = pendingConversation.toMutableList()
+        currentEvent.value = active.copy(
+            assistant = active.assistant.copy(
+                promptText = prompt,
+                answerText = "Thinking…",
+                conversation = pendingConversation,
+                sessions = assistantSessions.toList(),
+            ),
+        )
+        lastAssistantEvent = currentEvent.value
+        scope.launch {
+            val result = runCatching {
+                assistantGenerationClient.generate(prompt, history)
+            }
+            val answer = result.getOrElse { error ->
+                when {
+                    error.message?.contains("Unable to resolve host", ignoreCase = true) == true ->
+                        "No internet connection. Check your network and try again."
+                    error.message?.contains("timeout", ignoreCase = true) == true ->
+                        "The request timed out. Try again or increase the request timeout."
+                    else -> error.message ?: "Unable to generate a response. Check your provider settings."
+                }
+            }
+            if (result.isSuccess && assistantGenerationClient.streamResponsesEnabled()) {
+                val words = answer.split(Regex("\\s+")).filter { it.isNotBlank() }
+                var visible = ""
+                words.forEachIndexed { index, word ->
+                    visible = if (visible.isEmpty()) word else "$visible $word"
+                    if (activeAssistantSessionId == requestSessionId && assistantTurnIndex in assistantConversation.indices) {
+                        assistantConversation[assistantTurnIndex] = AssistantChatTurn("assistant", visible)
+                        val latest = currentEvent.value
+                        if (latest?.assistant?.interactivePanel == true && latest.assistant.activeSessionId == requestSessionId) {
+                            val updated = latest.copy(assistant = latest.assistant.copy(
+                                answerText = visible,
+                                conversation = assistantConversation.toList(),
+                            ))
+                            currentEvent.value = updated
+                            lastAssistantEvent = updated
+                        }
+                    }
+                    if (index < words.lastIndex) kotlinx.coroutines.delay(32L)
+                }
+            }
+            val completedTurns = requestTurns.toMutableList().apply {
+                val responseIndex = indexOfLast { it.role == "assistant" }
+                if (responseIndex >= 0) this[responseIndex] = AssistantChatTurn("assistant", answer)
+            }
+            if (activeAssistantSessionId == requestSessionId) {
+                if (assistantTurnIndex in assistantConversation.indices) {
+                    assistantConversation[assistantTurnIndex] = AssistantChatTurn("assistant", answer)
+                }
+                saveActiveAssistantSession()
+                val latest = currentEvent.value
+                if (latest?.assistant?.interactivePanel == true && latest.assistant.activeSessionId == requestSessionId) {
+                    val updated = latest.copy(
+                        assistant = latest.assistant.copy(
+                            answerText = answer,
+                            conversation = assistantConversation.toList(),
+                            sessions = assistantSessions.toList(),
+                        ),
+                    )
+                    currentEvent.value = updated
+                    lastAssistantEvent = updated
+                }
+            } else if (requestSessionId != null) {
+                val title = completedTurns.firstOrNull { it.role == "user" }?.content?.take(64) ?: "New chat"
+                assistantSessions.removeAll { it.id == requestSessionId }
+                assistantSessions.add(AssistantChatSession(requestSessionId, title, System.currentTimeMillis(), completedTurns))
+                persistAssistantSessions()
+                val latest = currentEvent.value
+                if (latest?.assistant?.interactivePanel == true) {
+                    val refreshed = latest.copy(assistant = latest.assistant.copy(sessions = assistantSessions.toList()))
+                    currentEvent.value = refreshed
+                    lastAssistantEvent = refreshed
+                }
+            }
+            onComplete(answer)
+        }
     }
 
     private fun onActivate() {
@@ -2326,8 +2612,13 @@ class IslandOverlayController(private val context: Context) {
     private fun scheduleDismiss() {
         dismissJob?.cancel()
         currentDeadlineMs = null
-        // Never time out a live cutout while it's active — it stays until playback / the call stops.
-        if (isPinnedLiveTile()) return
+        // Keep active media/calls/timers pinned. A manually opened Assistant panel is the
+        // exception when its explicit auto-hide option is enabled.
+        val autoHideManualAssistant =
+            currentEvent.value?.assistant?.interactivePanel == true &&
+                assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
+                assistantSettings.manualAutoHideEnabled
+        if (isPinnedLiveTile() && !autoHideManualAssistant) return
 
         // Capture both the event identity and its deadline. Unlock, notification and other transient
         // signals can arrive in the same frame; a timeout from the previous signal must never clear
@@ -2335,6 +2626,9 @@ class IslandOverlayController(private val context: Context) {
         val scheduledEventId = currentEvent.value?.id ?: return
         // A system event with its own duration override wins; everything else uses the global normal.
         val seconds = when {
+            currentEvent.value?.assistant?.interactivePanel == true &&
+                assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL ->
+                assistantSettings.manualPillToHiddenTimeoutSeconds
             currentEvent.value?.assistant != null -> assistantSettings.pillTimeoutSeconds
             currentSystemEventType != null -> eventDurations[currentSystemEventType]
                 ?: behaviourState.value.normalDurationSeconds
@@ -2349,6 +2643,13 @@ class IslandOverlayController(private val context: Context) {
                 return@launch
             }
             if (promoteSatelliteCollapsed()) return@launch
+            if (currentEvent.value?.assistant?.interactivePanel == true &&
+                assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
+                assistantSettings.manualAutoHideEnabled
+            ) {
+                assistantActive = false
+                lastAssistantEvent = null
+            }
             val livePill = livePillToReturnTo()
             when {
                 // Return to the pinned preview if settings is still open.
@@ -2436,6 +2737,8 @@ class IslandOverlayController(private val context: Context) {
             PixelFormat.TRANSLUCENT,
 
             ).apply {
+            // Let the assistant composer remain visible while the IME resizes the overlay viewport.
+            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
             gravity = computeWindowGravity()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 layoutInDisplayCutoutMode =

@@ -1,5 +1,12 @@
 package com.vikram.expressiveisland.ui.screen
 
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.vikram.expressiveisland.core.IslandPreviewBus
+import com.vikram.expressiveisland.permissions.Permissions
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -85,6 +92,30 @@ internal fun BackgroundScreen(
     contentPadding: PaddingValues,
 ) {
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Keep the real cutout preview pinned while this nested appearance editor is visible.
+    DisposableEffect(lifecycleOwner) {
+        fun refresh() {
+            IslandPreviewBus.setActive(Permissions.isAccessibilityGranted(context))
+            IslandPreviewBus.setExpandedPreview(false)
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> refresh()
+                Lifecycle.Event.ON_PAUSE -> IslandPreviewBus.setActive(false)
+                else -> Unit
+            }
+        }
+        refresh()
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            IslandPreviewBus.setActive(false)
+        }
+    }
+
     val layout by viewModel.layout.collectAsStateWithLifecycle()
     val systemInDark = isSystemInDarkTheme()
     var previewDark by remember { mutableStateOf(systemInDark) }

@@ -21,6 +21,12 @@ private val Context.behaviourDataStore: DataStore<Preferences> by preferencesDat
 /** How the cutout behaves when the device is in horizontal/landscape orientation. */
 enum class HorizontalCutoutMode { HIDDEN, NORMAL_ONLY, STICK_TO_CAMERA, CENTER }
 
+/** Preferred artwork for notification app icons shown in the island. */
+enum class NotificationIconMode { ORIGINAL, MONOCHROME, AUTOMATIC }
+
+/** Shape mask used for full-colour notification app artwork in the island. */
+enum class NotificationIconShape { CIRCLE, SQUARE, ROUNDED_SQUARE, EXPRESSIVE, PILL, ARCH, SLANTED, SEMI_CIRCLE, COOKIE_4, COOKIE_6, COOKIE_7, CLOVER_4, CLOVER_8, SUNNY }
+
 /** Which horizontal swipe directions dismiss the cutout, when swipe-to-dismiss is enabled. */
 enum class SwipeDismissDirection { LEFT, RIGHT, BOTH }
 
@@ -85,6 +91,10 @@ data class BehaviourSettings(
     val expandedCollapseSeconds: Int = DEFAULT_COLLAPSE_SECONDS,
     val expandedDisappearOnShrink: Boolean = DEFAULT_DISAPPEAR_ON_SHRINK,
     val notificationsAutoExpand: Boolean = DEFAULT_NOTIFICATIONS_AUTO_EXPAND,
+    val notificationIconMode: NotificationIconMode = DEFAULT_NOTIFICATION_ICON_MODE,
+    val notificationIconShape: NotificationIconShape = DEFAULT_NOTIFICATION_ICON_SHAPE,
+    val notificationIconStrokeEnabled: Boolean = false,
+    val notificationIconStrokeColor: CutoutColor? = null,
     val ignoreSilentNotifications: Boolean = DEFAULT_IGNORE_SILENT_NOTIFICATIONS,
     val showActionButtons: Boolean = DEFAULT_SHOW_ACTION_BUTTONS,
     val toastOnAction: Boolean = DEFAULT_TOAST_ON_ACTION,
@@ -102,6 +112,11 @@ data class BehaviourSettings(
     val centerShowLabels: Boolean = CENTER_SHOW_LABELS,
     val centerFillContainers: Boolean = CENTER_FILL_CONTAINERS,
     val centerThemedIcons: Boolean = CENTER_THEMED_ICONS,
+    /** Independent action for tapping the physical camera hole while no island is shown. */
+    val cameraHoleTapEnabled: Boolean = DEFAULT_CAMERA_HOLE_TAP_ENABLED,
+    val cameraHoleTapAction: CameraHoleTapAction = DEFAULT_CAMERA_HOLE_TAP_ACTION,
+    val cameraHoleTapHaptics: Boolean = DEFAULT_CAMERA_HOLE_TAP_HAPTICS,
+    val cameraHoleAssistantEnabled: Boolean = DEFAULT_CAMERA_HOLE_ASSISTANT_ENABLED,
     val vibrateOnTap: Boolean = DEFAULT_VIBRATE_ON_TAP,
     val hapticsOnPop: Boolean = DEFAULT_HAPTICS_ON_POP,
     val dismissNotifications: Boolean = DEFAULT_DISMISS_NOTIFICATIONS,
@@ -127,6 +142,8 @@ data class BehaviourSettings(
         const val DEFAULT_COLLAPSE_SECONDS = 5
         const val DEFAULT_DISAPPEAR_ON_SHRINK = false
         const val DEFAULT_NOTIFICATIONS_AUTO_EXPAND = false
+        val DEFAULT_NOTIFICATION_ICON_MODE = NotificationIconMode.AUTOMATIC
+        val DEFAULT_NOTIFICATION_ICON_SHAPE = NotificationIconShape.CIRCLE
         const val DEFAULT_IGNORE_SILENT_NOTIFICATIONS = false
         const val DEFAULT_SHOW_ACTION_BUTTONS = true
         const val DEFAULT_TOAST_ON_ACTION = true
@@ -146,6 +163,10 @@ data class BehaviourSettings(
         const val CENTER_SHOW_LABELS = true
         const val CENTER_FILL_CONTAINERS = false
         const val CENTER_THEMED_ICONS = false
+        const val DEFAULT_CAMERA_HOLE_TAP_ENABLED = false
+        val DEFAULT_CAMERA_HOLE_TAP_ACTION = CameraHoleTapAction.SCREENSHOT
+        const val DEFAULT_CAMERA_HOLE_TAP_HAPTICS = true
+        const val DEFAULT_CAMERA_HOLE_ASSISTANT_ENABLED = false
         const val DEFAULT_DISMISS_NOTIFICATIONS = false
         const val DEFAULT_DISPLAY_WHILE_DND = false
         const val DEFAULT_ALERT_ON_NOTIFICATION = false
@@ -209,6 +230,14 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
                 ?: BehaviourSettings.DEFAULT_DISAPPEAR_ON_SHRINK,
             notificationsAutoExpand = prefs[NOTIF_AUTO_EXPAND]
                 ?: BehaviourSettings.DEFAULT_NOTIFICATIONS_AUTO_EXPAND,
+            notificationIconMode = prefs[NOTIFICATION_ICON_MODE]
+                ?.let { runCatching { NotificationIconMode.valueOf(it) }.getOrNull() }
+                ?: BehaviourSettings.DEFAULT_NOTIFICATION_ICON_MODE,
+            notificationIconShape = prefs[NOTIFICATION_ICON_SHAPE]
+                ?.let { runCatching { NotificationIconShape.valueOf(it) }.getOrNull() }
+                ?: BehaviourSettings.DEFAULT_NOTIFICATION_ICON_SHAPE,
+            notificationIconStrokeEnabled = prefs[NOTIFICATION_ICON_STROKE_ENABLED] ?: false,
+            notificationIconStrokeColor = CutoutColor.deserialize(prefs[NOTIFICATION_ICON_STROKE_COLOR]),
             ignoreSilentNotifications = prefs[IGNORE_SILENT_NOTIFICATIONS]
                 ?: BehaviourSettings.DEFAULT_IGNORE_SILENT_NOTIFICATIONS,
             showActionButtons = prefs[SHOW_ACTION_BUTTONS]
@@ -237,6 +266,12 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             centerFillContainers = prefs[CENTER_FILL_CONTAINERS]
                 ?: BehaviourSettings.CENTER_FILL_CONTAINERS,
             centerThemedIcons = prefs[CENTER_THEMED_ICONS] ?: BehaviourSettings.CENTER_THEMED_ICONS,
+            cameraHoleTapEnabled = prefs[CAMERA_HOLE_TAP_ENABLED] ?: BehaviourSettings.DEFAULT_CAMERA_HOLE_TAP_ENABLED,
+            cameraHoleTapAction = prefs[CAMERA_HOLE_TAP_ACTION]
+                ?.let { runCatching { CameraHoleTapAction.valueOf(it) }.getOrNull() }
+                ?: BehaviourSettings.DEFAULT_CAMERA_HOLE_TAP_ACTION,
+            cameraHoleTapHaptics = prefs[CAMERA_HOLE_TAP_HAPTICS] ?: BehaviourSettings.DEFAULT_CAMERA_HOLE_TAP_HAPTICS,
+            cameraHoleAssistantEnabled = prefs[CAMERA_HOLE_ASSISTANT_ENABLED] ?: BehaviourSettings.DEFAULT_CAMERA_HOLE_ASSISTANT_ENABLED,
             vibrateOnTap = prefs[VIBRATE_ON_TAP] ?: BehaviourSettings.DEFAULT_VIBRATE_ON_TAP,
             /** If enabled, haptic feedback fires when the cutout appears and disappears */
             hapticsOnPop = prefs[HAPTICS_ON_POP] ?: BehaviourSettings.DEFAULT_HAPTICS_ON_POP,
@@ -275,6 +310,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("expandedCollapseSeconds", s.expandedCollapseSeconds)
             put("expandedDisappearOnShrink", s.expandedDisappearOnShrink)
             put("notificationsAutoExpand", s.notificationsAutoExpand)
+            put("notificationIconMode", s.notificationIconMode.name)
+            put("notificationIconShape", s.notificationIconShape.name)
+            put("notificationIconStrokeEnabled", s.notificationIconStrokeEnabled)
+            put("notificationIconStrokeColor", s.notificationIconStrokeColor?.serialize() ?: JSONObject.NULL)
             put("ignoreSilentNotifications", s.ignoreSilentNotifications)
             put("showActionButtons", s.showActionButtons)
             put("toastOnAction", s.toastOnAction)
@@ -295,6 +334,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("centerShowLabels", s.centerShowLabels)
             put("centerFillContainers", s.centerFillContainers)
             put("centerThemedIcons", s.centerThemedIcons)
+            put("cameraHoleTapEnabled", s.cameraHoleTapEnabled)
+            put("cameraHoleTapAction", s.cameraHoleTapAction.name)
+            put("cameraHoleTapHaptics", s.cameraHoleTapHaptics)
+            put("cameraHoleAssistantEnabled", s.cameraHoleAssistantEnabled)
             put("vibrateOnTap", s.vibrateOnTap)
             put("hapticsOnPop", s.hapticsOnPop)
             put("dismissNotifications", s.dismissNotifications)
@@ -361,6 +404,18 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
                 obj.getBoolean("expandedDisappearOnShrink")
             if (obj.has("notificationsAutoExpand")) it[NOTIF_AUTO_EXPAND] =
                 obj.getBoolean("notificationsAutoExpand")
+            parseEnum<NotificationIconMode>(obj, "notificationIconMode")?.let { mode ->
+                it[NOTIFICATION_ICON_MODE] = mode.name
+            }
+            parseEnum<NotificationIconShape>(obj, "notificationIconShape")?.let { shape ->
+                it[NOTIFICATION_ICON_SHAPE] = shape.name
+            }
+            if (obj.has("notificationIconStrokeEnabled")) it[NOTIFICATION_ICON_STROKE_ENABLED] = obj.getBoolean("notificationIconStrokeEnabled")
+            if (obj.has("notificationIconStrokeColor")) {
+                val raw = if (obj.isNull("notificationIconStrokeColor")) null else obj.optString("notificationIconStrokeColor")
+                val color = CutoutColor.deserialize(raw)
+                if (color == null) it.remove(NOTIFICATION_ICON_STROKE_COLOR) else it[NOTIFICATION_ICON_STROKE_COLOR] = color.serialize()
+            }
             if (obj.has("ignoreSilentNotifications")) it[IGNORE_SILENT_NOTIFICATIONS] =
                 obj.getBoolean("ignoreSilentNotifications")
             if (obj.has("showActionButtons")) it[SHOW_ACTION_BUTTONS] =
@@ -413,6 +468,11 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
                 obj.getBoolean("centerFillContainers")
             if (obj.has("centerThemedIcons")) it[CENTER_THEMED_ICONS] =
                 obj.getBoolean("centerThemedIcons")
+            if (obj.has("cameraHoleTapEnabled")) it[CAMERA_HOLE_TAP_ENABLED] = obj.getBoolean("cameraHoleTapEnabled")
+            parseEnum<CameraHoleTapAction>(obj, "cameraHoleTapAction")
+                ?.let { action -> it[CAMERA_HOLE_TAP_ACTION] = action.name }
+            if (obj.has("cameraHoleTapHaptics")) it[CAMERA_HOLE_TAP_HAPTICS] = obj.getBoolean("cameraHoleTapHaptics")
+            if (obj.has("cameraHoleAssistantEnabled")) it[CAMERA_HOLE_ASSISTANT_ENABLED] = obj.getBoolean("cameraHoleAssistantEnabled")
             if (obj.has("vibrateOnTap")) it[VIBRATE_ON_TAP] = obj.getBoolean("vibrateOnTap")
             if (obj.has("hapticsOnPop")) it[HAPTICS_ON_POP] = obj.getBoolean("hapticsOnPop")
             if (obj.has("dismissNotifications")) it[DISMISS_NOTIFICATIONS] =
@@ -517,6 +577,22 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[NOTIF_AUTO_EXPAND] = enabled
     }
 
+    suspend fun setNotificationIconMode(mode: NotificationIconMode) = context.behaviourDataStore.edit {
+        it[NOTIFICATION_ICON_MODE] = mode.name
+    }
+
+    suspend fun setNotificationIconShape(shape: NotificationIconShape) = context.behaviourDataStore.edit {
+        it[NOTIFICATION_ICON_SHAPE] = shape.name
+    }
+
+    suspend fun setNotificationIconStrokeEnabled(enabled: Boolean) = context.behaviourDataStore.edit {
+        it[NOTIFICATION_ICON_STROKE_ENABLED] = enabled
+    }
+
+    suspend fun setNotificationIconStrokeColor(color: CutoutColor?) = context.behaviourDataStore.edit {
+        if (color == null) it.remove(NOTIFICATION_ICON_STROKE_COLOR) else it[NOTIFICATION_ICON_STROKE_COLOR] = color.serialize()
+    }
+
     suspend fun setIgnoreSilentNotifications(enabled: Boolean) = context.behaviourDataStore.edit {
         it[IGNORE_SILENT_NOTIFICATIONS] = enabled
     }
@@ -601,6 +677,22 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[CENTER_THEMED_ICONS] = enabled
     }
 
+    suspend fun setCameraHoleTapEnabled(enabled: Boolean) = context.behaviourDataStore.edit {
+        it[CAMERA_HOLE_TAP_ENABLED] = enabled
+    }
+
+    suspend fun setCameraHoleTapAction(action: CameraHoleTapAction) = context.behaviourDataStore.edit {
+        it[CAMERA_HOLE_TAP_ACTION] = action.name
+    }
+
+    suspend fun setCameraHoleTapHaptics(enabled: Boolean) = context.behaviourDataStore.edit {
+        it[CAMERA_HOLE_TAP_HAPTICS] = enabled
+    }
+
+    suspend fun setCameraHoleAssistantEnabled(enabled: Boolean) = context.behaviourDataStore.edit {
+        it[CAMERA_HOLE_ASSISTANT_ENABLED] = enabled
+    }
+
     /** Sets whether the cutout vibrates on tap */
     suspend fun setVibrateOnTap(enabled: Boolean) = context.behaviourDataStore.edit {
         it[VIBRATE_ON_TAP] = enabled
@@ -649,6 +741,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val COLLAPSE_SECONDS = intPreferencesKey("expanded_collapse_seconds")
         val DISAPPEAR_ON_SHRINK = booleanPreferencesKey("expanded_disappear_on_shrink")
         val NOTIF_AUTO_EXPAND = booleanPreferencesKey("notifications_auto_expand")
+        val NOTIFICATION_ICON_MODE = stringPreferencesKey("notification_icon_mode")
+        val NOTIFICATION_ICON_SHAPE = stringPreferencesKey("notification_icon_shape")
+        val NOTIFICATION_ICON_STROKE_ENABLED = booleanPreferencesKey("notification_icon_stroke_enabled")
+        val NOTIFICATION_ICON_STROKE_COLOR = stringPreferencesKey("notification_icon_stroke_color")
         val IGNORE_SILENT_NOTIFICATIONS = booleanPreferencesKey("ignore_silent_notifications")
         val SHOW_ACTION_BUTTONS = booleanPreferencesKey("show_action_buttons")
         val TOAST_ON_ACTION = booleanPreferencesKey("toast_on_action")
@@ -666,6 +762,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val CENTER_SHOW_LABELS = booleanPreferencesKey("center_show_labels")
         val CENTER_FILL_CONTAINERS = booleanPreferencesKey("center_fill_containers")
         val CENTER_THEMED_ICONS = booleanPreferencesKey("center_themed_icons")
+        val CAMERA_HOLE_TAP_ENABLED = booleanPreferencesKey("camera_hole_tap_enabled")
+        val CAMERA_HOLE_TAP_ACTION = stringPreferencesKey("camera_hole_tap_action")
+        val CAMERA_HOLE_TAP_HAPTICS = booleanPreferencesKey("camera_hole_tap_haptics")
+        val CAMERA_HOLE_ASSISTANT_ENABLED = booleanPreferencesKey("camera_hole_assistant_enabled")
         val VIBRATE_ON_TAP = booleanPreferencesKey("vibrate_on_tap")
         val HAPTICS_ON_POP = booleanPreferencesKey("haptics_on_pop")
         val DISMISS_NOTIFICATIONS = booleanPreferencesKey("dismiss_notifications")

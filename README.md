@@ -27,11 +27,10 @@ Notification content is handled on-device. Internet access is used by the in-app
 * [Features](#features)
 * [Screenshots](#screenshots)
 * [Download](#download)
-* [Requirements & Setup](#requirements--setup)
 * [Permissions](#permissions)
 * [Help with translations](#help-with-translations)
-* [Expressive Island vs Expressive Cutout](#expressive-island-vs-expressive-cutout)
 * [Credits & Inspiration](#credits--inspiration)
+* [FAQ](#faq)
 * [License](#license)
 
 ---
@@ -46,19 +45,6 @@ The goal is simple:
 
 > **Make Android's camera cutout feel like a useful, expressive part of the interface instead of just a hole in the screen.**
 
-Notifications can appear directly around the cutout, while live tiles provide quick access to information such as:
-
-* Currently playing music
-* Active phone calls
-* Incoming calls
-* Running timers
-* Charging state
-* Battery warnings
-* Wi-Fi changes
-* Headphone connections
-* USB connections
-* Device unlock events
-
 Everything is designed around Material Expressive shapes, motion, colours, and customisation.
 
 ---
@@ -67,6 +53,7 @@ Everything is designed around Material Expressive shapes, motion, colours, and c
 
 | Category                | Features                                                                                                                                                                                 |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AI Assistant**       | Interactive text and voice assistant · configurable AI provider and model · chat history · streaming responses · custom API support |
 | **Notifications**       | Mirrors notifications in the island · notification icons · automatic expansion · title and text · compact icon-only mode · notification actions · inline replies · swipe-to-dismiss      |
 | **Music**               | Song title and artist · album artwork · optional spinning artwork · playback state · previous / play-pause / next controls                                                               |
 | **Phone calls**         | Caller name · contact photo · live call duration · hang-up action · incoming call interface · answer / decline actions · open in-call screen · optional two-row incoming-call layout     |
@@ -89,11 +76,11 @@ Everything is designed around Material Expressive shapes, motion, colours, and c
 
 | Screenshot 1 | Screenshot 2 | Screenshot 3 |
 |:---:|:---:|:---:|
-| <img alt="Expressive Island screenshot 1" src="https://github.com/user-attachments/assets/9f7e4724-bd91-4486-8f0e-9500906024d2" width="250" /> | <img alt="Expressive Island screenshot 2" src="https://github.com/user-attachments/assets/e803d2a2-8e9b-41e0-8688-54affaefa355" width="250" /> | <img alt="Expressive Island screenshot 3" src="https://github.com/user-attachments/assets/84f40ce3-7ef0-41b4-9d89-3790008de5bc" width="250" /> |
-| Screenshot 4 | Screenshot 5 | Screenshot 6 |
-| <img alt="Expressive Island screenshot 4" src="https://github.com/user-attachments/assets/7c4b132c-54ec-471b-a4c3-bf7ddc7d8846" width="250" /> | <img alt="Expressive Island screenshot 5" src="https://github.com/user-attachments/assets/1d59ac95-0dfb-4b4b-9b8c-2814eb436da1" width="250" /> | <img alt="Expressive Island screenshot 6" src="https://github.com/user-attachments/assets/33542dec-9d6b-456a-bc14-c779c1d07a00" width="250" /> |
-| Screenshot 7 |  |  |
-| <img alt="Expressive Island screenshot 7" src="https://github.com/user-attachments/assets/e33224c9-fe29-4fa2-b580-e0e8a10c7237" width="250" /> |  |  |
+| <img alt="Expressive Island screenshot 1" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-1.png" width="250" /> | <img alt="Expressive Island screenshot 2" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-2.png" width="250" /> | <img alt="Expressive Island screenshot 3" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-3.png" width="250" /> |
+| <img alt="Expressive Island screenshot 4" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-4.png" width="250" /> | <img alt="Expressive Island screenshot 5" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-5.png" width="250" /> | <img alt="Expressive Island screenshot 6" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-6.png" width="250" /> |
+| <img alt="Expressive Island screenshot 7" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-7.png" width="250" /> | <img alt="Expressive Island screenshot 8" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-8.png" width="250" /> | <img alt="Expressive Island screenshot 9" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-9.png" width="250" /> |
+| <img alt="Expressive Island screenshot 10" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-10.png" width="250" /> | <img alt="Expressive Island screenshot 11" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-11.png" width="250" /> | <img alt="Expressive Island screenshot 12" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-12.png" width="250" /> |
+| <img alt="Expressive Island screenshot 13" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-13.png" width="250" /> | <img alt="Expressive Island screenshot 14" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-14.png" width="250" /> | <img alt="Expressive Island screenshot 15" src="https://raw.githubusercontent.com/hustlewithvikram/expressive-island/dev/app/src/main/assets/app-screenshots/app-screenshot-15.png" width="250" /> |
 
 ---
 
@@ -103,9 +90,16 @@ Everything is designed around Material Expressive shapes, motion, colours, and c
 
 [![Download the latest release](https://img.shields.io/badge/Download-latest%20release-005AC1?style=for-the-badge\&logo=github\&logoColor=white)](https://github.com/hustlewithvikram/expressive-island/releases)
 
+[![Download from Orion Store](https://img.shields.io/badge/Download-Orion%20Store-6C5CE7?style=for-the-badge)](https://rookieenough.github.io/Orion-Data/app/?id=expressive-island)
+
 </div>
 
-### Android requirements
+Two build types are available on the [Releases page](https://github.com/hustlewithvikram/expressive-island/releases):
+
+- **Stable release:** The recommended release build for everyday use.
+- **Debug build:** A development/nightly-style build generated after commits to the `dev` and `main` branches. It may contain work in progress and is intended for testing.
+
+# Android requirements
 
 Expressive Island requires:
 
@@ -118,25 +112,18 @@ On first launch, Expressive Island guides you through the permissions required f
 
 ---
 
-# Requirements & Setup
+# Using the AI Assistant
 
-After installing Expressive Island, the app will guide you through the required setup.
+Connect an AI provider once, then use the Assistant tile to chat.
 
-### 1. Notification access
+1. **Get an API key** from your provider (for example, [OpenAI](https://platform.openai.com/api-keys), [Google AI Studio](https://aistudio.google.com/app/apikey), [Anthropic](https://console.anthropic.com/settings/keys), [Groq](https://console.groq.com/keys) or [OpenRouter](https://openrouter.ai/keys)). API access and usage may be billed separately by the provider.
+2. Open **Settings → Integrations → AI Assistant** in Expressive Island.
+3. Select your provider, choose a model, and paste its API key. For **Custom API**, also enter the base URL of your OpenAI-compatible endpoint.
+4. Your provider, model and key are saved locally. The API key is encrypted using Android Keystore.
+5. Open **Settings → Assistant**, select **Manual** mode, then go to **Settings → Behaviour → Camera Hole Touch**. Enable camera-hole touch and choose **App Assistant** as its action.
+6. Tap the camera-hole area to open the Assistant tile, type a message or use the microphone, and send it. Your configured provider generates the response.
 
-Required to mirror notifications into the island.
-
-### 2. Accessibility service
-
-Used to display the island as an overlay above other applications.
-
-Expressive Island does **not** use the accessibility service to read your screen contents.
-
-### 3. Battery optimisation
-
-Optional, but recommended.
-
-Some Android manufacturers aggressively terminate background applications. Allowing Expressive Island to ignore battery optimisation can improve reliability.
+You can change response length, creativity, streaming and conversation context under **Integrations → AI Assistant**. Keep your API key private; never share it or include it in screenshots.
 
 ---
 
@@ -160,17 +147,11 @@ Expressive Island intentionally keeps its permissions to a minimum.
 | **Vibration**                   | Provides haptic feedback |
 | **Shizuku API**                 | Declares optional integration with compatible Shizuku versions |
 
-### Privacy
+# Privacy
 
 Expressive Island requests `INTERNET` access only for its in-app updater, which checks for and downloads app releases. The app does not upload notification content or usage analytics. Notification content is handled locally for display and is not sent to the updater.
 
 The app also declares `REQUEST_INSTALL_PACKAGES` so the updater can hand a downloaded APK to Android's package installer. Android still requires you to confirm installation.
-
----
-
-# Expressive Island vs Expressive Cutout
-
-Expressive Island is a community-developed fork of **Expressive Cutout by EvanKoe**. It builds on the original project's notification, overlay, music, call, timer, event, animation, and customisation foundations while adding ongoing fixes and new features.
 
 ---
 
@@ -196,6 +177,64 @@ Expressive Island currently includes **English, Hindi, and Marathi**. Would you 
 - Test the app with the contributed language before opening a pull request.
 
 Not sure where to start? Open an issue or pull request and mention the language you'd like to help with. Even small corrections are useful.
+
+---
+
+# FAQ
+
+<details>
+<summary>What is Expressive Island?</summary>
+
+Expressive Island is an Android dynamic island app that brings notifications, media controls, calls, timers, and system events around your device's camera cutout.
+</details>
+
+<details>
+<summary>Which Android versions are supported?</summary>
+
+Expressive Island requires Android 10 (API 29) or newer.
+</details>
+
+<details>
+<summary>Why does the app need Notification access?</summary>
+
+Notification access lets Expressive Island display notifications and provide supported notification actions inside the island.
+</details>
+
+<details>
+<summary>Why does the app need Accessibility service access?</summary>
+
+The accessibility service is used to display the island overlay and handle its interactions. It does not read your screen contents.
+</details>
+
+<details>
+<summary>What is the difference between Stable and Debug builds?</summary>
+
+Stable builds are recommended for everyday use. Debug builds are development/nightly-style builds generated after commits to the `dev` and `main` branches and may include unfinished changes. Both are available on the [Releases page](https://github.com/hustlewithvikram/expressive-island/releases).
+</details>
+
+<details>
+<summary>How do I use the AI Assistant?</summary>
+
+Add your AI provider's API key under **Settings → Integrations → AI Assistant**, select a provider and model, then open the Assistant tile. See [Using the AI Assistant](#using-the-ai-assistant) for setup steps.
+</details>
+
+<details>
+<summary>Is my notification data uploaded?</summary>
+
+No. Notification content is handled locally on your device. Internet access is used by the in-app updater to check for and download releases.
+</details>
+
+<details>
+<summary>Where can I report a bug or request a feature?</summary>
+
+Open an [Issue](https://github.com/hustlewithvikram/expressive-island/issues) and include your Android version, device model, and steps to reproduce the issue.
+</details>
+
+<details>
+<summary>How can I contribute or help with translations?</summary>
+
+Contributions are welcome. You can submit a pull request, report issues, or help improve the English, Hindi, and Marathi translations.
+</details>
 
 ---
 
@@ -225,8 +264,5 @@ See the [LICENSE](LICENSE) file for the complete terms.
 
 *An open-source, Material Expressive dynamic island for Android.*
 
-Built on the foundation of **Expressive Cutout by EvanKoe**.
-
-[GitHub](https://github.com/hustlewithvikram/expressive-island) · [Releases](https://github.com/hustlewithvikram/expressive-island/releases) · [Issues](https://github.com/hustlewithvikram/expressive-island/issues)
 
 </div>

@@ -174,6 +174,14 @@ internal fun DynamicIsland(
     emptyOpensCenter: Boolean = false,
     assistantTapEnabled: Boolean = false,
     onAssistantTap: () -> Unit = {},
+    onAssistantPrompt: (String, (String) -> Unit) -> Unit = { _, complete -> complete("Assistant generation is unavailable.") },
+    onNewAssistantChat: () -> Unit = {},
+    onSelectAssistantChat: (String) -> Unit = {},
+    cameraHoleTapEnabled: Boolean = false,
+    cameraHoleTapHaptics: Boolean = true,
+    cameraHoleQuickActions: Boolean = false,
+    onCameraHoleQuickActionsDismiss: () -> Unit = {},
+    onCameraHoleTap: () -> Unit = {},
     centerShortcuts: List<CenterShortcut> = emptyList(),
     centerShowLabels: Boolean = true,
     centerFillContainers: Boolean = false,
@@ -193,6 +201,7 @@ internal fun DynamicIsland(
     onReply: (IslandAction, String) -> Unit,
     onReplyActiveChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
+    onAssistantContentHeightChanged: (Long?, Int) -> Unit = { _, _ -> },
     collapseRequest: Int = 0,
     satellite: IslandEvent? = null,
     satellitePosition: SatellitePosition = SatellitePosition.RIGHT,
@@ -207,7 +216,7 @@ internal fun DynamicIsland(
     val chargingState by ChargingBus.state.collectAsStateWithLifecycle()
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
     val mediaActive = shownEvent?.media != null
-    val emptyPill = event == null && showsWhenEmpty
+    val emptyPill = event == null && (showsWhenEmpty || cameraHoleQuickActions)
 
     val initialExpandedState =
         if (forcedExpanded == false) false else (shownEvent?.initiallyExpanded ?: false)
@@ -223,17 +232,22 @@ internal fun DynamicIsland(
         mutableStateOf(initialExpandedState)
     }
 
+    LaunchedEffect(cameraHoleQuickActions) {
+        if (cameraHoleQuickActions) tapExpanded = true
+    }
+
     var centerInteraction by remember { mutableIntStateOf(0) }
     var mediaInteraction by remember { mutableIntStateOf(0) }
     var replyingTo by remember(shownEvent?.id) { mutableStateOf<IslandAction?>(null) }
     val replying = replyingTo != null
+    var assistantInputActive by remember(shownEvent?.id) { mutableStateOf(false) }
     var sentReply by remember(shownEvent?.id) { mutableStateOf<Pair<IslandAction, String>?>(null) }
     val confirmingSent = sentReply != null
     val isCall = shownEvent?.call != null
     val isAssistantNormalOnly =
         shownEvent?.assistant != null && !shownEvent.assistant.displayAnswerInCutout
     val isNormalOnly = isCall || isAssistantNormalOnly || shownEvent?.normalOnly == true
-    val centerExpanded = emptyPill && emptyOpensCenter && tapExpanded
+    val centerExpanded = emptyPill && (emptyOpensCenter || cameraHoleQuickActions) && tapExpanded
 
     val isExpanded = when {
         forcedExpanded == false -> false
@@ -275,10 +289,13 @@ internal fun DynamicIsland(
         confirmingSent,
         centerInteraction,
         mediaInteraction,
+        cameraHoleQuickActions,
+        assistantInputActive,
     ) {
-        if (forcedExpanded == null && tapExpanded && autoCollapse && !replying && !confirmingSent) {
+        if (forcedExpanded == null && tapExpanded && autoCollapse && !replying && !confirmingSent && !assistantInputActive) {
             delay(autoCollapseMs.milliseconds)
             tapExpanded = false
+            if (cameraHoleQuickActions) onCameraHoleQuickActionsDismiss()
         }
     }
 
@@ -326,7 +343,7 @@ internal fun DynamicIsland(
         else -> collapsed
     }
 
-    var assistantContentHeightDp by remember(shownEvent?.assistant != null) { mutableIntStateOf(0) }
+    var assistantContentHeightDp by remember(shownEvent?.id) { mutableIntStateOf(0) }
     var centerContentHeightDp by remember { mutableIntStateOf(0) }
     val screenHeightDp = LocalConfiguration.current.screenHeightDp
 
@@ -350,7 +367,7 @@ internal fun DynamicIsland(
         isExpanded && shownEvent?.assistant != null && shownEvent.assistant.displayAnswerInCutout -> {
             val maxCutoutHeightDp =
                 (screenHeightDp * shownEvent.assistant.maxCutoutHeightPercent / 100)
-            val fitHeightDp = if (assistantContentHeightDp > 0) assistantContentHeightDp else 110
+            val fitHeightDp = if (assistantContentHeightDp > 0) assistantContentHeightDp else maxCutoutHeightDp
             val targetHeightDp = fitHeightDp.coerceIn(110, maxCutoutHeightDp)
             (targetHeightDp - dims.heightDp)
         }
@@ -361,7 +378,7 @@ internal fun DynamicIsland(
         else -> 0
     }
 
-    val present = event != null || showsWhenEmpty
+    val present = event != null || showsWhenEmpty || cameraHoleQuickActions
     val reveal = remember { Animatable(0f) }
 
     LaunchedEffect(present) {
@@ -372,7 +389,7 @@ internal fun DynamicIsland(
     }
 
     LaunchedEffect(emptyPill) {
-        if (emptyPill) {
+        if (emptyPill && !cameraHoleQuickActions) {
             tapExpanded = false
             if (dismissOffsetX.value != 0f) {
                 reveal.snapTo(0f)
@@ -504,20 +521,33 @@ internal fun DynamicIsland(
             val stickPaddingStart = if (isStickToCamera && !isRotation270) offsetYDp.dp else 0.dp
             val stickPaddingEnd = if (isStickToCamera && isRotation270) offsetYDp.dp else 0.dp
 
-            // When the empty island is disabled there is no IslandSurface to receive taps.
-            // Keep a transparent hit target over the physical cutout so Assistant can still be
-            // opened on demand, but only while no event owns the island.
-            if (event == null && assistantTapEnabled && !showsWhenEmpty && !isStickToCamera) {
+            // Transparent hit target for actions assigned to the physical camera-hole area.
+            // It is deliberately separate from the visible Empty Island pill and only receives
+            // taps while the island has no event and no resting pill is being displayed.
+            if (event == null &&
+                (assistantTapEnabled || cameraHoleTapEnabled) &&
+                !showsWhenEmpty &&
+                !cameraHoleQuickActions &&
+                !isStickToCamera
+            ) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .offset(x = offsetX, y = offsetY)
                         .width(width)
                         .height(collapsed.heightDp.dp)
-                        .pointerInput(assistantTapEnabled) {
+                        .pointerInput(assistantTapEnabled, cameraHoleTapEnabled, cameraHoleTapHaptics) {
                             detectTapGestures(
                                 onTap = {
-                                    if (assistantTapEnabled) onAssistantTap()
+                                    when {
+                                        assistantTapEnabled -> onAssistantTap()
+                                        cameraHoleTapEnabled -> {
+                                            if (cameraHoleTapHaptics) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                            onCameraHoleTap()
+                                        }
+                                    }
                                 }
                             )
                         },
@@ -639,7 +669,11 @@ internal fun DynamicIsland(
                                             // click" action (e.g. open an app) runs via onEmptyClick.
                                             if (emptyOpensCenter) {
                                                 if (forcedExpanded == null) {
+                                                    val wasExpanded = tapExpanded
                                                     tapExpanded = !tapExpanded
+                                                    if (wasExpanded && cameraHoleQuickActions) {
+                                                        onCameraHoleQuickActionsDismiss()
+                                                    }
                                                     if (tapExpanded) {
                                                         scope.launch {
                                                             motion.pop(
@@ -691,7 +725,7 @@ internal fun DynamicIsland(
                             ) {
                                 // The resting empty cutout has no expanded state to shrink back from, so
                                 // don't install the detector at all — it would only swallow vertical drags.
-                                if (forcedExpanded != null || !shrinkOnSwipeUp || emptyPill) return@pointerInput
+                                if (shownEvent?.assistant?.interactivePanel == true || forcedExpanded != null || !shrinkOnSwipeUp || emptyPill) return@pointerInput
                                 val threshold = SWIPE_UP_SHRINK_THRESHOLD_DP.dp.toPx()
                                 var dragTotal = 0f
                                 detectVerticalDragGestures(
@@ -833,8 +867,22 @@ internal fun DynamicIsland(
                                                 replyingTo = null
                                             },
                                             onDismiss = onDismiss,
-                                            onHeightMeasured = { assistantContentHeightDp = it },
-                                            onAssistantInputActiveChange = onReplyActiveChange,
+                                            onAssistantPrompt = onAssistantPrompt,
+                                            onNewAssistantChat = onNewAssistantChat,
+                                            onSelectAssistantChat = onSelectAssistantChat,
+                                            onHeightMeasured = { heightDp ->
+                                                // Measurements can become smaller when the overlay window
+                                                // contracts. Never feed that clipped viewport back as the
+                                                // content's natural height; only grow to a newly observed size.
+                                                if (heightDp > assistantContentHeightDp) {
+                                                    assistantContentHeightDp = heightDp
+                                                    onAssistantContentHeightChanged(e.id, heightDp)
+                                                }
+                                            },
+                                            onAssistantInputActiveChange = { active ->
+                                                assistantInputActive = active
+                                                onReplyActiveChange(active)
+                                            },
                                             onMediaInteraction = { mediaInteraction++ },
                                         )
                                     } else {

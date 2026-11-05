@@ -3,6 +3,7 @@ package com.vikram.expressiveisland.overlay
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Android
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.FlashlightOn
 import androidx.compose.material.icons.rounded.Lock
@@ -10,7 +11,6 @@ import androidx.compose.material.icons.rounded.Nfc
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Screenshot
-import androidx.compose.material.icons.rounded.SignalCellularAlt
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Wifi
@@ -30,6 +30,7 @@ object CenterShortcutCatalog {
      *  should prefer the real launcher icon (see the empty-pill app picker). */
     fun iconFor(shortcut: CenterShortcut): ImageVector = when (shortcut) {
         CenterShortcut.Torch -> Icons.Rounded.FlashlightOn
+        CenterShortcut.Assistant -> Icons.Rounded.AutoAwesome
         is CenterShortcut.Global -> when (shortcut.action) {
             GlobalAction.LOCK_SCREEN -> Icons.Rounded.Lock
             GlobalAction.SCREENSHOT -> Icons.Rounded.Screenshot
@@ -39,7 +40,7 @@ object CenterShortcutCatalog {
             GlobalAction.RECENTS -> Icons.Rounded.Apps
         }
         is CenterShortcut.Panel -> when (shortcut.panel) {
-            SettingsPanel.INTERNET -> Icons.Rounded.SignalCellularAlt
+            SettingsPanel.INTERNET -> Icons.Rounded.Wifi
             SettingsPanel.WIFI -> Icons.Rounded.Wifi
             SettingsPanel.NFC -> Icons.Rounded.Nfc
             SettingsPanel.VOLUME -> Icons.Rounded.VolumeUp
@@ -51,6 +52,7 @@ object CenterShortcutCatalog {
     @StringRes
     fun labelResFor(shortcut: CenterShortcut): Int? = when (shortcut) {
         CenterShortcut.Torch -> com.vikram.expressiveisland.R.string.center_action_torch
+        CenterShortcut.Assistant -> com.vikram.expressiveisland.R.string.center_action_assistant
         is CenterShortcut.Global -> shortcut.action.labelRes
         is CenterShortcut.Panel -> shortcut.panel.labelRes
         is CenterShortcut.LaunchApp -> null

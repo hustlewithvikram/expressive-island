@@ -255,11 +255,17 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                             onOpenApps = { settingsRoute = SettingsRoute.Apps },
                             onOpenBehaviour = { settingsRoute = SettingsRoute.Behaviour },
                             onOpenShowsWhenEmpty = { settingsRoute = SettingsRoute.ShowsWhenEmpty },
+                            onOpenCameraHoleTap = { settingsRoute = SettingsRoute.CameraHoleTap },
                             onOpenAnimation = { settingsRoute = SettingsRoute.Animation },
                             onOpenAppearance = { settingsRoute = SettingsRoute.Appearance },
                             onOpenBackground = { settingsRoute = SettingsRoute.Background },
                             onOpenActionButtons = { settingsRoute = SettingsRoute.ActionButtons },
                             onOpenShizuku = { settingsRoute = SettingsRoute.Shizuku },
+                            onOpenIntegrations = { settingsRoute = SettingsRoute.Integrations },
+                            onOpenIntegrationAI = { settingsRoute = SettingsRoute.IntegrationAI },
+                            onOpenIntegrationNotifications = { settingsRoute = SettingsRoute.IntegrationNotifications },
+                            onOpenIntegrationAutomation = { settingsRoute = SettingsRoute.IntegrationAutomation },
+                            onOpenIntegrationDevice = { settingsRoute = SettingsRoute.IntegrationDevice },
                             onOpenPermissionDot = { settingsRoute = SettingsRoute.PermissionDot },
                         )
 
@@ -345,11 +351,17 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                     SettingsRoute.Apps -> stringResource(R.string.apps_title)
                     SettingsRoute.Behaviour -> stringResource(R.string.behaviour_title)
                     SettingsRoute.ShowsWhenEmpty -> stringResource(R.string.behaviour_empty_pill)
+                    SettingsRoute.CameraHoleTap -> stringResource(R.string.camera_hole_title)
                     SettingsRoute.Animation -> stringResource(R.string.animation_title)
                     SettingsRoute.Appearance -> stringResource(R.string.appearance_section_title)
                     SettingsRoute.Background -> stringResource(R.string.appearance_background_color)
                     SettingsRoute.ActionButtons -> stringResource(R.string.action_buttons_title)
                     SettingsRoute.Shizuku -> stringResource(R.string.shizuku_options_title)
+                    SettingsRoute.Integrations -> "Integrations"
+                    SettingsRoute.IntegrationAI -> "AI Assistant"
+                    SettingsRoute.IntegrationNotifications -> "Notification intelligence"
+                    SettingsRoute.IntegrationAutomation -> "Automation & webhooks"
+                    SettingsRoute.IntegrationDevice -> "Device services"
                     else -> stringResource(R.string.section_icons_title)
                 }
                 BackNavBar(

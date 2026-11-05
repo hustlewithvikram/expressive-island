@@ -286,189 +286,43 @@ class SystemEventMonitor(private val context: Context) {
         network: Network,
         capabilities: NetworkCapabilities?,
     ) {
-        Log.d(
-            "WifiDebug",
-            "========== updateWifiState START =========="
-        )
-
         try {
-            val connectivity = connectivityManager
+            val connectivity = connectivityManager ?: return
+            if (capabilities == null ||
+                !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+            ) return
 
-            if (connectivity == null) {
-                Log.e("WifiDebug", "FAIL: connectivityManager == null")
-                return
-            }
-
-            Log.d(
-                "WifiDebug",
-                "capabilities=$capabilities"
-            )
-
-            if (capabilities == null) {
-                Log.e(
-                    "WifiDebug",
-                    "FAIL: capabilities == null"
-                )
-                return
-            }
-
-            val isWifi =
-                capabilities.hasTransport(
-                    NetworkCapabilities.TRANSPORT_WIFI
-                )
-
-            Log.d(
-                "WifiDebug",
-                "isWifi=$isWifi"
-            )
-
-            if (!isWifi) {
-                Log.e(
-                    "WifiDebug",
-                    "FAIL: network is not WIFI"
-                )
-                return
-            }
-
-            val transportInfo =
-                capabilities.transportInfo
-
-            Log.d(
-                "WifiDebug",
-                "transportInfo=$transportInfo"
-            )
-
-            val wifiInfo =
-                transportInfo as? WifiInfo
-
-            Log.d(
-                "WifiDebug",
-                "wifiInfo=$wifiInfo"
-            )
-
-            if (wifiInfo == null) {
-                Log.e(
-                    "WifiDebug",
-                    "FAIL: transportInfo is not WifiInfo"
-                )
-                return
-            }
-
-            Log.d(
-                "WifiDebug",
-                "SSID=${wifiInfo.ssid}"
-            )
-
-            Log.d(
-                "WifiDebug",
-                "RSSI=${wifiInfo.rssi}"
-            )
-
-            Log.d(
-                "WifiDebug",
-                "linkSpeed=${wifiInfo.linkSpeed}"
-            )
-
-            Log.d(
-                "WifiDebug",
-                "frequency=${wifiInfo.frequency}"
-            )
-
-            val linkProperties =
-                connectivity.getLinkProperties(network)
-
-            Log.d(
-                "WifiDebug",
-                "linkProperties=$linkProperties"
-            )
-
+            val wifiInfo = capabilities.transportInfo as? WifiInfo ?: return
+            val linkProperties = connectivity.getLinkProperties(network)
             val ipAddress = linkProperties
                 ?.linkAddresses
-                ?.firstOrNull { linkAddress ->
-                    linkAddress.address.hostAddress
-                        ?.contains(":") == false
-                }
+                ?.firstOrNull { it.address.hostAddress?.contains(":") == false }
                 ?.address
                 ?.hostAddress
-
-            Log.d(
-                "WifiDebug",
-                "ipAddress=$ipAddress"
-            )
-
-            val signalLevel =
-                WifiManager.calculateSignalLevel(
-                    wifiInfo.rssi,
-                    5,
-                )
 
             val ssid = wifiInfo.ssid
                 ?.removePrefix("\"")
                 ?.removeSuffix("\"")
-                ?.takeUnless {
-                    it.isBlank() ||
-                            it == "<unknown ssid>"
-                }
+                ?.takeUnless { it.isBlank() || it == "<unknown ssid>" }
 
-            val state = WifiState(
-                ssid = ssid,
-                signalLevel = signalLevel,
-                rssi = wifiInfo.rssi.takeIf {
-                    it != -127
-                },
-                linkSpeedMbps =
-                    wifiInfo.linkSpeed.takeIf {
-                        it > 0
-                    },
-                frequencyMhz =
-                    wifiInfo.frequency.takeIf {
-                        it > 0
-                    },
-                ipAddress = ipAddress,
-                isMetered =
-                    capabilities
-                        .hasCapability(
-                            NetworkCapabilities
-                                .NET_CAPABILITY_NOT_METERED
-                        )
-                        .not(),
+            WifiBus.update(
+                WifiState(
+                    ssid = ssid,
+                    signalLevel = WifiManager.calculateSignalLevel(wifiInfo.rssi, 5),
+                    rssi = wifiInfo.rssi.takeIf { it != -127 },
+                    linkSpeedMbps = wifiInfo.linkSpeed.takeIf { it > 0 },
+                    frequencyMhz = wifiInfo.frequency.takeIf { it > 0 },
+                    ipAddress = ipAddress,
+                    isMetered = !capabilities.hasCapability(
+                        NetworkCapabilities.NET_CAPABILITY_NOT_METERED
+                    ),
+                )
             )
-
-            Log.d(
-                "WifiDebug",
-                "CREATED STATE=$state"
-            )
-
-            WifiBus.update(state)
-
-            Log.d(
-                "WifiDebug",
-                "WifiBus AFTER UPDATE=${WifiBus.state.value}"
-            )
-
-            Log.d(
-                "WifiDebug",
-                "========== updateWifiState SUCCESS =========="
-            )
-
         } catch (e: SecurityException) {
-
-            Log.e(
-                "WifiDebug",
-                "SECURITY EXCEPTION",
-                e,
-            )
-
+            Log.w("SystemEventMonitor", "Unable to read Wi-Fi state: permission unavailable", e)
             WifiBus.update(null)
-
         } catch (e: Exception) {
-
-            Log.e(
-                "WifiDebug",
-                "GENERAL EXCEPTION",
-                e,
-            )
-
+            Log.w("SystemEventMonitor", "Unable to read Wi-Fi state", e)
             WifiBus.update(null)
         }
     }

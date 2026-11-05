@@ -19,10 +19,14 @@ import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.ReplyInputStyle
 import com.vikram.expressiveisland.data.SentAlignment
 import com.vikram.expressiveisland.data.AssistantTilePreferences
+import com.vikram.expressiveisland.data.AssistantActivationMode
 import com.vikram.expressiveisland.data.AssistantTileSettings
 import com.vikram.expressiveisland.data.BehaviourPreferences
 import com.vikram.expressiveisland.data.BehaviourSettings
+import com.vikram.expressiveisland.data.NotificationIconMode
+import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CenterShortcut
+import com.vikram.expressiveisland.data.CameraHoleTapAction
 import com.vikram.expressiveisland.data.HorizontalCutoutMode
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.CutoutFill
@@ -442,6 +446,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         timerTilePreferences.setAddButtonColor(color)
     }
 
+    fun setAssistantActivationMode(mode: AssistantActivationMode) = viewModelScope.launch {
+        assistantTilePreferences.setActivationMode(mode)
+    }
+
     fun setAssistantDisplayAnswerInCutout(enabled: Boolean) = viewModelScope.launch {
         assistantTilePreferences.setDisplayAnswerInCutout(enabled)
     }
@@ -452,6 +460,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setAssistantIconContainerColor(color: CutoutColor?) = viewModelScope.launch {
         assistantTilePreferences.setIconContainerColor(color)
+    }
+
+    fun setAssistantExpandedBackgroundColor(color: CutoutColor?) = viewModelScope.launch {
+        assistantTilePreferences.setExpandedBackgroundColor(color)
+    }
+
+    fun setAssistantSurfaceOpacityPercent(percent: Int) = viewModelScope.launch {
+        assistantTilePreferences.setSurfaceOpacityPercent(percent)
+    }
+
+    fun setAssistantBackdropBlurEnabled(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setBackdropBlurEnabled(enabled)
+    }
+
+    fun setAssistantBackdropBlurRadiusDp(radius: Int) = viewModelScope.launch {
+        assistantTilePreferences.setBackdropBlurRadiusDp(radius)
     }
 
     fun setAssistantUseAnimatedIcon(enabled: Boolean) = viewModelScope.launch {
@@ -466,12 +490,44 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         assistantTilePreferences.setAutoExpandAssistantResponses(enabled)
     }
 
+    fun setAssistantAutoReadEvents(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setAutoReadAssistantEvents(enabled)
+    }
+
     fun setAssistantPillTimeoutSeconds(seconds: Int) = viewModelScope.launch {
         assistantTilePreferences.setPillTimeoutSeconds(seconds)
     }
 
     fun setAssistantExpandedTimeoutSeconds(seconds: Int) = viewModelScope.launch {
         assistantTilePreferences.setExpandedTimeoutSeconds(seconds)
+    }
+
+    fun setAssistantManualExpandedToPillTimeoutSeconds(seconds: Int) = viewModelScope.launch {
+        assistantTilePreferences.setManualExpandedToPillTimeoutSeconds(seconds)
+    }
+
+    fun setAssistantManualAutoShrinkEnabled(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setManualAutoShrinkEnabled(enabled)
+    }
+
+    fun setAssistantManualAutoHideEnabled(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setManualAutoHideEnabled(enabled)
+    }
+
+    fun setAssistantManualPillToHiddenTimeoutSeconds(seconds: Int) = viewModelScope.launch {
+        assistantTilePreferences.setManualPillToHiddenTimeoutSeconds(seconds)
+    }
+
+    fun setAssistantShowMicButton(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setShowAssistantMicButton(enabled)
+    }
+
+    fun setAssistantShowPromptInput(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setShowAssistantPromptInput(enabled)
+    }
+
+    fun setAssistantShowSendButton(enabled: Boolean) = viewModelScope.launch {
+        assistantTilePreferences.setShowAssistantSendButton(enabled)
     }
 
     fun setMusicSkipColor(color: CutoutColor?) = viewModelScope.launch {
@@ -588,6 +644,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         behaviourPreferences.setNotificationsAutoExpand(enabled)
     }
 
+    fun setNotificationIconMode(mode: NotificationIconMode) = viewModelScope.launch {
+        behaviourPreferences.setNotificationIconMode(mode)
+    }
+
+    fun setNotificationIconShape(shape: NotificationIconShape) = viewModelScope.launch {
+        behaviourPreferences.setNotificationIconShape(shape)
+    }
+
+    fun setNotificationIconStrokeEnabled(enabled: Boolean) = viewModelScope.launch {
+        behaviourPreferences.setNotificationIconStrokeEnabled(enabled)
+    }
+
+    fun setNotificationIconStrokeColor(color: CutoutColor?) = viewModelScope.launch {
+        behaviourPreferences.setNotificationIconStrokeColor(color)
+    }
+
     fun setIgnoreSilentNotifications(enabled: Boolean) = viewModelScope.launch {
         behaviourPreferences.setIgnoreSilentNotifications(enabled)
     }
@@ -654,6 +726,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setCenterThemedIcons(enabled: Boolean) = viewModelScope.launch {
         behaviourPreferences.setCenterThemedIcons(enabled)
+    }
+
+    fun setCameraHoleTapEnabled(enabled: Boolean) = viewModelScope.launch {
+        behaviourPreferences.setCameraHoleTapEnabled(enabled)
+    }
+
+    fun setCameraHoleTapAction(action: CameraHoleTapAction) = viewModelScope.launch {
+        behaviourPreferences.setCameraHoleAssistantEnabled(false)
+        assistantTilePreferences.setTapToOpenAssistant(false)
+        behaviourPreferences.setCameraHoleTapAction(action)
+    }
+
+    fun setCameraHoleTapHaptics(enabled: Boolean) = viewModelScope.launch {
+        behaviourPreferences.setCameraHoleTapHaptics(enabled)
+    }
+
+    fun setCameraHoleAssistantEnabled(enabled: Boolean) = viewModelScope.launch {
+        behaviourPreferences.setCameraHoleAssistantEnabled(enabled)
     }
 
     fun setSwipeDismissDirection(direction: SwipeDismissDirection) = viewModelScope.launch {

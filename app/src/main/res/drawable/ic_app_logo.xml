@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Full-size artwork for the in-app Profile header. -->
+    <path
+        android:fillColor="#005AC1"
+        android:pathData="
+            M37.7325,27.0675
+            H108
+            V80.9325
+            H37.7325
+            A26.9325,26.9325 0,0 1 10.8,54
+            A26.9325,26.9325 0,0 1 37.7325,27.0675
+            Z" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M73,38
+            C74.5,45 78,48.5 86,52
+            C78,55.5 74.5,59 73,66
+            C71.5,59 68,55.5 60,52
+            C68,48.5 71.5,45 73,38
+            Z" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M91,52
+            C92,56 94,58 99,60
+            C94,62 92,64 91,68
+            C90,64 88,62 83,60
+            C88,58 90,56 91,52
+            Z" />
+
+</vector>

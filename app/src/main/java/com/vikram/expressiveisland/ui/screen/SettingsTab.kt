@@ -106,11 +106,17 @@ fun SettingsTab(
     onOpenApps: () -> Unit,
     onOpenBehaviour: () -> Unit,
     onOpenShowsWhenEmpty: () -> Unit,
+    onOpenCameraHoleTap: () -> Unit,
     onOpenAnimation: () -> Unit,
     onOpenAppearance: () -> Unit,
     onOpenBackground: () -> Unit,
     onOpenActionButtons: () -> Unit,
     onOpenShizuku: () -> Unit,
+    onOpenIntegrations: () -> Unit,
+    onOpenIntegrationAI: () -> Unit,
+    onOpenIntegrationNotifications: () -> Unit,
+    onOpenIntegrationAutomation: () -> Unit,
+    onOpenIntegrationDevice: () -> Unit,
     onOpenPermissionDot: () -> Unit,
 ) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -151,7 +157,8 @@ fun SettingsTab(
                     onOpenBehaviour = onOpenBehaviour,
                     onOpenAnimation = onOpenAnimation,
                     onOpenAppearance = onOpenAppearance,
-                    onOpenShizuku = onOpenShizuku
+                    onOpenShizuku = onOpenShizuku,
+                    onOpenIntegrations = onOpenIntegrations,
                 )
             }
 
@@ -168,10 +175,12 @@ fun SettingsTab(
             SettingsRoute.Behaviour -> BehaviourScreen(
                 viewModel,
                 contentPadding,
-                onOpenShowsWhenEmpty
+                onOpenShowsWhenEmpty,
+                onOpenCameraHoleTap,
             )
 
             SettingsRoute.ShowsWhenEmpty -> ShowsWhenEmptyScreen(viewModel, contentPadding)
+            SettingsRoute.CameraHoleTap -> CameraHoleTapScreen(viewModel, contentPadding)
             SettingsRoute.Animation -> AnimationScreen(viewModel, contentPadding)
             SettingsRoute.Appearance -> AppearanceScreen(
                 viewModel,
@@ -183,6 +192,11 @@ fun SettingsTab(
             SettingsRoute.Background -> BackgroundScreen(viewModel, contentPadding)
             SettingsRoute.ActionButtons -> ButtonScreen(viewModel, contentPadding)
             SettingsRoute.Shizuku -> ShizukuScreen(viewModel, contentPadding, onOpenPermissionDot)
+            SettingsRoute.Integrations -> IntegrationsScreen(contentPadding, onOpenIntegrationAI, onOpenIntegrationNotifications, onOpenIntegrationAutomation, onOpenIntegrationDevice)
+            SettingsRoute.IntegrationAI -> AssistantIntegrationScreen(contentPadding)
+            SettingsRoute.IntegrationNotifications -> IntegrationDetailScreen(contentPadding, "Notification intelligence", "Smart notification summaries, suggested replies and contextual actions.")
+            SettingsRoute.IntegrationAutomation -> IntegrationDetailScreen(contentPadding, "Automation & webhooks", "Connect external workflows and trigger actions from supported island events.")
+            SettingsRoute.IntegrationDevice -> IntegrationDetailScreen(contentPadding, "Device services", "Connect Android system capabilities and companion services.")
             SettingsRoute.PermissionDot -> PermissionDotScreen(viewModel, contentPadding)
         }
     }
@@ -190,7 +204,7 @@ fun SettingsTab(
 
 /** The screens reachable from the Settings tab. Hoisted to MainScreen so the bottom bar can
  *  switch to a back pill on the detail screens. */
-enum class SettingsRoute { List, SizePosition, EventIcons, EventDetail, DynamicTiles, DynamicTileDetail, Apps, Behaviour, ShowsWhenEmpty, Animation, Appearance, Background, ActionButtons, Shizuku, PermissionDot }
+enum class SettingsRoute { List, SizePosition, EventIcons, EventDetail, DynamicTiles, DynamicTileDetail, Apps, Behaviour, ShowsWhenEmpty, CameraHoleTap, Animation, Appearance, Background, ActionButtons, Shizuku, Integrations, IntegrationAI, IntegrationNotifications, IntegrationAutomation, IntegrationDevice, PermissionDot }
 
 /**
  * The screen that back navigation returns to. Most detail screens go straight back to the list,
@@ -200,8 +214,9 @@ val SettingsRoute.parent: SettingsRoute
     get() = when (this) {
         SettingsRoute.Background, SettingsRoute.ActionButtons -> SettingsRoute.Appearance
         SettingsRoute.DynamicTileDetail -> SettingsRoute.DynamicTiles
+        SettingsRoute.IntegrationAI, SettingsRoute.IntegrationNotifications, SettingsRoute.IntegrationAutomation, SettingsRoute.IntegrationDevice -> SettingsRoute.Integrations
         SettingsRoute.EventDetail -> SettingsRoute.EventIcons
-        SettingsRoute.ShowsWhenEmpty -> SettingsRoute.Behaviour
+        SettingsRoute.ShowsWhenEmpty, SettingsRoute.CameraHoleTap -> SettingsRoute.Behaviour
         else -> SettingsRoute.List
     }
 
@@ -210,8 +225,9 @@ val SettingsRoute.depth: Int
     get() = when (this) {
         SettingsRoute.List -> 0
         SettingsRoute.Background, SettingsRoute.ActionButtons, SettingsRoute.DynamicTileDetail,
-        SettingsRoute.EventDetail, SettingsRoute.ShowsWhenEmpty,
-            -> 2
+        SettingsRoute.EventDetail, SettingsRoute.ShowsWhenEmpty, SettingsRoute.CameraHoleTap,
+        SettingsRoute.IntegrationAI, SettingsRoute.IntegrationNotifications,
+        SettingsRoute.IntegrationAutomation, SettingsRoute.IntegrationDevice -> 2
 
         else -> 1
     }
@@ -234,6 +250,7 @@ private fun SettingsList(
     onOpenBehaviour: () -> Unit,
     onOpenAnimation: () -> Unit,
     onOpenShizuku: () -> Unit,
+    onOpenIntegrations: () -> Unit,
     onOpenAppearance: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -518,6 +535,7 @@ private fun SettingsList(
                 if (matches(stringResource(R.string.shizuku_options_title), stringResource(R.string.settings_shizuku_subtitle), "shizuku permission dot status bar accessibility")) {
                     resultCount++
                     SettingsListItem(Icons.Rounded.Terminal, stringResource(R.string.shizuku_options_title), stringResource(R.string.settings_shizuku_subtitle), onOpenShizuku)
+                    SettingsListItem(Icons.Rounded.Apps, "Integrations", "Configure Assistant API providers and connected services", onOpenIntegrations)
                 }
                 if (matches(stringResource(R.string.dynamic_tiles_title), stringResource(R.string.settings_dynamic_tiles_subtitle), "dynamic tiles music timer stopwatch phone call battery charging wifi download recording flashlight")) {
                     resultCount++
@@ -681,6 +699,12 @@ private fun SettingsList(
                 title = stringResource(R.string.shizuku_options_title),
                 subtitle = stringResource(R.string.settings_shizuku_subtitle),
                 onClick = onOpenShizuku,
+            )
+            SettingsListItem(
+                icon = Icons.Rounded.Apps,
+                title = "Integrations",
+                subtitle = "Configure Assistant API providers and connected services",
+                onClick = onOpenIntegrations,
             )
         }
 

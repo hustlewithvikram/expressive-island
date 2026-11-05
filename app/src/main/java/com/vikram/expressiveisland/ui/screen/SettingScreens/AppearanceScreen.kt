@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package com.vikram.expressiveisland.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
@@ -23,6 +25,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -42,10 +45,14 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -77,11 +84,19 @@ import kotlinx.coroutines.launch
 import com.vikram.expressiveisland.data.SatelliteRingPreferences
 import com.vikram.expressiveisland.data.SatelliteRingStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.AppearanceSettings
+import com.vikram.expressiveisland.data.BehaviourSettings
+import com.vikram.expressiveisland.data.NotificationIconMode
+import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
+import com.vikram.expressiveisland.core.IslandPreviewBus
+import com.vikram.expressiveisland.permissions.Permissions
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
@@ -103,6 +118,39 @@ internal fun AppearanceScreen(
 ) {
     val haptics = LocalHapticFeedback.current
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
+    val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
+    var showNotificationIconModeDialog by remember { mutableStateOf(false) }
+    var showNotificationIconShapeDialog by remember { mutableStateOf(false) }
+    var pendingNotificationIconMode by remember(behaviour.notificationIconMode) { mutableStateOf(behaviour.notificationIconMode) }
+    var pendingNotificationIconShape by remember(behaviour.notificationIconShape) { mutableStateOf(behaviour.notificationIconShape) }
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Pin the real overlay to the device cutout while Appearance is visible. The overlay
+    // controller supplies its built-in demo event and observes appearance preferences live.
+    DisposableEffect(lifecycleOwner) {
+        fun refresh() {
+            IslandPreviewBus.setActive(Permissions.isAccessibilityGranted(context))
+        }
+
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> refresh()
+                Lifecycle.Event.ON_PAUSE -> IslandPreviewBus.setActive(false)
+                else -> Unit
+            }
+        }
+
+        refresh()
+        IslandPreviewBus.setExpandedPreview(false)
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            IslandPreviewBus.setActive(false)
+            IslandPreviewBus.setExpandedPreview(false)
+        }
+    }
     var strokeWidth by remember(appearance.strokeWidthDp) { mutableStateOf(appearance.strokeWidthDp.toFloat()) }
     var selectedTab by remember { mutableStateOf(0) }
 
@@ -120,7 +168,7 @@ internal fun AppearanceScreen(
         )
 
         ExpressiveSegmentedRow(
-            options = listOf("Effects", "Content", "Controls", "Camera ring"),
+            options = listOf("Effects", "Content", "Controls", "Camera Ring"),
             selectedIndex = selectedTab,
             onSelect = { selectedTab = it },
             modifier = Modifier
@@ -204,6 +252,125 @@ internal fun AppearanceScreen(
 
             1 -> {
                 CardSectionHeader(
+                    text = "Notification icons",
+                    padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp)
+                )
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable { pendingNotificationIconMode = behaviour.notificationIconMode; showNotificationIconModeDialog = true },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Notification icon style", style = MaterialTheme.typography.titleMedium)
+                            Text(when (behaviour.notificationIconMode) {
+                                NotificationIconMode.ORIGINAL -> "Original"
+                                NotificationIconMode.MONOCHROME -> "Monochrome"
+                                NotificationIconMode.AUTOMATIC -> "Automatic"
+                            }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text("Change", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable { pendingNotificationIconShape = behaviour.notificationIconShape; showNotificationIconShapeDialog = true },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Notification icon shape", style = MaterialTheme.typography.titleMedium)
+                            Text(behaviour.notificationIconShape.name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text("Change", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = "Icon stroke",
+                    description = "Outline notification app icons using the selected shape",
+                    checked = behaviour.notificationIconStrokeEnabled,
+                    onCheckedChange = viewModel::setNotificationIconStrokeEnabled,
+                )
+                AnimatedVisibility(visible = behaviour.notificationIconStrokeEnabled) {
+                    ColorPickerCard(
+                        label = "Icon stroke color",
+                        selected = behaviour.notificationIconStrokeColor,
+                        defaultLabel = "Use notification accent",
+                        defaultColor = MaterialTheme.colorScheme.primary,
+                        onSelect = viewModel::setNotificationIconStrokeColor,
+                        shape = RoundedCornerShape(24.dp),
+                    )
+                }
+                if (showNotificationIconModeDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showNotificationIconModeDialog = false },
+                        title = { Text("Notification icon style") },
+                        text = {
+                            Column {
+                                listOf(
+                                    NotificationIconMode.ORIGINAL to "Original",
+                                    NotificationIconMode.MONOCHROME to "Monochrome",
+                                    NotificationIconMode.AUTOMATIC to "Automatic",
+                                ).forEach { (mode, label) ->
+                                    Row(Modifier.fillMaxWidth().clickable { pendingNotificationIconMode = mode }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        RadioButton(selected = pendingNotificationIconMode == mode, onClick = { pendingNotificationIconMode = mode })
+                                        Text(label, modifier = Modifier.padding(start = 8.dp))
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { showNotificationIconModeDialog = false }, modifier = Modifier.height(40.dp)) { Text("Cancel") }
+                                TextButton(onClick = { viewModel.setNotificationIconMode(pendingNotificationIconMode); showNotificationIconModeDialog = false }, modifier = Modifier.height(40.dp)) { Text("Confirm") }
+                            }
+                        },
+                    )
+                }
+                if (showNotificationIconShapeDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showNotificationIconShapeDialog = false },
+                        title = { Text("Notification icon shape") },
+                        text = {
+                            Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+                                NotificationIconShape.values().forEach { shape ->
+                                    Row(Modifier.fillMaxWidth().clickable { pendingNotificationIconShape = shape }.padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Box(Modifier.size(30.dp).clip(
+                                            when (shape) {
+                                                NotificationIconShape.CIRCLE -> MaterialShapes.Circle.toShape()
+                                                NotificationIconShape.SQUARE -> MaterialShapes.Square.toShape()
+                                                NotificationIconShape.ROUNDED_SQUARE -> RoundedCornerShape(8.dp)
+                                                NotificationIconShape.EXPRESSIVE -> MaterialShapes.Cookie9Sided.toShape()
+                                                NotificationIconShape.PILL -> MaterialShapes.Pill.toShape()
+                                                NotificationIconShape.ARCH -> MaterialShapes.Arch.toShape()
+                                                NotificationIconShape.SLANTED -> MaterialShapes.Slanted.toShape()
+                                                NotificationIconShape.SEMI_CIRCLE -> MaterialShapes.SemiCircle.toShape()
+                                                NotificationIconShape.COOKIE_4 -> MaterialShapes.Cookie4Sided.toShape()
+                                                NotificationIconShape.COOKIE_6 -> MaterialShapes.Cookie6Sided.toShape()
+                                                NotificationIconShape.COOKIE_7 -> MaterialShapes.Cookie7Sided.toShape()
+                                                NotificationIconShape.CLOVER_4 -> MaterialShapes.Clover4Leaf.toShape()
+                                                NotificationIconShape.CLOVER_8 -> MaterialShapes.Clover8Leaf.toShape()
+                                                NotificationIconShape.SUNNY -> MaterialShapes.Sunny.toShape()
+                                            }
+                                        ).background(MaterialTheme.colorScheme.primaryContainer))
+                                        Text(shape.name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }, Modifier.weight(1f).padding(start = 12.dp))
+                                        RadioButton(selected = pendingNotificationIconShape == shape, onClick = { pendingNotificationIconShape = shape })
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { showNotificationIconShapeDialog = false }, modifier = Modifier.height(40.dp)) { Text("Cancel") }
+                                TextButton(onClick = { viewModel.setNotificationIconShape(pendingNotificationIconShape); showNotificationIconShapeDialog = false }, modifier = Modifier.height(40.dp)) { Text("Confirm") }
+                            }
+                        },
+                    )
+                }
+                CardSectionHeader(
                     text = "Content and text",
                     padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp)
                 )
@@ -271,7 +438,7 @@ private fun SatelliteRingSettingsSection() {
     var opacity by remember(settings.opacity) { mutableFloatStateOf(settings.opacity) }
     var ringSize by remember(settings.diameterScale) { mutableFloatStateOf(settings.diameterScale) }
 
-    CardSectionHeader(text = "Camera ring", padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp))
+    CardSectionHeader(text = "Camera Ring", padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp))
     SettingsToggleCard(
         shape = RoundedCornerShape(24.dp),
         title = "Show camera activity ring",
@@ -356,7 +523,7 @@ private fun BackgroundCard(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
@@ -374,7 +541,7 @@ private fun BackgroundCard(onClick: () -> Unit) {
             Spacer(Modifier.width(20.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.appearance_background_color),
+                    text = "Background Color",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
@@ -400,8 +567,8 @@ private fun ActionButtonsCard(onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(
-            topStart = 0.dp,
-            topEnd = 0.dp,
+            topStart = 24.dp,
+            topEnd = 24.dp,
             bottomStart = 24.dp,
             bottomEnd = 24.dp
         ),

@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package com.vikram.expressiveisland.overlay.contents
 
 import android.graphics.drawable.AdaptiveIconDrawable
@@ -19,6 +21,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +37,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -42,6 +46,8 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -96,6 +102,7 @@ import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.MusicButtonStyle
+import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.MusicVisualizerStyle
 import com.vikram.expressiveisland.overlay.CenterShortcutCatalog
 import com.vikram.expressiveisland.overlay.DynamicIsland
@@ -329,11 +336,29 @@ fun IconBadge(
             glyphColor = event.accent
         }
     }
+    val notificationShape = when (event.notificationIconShape) {
+        NotificationIconShape.CIRCLE -> MaterialShapes.Circle.toShape()
+        NotificationIconShape.SQUARE -> MaterialShapes.Square.toShape()
+        NotificationIconShape.ROUNDED_SQUARE -> RoundedCornerShape(22)
+        NotificationIconShape.EXPRESSIVE -> MaterialShapes.Cookie9Sided.toShape()
+        NotificationIconShape.PILL -> MaterialShapes.Pill.toShape()
+        NotificationIconShape.ARCH -> MaterialShapes.Arch.toShape()
+        NotificationIconShape.SLANTED -> MaterialShapes.Slanted.toShape()
+        NotificationIconShape.SEMI_CIRCLE -> MaterialShapes.SemiCircle.toShape()
+        NotificationIconShape.COOKIE_4 -> MaterialShapes.Cookie4Sided.toShape()
+        NotificationIconShape.COOKIE_6 -> MaterialShapes.Cookie6Sided.toShape()
+        NotificationIconShape.COOKIE_7 -> MaterialShapes.Cookie7Sided.toShape()
+        NotificationIconShape.CLOVER_4 -> MaterialShapes.Clover4Leaf.toShape()
+        NotificationIconShape.CLOVER_8 -> MaterialShapes.Clover8Leaf.toShape()
+        NotificationIconShape.SUNNY -> MaterialShapes.Sunny.toShape()
+    }
+    val badgeShape = if (event.notificationKey != null) notificationShape else CircleShape
     Box(
         modifier = modifier
             .size(badgeSize)
-            .clip(CircleShape)
-            .background(badgeColor),
+            .clip(badgeShape)
+            .background(badgeColor)
+            .then(if (event.notificationKey != null && event.notificationIconStrokeEnabled) Modifier.border(1.5.dp, event.notificationIconStrokeColor?.resolve() ?: event.accent, badgeShape) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         when (val icon = event.icon) {
@@ -356,7 +381,7 @@ fun IconBadge(
                 } else {
                     Modifier
                         .size(badgeSize * 0.78f)
-                        .clip(CircleShape)
+                        .clip(badgeShape)
                 },
             )
 

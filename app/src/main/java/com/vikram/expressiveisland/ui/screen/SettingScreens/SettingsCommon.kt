@@ -232,6 +232,7 @@ internal fun SettingsToggleNavCard(
     onCheckedChange: (Boolean) -> Unit,
     onClick: () -> Unit,
     leading: @Composable (() -> Unit)? = null,
+    showChevron: Boolean = true,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -267,12 +268,13 @@ internal fun SettingsToggleNavCard(
                 )
             }
 
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                contentDescription = null,
-            )
-
-            Spacer(Modifier.width(12.dp))
+            if (showChevron) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                )
+                Spacer(Modifier.width(12.dp))
+            }
 
             Box(
                 modifier = Modifier
@@ -310,6 +312,7 @@ internal fun IslandPreviewPanel(
     appearance: AppearanceSettings = AppearanceSettings(),
     collapsedHeightDp: Int = IslandLayout.DEFAULT_COLLAPSED.heightDp,
     showActions: Boolean = true,
+    onIslandClick: (() -> Unit)? = null,
 ) {
     val cutoutOutline = Color.White.copy(alpha = 0.28f)
     // Grow the panel so the island (at its offset) always fits without clipping.
@@ -346,10 +349,12 @@ internal fun IslandPreviewPanel(
 
         // The island, positioned exactly as the overlay would place it (top-centre + offset).
         Box(
-            modifier = Modifier.offset(
-                x = panelWidth / 2f + offsetXDp.dp - islandWidth / 2f,
-                y = offsetYDp.dp,
-            ),
+            modifier = Modifier
+                .offset(
+                    x = panelWidth / 2f + offsetXDp.dp - islandWidth / 2f,
+                    y = offsetYDp.dp,
+                )
+                .then(if (onIslandClick != null) Modifier.clickable(onClick = onIslandClick) else Modifier),
         ) {
             IslandPreview(
                 event = event,

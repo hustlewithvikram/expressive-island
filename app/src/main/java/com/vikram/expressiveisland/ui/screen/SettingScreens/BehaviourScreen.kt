@@ -12,12 +12,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -38,6 +44,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.HorizontalCutoutMode
+import com.vikram.expressiveisland.data.NotificationIconMode
+import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.SwipeDismissDirection
 import com.vikram.expressiveisland.data.SwipeDismissTarget
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
@@ -58,11 +66,13 @@ internal fun BehaviourScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
     onOpenShowsWhenEmpty: () -> Unit,
+    onOpenCameraHoleTap: () -> Unit,
 ) {
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
     var normalSeconds by remember(behaviour.normalDurationSeconds) {
         mutableStateOf(behaviour.normalDurationSeconds.toFloat())
     }
+    var showHorizontalCutoutDialog by remember { mutableStateOf(false) }
     var seconds by remember(behaviour.expandedCollapseSeconds) {
         mutableStateOf(behaviour.expandedCollapseSeconds.toFloat())
     }
@@ -106,32 +116,97 @@ internal fun BehaviourScreen(
             onCheckedChange = viewModel::setHideOnLockscreen,
         )
 
-        BehaviourRadioGroupCard(
+        Card(
+            onClick = { showHorizontalCutoutDialog = true },
+            modifier = Modifier.fillMaxWidth(),
             shape = groupedShape(isFirst = false, isLast = false),
-            title = stringResource(R.string.behaviour_horizontal_cutout),
-            options = listOf(
-                RadioOption(
-                    title = stringResource(R.string.horizontal_cutout_hidden),
-                    description = stringResource(R.string.horizontal_cutout_hidden_desc),
-                ),
-                RadioOption(
-                    title = stringResource(R.string.horizontal_cutout_normal_only),
-                    description = stringResource(R.string.horizontal_cutout_normal_only_desc),
-                ),
-                RadioOption(
-                    title = stringResource(R.string.horizontal_cutout_stick_to_camera),
-                    description = stringResource(R.string.horizontal_cutout_stick_to_camera_desc),
-                ),
-                RadioOption(
-                    title = stringResource(R.string.horizontal_cutout_center),
-                    description = stringResource(R.string.horizontal_cutout_center_desc),
-                ),
-            ),
-            selectedIndex = behaviour.horizontalCutoutMode.ordinal,
-            onSelect = { index ->
-                viewModel.setHorizontalCutoutMode(HorizontalCutoutMode.entries[index])
-            },
-        )
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.behaviour_horizontal_cutout),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = when (behaviour.horizontalCutoutMode) {
+                            HorizontalCutoutMode.HIDDEN -> stringResource(R.string.horizontal_cutout_hidden)
+                            HorizontalCutoutMode.NORMAL_ONLY -> stringResource(R.string.horizontal_cutout_normal_only)
+                            HorizontalCutoutMode.STICK_TO_CAMERA -> stringResource(R.string.horizontal_cutout_stick_to_camera)
+                            HorizontalCutoutMode.CENTER -> stringResource(R.string.horizontal_cutout_center)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    text = "Change",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = "Choose horizontal cutout mode",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+
+        if (showHorizontalCutoutDialog) {
+            AlertDialog(
+                onDismissRequest = { showHorizontalCutoutDialog = false },
+                title = { Text(stringResource(R.string.behaviour_horizontal_cutout)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        val options = listOf(
+                            HorizontalCutoutMode.HIDDEN to (R.string.horizontal_cutout_hidden to R.string.horizontal_cutout_hidden_desc),
+                            HorizontalCutoutMode.NORMAL_ONLY to (R.string.horizontal_cutout_normal_only to R.string.horizontal_cutout_normal_only_desc),
+                            HorizontalCutoutMode.STICK_TO_CAMERA to (R.string.horizontal_cutout_stick_to_camera to R.string.horizontal_cutout_stick_to_camera_desc),
+                            HorizontalCutoutMode.CENTER to (R.string.horizontal_cutout_center to R.string.horizontal_cutout_center_desc),
+                        )
+                        options.forEach { (mode, labels) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable {
+                                        viewModel.setHorizontalCutoutMode(mode)
+                                        showHorizontalCutoutDialog = false
+                                    }
+                                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RadioButton(
+                                    selected = behaviour.horizontalCutoutMode == mode,
+                                    onClick = {
+                                        viewModel.setHorizontalCutoutMode(mode)
+                                        showHorizontalCutoutDialog = false
+                                    },
+                                )
+                                Column(modifier = Modifier.padding(start = 8.dp)) {
+                                    Text(stringResource(labels.first), style = MaterialTheme.typography.bodyLarge)
+                                    Text(
+                                        stringResource(labels.second),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showHorizontalCutoutDialog = false }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                },
+            )
+        }
 
         BehaviourSliderRow(
             shape = groupedShape(isFirst = false, isLast = false),
@@ -385,7 +460,7 @@ internal fun BehaviourScreen(
 
         // Empty Island
         CardSectionHeader(
-            text = "Empty Island",
+            text = "Persistent Pill",
             padding = PaddingValues(
                 start = 6.dp,
                 top = 8.dp,
@@ -394,7 +469,7 @@ internal fun BehaviourScreen(
         )
 
         SettingsToggleNavCard(
-            shape = groupedShape(isFirst = true, isLast = true),
+            shape = groupedShape(isFirst = true, isLast = false),
             title = stringResource(R.string.behaviour_empty_pill),
             description = stringResource(R.string.behaviour_empty_pill_desc),
             checked = behaviour.showsWhenEmpty,
@@ -403,6 +478,20 @@ internal fun BehaviourScreen(
                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onOpenShowsWhenEmpty()
             },
+            showChevron = false,
+        )
+
+        SettingsToggleNavCard(
+            shape = groupedShape(isFirst = false, isLast = true),
+            title = stringResource(R.string.camera_hole_title),
+            description = stringResource(R.string.camera_hole_desc),
+            checked = behaviour.cameraHoleTapEnabled,
+            onCheckedChange = viewModel::setCameraHoleTapEnabled,
+            onClick = {
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onOpenCameraHoleTap()
+            },
+            showChevron = false,
         )
         }
 

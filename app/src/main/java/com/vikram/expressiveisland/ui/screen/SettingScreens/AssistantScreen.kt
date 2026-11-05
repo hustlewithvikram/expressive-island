@@ -5,10 +5,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,20 +26,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.core.DynamicTile
+import com.vikram.expressiveisland.data.AssistantActivationMode
 import com.vikram.expressiveisland.ui.AppViewModel
-import com.vikram.expressiveisland.ui.screen.SettingsSliderCard
-import com.vikram.expressiveisland.ui.screen.SettingsToggleCard
+import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 
-/**
- * Settings for the assistant dynamic tile: whether to display the text answer in the cutout,
- * the max cutout height as a percentage of the screen height, and the tile's icon container colour.
- */
 @Composable
 internal fun AssistantScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
 ) {
     val settings by viewModel.assistantTile.collectAsStateWithLifecycle()
+    val selectedTab = if (settings.activationMode == AssistantActivationMode.AUTO) 0 else 1
 
     Column(
         modifier = Modifier
@@ -45,41 +45,34 @@ internal fun AssistantScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        SettingsToggleCard(
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
-            title = stringResource(R.string.assistant_display_answer_title),
-            description = stringResource(R.string.assistant_display_answer_desc),
-            checked = settings.displayAnswerInCutout,
-            onCheckedChange = viewModel::setAssistantDisplayAnswerInCutout,
+        ExpressiveSegmentedRow(
+            options = listOf("Auto", "Manual"),
+            selectedIndex = selectedTab,
+            onSelect = {
+                viewModel.setAssistantActivationMode(
+                    if (it == 0) AssistantActivationMode.AUTO else AssistantActivationMode.MANUAL,
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 8.dp),
+            allowFullLabels = true,
         )
 
-        // The max height only matters while the answer is actually rendered in the cutout.
-        AnimatedVisibility(visible = settings.displayAnswerInCutout) {
-            var sliderValue by remember(settings.maxCutoutHeightPercent) {
-                mutableFloatStateOf(settings.maxCutoutHeightPercent.toFloat())
-            }
-            SettingsSliderCard(
-                shape = RoundedCornerShape(4.dp),
-                title = stringResource(R.string.assistant_max_height_title),
-                description = stringResource(R.string.assistant_max_height_desc),
-                valueText = stringResource(R.string.assistant_max_height_value, sliderValue.toInt()),
-                value = sliderValue,
-                valueRange = 10f..80f,
-                step = 5f,
-                onValueChange = { sliderValue = it },
-                onCommit = { viewModel.setAssistantMaxCutoutHeightPercent(sliderValue.toInt()) },
+        if (settings.activationMode == AssistantActivationMode.AUTO) {
+            AssistantInfoCard(
+                title = "Automatic assistant detection",
+                description = "Reads supported assistant app windows and displays their activity. Automatic expansion follows the controls below.",
             )
-        }
 
-        SettingsToggleCard(
-            shape = RoundedCornerShape(4.dp),
-            title = stringResource(R.string.assistant_tap_to_open_title),
-            description = stringResource(R.string.assistant_tap_to_open_desc),
-            checked = settings.tapToOpenAssistant,
-            onCheckedChange = viewModel::setAssistantTapToOpen,
-        )
+            SettingsToggleCard(
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                title = stringResource(R.string.assistant_auto_read_title),
+                description = stringResource(R.string.assistant_auto_read_desc),
+                checked = settings.autoReadAssistantEvents,
+                onCheckedChange = viewModel::setAssistantAutoReadEvents,
+            )
 
-        AnimatedVisibility(visible = settings.tapToOpenAssistant) {
             SettingsToggleCard(
                 shape = RoundedCornerShape(4.dp),
                 title = stringResource(R.string.assistant_auto_expand_title),
@@ -87,42 +80,191 @@ internal fun AssistantScreen(
                 checked = settings.autoExpandAssistantResponses,
                 onCheckedChange = viewModel::setAssistantAutoExpandResponses,
             )
-        }
 
-        AnimatedVisibility(visible = settings.displayAnswerInCutout) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                var pillTimeout by remember(settings.pillTimeoutSeconds) {
-                    mutableFloatStateOf(settings.pillTimeoutSeconds.toFloat())
+            SettingsToggleCard(
+                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp),
+                title = stringResource(R.string.assistant_display_answer_title),
+                description = stringResource(R.string.assistant_display_answer_desc),
+                checked = settings.displayAnswerInCutout,
+                onCheckedChange = viewModel::setAssistantDisplayAnswerInCutout,
+            )
+        } else {
+            AssistantInfoCard(
+                title = "Manual assistant activation",
+                description = "Automatic screen reading is disabled. Open App Assistant through the Camera Hole Touch action configured in Behaviour.",
+            )
+
+            Text(
+                text = "Panel behaviour",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
+            )
+
+            SettingsToggleCard(
+                shape = RoundedCornerShape(24.dp),
+                title = "Automatically shrink expanded panel",
+                description = "Collapse the assistant panel back to its compact pill after the timeout below.",
+                checked = settings.manualAutoShrinkEnabled,
+                onCheckedChange = viewModel::setAssistantManualAutoShrinkEnabled,
+            )
+
+            AnimatedVisibility(visible = settings.manualAutoShrinkEnabled) {
+            var expandedToPill by remember(settings.manualExpandedToPillTimeoutSeconds) {
+                mutableFloatStateOf(settings.manualExpandedToPillTimeoutSeconds.toFloat())
+            }
+            SettingsSliderCard(
+                shape = RoundedCornerShape(24.dp),
+                title = "Expansion timeout",
+                description = "How long the expanded assistant stays open before shrinking to the compact pill.",
+                valueText = stringResource(R.string.assistant_timeout_value, expandedToPill.toInt()),
+                value = expandedToPill,
+                valueRange = 5f..60f,
+                step = 1f,
+                onValueChange = { expandedToPill = it },
+                onCommit = { viewModel.setAssistantManualExpandedToPillTimeoutSeconds(expandedToPill.toInt()) },
+            )
+            }
+
+            SettingsToggleCard(
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                title = "Automatically hide compact pill",
+                description = "Automatically remove the compact assistant pill after its timeout.",
+                checked = settings.manualAutoHideEnabled,
+                onCheckedChange = viewModel::setAssistantManualAutoHideEnabled,
+            )
+
+            AnimatedVisibility(visible = settings.manualAutoHideEnabled) {
+                var pillToHidden by remember(settings.manualPillToHiddenTimeoutSeconds) {
+                    mutableFloatStateOf(settings.manualPillToHiddenTimeoutSeconds.toFloat())
                 }
                 SettingsSliderCard(
-                    shape = RoundedCornerShape(4.dp),
-                    title = stringResource(R.string.assistant_pill_timeout_title),
-                    description = stringResource(R.string.assistant_pill_timeout_desc),
-                    valueText = stringResource(R.string.assistant_timeout_value, pillTimeout.toInt()),
-                    value = pillTimeout,
-                    valueRange = 2f..30f,
+                    shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp),
+                    title = "Compact pill visibility timeout",
+                    description = "How long the compact assistant pill remains visible before it disappears.",
+                    valueText = stringResource(R.string.assistant_timeout_value, pillToHidden.toInt()),
+                    value = pillToHidden,
+                    valueRange = 2f..60f,
                     step = 1f,
-                    onValueChange = { pillTimeout = it },
-                    onCommit = { viewModel.setAssistantPillTimeoutSeconds(pillTimeout.toInt()) },
-                )
-
-                var expandedTimeout by remember(settings.expandedTimeoutSeconds) {
-                    mutableFloatStateOf(settings.expandedTimeoutSeconds.toFloat())
-                }
-                SettingsSliderCard(
-                    shape = RoundedCornerShape(4.dp),
-                    title = stringResource(R.string.assistant_expanded_timeout_title),
-                    description = stringResource(R.string.assistant_expanded_timeout_desc),
-                    valueText = stringResource(R.string.assistant_timeout_value, expandedTimeout.toInt()),
-                    value = expandedTimeout,
-                    valueRange = 5f..60f,
-                    step = 1f,
-                    onValueChange = { expandedTimeout = it },
-                    onCommit = { viewModel.setAssistantExpandedTimeoutSeconds(expandedTimeout.toInt()) },
+                    onValueChange = { pillToHidden = it },
+                    onCommit = { viewModel.setAssistantManualPillToHiddenTimeoutSeconds(pillToHidden.toInt()) },
                 )
             }
+
+            Text(
+                text = "Expanded panel elements",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
+            )
+
+            SettingsToggleCard(
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                title = "Show microphone button",
+                description = "Show or hide the voice assistant shortcut.",
+                checked = settings.showAssistantMicButton,
+                onCheckedChange = viewModel::setAssistantShowMicButton,
+            )
+            SettingsToggleCard(
+                shape = RoundedCornerShape(4.dp),
+                title = "Show text input",
+                description = "Show or hide the text prompt field.",
+                checked = settings.showAssistantPromptInput,
+                onCheckedChange = viewModel::setAssistantShowPromptInput,
+            )
+            SettingsToggleCard(
+                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp),
+                title = "Show send button",
+                description = if (settings.showAssistantPromptInput) {
+                    "Show the send button beside the prompt field. When hidden, Enter submits the prompt."
+                } else {
+                    "Enable Prompt input first. The send button is automatically hidden when the prompt field is off."
+                },
+                checked = settings.showAssistantSendButton && settings.showAssistantPromptInput,
+                enabled = settings.showAssistantPromptInput,
+                onCheckedChange = viewModel::setAssistantShowSendButton,
+            )
         }
 
+        Text(
+            text = "Expanded layout",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp, top = 14.dp, bottom = 4.dp),
+        )
+        var maxHeight by remember(settings.maxCutoutHeightPercent) {
+            mutableFloatStateOf(settings.maxCutoutHeightPercent.toFloat())
+        }
+        SettingsSliderCard(
+            shape = RoundedCornerShape(24.dp),
+            title = stringResource(R.string.assistant_max_height_title),
+            description = "Maximum height of the expanded assistant island, shared by Auto and Manual modes.",
+            valueText = stringResource(R.string.assistant_max_height_value, maxHeight.toInt()),
+            value = maxHeight,
+            valueRange = 10f..80f,
+            step = 5f,
+            onValueChange = { maxHeight = it },
+            onCommit = { viewModel.setAssistantMaxCutoutHeightPercent(maxHeight.toInt()) },
+        )
+
+        Text(
+            text = "Shared appearance",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp, top = 14.dp, bottom = 4.dp),
+        )
+        ColorPickerCard(
+            label = stringResource(R.string.tile_icon_container_title),
+            selected = settings.iconContainerColor,
+            onSelect = viewModel::setAssistantIconContainerColor,
+            defaultLabel = stringResource(R.string.music_default_accent),
+            defaultColor = Color(DynamicTile.ASSISTANT.accent),
+        )
+        ColorPickerCard(
+            label = "Expanded chat background",
+            selected = settings.expandedBackgroundColor,
+            onSelect = viewModel::setAssistantExpandedBackgroundColor,
+            defaultLabel = "Island default",
+            defaultColor = MaterialTheme.colorScheme.surface,
+        )
+
+        var surfaceOpacity by remember(settings.surfaceOpacityPercent) {
+            mutableFloatStateOf(settings.surfaceOpacityPercent.toFloat())
+        }
+        SettingsSliderCard(
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+            title = "Assistant surface opacity",
+            description = "Adjust the transparency of the assistant island background without fading its content.",
+            valueText = "${surfaceOpacity.toInt()}%",
+            value = surfaceOpacity,
+            valueRange = 10f..100f,
+            step = 1f,
+            onValueChange = { surfaceOpacity = it },
+            onCommit = { viewModel.setAssistantSurfaceOpacityPercent(surfaceOpacity.toInt()) },
+        )
+        SettingsToggleCard(
+            shape = RoundedCornerShape(4.dp),
+            title = "Backdrop blur",
+            description = "Blur the screen content behind the expanded assistant panel. Requires Android 17 or newer and device support.",
+            checked = settings.backdropBlurEnabled,
+            onCheckedChange = viewModel::setAssistantBackdropBlurEnabled,
+        )
+        AnimatedVisibility(visible = settings.backdropBlurEnabled) {
+            var blurRadius by remember(settings.backdropBlurRadiusDp) {
+                mutableFloatStateOf(settings.backdropBlurRadiusDp.toFloat())
+            }
+            SettingsSliderCard(
+                shape = RoundedCornerShape(4.dp),
+                title = "Blur intensity",
+                description = "Set the strength of the background blur.",
+                valueText = "${blurRadius.toInt()} dp",
+                value = blurRadius,
+                valueRange = 1f..80f,
+                step = 1f,
+                onValueChange = { blurRadius = it },
+                onCommit = { viewModel.setAssistantBackdropBlurRadiusDp(blurRadius.toInt()) },
+            )
+        }
         SettingsToggleCard(
             shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 32.dp, bottomEnd = 32.dp),
             title = stringResource(R.string.assistant_animated_icon_title),
@@ -132,24 +274,27 @@ internal fun AssistantScreen(
         )
 
         Text(
-            text = stringResource(R.string.tile_icon_container_title),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
-        )
-        ColorPickerCard(
-            label = stringResource(R.string.tile_icon_container_label),
-            selected = settings.iconContainerColor,
-            onSelect = viewModel::setAssistantIconContainerColor,
-            defaultLabel = stringResource(R.string.music_default_accent),
-            defaultColor = Color(DynamicTile.ASSISTANT.accent),
-        )
-
-        Text(
             text = stringResource(R.string.assistant_tile_note),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
         )
+    }
+}
+
+@Composable
+private fun AssistantInfoCard(title: String, description: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

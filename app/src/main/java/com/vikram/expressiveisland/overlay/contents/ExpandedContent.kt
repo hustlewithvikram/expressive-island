@@ -31,6 +31,9 @@ fun ExpandedContent(
     onHeightMeasured: ((Int) -> Unit)? = null,
     onAssistantInputActiveChange: (Boolean) -> Unit = {},
     onMediaInteraction: () -> Unit = {},
+    onAssistantPrompt: (String, (String) -> Unit) -> Unit = { _, complete -> complete("Assistant generation is unavailable.") },
+    onNewAssistantChat: () -> Unit = {},
+    onSelectAssistantChat: (String) -> Unit = {},
 ) {
     val wifiState by WifiBus.state.collectAsStateWithLifecycle()
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
@@ -109,6 +112,9 @@ fun ExpandedContent(
             onDismiss = onDismiss,
             onHeightMeasured = onHeightMeasured,
             onInputFocusChange = onAssistantInputActiveChange,
+            onAssistantPrompt = onAssistantPrompt,
+            onNewAssistantChat = onNewAssistantChat,
+            onSelectAssistantChat = onSelectAssistantChat,
         )
         return
     }

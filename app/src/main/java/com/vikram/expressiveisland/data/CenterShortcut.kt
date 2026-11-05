@@ -22,6 +22,9 @@ sealed interface CenterShortcut {
     /** Opens a system settings slide-up panel (Wi-Fi, internet, NFC, volume). */
     data class Panel(val panel: SettingsPanel) : CenterShortcut
 
+    /** Opens the app's interactive assistant composer from the quick-actions launcher. */
+    data object Assistant : CenterShortcut
+
     /** Launches an installed app by package name (reuses the empty-pill app picker). */
     data class LaunchApp(val packageName: String) : CenterShortcut
 
@@ -34,12 +37,14 @@ sealed interface CenterShortcut {
         get() = when (this) {
             Torch -> true
             is Global, is Panel, is LaunchApp -> false
+            Assistant -> false
         }
 
     fun encode(): String = when (this) {
         is Global -> "$GLOBAL_TAG$SEPARATOR${action.name}"
         Torch -> TORCH_TAG
         is Panel -> "$PANEL_TAG$SEPARATOR${panel.name}"
+        Assistant -> ASSISTANT_TAG
         is LaunchApp -> "$APP_TAG$SEPARATOR$packageName"
     }
 
@@ -48,12 +53,14 @@ sealed interface CenterShortcut {
         private const val TORCH_TAG = "torch"
         private const val PANEL_TAG = "panel"
         private const val APP_TAG = "app"
+        private const val ASSISTANT_TAG = "assistant"
         private const val SEPARATOR = "|"
         private const val LIST_SEPARATOR = "\n"
 
         /** Round-trips a single [encode]d shortcut; returns null for an unknown tag or dropped enum. */
         fun decode(raw: String): CenterShortcut? {
             if (raw == TORCH_TAG) return Torch
+            if (raw == ASSISTANT_TAG) return Assistant
             val index = raw.indexOf(SEPARATOR)
             if (index <= 0) return null
             val value = raw.substring(index + 1)
@@ -76,9 +83,10 @@ sealed interface CenterShortcut {
             return raw.split(LIST_SEPARATOR).mapNotNull { if (it.isBlank()) null else decode(it) }
         }
 
-        /** The starter row shown before the user customises: flashlight, screenshot, lock, quick settings. */
+        /** The starter row shown before the user customises: flashlight, assistant, screenshot, lock and quick settings. */
         val DEFAULTS: List<CenterShortcut> = listOf(
             Torch,
+            Assistant,
             Global(GlobalAction.SCREENSHOT),
             Global(GlobalAction.LOCK_SCREEN),
             Global(GlobalAction.QUICK_SETTINGS),
@@ -89,7 +97,7 @@ sealed interface CenterShortcut {
          * separately via the app picker, so they aren't listed here.
          */
         val BUILTINS: List<CenterShortcut> =
-            listOf(Torch) +
+            listOf(Torch, Assistant) +
                 GlobalAction.entries.map(::Global) +
                 SettingsPanel.entries.map(::Panel)
     }

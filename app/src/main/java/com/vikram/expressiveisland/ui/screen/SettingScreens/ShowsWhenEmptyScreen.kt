@@ -89,6 +89,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.collections.filter
 
+private fun persistentPillGroupShape(isFirst: Boolean, isLast: Boolean) = RoundedCornerShape(
+    topStart = if (isFirst) 32.dp else 4.dp,
+    topEnd = if (isFirst) 32.dp else 4.dp,
+    bottomStart = if (isLast) 32.dp else 4.dp,
+    bottomEnd = if (isLast) 32.dp else 4.dp,
+)
+
 /**
  * The empty pill's detail screen, reached from the Behaviour list. Lets the user give the resting
  * (event-less) pill a glyph: a "Show icon" toggle, and — while it's on — an icon picker (a custom
@@ -130,10 +137,16 @@ internal fun ShowsWhenEmptyScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        Text(
+            text = stringResource(R.string.persistent_pill_appearance),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 2.dp),
+        )
         SettingsToggleCard(
-            shape = RoundedCornerShape(32.dp),
+            shape = persistentPillGroupShape(isFirst = true, isLast = !showIcon),
             title = stringResource(R.string.shows_when_empty_show_icon),
             description = stringResource(R.string.shows_when_empty_show_icon_desc),
             checked = showIcon,
@@ -146,7 +159,7 @@ internal fun ShowsWhenEmptyScreen(
                 // Hero: the chosen icon at a glance, plus the "change icon" action.
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(32.dp),
+                    shape = persistentPillGroupShape(isFirst = false, isLast = true),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Column(
@@ -157,7 +170,10 @@ internal fun ShowsWhenEmptyScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         EmptyIconThumbnail(source = source, containerColor = containerColor, size = 76.dp)
-                        FilledTonalButton(onClick = { showIconSheet = true }) {
+                        FilledTonalButton(
+                            onClick = { showIconSheet = true },
+                            shape = RoundedCornerShape(24.dp),
+                        ) {
                             Icon(imageVector = Icons.Rounded.Edit, contentDescription = null)
                             Text(
                                 text = stringResource(R.string.event_change_icon),
@@ -178,10 +194,16 @@ internal fun ShowsWhenEmptyScreen(
             }
         }
 
+        Text(
+            text = stringResource(R.string.persistent_pill_interaction),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 2.dp),
+        )
         // What tapping the resting pill does: nothing, open an app, or expand the shortcut center.
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(32.dp),
+            shape = persistentPillGroupShape(isFirst = true, isLast = clickAction != EmptyClickAction.OPEN_APP),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         ) {
             Column(
@@ -227,23 +249,30 @@ internal fun ShowsWhenEmptyScreen(
         // Once "Open app" is chosen, pick which app the tap launches.
         AnimatedVisibility(visible = clickAction == EmptyClickAction.OPEN_APP) {
             AppChoiceCard(
+                shape = persistentPillGroupShape(isFirst = false, isLast = true),
                 packageName = clickPackage,
                 onChoose = { showAppPicker = true },
             )
         }
 
-        // Once "Open center" is chosen, edit the shortcuts shown in the expanded center.
-        AnimatedVisibility(visible = clickAction == EmptyClickAction.OPEN_CENTER) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = stringResource(R.string.persistent_pill_shortcuts),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 2.dp),
+        )
+        // Configure the shortcuts shown in the Persistent Pill's quick-actions center.
+        AnimatedVisibility(visible = true) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(32.dp),
+                    shape = persistentPillGroupShape(isFirst = true, isLast = false),
                     title = stringResource(R.string.shows_when_empty_center_labels),
                     description = stringResource(R.string.shows_when_empty_center_labels_desc),
                     checked = behaviour.centerShowLabels,
                     onCheckedChange = viewModel::setCenterShowLabels,
                 )
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(32.dp),
+                    shape = persistentPillGroupShape(isFirst = false, isLast = false),
                     title = stringResource(R.string.shows_when_empty_center_fill),
                     description = stringResource(R.string.shows_when_empty_center_fill_desc),
                     checked = behaviour.centerFillContainers,
@@ -252,7 +281,7 @@ internal fun ShowsWhenEmptyScreen(
                 // Only meaningful when the row includes an app — themed icons apply to app shortcuts.
                 if (behaviour.centerShortcuts.any { it is CenterShortcut.LaunchApp }) {
                     SettingsToggleCard(
-                        shape = RoundedCornerShape(32.dp),
+                        shape = persistentPillGroupShape(isFirst = false, isLast = false),
                         title = stringResource(R.string.shows_when_empty_center_themed),
                         description = stringResource(R.string.shows_when_empty_center_themed_desc),
                         checked = behaviour.centerThemedIcons,
@@ -260,6 +289,7 @@ internal fun ShowsWhenEmptyScreen(
                     )
                 }
                 CenterShortcutsCard(
+                    shape = persistentPillGroupShape(isFirst = false, isLast = true),
                     shortcuts = behaviour.centerShortcuts,
                     onAdd = { showAddShortcut = true },
                     onRemove = { index ->
@@ -350,10 +380,14 @@ private fun <T> List<T>.moved(index: Int, delta: Int): List<T> {
 
 /** The chosen "open app" target: the app's icon + name, or a hint to pick one, plus a choose button. */
 @Composable
-private fun AppChoiceCard(packageName: String?, onChoose: () -> Unit) {
+private fun AppChoiceCard(
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(24.dp),
+    packageName: String?,
+    onChoose: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
@@ -399,6 +433,7 @@ private fun AppChoiceCard(packageName: String?, onChoose: () -> Unit) {
  */
 @Composable
 private fun CenterShortcutsCard(
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(24.dp),
     shortcuts: List<CenterShortcut>,
     onAdd: () -> Unit,
     onRemove: (Int) -> Unit,
@@ -406,7 +441,7 @@ private fun CenterShortcutsCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
@@ -534,6 +569,12 @@ private fun AddShortcutSheet(
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
         )
+        Text(
+            text = stringResource(R.string.center_shizuku_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
+        )
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -617,7 +658,7 @@ private fun AppPickerSheet(
             singleLine = true,
             leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
             placeholder = { Text(stringResource(R.string.apps_search_hint)) },
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(24.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp),
