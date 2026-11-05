@@ -652,6 +652,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         behaviourPreferences.setNotificationIconShape(shape)
     }
 
+    fun setNotificationIconStrokeEnabled(enabled: Boolean) = viewModelScope.launch {
+        behaviourPreferences.setNotificationIconStrokeEnabled(enabled)
+    }
+
+    fun setNotificationIconStrokeColor(color: CutoutColor?) = viewModelScope.launch {
+        behaviourPreferences.setNotificationIconStrokeColor(color)
+    }
+
     fun setIgnoreSilentNotifications(enabled: Boolean) = viewModelScope.launch {
         behaviourPreferences.setIgnoreSilentNotifications(enabled)
     }
