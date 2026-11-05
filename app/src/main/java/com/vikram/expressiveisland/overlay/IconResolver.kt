@@ -19,6 +19,7 @@ import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.IconSource
 import com.vikram.expressiveisland.data.MusicTileSettings
 import com.vikram.expressiveisland.data.NotificationIconMode
+import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.PhoneTileSettings
 import com.vikram.expressiveisland.data.TimerTileSettings
 import com.vikram.expressiveisland.overlay.island.AssistantTileOptions
@@ -101,6 +102,7 @@ class IconResolver(private val context: Context) {
         eventColorOverrides: Map<SystemEventType, CutoutColor> = emptyMap(),
         preferDynamicIconColor: Boolean = false,
         notificationIconMode: NotificationIconMode = NotificationIconMode.AUTOMATIC,
+        notificationIconShape: NotificationIconShape = NotificationIconShape.CIRCLE,
     ): IslandEvent = when (signal) {
         is CutoutSignal.Notification -> resolveNotification(
             signal,
@@ -109,6 +111,7 @@ class IconResolver(private val context: Context) {
             dynamicEventColorOpacity,
             preferDynamicIconColor,
             notificationIconMode,
+            notificationIconShape,
         )
 
         is CutoutSignal.System -> resolveSystem(
@@ -135,8 +138,14 @@ class IconResolver(private val context: Context) {
         dynamicEventColorOpacity: Float,
         preferDynamicIconColor: Boolean,
         notificationIconMode: NotificationIconMode,
+        notificationIconShape: NotificationIconShape,
     ): IslandEvent {
         val icon = signal.notificationIcon(preferDynamicIconColor, notificationIconMode)
+            ?.let { resolved ->
+                if (resolved is IslandIcon.Raster && !resolved.tint) {
+                    resolved.copy(notificationShape = notificationIconShape)
+                } else resolved
+            }
             ?: IslandIcon.Vector(Icons.Rounded.Notifications)
 
         val title = signal.title?.takeIf { it.isNotBlank() }
