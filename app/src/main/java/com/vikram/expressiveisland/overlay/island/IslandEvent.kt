@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.MusicButtonStyle
+import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.AssistantChatTurn
 import com.vikram.expressiveisland.data.AssistantChatSession
 import com.vikram.expressiveisland.core.SystemEventType
@@ -31,7 +32,11 @@ sealed interface IslandIcon {
      * notification's small icon — so it is drawn glyph-sized and recoloured with the badge's ink,
      * like an [IslandIcon.Vector], rather than filling the disc with its own (often white) pixels.
      */
-    data class Raster(val bitmap: ImageBitmap, val tint: Boolean = false) : IslandIcon
+    data class Raster(
+        val bitmap: ImageBitmap,
+        val tint: Boolean = false,
+        val notificationShape: NotificationIconShape = NotificationIconShape.CIRCLE,
+    ) : IslandIcon
 
     /**
      * A Lottie animation from `res/raw`, played when the collapsed pill appears. Used for events that
