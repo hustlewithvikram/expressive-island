@@ -18,6 +18,7 @@ import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.IconSource
 import com.vikram.expressiveisland.data.MusicTileSettings
+import com.vikram.expressiveisland.data.NotificationIconMode
 import com.vikram.expressiveisland.data.PhoneTileSettings
 import com.vikram.expressiveisland.data.TimerTileSettings
 import com.vikram.expressiveisland.overlay.island.AssistantTileOptions
@@ -99,6 +100,7 @@ class IconResolver(private val context: Context) {
         animatedIconLoop: Map<SystemEventType, Boolean> = emptyMap(),
         eventColorOverrides: Map<SystemEventType, CutoutColor> = emptyMap(),
         preferDynamicIconColor: Boolean = false,
+        notificationIconMode: NotificationIconMode = NotificationIconMode.AUTOMATIC,
     ): IslandEvent = when (signal) {
         is CutoutSignal.Notification -> resolveNotification(
             signal,
@@ -106,6 +108,7 @@ class IconResolver(private val context: Context) {
             dynamicEventColorRole,
             dynamicEventColorOpacity,
             preferDynamicIconColor,
+            notificationIconMode,
         )
 
         is CutoutSignal.System -> resolveSystem(
@@ -131,8 +134,9 @@ class IconResolver(private val context: Context) {
         dynamicEventColorRole: DynamicRole,
         dynamicEventColorOpacity: Float,
         preferDynamicIconColor: Boolean,
+        notificationIconMode: NotificationIconMode,
     ): IslandEvent {
-        val icon = signal.notificationIcon(preferDynamicIconColor)
+        val icon = signal.notificationIcon(preferDynamicIconColor, notificationIconMode)
             ?: IslandIcon.Vector(Icons.Rounded.Notifications)
 
         val title = signal.title?.takeIf { it.isNotBlank() }
@@ -172,35 +176,40 @@ class IconResolver(private val context: Context) {
     }
 
     /**
-     * Resolves a notification icon using the selected Appearance preference. Dynamic mode favours
-     * tintable monochrome artwork (the status-bar glyph, then Android 13+'s adaptive monochrome
-     * layer); normal mode keeps the full-colour notification artwork first. The launcher icon is a
-     * fallback only, so a notification's own icon is never replaced unnecessarily.
+     * Resolves notification artwork according to Behaviour > Notifications. Explicit modes have
+     * predictable fallbacks, so an unavailable launcher or monochrome asset never leaves a blank
+     * badge. Automatic chooses the best available artwork and honours the existing dynamic-colour
+     * preference when it is enabled.
      */
-    private fun CutoutSignal.Notification.notificationIcon(preferDynamicColor: Boolean): IslandIcon? {
+    private fun CutoutSignal.Notification.notificationIcon(
+        preferDynamicColor: Boolean,
+        mode: NotificationIconMode,
+    ): IslandIcon? {
         val appDrawable = runCatching {
             context.packageManager.getApplicationIcon(packageName)
         }.getOrNull()
+        val adaptiveMonochrome = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            (appDrawable as? AdaptiveIconDrawable)?.monochrome
+        } else null
+        val monochromeAppIcon = adaptiveMonochrome?.let { IslandIcon.Raster(it.toImageBitmap(), tint = true) }
+        val notificationSmallIcon = smallIcon?.loadImageBitmapOrNull(context)?.let { IslandIcon.Raster(it, tint = true) }
+        val notificationLargeIcon = largeIcon?.loadImageBitmapOrNull(context)?.let { IslandIcon.Raster(it) }
+        val originalAppIcon = appDrawable?.let { IslandIcon.Raster(it.toImageBitmap()) }
 
-        if (preferDynamicColor) {
-            smallIcon?.loadImageBitmapOrNull(context)
-                ?.let { return IslandIcon.Raster(it, tint = true) }
-
-            val monochrome = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                (appDrawable as? AdaptiveIconDrawable)?.monochrome
+        return when (mode) {
+            NotificationIconMode.ORIGINAL -> originalAppIcon
+                ?: notificationLargeIcon
+                ?: monochromeAppIcon
+                ?: notificationSmallIcon
+            NotificationIconMode.MONOCHROME -> monochromeAppIcon
+                ?: notificationSmallIcon
+                ?: IslandIcon.Vector(Icons.Rounded.Notifications)
+            NotificationIconMode.AUTOMATIC -> if (preferDynamicColor) {
+                monochromeAppIcon ?: notificationSmallIcon ?: originalAppIcon ?: notificationLargeIcon
             } else {
-                null
+                originalAppIcon ?: notificationLargeIcon ?: monochromeAppIcon ?: notificationSmallIcon
             }
-            monochrome?.let { return IslandIcon.Raster(it.toImageBitmap(), tint = true) }
-            appDrawable?.let { return IslandIcon.Raster(it.toImageBitmap()) }
-            largeIcon?.loadImageBitmapOrNull(context)?.let { return IslandIcon.Raster(it) }
-        } else {
-            largeIcon?.loadImageBitmapOrNull(context)?.let { return IslandIcon.Raster(it) }
-            smallIcon?.loadImageBitmapOrNull(context)
-                ?.let { return IslandIcon.Raster(it, tint = true) }
-            appDrawable?.let { return IslandIcon.Raster(it.toImageBitmap()) }
         }
-        return null
     }
 
     private fun resolveMusic(signal: CutoutSignal.Music, settings: MusicTileSettings): IslandEvent {

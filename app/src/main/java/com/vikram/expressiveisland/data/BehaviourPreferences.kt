@@ -21,6 +21,9 @@ private val Context.behaviourDataStore: DataStore<Preferences> by preferencesDat
 /** How the cutout behaves when the device is in horizontal/landscape orientation. */
 enum class HorizontalCutoutMode { HIDDEN, NORMAL_ONLY, STICK_TO_CAMERA, CENTER }
 
+/** Preferred artwork for notification app icons shown in the island. */
+enum class NotificationIconMode { ORIGINAL, MONOCHROME, AUTOMATIC }
+
 /** Which horizontal swipe directions dismiss the cutout, when swipe-to-dismiss is enabled. */
 enum class SwipeDismissDirection { LEFT, RIGHT, BOTH }
 
@@ -85,6 +88,7 @@ data class BehaviourSettings(
     val expandedCollapseSeconds: Int = DEFAULT_COLLAPSE_SECONDS,
     val expandedDisappearOnShrink: Boolean = DEFAULT_DISAPPEAR_ON_SHRINK,
     val notificationsAutoExpand: Boolean = DEFAULT_NOTIFICATIONS_AUTO_EXPAND,
+    val notificationIconMode: NotificationIconMode = DEFAULT_NOTIFICATION_ICON_MODE,
     val ignoreSilentNotifications: Boolean = DEFAULT_IGNORE_SILENT_NOTIFICATIONS,
     val showActionButtons: Boolean = DEFAULT_SHOW_ACTION_BUTTONS,
     val toastOnAction: Boolean = DEFAULT_TOAST_ON_ACTION,
@@ -132,6 +136,7 @@ data class BehaviourSettings(
         const val DEFAULT_COLLAPSE_SECONDS = 5
         const val DEFAULT_DISAPPEAR_ON_SHRINK = false
         const val DEFAULT_NOTIFICATIONS_AUTO_EXPAND = false
+        val DEFAULT_NOTIFICATION_ICON_MODE = NotificationIconMode.AUTOMATIC
         const val DEFAULT_IGNORE_SILENT_NOTIFICATIONS = false
         const val DEFAULT_SHOW_ACTION_BUTTONS = true
         const val DEFAULT_TOAST_ON_ACTION = true
@@ -218,6 +223,9 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
                 ?: BehaviourSettings.DEFAULT_DISAPPEAR_ON_SHRINK,
             notificationsAutoExpand = prefs[NOTIF_AUTO_EXPAND]
                 ?: BehaviourSettings.DEFAULT_NOTIFICATIONS_AUTO_EXPAND,
+            notificationIconMode = prefs[NOTIFICATION_ICON_MODE]
+                ?.let { runCatching { NotificationIconMode.valueOf(it) }.getOrNull() }
+                ?: BehaviourSettings.DEFAULT_NOTIFICATION_ICON_MODE,
             ignoreSilentNotifications = prefs[IGNORE_SILENT_NOTIFICATIONS]
                 ?: BehaviourSettings.DEFAULT_IGNORE_SILENT_NOTIFICATIONS,
             showActionButtons = prefs[SHOW_ACTION_BUTTONS]
@@ -290,6 +298,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("expandedCollapseSeconds", s.expandedCollapseSeconds)
             put("expandedDisappearOnShrink", s.expandedDisappearOnShrink)
             put("notificationsAutoExpand", s.notificationsAutoExpand)
+            put("notificationIconMode", s.notificationIconMode.name)
             put("ignoreSilentNotifications", s.ignoreSilentNotifications)
             put("showActionButtons", s.showActionButtons)
             put("toastOnAction", s.toastOnAction)
@@ -380,6 +389,9 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
                 obj.getBoolean("expandedDisappearOnShrink")
             if (obj.has("notificationsAutoExpand")) it[NOTIF_AUTO_EXPAND] =
                 obj.getBoolean("notificationsAutoExpand")
+            parseEnum<NotificationIconMode>(obj, "notificationIconMode")?.let { mode ->
+                it[NOTIFICATION_ICON_MODE] = mode.name
+            }
             if (obj.has("ignoreSilentNotifications")) it[IGNORE_SILENT_NOTIFICATIONS] =
                 obj.getBoolean("ignoreSilentNotifications")
             if (obj.has("showActionButtons")) it[SHOW_ACTION_BUTTONS] =
@@ -541,6 +553,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[NOTIF_AUTO_EXPAND] = enabled
     }
 
+    suspend fun setNotificationIconMode(mode: NotificationIconMode) = context.behaviourDataStore.edit {
+        it[NOTIFICATION_ICON_MODE] = mode.name
+    }
+
     suspend fun setIgnoreSilentNotifications(enabled: Boolean) = context.behaviourDataStore.edit {
         it[IGNORE_SILENT_NOTIFICATIONS] = enabled
     }
@@ -689,6 +705,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val COLLAPSE_SECONDS = intPreferencesKey("expanded_collapse_seconds")
         val DISAPPEAR_ON_SHRINK = booleanPreferencesKey("expanded_disappear_on_shrink")
         val NOTIF_AUTO_EXPAND = booleanPreferencesKey("notifications_auto_expand")
+        val NOTIFICATION_ICON_MODE = stringPreferencesKey("notification_icon_mode")
         val IGNORE_SILENT_NOTIFICATIONS = booleanPreferencesKey("ignore_silent_notifications")
         val SHOW_ACTION_BUTTONS = booleanPreferencesKey("show_action_buttons")
         val TOAST_ON_ACTION = booleanPreferencesKey("toast_on_action")

@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.HorizontalCutoutMode
+import com.vikram.expressiveisland.data.NotificationIconMode
 import com.vikram.expressiveisland.data.SwipeDismissDirection
 import com.vikram.expressiveisland.data.SwipeDismissTarget
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
@@ -70,6 +71,10 @@ internal fun BehaviourScreen(
         mutableStateOf(behaviour.normalDurationSeconds.toFloat())
     }
     var showHorizontalCutoutDialog by remember { mutableStateOf(false) }
+    var showNotificationIconDialog by remember { mutableStateOf(false) }
+    var pendingNotificationIconMode by remember(behaviour.notificationIconMode) {
+        mutableStateOf(behaviour.notificationIconMode)
+    }
     var seconds by remember(behaviour.expandedCollapseSeconds) {
         mutableStateOf(behaviour.expandedCollapseSeconds.toFloat())
     }
@@ -274,6 +279,86 @@ internal fun BehaviourScreen(
             checked = behaviour.ignoreSilentNotifications,
             onCheckedChange = viewModel::setIgnoreSilentNotifications,
         )
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(groupedShape(isFirst = false, isLast = false))
+                .clickable {
+                    pendingNotificationIconMode = behaviour.notificationIconMode
+                    showNotificationIconDialog = true
+                },
+            shape = groupedShape(isFirst = false, isLast = false),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.behaviour_notification_icon), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(when (behaviour.notificationIconMode) {
+                            NotificationIconMode.ORIGINAL -> R.string.notification_icon_original
+                            NotificationIconMode.MONOCHROME -> R.string.notification_icon_monochrome
+                            NotificationIconMode.AUTOMATIC -> R.string.notification_icon_automatic
+                        }),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(stringResource(R.string.action_change), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        if (showNotificationIconDialog) {
+            AlertDialog(
+                onDismissRequest = { showNotificationIconDialog = false },
+                title = { Text(stringResource(R.string.behaviour_notification_icon)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        val options = listOf(
+                            NotificationIconMode.ORIGINAL to (R.string.notification_icon_original to R.string.notification_icon_original_desc),
+                            NotificationIconMode.MONOCHROME to (R.string.notification_icon_monochrome to R.string.notification_icon_monochrome_desc),
+                            NotificationIconMode.AUTOMATIC to (R.string.notification_icon_automatic to R.string.notification_icon_automatic_desc),
+                        )
+                        options.forEach { (mode, labels) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth()
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .clickable { pendingNotificationIconMode = mode }
+                                    .padding(horizontal = 4.dp, vertical = 9.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RadioButton(
+                                    selected = pendingNotificationIconMode == mode,
+                                    onClick = { pendingNotificationIconMode = mode },
+                                )
+                                Column(modifier = Modifier.padding(start = 8.dp)) {
+                                    Text(stringResource(labels.first), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(labels.second), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { showNotificationIconDialog = false }) {
+                            Text(stringResource(android.R.string.cancel))
+                        }
+                        TextButton(onClick = {
+                            viewModel.setNotificationIconMode(pendingNotificationIconMode)
+                            showNotificationIconDialog = false
+                        }) {
+                            Text(stringResource(android.R.string.ok))
+                        }
+                    }
+                },
+            )
+        }
 
         SettingsToggleCard(
             shape = groupedShape(isFirst = false, isLast = false),
