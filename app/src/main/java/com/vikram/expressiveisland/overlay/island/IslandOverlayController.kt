@@ -61,6 +61,7 @@ import com.vikram.expressiveisland.data.AssistantTileSettings
 import com.vikram.expressiveisland.data.BehaviourPreferences
 import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.NotificationIconMode
+import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
@@ -1779,6 +1780,7 @@ class IslandOverlayController(private val context: Context) {
                 eventColors,
                 appearanceState.value.preferDynamicIconColor,
                 behaviourState.value.notificationIconMode,
+                behaviourState.value.notificationIconShape,
             ).copy(initiallyExpanded = autoExpand, normalOnly = normalOnly)
 
             if (overlayHidden) {
