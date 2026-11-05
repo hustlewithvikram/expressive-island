@@ -63,6 +63,9 @@ class SystemEventMonitor(private val context: Context) {
 
     @Volatile
     private var defaultNetworkIsVpn = false
+    private val vpnNetworks = mutableSetOf<Network>()
+    @Volatile
+    private var lastPublishedVpnState = false
     private val wifiNetworks = mutableSetOf<Network>()
     private val bluetoothDevices = mutableSetOf<String>()
     private val headphoneDevices = mutableSetOf<Int>()
@@ -279,27 +282,56 @@ class SystemEventMonitor(private val context: Context) {
                 network: Network,
                 capabilities: NetworkCapabilities,
             ) {
-                updateDefaultNetworkVpnState(
-                    capabilities.hasTransport(TRANSPORT_VPN)
-                )
+                defaultNetworkIsVpn = capabilities.hasTransport(TRANSPORT_VPN)
+                publishVpnState("default network capabilities changed")
             }
 
             override fun onLost(network: Network) {
-                // A replacement default network will report its capabilities separately.
-                // Don't assume every lost network means VPN disconnected.
+                // A replacement default network reports its capabilities separately.
                 Log.d("SystemEventMonitor", "Default network lost: $network")
             }
         }
 
-    private fun updateDefaultNetworkVpnState(isVpn: Boolean) {
-        if (defaultNetworkIsVpn == isVpn) return
-        defaultNetworkIsVpn = isVpn
-        Log.d(
+    /**
+     * Also observe VPN transports directly. clearCapabilities() is essential here:
+     * NetworkRequest.Builder otherwise adds NOT_VPN by default, which excludes VPNs.
+     * This catches VPN networks even when they are not the device's default route.
+     */
+    private val vpnNetworkCallback =
+        object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                vpnNetworks.add(network)
+                publishVpnState("VPN network available: $network")
+            }
+
+            override fun onCapabilitiesChanged(
+                network: Network,
+                capabilities: NetworkCapabilities,
+            ) {
+                if (capabilities.hasTransport(TRANSPORT_VPN)) {
+                    vpnNetworks.add(network)
+                } else {
+                    vpnNetworks.remove(network)
+                }
+                publishVpnState("VPN capabilities changed: $network")
+            }
+
+            override fun onLost(network: Network) {
+                vpnNetworks.remove(network)
+                publishVpnState("VPN network lost: $network")
+            }
+        }
+
+    private fun publishVpnState(reason: String) {
+        val isVpnActive = defaultNetworkIsVpn || vpnNetworks.isNotEmpty()
+        if (lastPublishedVpnState == isVpnActive) return
+        lastPublishedVpnState = isVpnActive
+        Log.i(
             "SystemEventMonitor",
-            if (isVpn) "Default network is VPN" else "Default network is not VPN",
+            "VPN state changed: active=$isVpnActive ($reason)",
         )
         emit(
-            if (isVpn) SystemEventType.VPN_CONNECTED
+            if (isVpnActive) SystemEventType.VPN_CONNECTED
             else SystemEventType.VPN_DISCONNECTED
         )
     }
@@ -385,6 +417,7 @@ class SystemEventMonitor(private val context: Context) {
             wifiNetworkCallback,
         )
         connectivityManager?.registerDefaultNetworkCallback(defaultNetworkCallback)
+        connectivityManager?.registerNetworkCallback(vpnRequest(), vpnNetworkCallback)
 
         // Populate charging state immediately if the monitor starts while
         // the device is already plugged in.
@@ -407,8 +440,11 @@ class SystemEventMonitor(private val context: Context) {
 
         connectivityManager?.unregisterNetworkCallback(wifiNetworkCallback)
         connectivityManager?.unregisterNetworkCallback(defaultNetworkCallback)
+        connectivityManager?.unregisterNetworkCallback(vpnNetworkCallback)
 
         defaultNetworkIsVpn = false
+        vpnNetworks.clear()
+        lastPublishedVpnState = false
         wifiNetworks.clear()
         bluetoothDevices.clear()
         headphoneDevices.clear()
@@ -567,6 +603,12 @@ class SystemEventMonitor(private val context: Context) {
     private fun wifiRequest() =
         NetworkRequest.Builder()
             .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+            .build()
+
+    private fun vpnRequest() =
+        NetworkRequest.Builder()
+            .clearCapabilities()
+            .addTransportType(TRANSPORT_VPN)
             .build()
 
     private val AudioDeviceInfo.isHeadphone: Boolean
