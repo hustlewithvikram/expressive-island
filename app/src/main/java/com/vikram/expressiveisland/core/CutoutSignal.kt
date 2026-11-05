@@ -6,6 +6,17 @@ import android.graphics.drawable.Icon
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Adb
+import androidx.compose.material.icons.rounded.AirplanemodeActive
+import androidx.compose.material.icons.rounded.AirplanemodeInactive
+import androidx.compose.material.icons.rounded.BatteryFull
+import androidx.compose.material.icons.rounded.BatterySaver
+import androidx.compose.material.icons.rounded.DoNotDisturbOff
+import androidx.compose.material.icons.rounded.DoNotDisturbOn
+import androidx.compose.material.icons.rounded.FlashOff
+import androidx.compose.material.icons.rounded.FlashOn
+import androidx.compose.material.icons.rounded.LocationOff
+import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Nfc
 import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.BluetoothConnected
@@ -229,16 +240,16 @@ enum class SystemEventType(
     RINGER_NORMAL(Icons.Rounded.VolumeUp, R.string.event_ringer_normal, 0xFF4ADE80),
     RINGER_VIBRATE(Icons.Rounded.Vibration, R.string.event_ringer_vibrate, 0xFFFACC15),
     RINGER_SILENT(Icons.Rounded.VolumeOff, R.string.event_ringer_silent, 0xFFF87171),
-    AIRPLANE_MODE_ENABLED(Icons.Rounded.WifiOff, R.string.event_airplane_enabled, 0xFF60A5FA),
-    AIRPLANE_MODE_DISABLED(Icons.Rounded.Wifi, R.string.event_airplane_disabled, 0xFF4ADE80),
-    DND_ENABLED(Icons.Rounded.VolumeOff, R.string.event_dnd_enabled, 0xFFA78BFA),
-    DND_DISABLED(Icons.Rounded.VolumeUp, R.string.event_dnd_disabled, 0xFF4ADE80),
-    BATTERY_SAVER_ENABLED(Icons.Rounded.BatteryAlert, R.string.event_battery_saver_enabled, 0xFFFACC15),
-    BATTERY_SAVER_DISABLED(Icons.Rounded.BatteryChargingFull, R.string.event_battery_saver_disabled, 0xFF4ADE80),
-    NFC_ENABLED(Icons.Rounded.Usb, R.string.event_nfc_enabled, 0xFF60A5FA),
-    NFC_DISABLED(Icons.Rounded.Usb, R.string.event_nfc_disabled, 0xFF94A3B8),
-    LOCATION_ENABLED(Icons.Rounded.LockOpen, R.string.event_location_enabled, 0xFF60A5FA),
-    LOCATION_DISABLED(Icons.Rounded.Lock, R.string.event_location_disabled, 0xFF94A3B8),
-    FLASHLIGHT_ENABLED(Icons.Rounded.PowerOff, R.string.event_flashlight_enabled, 0xFFFACC15),
-    FLASHLIGHT_DISABLED(Icons.Rounded.PowerOff, R.string.event_flashlight_disabled, 0xFF94A3B8),
+    AIRPLANE_MODE_ENABLED(Icons.Rounded.AirplanemodeActive, R.string.event_airplane_enabled, 0xFF60A5FA),
+    AIRPLANE_MODE_DISABLED(Icons.Rounded.AirplanemodeInactive, R.string.event_airplane_disabled, 0xFF4ADE80),
+    DND_ENABLED(Icons.Rounded.DoNotDisturbOn, R.string.event_dnd_enabled, 0xFFA78BFA),
+    DND_DISABLED(Icons.Rounded.DoNotDisturbOff, R.string.event_dnd_disabled, 0xFF4ADE80),
+    BATTERY_SAVER_ENABLED(Icons.Rounded.BatterySaver, R.string.event_battery_saver_enabled, 0xFFFACC15),
+    BATTERY_SAVER_DISABLED(Icons.Rounded.BatteryFull, R.string.event_battery_saver_disabled, 0xFF4ADE80),
+    NFC_ENABLED(Icons.Rounded.Nfc, R.string.event_nfc_enabled, 0xFF60A5FA),
+    NFC_DISABLED(Icons.Rounded.Nfc, R.string.event_nfc_disabled, 0xFF94A3B8),
+    LOCATION_ENABLED(Icons.Rounded.LocationOn, R.string.event_location_enabled, 0xFF60A5FA),
+    LOCATION_DISABLED(Icons.Rounded.LocationOff, R.string.event_location_disabled, 0xFF94A3B8),
+    FLASHLIGHT_ENABLED(Icons.Rounded.FlashOn, R.string.event_flashlight_enabled, 0xFFFACC15),
+    FLASHLIGHT_DISABLED(Icons.Rounded.FlashOff, R.string.event_flashlight_disabled, 0xFF94A3B8),
 }
