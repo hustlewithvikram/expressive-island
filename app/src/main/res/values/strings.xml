@@ -77,6 +77,32 @@
     <string name="event_ringer_vibrate">Vibrate</string>
     <string name="event_ringer_silent">Silent</string>
 
+
+    <string name="event_airplane_enabled">Airplane mode on</string>
+    <string name="event_airplane_disabled">Airplane mode off</string>
+    <string name="event_dnd_enabled">Do Not Disturb on</string>
+    <string name="event_dnd_disabled">Do Not Disturb off</string>
+    <string name="event_battery_saver_enabled">Battery Saver on</string>
+    <string name="event_battery_saver_disabled">Battery Saver off</string>
+    <string name="event_nfc_enabled">NFC enabled</string>
+    <string name="event_nfc_disabled">NFC disabled</string>
+    <string name="event_location_enabled">Location on</string>
+    <string name="event_location_disabled">Location off</string>
+    <string name="event_flashlight_enabled">Flashlight on</string>
+    <string name="event_flashlight_disabled">Flashlight off</string>
+    <string name="event_group_airplane">Airplane mode</string>
+    <string name="event_group_airplane_desc">Show when airplane mode changes.</string>
+    <string name="event_group_dnd">Do Not Disturb</string>
+    <string name="event_group_dnd_desc">Show when Do Not Disturb changes.</string>
+    <string name="event_group_battery_saver">Battery Saver</string>
+    <string name="event_group_battery_saver_desc">Show when Battery Saver changes.</string>
+    <string name="event_group_nfc">NFC</string>
+    <string name="event_group_nfc_desc">Show when NFC is enabled or disabled.</string>
+    <string name="event_group_location">Location</string>
+    <string name="event_group_location_desc">Show when device location services change.</string>
+    <string name="event_group_flashlight">Flashlight</string>
+    <string name="event_group_flashlight_desc">Show when the flashlight is turned on or off.</string>
+
     <!-- Event groups strings shown inside the System Events -->
     <string name="event_group_charging">Charging and battery</string>
     <string name="event_group_wifi">Wi-Fi</string>
