@@ -21,6 +21,9 @@ private val Context.behaviourDataStore: DataStore<Preferences> by preferencesDat
 /** How the cutout behaves when the device is in horizontal/landscape orientation. */
 enum class HorizontalCutoutMode { HIDDEN, NORMAL_ONLY, STICK_TO_CAMERA, CENTER }
 
+/** Persistent pill slot content. */
+enum class PillWidgetType { NONE, ICON, ANIMATED_ICON, NETWORK_SPEED, BATTERY, CLOCK, WIFI_SIGNAL }
+
 /** Preferred artwork for notification app icons shown in the island. */
 enum class NotificationIconMode { ORIGINAL, MONOCHROME, AUTOMATIC }
 
@@ -104,6 +107,8 @@ data class BehaviourSettings(
     val swipeDismissTarget: SwipeDismissTarget = DEFAULT_SWIPE_DISMISS_TARGET,
     val showsWhenEmpty: Boolean = SHOWS_WHEN_EMPTY,
     val showsWhenEmptyShowIcon: Boolean = SHOWS_WHEN_EMPTY_SHOW_ICON,
+    val persistentPillLeftWidget: PillWidgetType = PillWidgetType.NONE,
+    val persistentPillRightWidget: PillWidgetType = PillWidgetType.NONE,
     val showsWhenEmptyIcon: IconSource? = null,
     val showsWhenEmptyIconColor: CutoutColor? = null,
     val showsWhenEmptyClickAction: EmptyClickAction = DEFAULT_EMPTY_CLICK_ACTION,
@@ -322,7 +327,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("swipeDismissDirection", s.swipeDismissDirection.name)
             put("swipeDismissTarget", s.swipeDismissTarget.name)
             put("showsWhenEmpty", s.showsWhenEmpty)
-            put("showsWhenEmptyShowIcon", s.showsWhenEmptyShowIcon)
+            put("showsWhenEmptyShowIcon", s.showsWhenEmptyShowIcon)\n            put("persistentPillLeftWidget", s.persistentPillLeftWidget.name)\n            put("persistentPillRightWidget", s.persistentPillRightWidget.name)
             put("showsWhenEmptyIcon", s.showsWhenEmptyIcon?.encode() ?: JSONObject.NULL)
             put(
                 "showsWhenEmptyIconColor",
@@ -631,7 +636,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[SHOWS_WHEN_EMPTY_SHOW_ICON] = enabled
     }
 
-    suspend fun setShowsWhenEmptyIcon(icon: IconSource) = context.behaviourDataStore.edit {
+    suspend fun setPersistentPillWidget(left: Boolean, type: PillWidgetType) = context.behaviourDataStore.edit {\n        if (left) it[PILL_LEFT_WIDGET] = type.name else it[PILL_RIGHT_WIDGET] = type.name\n        if (left) it[SHOWS_WHEN_EMPTY_SHOW_ICON] = type == PillWidgetType.ICON || type == PillWidgetType.ANIMATED_ICON\n    }\n\n    suspend fun setShowsWhenEmptyIcon(icon: IconSource) = context.behaviourDataStore.edit {
         it[SHOWS_WHEN_EMPTY_ICON] = icon.encode()
     }
 
@@ -753,7 +758,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val SWIPE_DISMISS_DIRECTION = stringPreferencesKey("swipe_dismiss_direction")
         val SWIPE_DISMISS_TARGET = stringPreferencesKey("swipe_dismiss_target")
         val SHOWS_WHEN_EMPTY = booleanPreferencesKey("shows_when_empty")
-        val SHOWS_WHEN_EMPTY_SHOW_ICON = booleanPreferencesKey("shows_when_empty_show_icon")
+        val SHOWS_WHEN_EMPTY_SHOW_ICON = booleanPreferencesKey("shows_when_empty_show_icon")\n        val PILL_LEFT_WIDGET = stringPreferencesKey("persistent_pill_left_widget")\n        val PILL_RIGHT_WIDGET = stringPreferencesKey("persistent_pill_right_widget")
         val SHOWS_WHEN_EMPTY_ICON = stringPreferencesKey("shows_when_empty_icon")
         val SHOWS_WHEN_EMPTY_ICON_COLOR = stringPreferencesKey("shows_when_empty_icon_color")
         val SHOWS_WHEN_EMPTY_CLICK_ACTION = stringPreferencesKey("shows_when_empty_click_action")
