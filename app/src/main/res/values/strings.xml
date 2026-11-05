@@ -90,6 +90,12 @@
     <string name="event_location_disabled">Location off</string>
     <string name="event_flashlight_enabled">Flashlight on</string>
     <string name="event_flashlight_disabled">Flashlight off</string>
+    <string name="event_data_saver_enabled">Data Saver on</string>
+    <string name="event_data_saver_disabled">Data Saver off</string>
+    <string name="event_auto_rotate_enabled">Auto-rotate on</string>
+    <string name="event_auto_rotate_disabled">Auto-rotate off</string>
+    <string name="event_thermal_warning">Device temperature high</string>
+    <string name="event_thermal_normal">Device temperature normal</string>
     <string name="event_group_airplane">Airplane mode</string>
     <string name="event_group_airplane_desc">Show when airplane mode changes.</string>
     <string name="event_group_dnd">Do Not Disturb</string>
@@ -102,6 +108,12 @@
     <string name="event_group_location_desc">Show when device location services change.</string>
     <string name="event_group_flashlight">Flashlight</string>
     <string name="event_group_flashlight_desc">Show when the flashlight is turned on or off.</string>
+    <string name="event_group_data_saver">Data Saver</string>
+    <string name="event_group_data_saver_desc">Show when Android Data Saver is enabled or disabled.</string>
+    <string name="event_group_auto_rotate">Auto-rotate</string>
+    <string name="event_group_auto_rotate_desc">Show when automatic screen rotation is enabled or disabled.</string>
+    <string name="event_group_thermal">Thermal state</string>
+    <string name="event_group_thermal_desc">Show when the device enters or leaves a moderate-or-higher thermal state.</string>
 
     <!-- Event groups strings shown inside the System Events -->
     <string name="event_group_charging">Charging and battery</string>
