@@ -141,11 +141,6 @@ class IconResolver(private val context: Context) {
         notificationIconShape: NotificationIconShape,
     ): IslandEvent {
         val icon = signal.notificationIcon(preferDynamicIconColor, notificationIconMode)
-            ?.let { resolved ->
-                if (resolved is IslandIcon.Raster && !resolved.tint) {
-                    resolved.copy(notificationShape = notificationIconShape)
-                } else resolved
-            }
             ?: IslandIcon.Vector(Icons.Rounded.Notifications)
 
         val title = signal.title?.takeIf { it.isNotBlank() }
@@ -166,6 +161,7 @@ class IconResolver(private val context: Context) {
             themeColorOpacity = dynamicEventColorOpacity,
             contentIntent = signal.contentIntent,
             notificationKey = signal.key,
+            notificationIconShape = notificationIconShape,
             notificationAppName = NotificationHeaderResolver.resolveAppName(
                 context = context,
                 packageName = signal.packageName,
