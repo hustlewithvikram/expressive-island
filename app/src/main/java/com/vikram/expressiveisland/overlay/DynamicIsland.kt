@@ -830,7 +830,7 @@ internal fun DynamicIsland(
                                             onCenterShortcut(shortcut)
                                         },
                                     )
-                                } else if (emptyIcon != null) {
+                                } else if (emptyIcon != null || persistentPillLeftWidget != PillWidgetType.NONE || persistentPillRightWidget != PillWidgetType.NONE) {
                                     EmptyPillContent(
                                         icon = emptyIcon,
                                         containerColor = emptyIconColor,
