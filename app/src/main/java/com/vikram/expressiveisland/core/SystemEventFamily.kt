@@ -112,6 +112,8 @@ enum class SystemEventFamily(
     DATA_SAVER(R.string.event_group_data_saver, R.string.event_group_data_saver_desc, listOf(SystemEventType.DATA_SAVER_ENABLED, SystemEventType.DATA_SAVER_DISABLED)),
     AUTO_ROTATE(R.string.event_group_auto_rotate, R.string.event_group_auto_rotate_desc, listOf(SystemEventType.AUTO_ROTATE_ENABLED, SystemEventType.AUTO_ROTATE_DISABLED)),
     THERMAL(R.string.event_group_thermal, R.string.event_group_thermal_desc, listOf(SystemEventType.THERMAL_WARNING, SystemEventType.THERMAL_NORMAL)),
+    DISPLAY_REFRESH_RATE(R.string.event_group_refresh_rate, R.string.event_group_refresh_rate_desc, listOf(SystemEventType.REFRESH_RATE_CHANGED)),
+    AUDIO_OUTPUT(R.string.event_group_audio_output, R.string.event_group_audio_output_desc, listOf(SystemEventType.AUDIO_OUTPUT_CHANGED)),
     RINGER(
         R.string.event_group_ringer,
         R.string.event_group_ringer_desc,
