@@ -365,7 +365,7 @@ fun IconBadge(
                 } else {
                     Modifier
                         .size(badgeSize * 0.78f)
-                        .clip(notificationShape)
+                        .clip(badgeShape)
                 },
             )
 
