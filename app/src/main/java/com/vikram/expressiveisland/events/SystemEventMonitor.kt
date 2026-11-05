@@ -63,8 +63,6 @@ class SystemEventMonitor(private val context: Context) {
     private val audioManager =
         context.getSystemService<AudioManager>()
 
-    private val displayManager = context.getSystemService<DisplayManager>()
-
     private val batteryManager =
         context.getSystemService<BatteryManager>()
 
@@ -535,9 +533,7 @@ class SystemEventMonitor(private val context: Context) {
         audioManager?.unregisterAudioDeviceCallback(
             audioDeviceCallback
         )
-        displayManager?.unregisterDisplayListener(displayListener)
         audioOutputSnapshot = null
-        lastRefreshRateHz = null
         context.contentResolver.unregisterContentObserver(locationObserver)
         context.contentResolver.unregisterContentObserver(autoRotateObserver)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
