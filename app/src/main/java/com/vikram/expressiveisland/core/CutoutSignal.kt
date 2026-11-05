@@ -12,6 +12,11 @@ import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.BatterySaver
 import androidx.compose.material.icons.rounded.DoNotDisturbOff
 import androidx.compose.material.icons.rounded.DoNotDisturbOn
+import androidx.compose.material.icons.rounded.DataSaverOn
+import androidx.compose.material.icons.rounded.DataSaverOff
+import androidx.compose.material.icons.rounded.ScreenRotation
+import androidx.compose.material.icons.rounded.ScreenLockRotation
+import androidx.compose.material.icons.rounded.DeviceThermostat
 import androidx.compose.material.icons.rounded.FlashOff
 import androidx.compose.material.icons.rounded.FlashOn
 import androidx.compose.material.icons.rounded.LocationOff
@@ -252,4 +257,10 @@ enum class SystemEventType(
     LOCATION_DISABLED(Icons.Rounded.LocationOff, R.string.event_location_disabled, 0xFF94A3B8),
     FLASHLIGHT_ENABLED(Icons.Rounded.FlashOn, R.string.event_flashlight_enabled, 0xFFFACC15),
     FLASHLIGHT_DISABLED(Icons.Rounded.FlashOff, R.string.event_flashlight_disabled, 0xFF94A3B8),
+    DATA_SAVER_ENABLED(Icons.Rounded.DataSaverOn, R.string.event_data_saver_enabled, 0xFF60A5FA),
+    DATA_SAVER_DISABLED(Icons.Rounded.DataSaverOff, R.string.event_data_saver_disabled, 0xFF94A3B8),
+    AUTO_ROTATE_ENABLED(Icons.Rounded.ScreenRotation, R.string.event_auto_rotate_enabled, 0xFF60A5FA),
+    AUTO_ROTATE_DISABLED(Icons.Rounded.ScreenLockRotation, R.string.event_auto_rotate_disabled, 0xFF94A3B8),
+    THERMAL_WARNING(Icons.Rounded.DeviceThermostat, R.string.event_thermal_warning, 0xFFF87171),
+    THERMAL_NORMAL(Icons.Rounded.DeviceThermostat, R.string.event_thermal_normal, 0xFF4ADE80),
 }
