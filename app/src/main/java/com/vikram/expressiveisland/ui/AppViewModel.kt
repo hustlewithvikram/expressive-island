@@ -24,6 +24,7 @@ import com.vikram.expressiveisland.data.AssistantTileSettings
 import com.vikram.expressiveisland.data.BehaviourPreferences
 import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.NotificationIconMode
+import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.CameraHoleTapAction
 import com.vikram.expressiveisland.data.HorizontalCutoutMode
@@ -645,6 +646,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setNotificationIconMode(mode: NotificationIconMode) = viewModelScope.launch {
         behaviourPreferences.setNotificationIconMode(mode)
+    }
+
+    fun setNotificationIconShape(shape: NotificationIconShape) = viewModelScope.launch {
+        behaviourPreferences.setNotificationIconShape(shape)
     }
 
     fun setIgnoreSilentNotifications(enabled: Boolean) = viewModelScope.launch {
