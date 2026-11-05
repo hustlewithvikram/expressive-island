@@ -108,6 +108,8 @@ data class IslandEvent(
     val notificationKey: String? = null,
     /** Shape selected for this notification's app icon and badge. */
     val notificationIconShape: NotificationIconShape = NotificationIconShape.CIRCLE,
+    val notificationIconStrokeEnabled: Boolean = false,
+    val notificationIconStrokeColor: CutoutColor? = null,
     /** The posting app's display name, resolved once while the notification is received. */
     val notificationAppName: String? = null,
     /** The notification's system post time, used to render its relative timestamp. */
