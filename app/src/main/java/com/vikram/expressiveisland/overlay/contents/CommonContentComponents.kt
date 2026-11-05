@@ -331,10 +331,17 @@ fun IconBadge(
             glyphColor = event.accent
         }
     }
+    val notificationShape = when (event.notificationIconShape) {
+        NotificationIconShape.CIRCLE -> CircleShape
+        NotificationIconShape.SQUARE -> RectangleShape
+        NotificationIconShape.ROUNDED_SQUARE -> RoundedCornerShape(22)
+        NotificationIconShape.EXPRESSIVE -> RoundedCornerShape(38)
+    }
+    val badgeShape = if (event.notificationKey != null) notificationShape else CircleShape
     Box(
         modifier = modifier
             .size(badgeSize)
-            .clip(CircleShape)
+            .clip(badgeShape)
             .background(badgeColor),
         contentAlignment = Alignment.Center,
     ) {
@@ -356,15 +363,9 @@ fun IconBadge(
                 modifier = if (icon.tint) {
                     Modifier.size(iconSize)
                 } else {
-                    val iconShape = when (icon.notificationShape) {
-                        NotificationIconShape.CIRCLE -> CircleShape
-                        NotificationIconShape.SQUARE -> RectangleShape
-                        NotificationIconShape.ROUNDED_SQUARE -> RoundedCornerShape(22)
-                        NotificationIconShape.EXPRESSIVE -> RoundedCornerShape(38)
-                    }
                     Modifier
                         .size(badgeSize * 0.78f)
-                        .clip(iconShape)
+                        .clip(notificationShape)
                 },
             )
 
