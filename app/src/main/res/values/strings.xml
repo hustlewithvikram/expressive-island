@@ -96,7 +96,6 @@
     <string name="event_auto_rotate_disabled">Auto-rotate off</string>
     <string name="event_thermal_warning">Device temperature high</string>
     <string name="event_thermal_normal">Device temperature normal</string>
-    <string name="event_refresh_rate_changed">Refresh rate changed</string>
     <string name="event_audio_output_changed">Audio output changed</string>
     <string name="event_group_airplane">Airplane mode</string>
     <string name="event_group_airplane_desc">Show when airplane mode changes.</string>
@@ -116,8 +115,6 @@
     <string name="event_group_auto_rotate_desc">Show when automatic screen rotation is enabled or disabled.</string>
     <string name="event_group_thermal">Thermal state</string>
     <string name="event_group_thermal_desc">Show when the device enters or leaves a moderate-or-higher thermal state.</string>
-    <string name="event_group_refresh_rate">Display refresh rate</string>
-    <string name="event_group_refresh_rate_desc">Show when the active display refresh rate changes.</string>
     <string name="event_group_audio_output">Audio output</string>
     <string name="event_group_audio_output_desc">Show when connected audio output devices change.</string>
 
