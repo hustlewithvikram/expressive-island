@@ -2,11 +2,13 @@ package com.vikram.expressiveisland.events
 
 import android.bluetooth.BluetoothDevice
 import android.app.NotificationManager
+import android.app.KeyguardManager
 import android.bluetooth.BluetoothManager
 import android.hardware.camera2.CameraManager
 import android.location.LocationManager
 import android.nfc.NfcAdapter
 import android.os.PowerManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.database.ContentObserver
@@ -71,6 +73,7 @@ class SystemEventMonitor(private val context: Context) {
 
     private val notificationManager = context.getSystemService<NotificationManager>()
     private val powerManager = context.getSystemService<PowerManager>()
+    private val keyguardManager = context.getSystemService<KeyguardManager>()
     private val cameraManager = context.getSystemService<CameraManager>()
     private val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -80,11 +83,20 @@ class SystemEventMonitor(private val context: Context) {
     private var nfcEnabled: Boolean? = null
     private var locationEnabled: Boolean? = null
     private var flashlightEnabled: Boolean? = null
+    private var dataSaverEnabled: Boolean? = null
+    private var autoRotateEnabled: Boolean? = null
+    private var thermalWarningActive: Boolean? = null
 
     private val flashlightCallback = object : CameraManager.TorchCallback() {
         override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
             updateFlashlightState(enabled)
         }
+    }
+    private val autoRotateObserver = object : ContentObserver(mainHandler) {
+        override fun onChange(selfChange: Boolean) = updateAutoRotateState()
+    }
+    private val thermalStatusListener = PowerManager.OnThermalStatusChangedListener { status ->
+        updateThermalState(status)
     }
     private val locationObserver = object : ContentObserver(mainHandler) {
         override fun onChange(selfChange: Boolean) = updateLocationState()
@@ -144,8 +156,15 @@ class SystemEventMonitor(private val context: Context) {
                     isLowBatteryState = false
                 }
 
-                Intent.ACTION_SCREEN_OFF ->
-                    emit(SystemEventType.DEVICE_LOCKED)
+                Intent.ACTION_SCREEN_OFF -> {
+                    // Screen-off is not equivalent to a lock (e.g. timeout with no secure lock).
+                    // Check after Android has had a moment to update keyguard state.
+                    mainHandler.postDelayed({
+                        if (keyguardManager?.isKeyguardLocked == true) {
+                            emit(SystemEventType.DEVICE_LOCKED)
+                        }
+                    }, 500L)
+                }
 
                 Intent.ACTION_USER_PRESENT ->
                     emit(SystemEventType.DEVICE_UNLOCKED)
@@ -195,6 +214,7 @@ class SystemEventMonitor(private val context: Context) {
                 PowerManager.ACTION_POWER_SAVE_MODE_CHANGED -> updateBatterySaverState()
                 NfcAdapter.ACTION_ADAPTER_STATE_CHANGED -> updateNfcState()
                 LocationManager.MODE_CHANGED_ACTION -> updateLocationState()
+                ConnectivityManager.ACTION_RESTRICT_BACKGROUND_CHANGED -> updateDataSaverState()
 
                 "android.net.wifi.WIFI_AP_STATE_CHANGED" -> {
                     val state = intent.getIntExtra(
@@ -438,6 +458,9 @@ class SystemEventMonitor(private val context: Context) {
         nfcEnabled = runCatching { nfcAdapter?.isEnabled }.getOrNull()
         locationEnabled = isLocationEnabled()
         flashlightEnabled = false
+        dataSaverEnabled = connectivityManager?.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
+        autoRotateEnabled = Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 1) == 1
+        thermalWarningActive = null
 
         lastRingerMode = audioManager?.ringerMode
             ?: AudioManager.RINGER_MODE_NORMAL
@@ -457,6 +480,12 @@ class SystemEventMonitor(private val context: Context) {
         context.contentResolver.registerContentObserver(
             Settings.Secure.getUriFor(Settings.Secure.LOCATION_MODE), false, locationObserver
         )
+        context.contentResolver.registerContentObserver(
+            Settings.System.getUriFor(Settings.System.ACCELEROMETER_ROTATION), false, autoRotateObserver
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            powerManager?.addThermalStatusListener(thermalStatusListener)
+        }
         cameraManager?.registerTorchCallback(flashlightCallback, mainHandler)
 
         connectivityManager?.registerNetworkCallback(
@@ -470,6 +499,9 @@ class SystemEventMonitor(private val context: Context) {
         updateBatterySaverState()
         updateNfcState()
         updateLocationState()
+        updateDataSaverState()
+        updateAutoRotateState()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) updateThermalState(powerManager?.currentThermalStatus ?: PowerManager.THERMAL_STATUS_NONE)
 
         // Populate charging state immediately if the monitor starts while
         // the device is already plugged in.
@@ -490,6 +522,10 @@ class SystemEventMonitor(private val context: Context) {
             audioDeviceCallback
         )
         context.contentResolver.unregisterContentObserver(locationObserver)
+        context.contentResolver.unregisterContentObserver(autoRotateObserver)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            runCatching { powerManager?.removeThermalStatusListener(thermalStatusListener) }
+        }
         runCatching { cameraManager?.unregisterTorchCallback(flashlightCallback) }
 
         connectivityManager?.unregisterNetworkCallback(wifiNetworkCallback)
@@ -664,6 +700,27 @@ class SystemEventMonitor(private val context: Context) {
         if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.LOCATION_ENABLED else SystemEventType.LOCATION_DISABLED)
     }
 
+    private fun updateDataSaverState() {
+        val enabled = connectivityManager?.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
+        val previous = dataSaverEnabled
+        dataSaverEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.DATA_SAVER_ENABLED else SystemEventType.DATA_SAVER_DISABLED)
+    }
+
+    private fun updateAutoRotateState() {
+        val enabled = Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 1) == 1
+        val previous = autoRotateEnabled
+        autoRotateEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.AUTO_ROTATE_ENABLED else SystemEventType.AUTO_ROTATE_DISABLED)
+    }
+
+    private fun updateThermalState(status: Int) {
+        val warning = status >= PowerManager.THERMAL_STATUS_MODERATE
+        val previous = thermalWarningActive
+        thermalWarningActive = warning
+        if (previous != null && previous != warning) emit(if (warning) SystemEventType.THERMAL_WARNING else SystemEventType.THERMAL_NORMAL)
+    }
+
     private fun updateFlashlightState(enabled: Boolean) {
         val previous = flashlightEnabled
         flashlightEnabled = enabled
@@ -706,6 +763,7 @@ class SystemEventMonitor(private val context: Context) {
             addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
             addAction(NfcAdapter.ACTION_ADAPTER_STATE_CHANGED)
             addAction(LocationManager.MODE_CHANGED_ACTION)
+            addAction(ConnectivityManager.ACTION_RESTRICT_BACKGROUND_CHANGED)
         }
 
     private fun wifiRequest() =
