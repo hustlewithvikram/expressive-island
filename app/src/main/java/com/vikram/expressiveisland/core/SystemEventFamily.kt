@@ -109,6 +109,9 @@ enum class SystemEventFamily(
     NFC(R.string.event_group_nfc, R.string.event_group_nfc_desc, listOf(SystemEventType.NFC_ENABLED, SystemEventType.NFC_DISABLED)),
     LOCATION(R.string.event_group_location, R.string.event_group_location_desc, listOf(SystemEventType.LOCATION_ENABLED, SystemEventType.LOCATION_DISABLED)),
     FLASHLIGHT(R.string.event_group_flashlight, R.string.event_group_flashlight_desc, listOf(SystemEventType.FLASHLIGHT_ENABLED, SystemEventType.FLASHLIGHT_DISABLED)),
+    DATA_SAVER(R.string.event_group_data_saver, R.string.event_group_data_saver_desc, listOf(SystemEventType.DATA_SAVER_ENABLED, SystemEventType.DATA_SAVER_DISABLED)),
+    AUTO_ROTATE(R.string.event_group_auto_rotate, R.string.event_group_auto_rotate_desc, listOf(SystemEventType.AUTO_ROTATE_ENABLED, SystemEventType.AUTO_ROTATE_DISABLED)),
+    THERMAL(R.string.event_group_thermal, R.string.event_group_thermal_desc, listOf(SystemEventType.THERMAL_WARNING, SystemEventType.THERMAL_NORMAL)),
     RINGER(
         R.string.event_group_ringer,
         R.string.event_group_ringer_desc,
