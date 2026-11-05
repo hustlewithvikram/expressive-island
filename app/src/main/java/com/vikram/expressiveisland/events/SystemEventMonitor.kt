@@ -20,7 +20,6 @@ import android.hardware.usb.UsbManager
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
-import android.hardware.display.DisplayManager
 import android.view.Display
 import android.net.ConnectivityManager
 import android.net.Network
@@ -120,8 +119,6 @@ class SystemEventMonitor(private val context: Context) {
     private val bluetoothDevices = mutableSetOf<String>()
     private val headphoneDevices = mutableSetOf<Int>()
     private var audioOutputSnapshot: Set<String>? = null
-    private var lastRefreshRateHz: Int? = null
-
     @Volatile
     private var isLowBatteryState = false
 
@@ -281,15 +278,6 @@ class SystemEventMonitor(private val context: Context) {
             }
         }
     }
-
-    private val displayListener = object : DisplayManager.DisplayListener {
-        override fun onDisplayAdded(displayId: Int) = Unit
-        override fun onDisplayRemoved(displayId: Int) = Unit
-        override fun onDisplayChanged(displayId: Int) {
-            if (displayId == Display.DEFAULT_DISPLAY) updateRefreshRate()
-        }
-    }
-
     private val audioDeviceCallback = object : AudioDeviceCallback() {
 
         override fun onAudioDevicesAdded(
@@ -498,8 +486,6 @@ class SystemEventMonitor(private val context: Context) {
         )
 
         audioOutputSnapshot = currentAudioOutputSnapshot()
-        lastRefreshRateHz = currentRefreshRateHz()
-        displayManager?.registerDisplayListener(displayListener, mainHandler)
         audioManager?.registerAudioDeviceCallback(
             audioDeviceCallback,
             mainHandler,
@@ -750,17 +736,6 @@ class SystemEventMonitor(private val context: Context) {
         val previous = thermalWarningActive
         thermalWarningActive = warning
         if (previous != null && previous != warning) emit(if (warning) SystemEventType.THERMAL_WARNING else SystemEventType.THERMAL_NORMAL)
-    }
-
-    private fun currentRefreshRateHz(): Int? = runCatching {
-        displayManager?.getDisplay(Display.DEFAULT_DISPLAY)?.refreshRate?.roundToInt()
-    }.getOrNull()
-
-    private fun updateRefreshRate() {
-        val current = currentRefreshRateHz() ?: return
-        val previous = lastRefreshRateHz
-        lastRefreshRateHz = current
-        if (previous != null && previous != current) emit(SystemEventType.REFRESH_RATE_CHANGED)
     }
 
     private fun currentAudioOutputSnapshot(): Set<String>? = runCatching {
