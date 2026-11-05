@@ -86,10 +86,15 @@ class SystemEventMonitor(private val context: Context) {
     private var dataSaverEnabled: Boolean? = null
     private var autoRotateEnabled: Boolean? = null
     private var thermalWarningActive: Boolean? = null
+    @Volatile private var deviceWasLocked = false
+    private val activeTorchCameras = mutableSetOf<String>()
 
     private val flashlightCallback = object : CameraManager.TorchCallback() {
         override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
-            updateFlashlightState(enabled)
+            synchronized(activeTorchCameras) {
+                if (enabled) activeTorchCameras.add(cameraId) else activeTorchCameras.remove(cameraId)
+                updateFlashlightState(activeTorchCameras.isNotEmpty())
+            }
         }
     }
     private val autoRotateObserver = object : ContentObserver(mainHandler) {
@@ -160,14 +165,16 @@ class SystemEventMonitor(private val context: Context) {
                     // Screen-off is not equivalent to a lock (e.g. timeout with no secure lock).
                     // Check after Android has had a moment to update keyguard state.
                     mainHandler.postDelayed({
-                        if (keyguardManager?.isKeyguardLocked == true) {
-                            emit(SystemEventType.DEVICE_LOCKED)
-                        }
+                        val locked = keyguardManager?.isKeyguardLocked == true
+                        if (locked && !deviceWasLocked) emit(SystemEventType.DEVICE_LOCKED)
+                        deviceWasLocked = locked
                     }, 500L)
                 }
 
-                Intent.ACTION_USER_PRESENT ->
-                    emit(SystemEventType.DEVICE_UNLOCKED)
+                Intent.ACTION_USER_PRESENT -> {
+                    if (deviceWasLocked) emit(SystemEventType.DEVICE_UNLOCKED)
+                    deviceWasLocked = false
+                }
 
                 UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
                     emit(SystemEventType.USB_MOUNTED)
@@ -461,6 +468,8 @@ class SystemEventMonitor(private val context: Context) {
         dataSaverEnabled = connectivityManager?.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
         autoRotateEnabled = Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 1) == 1
         thermalWarningActive = null
+        deviceWasLocked = keyguardManager?.isKeyguardLocked == true
+        synchronized(activeTorchCameras) { activeTorchCameras.clear() }
 
         lastRingerMode = audioManager?.ringerMode
             ?: AudioManager.RINGER_MODE_NORMAL
