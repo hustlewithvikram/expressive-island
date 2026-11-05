@@ -2818,6 +2818,42 @@ class IslandOverlayController(private val context: Context) {
                 incomingType == SystemEventType.HOTSPOT_ENABLED ||
                         incomingType == SystemEventType.HOTSPOT_DISABLED
 
+            SystemEventType.AIRPLANE_MODE_ENABLED,
+            SystemEventType.AIRPLANE_MODE_DISABLED,
+                ->
+                incomingType == SystemEventType.AIRPLANE_MODE_ENABLED ||
+                        incomingType == SystemEventType.AIRPLANE_MODE_DISABLED
+
+            SystemEventType.DND_ENABLED,
+            SystemEventType.DND_DISABLED,
+                ->
+                incomingType == SystemEventType.DND_ENABLED ||
+                        incomingType == SystemEventType.DND_DISABLED
+
+            SystemEventType.BATTERY_SAVER_ENABLED,
+            SystemEventType.BATTERY_SAVER_DISABLED,
+                ->
+                incomingType == SystemEventType.BATTERY_SAVER_ENABLED ||
+                        incomingType == SystemEventType.BATTERY_SAVER_DISABLED
+
+            SystemEventType.NFC_ENABLED,
+            SystemEventType.NFC_DISABLED,
+                ->
+                incomingType == SystemEventType.NFC_ENABLED ||
+                        incomingType == SystemEventType.NFC_DISABLED
+
+            SystemEventType.LOCATION_ENABLED,
+            SystemEventType.LOCATION_DISABLED,
+                ->
+                incomingType == SystemEventType.LOCATION_ENABLED ||
+                        incomingType == SystemEventType.LOCATION_DISABLED
+
+            SystemEventType.FLASHLIGHT_ENABLED,
+            SystemEventType.FLASHLIGHT_DISABLED,
+                ->
+                incomingType == SystemEventType.FLASHLIGHT_ENABLED ||
+                        incomingType == SystemEventType.FLASHLIGHT_DISABLED
+
             SystemEventType.RINGER_NORMAL,
             SystemEventType.RINGER_VIBRATE,
             SystemEventType.RINGER_SILENT,
