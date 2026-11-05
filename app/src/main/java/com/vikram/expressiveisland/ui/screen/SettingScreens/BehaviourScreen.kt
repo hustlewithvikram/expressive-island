@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,6 +45,7 @@ import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.HorizontalCutoutMode
 import com.vikram.expressiveisland.data.NotificationIconMode
+import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.SwipeDismissDirection
 import com.vikram.expressiveisland.data.SwipeDismissTarget
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
@@ -74,6 +76,10 @@ internal fun BehaviourScreen(
     var showNotificationIconDialog by remember { mutableStateOf(false) }
     var pendingNotificationIconMode by remember(behaviour.notificationIconMode) {
         mutableStateOf(behaviour.notificationIconMode)
+    }
+    var showNotificationIconShapeDialog by remember { mutableStateOf(false) }
+    var pendingNotificationIconShape by remember(behaviour.notificationIconShape) {
+        mutableStateOf(behaviour.notificationIconShape)
     }
     var seconds by remember(behaviour.expandedCollapseSeconds) {
         mutableStateOf(behaviour.expandedCollapseSeconds.toFloat())
@@ -311,6 +317,106 @@ internal fun BehaviourScreen(
                 Text(stringResource(R.string.action_change), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             }
+        }
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(groupedShape(isFirst = false, isLast = false))
+                .clickable {
+                    pendingNotificationIconShape = behaviour.notificationIconShape
+                    showNotificationIconShapeDialog = true
+                },
+            shape = groupedShape(isFirst = false, isLast = false),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.behaviour_notification_icon_shape), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(when (behaviour.notificationIconShape) {
+                            NotificationIconShape.CIRCLE -> R.string.notification_icon_shape_circle
+                            NotificationIconShape.SQUARE -> R.string.notification_icon_shape_square
+                            NotificationIconShape.ROUNDED_SQUARE -> R.string.notification_icon_shape_rounded_square
+                            NotificationIconShape.EXPRESSIVE -> R.string.notification_icon_shape_expressive
+                        }),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(stringResource(R.string.action_change), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        if (showNotificationIconShapeDialog) {
+            AlertDialog(
+                onDismissRequest = { showNotificationIconShapeDialog = false },
+                title = { Text(stringResource(R.string.behaviour_notification_icon_shape)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        val options = listOf(
+                            NotificationIconShape.CIRCLE to R.string.notification_icon_shape_circle,
+                            NotificationIconShape.SQUARE to R.string.notification_icon_shape_square,
+                            NotificationIconShape.ROUNDED_SQUARE to R.string.notification_icon_shape_rounded_square,
+                            NotificationIconShape.EXPRESSIVE to R.string.notification_icon_shape_expressive,
+                        )
+                        options.forEach { (shape, label) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth()
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .clickable { pendingNotificationIconShape = shape }
+                                    .padding(horizontal = 4.dp, vertical = 9.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                val previewShape = when (shape) {
+                                    NotificationIconShape.CIRCLE -> RoundedCornerShape(50)
+                                    NotificationIconShape.SQUARE -> RoundedCornerShape(0)
+                                    NotificationIconShape.ROUNDED_SQUARE -> RoundedCornerShape(22)
+                                    NotificationIconShape.EXPRESSIVE -> RoundedCornerShape(38)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(previewShape)
+                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(7.dp)
+                                            .clip(RoundedCornerShape(50))
+                                            .background(MaterialTheme.colorScheme.onPrimaryContainer),
+                                    )
+                                }
+                                Text(stringResource(label), modifier = Modifier.weight(1f).padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
+                                RadioButton(
+                                    selected = pendingNotificationIconShape == shape,
+                                    onClick = { pendingNotificationIconShape = shape },
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { showNotificationIconShapeDialog = false }) {
+                            Text(stringResource(android.R.string.cancel))
+                        }
+                        TextButton(onClick = {
+                            viewModel.setNotificationIconShape(pendingNotificationIconShape)
+                            showNotificationIconShapeDialog = false
+                        }) {
+                            Text(stringResource(android.R.string.ok))
+                        }
+                    }
+                },
+            )
         }
 
         if (showNotificationIconDialog) {
