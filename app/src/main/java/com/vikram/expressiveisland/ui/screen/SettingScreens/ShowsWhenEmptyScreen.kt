@@ -74,6 +74,7 @@ import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.EmptyClickAction
 import com.vikram.expressiveisland.data.IconSource
+import com.vikram.expressiveisland.data.PillWidgetType
 import com.vikram.expressiveisland.overlay.CenterShortcutCatalog
 import com.vikram.expressiveisland.overlay.MaterialIconCatalog
 import com.vikram.expressiveisland.overlay.loadImageBitmapOrNull
@@ -108,7 +109,7 @@ internal fun ShowsWhenEmptyScreen(
 ) {
     val context = LocalContext.current
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
-    val showIcon = behaviour.showsWhenEmptyShowIcon
+    val showIcon = behaviour.persistentPillLeftWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON) ||\n        behaviour.persistentPillRightWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON)
     val source = behaviour.showsWhenEmptyIcon
     val containerColor = behaviour.showsWhenEmptyIconColor
     val clickAction = behaviour.showsWhenEmptyClickAction
@@ -145,12 +146,21 @@ internal fun ShowsWhenEmptyScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 2.dp),
         )
-        SettingsToggleCard(
-            shape = persistentPillGroupShape(isFirst = true, isLast = !showIcon),
-            title = stringResource(R.string.shows_when_empty_show_icon),
-            description = stringResource(R.string.shows_when_empty_show_icon_desc),
-            checked = showIcon,
-            onCheckedChange = viewModel::setShowsWhenEmptyShowIcon,
+        PillWidgetSlotCard(
+            title = "Left side",
+            selected = behaviour.persistentPillLeftWidget,
+            onSelect = { viewModel.setPersistentPillWidget(true, it) },
+        )
+        PillWidgetSlotCard(
+            title = "Right side",
+            selected = behaviour.persistentPillRightWidget,
+            onSelect = { viewModel.setPersistentPillWidget(false, it) },
+        )
+        Text(
+            text = "Choose a different widget for each side. Icon artwork is shared between icon slots.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
         )
 
         // The icon + colour controls only make sense once the icon is switched on.
@@ -784,6 +794,46 @@ private fun EmptyIconThumbnail(
                 tint = glyph.copy(alpha = 0.5f),
                 modifier = Modifier.size(size * 0.4f),
             )
+        }
+    }
+}
+
+
+@Composable
+private fun PillWidgetSlotCard(
+    title: String,
+    selected: PillWidgetType,
+    onSelect: (PillWidgetType) -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = persistentPillGroupShape(isFirst = false, isLast = true),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            PillWidgetType.entries.forEach { type ->
+                val label = when (type) {
+                    PillWidgetType.NONE -> "Nothing"
+                    PillWidgetType.ICON -> "Icon"
+                    PillWidgetType.ANIMATED_ICON -> "Animated icon"
+                    PillWidgetType.NETWORK_SPEED -> "Internet speed"
+                    PillWidgetType.BATTERY -> "Battery percentage"
+                    PillWidgetType.CLOCK -> "Clock"
+                    PillWidgetType.WIFI_SIGNAL -> "Wi-Fi signal"
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                        .clickable { onSelect(type) }.padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = selected == type, onClick = { onSelect(type) })
+                    Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
+                }
+            }
         }
     }
 }
