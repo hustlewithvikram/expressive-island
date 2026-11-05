@@ -1781,7 +1781,12 @@ class IslandOverlayController(private val context: Context) {
                 appearanceState.value.preferDynamicIconColor,
                 behaviourState.value.notificationIconMode,
                 behaviourState.value.notificationIconShape,
-            ).copy(initiallyExpanded = autoExpand, normalOnly = normalOnly)
+            ).copy(
+                notificationIconStrokeEnabled = behaviourState.value.notificationIconStrokeEnabled,
+                notificationIconStrokeColor = behaviourState.value.notificationIconStrokeColor,
+                initiallyExpanded = autoExpand,
+                normalOnly = normalOnly,
+            )
 
             if (overlayHidden) {
                 if (behaviourState.value.cutoutEnabled) {
