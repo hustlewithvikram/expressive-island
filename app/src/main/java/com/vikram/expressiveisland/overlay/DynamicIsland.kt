@@ -52,7 +52,8 @@ import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.CALL_MIN_WIDTH_PERCENT
 import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.CutoutColor
-import com.vikram.expressiveisland.data.IconSource\nimport com.vikram.expressiveisland.data.PillWidgetType
+import com.vikram.expressiveisland.data.IconSource
+import com.vikram.expressiveisland.data.PillWidgetType
 import com.vikram.expressiveisland.data.IslandDimensions
 import com.vikram.expressiveisland.data.PermissionDotColors
 import com.vikram.expressiveisland.data.PermissionDotPosition
@@ -170,7 +171,9 @@ internal fun DynamicIsland(
     swipeDismissTarget: SwipeDismissTarget,
     showsWhenEmpty: Boolean,
     emptyIcon: IconSource? = null,
-    emptyIconColor: CutoutColor? = null,\n    persistentPillLeftWidget: PillWidgetType = PillWidgetType.NONE,\n    persistentPillRightWidget: PillWidgetType = PillWidgetType.NONE,
+    emptyIconColor: CutoutColor? = null,
+    persistentPillLeftWidget: PillWidgetType = PillWidgetType.NONE,
+    persistentPillRightWidget: PillWidgetType = PillWidgetType.NONE,
     emptyOpensCenter: Boolean = false,
     assistantTapEnabled: Boolean = false,
     onAssistantTap: () -> Unit = {},
