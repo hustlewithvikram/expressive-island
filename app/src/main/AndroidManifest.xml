@@ -25,7 +25,8 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
-        <package android:name="moe.shizuku.privileged.api" />
+        <!-- Shizuku Stealth Mode changes the manager package ID. Query its stable API permission instead. -->
+        <permission android:name="moe.shizuku.manager.permission.API_V23" />
     </queries>
 
     <application
