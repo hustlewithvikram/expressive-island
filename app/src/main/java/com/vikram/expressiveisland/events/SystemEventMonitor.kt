@@ -1,7 +1,17 @@
 package com.vikram.expressiveisland.events
 
 import android.bluetooth.BluetoothDevice
+import android.app.NotificationManager
+import android.app.KeyguardManager
 import android.bluetooth.BluetoothManager
+import android.hardware.camera2.CameraManager
+import android.location.LocationManager
+import android.nfc.NfcAdapter
+import android.os.PowerManager
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.database.ContentObserver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -10,6 +20,7 @@ import android.hardware.usb.UsbManager
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.view.Display
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -61,11 +72,51 @@ class SystemEventMonitor(private val context: Context) {
     private val bluetoothManager =
         context.getSystemService<BluetoothManager>()
 
+    private val notificationManager = context.getSystemService<NotificationManager>()
+    private val powerManager = context.getSystemService<PowerManager>()
+    private val keyguardManager = context.getSystemService<KeyguardManager>()
+    private val cameraManager = context.getSystemService<CameraManager>()
+    private val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var airplaneMode: Boolean? = null
+    private var dndEnabled: Boolean? = null
+    private var batterySaverEnabled: Boolean? = null
+    private var nfcEnabled: Boolean? = null
+    private var locationEnabled: Boolean? = null
+    private var flashlightEnabled: Boolean? = null
+    private var dataSaverEnabled: Boolean? = null
+    private var autoRotateEnabled: Boolean? = null
+    private var thermalWarningActive: Boolean? = null
+    @Volatile private var deviceWasLocked = false
+    private val activeTorchCameras = mutableSetOf<String>()
+
+    private val flashlightCallback = object : CameraManager.TorchCallback() {
+        override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
+            synchronized(activeTorchCameras) {
+                if (enabled) activeTorchCameras.add(cameraId) else activeTorchCameras.remove(cameraId)
+                updateFlashlightState(activeTorchCameras.isNotEmpty())
+            }
+        }
+    }
+    private val autoRotateObserver = object : ContentObserver(mainHandler) {
+        override fun onChange(selfChange: Boolean) = updateAutoRotateState()
+    }
+    private val thermalStatusListener = PowerManager.OnThermalStatusChangedListener { status ->
+        updateThermalState(status)
+    }
+    private val locationObserver = object : ContentObserver(mainHandler) {
+        override fun onChange(selfChange: Boolean) = updateLocationState()
+    }
+
+    @Volatile
+    private var defaultNetworkIsVpn = false
     private val vpnNetworks = mutableSetOf<Network>()
+    @Volatile
+    private var lastPublishedVpnState = false
     private val wifiNetworks = mutableSetOf<Network>()
     private val bluetoothDevices = mutableSetOf<String>()
     private val headphoneDevices = mutableSetOf<Int>()
-
+    private var audioOutputSnapshot: Set<String>? = null
     @Volatile
     private var isLowBatteryState = false
 
@@ -111,11 +162,20 @@ class SystemEventMonitor(private val context: Context) {
                     isLowBatteryState = false
                 }
 
-                Intent.ACTION_SCREEN_OFF ->
-                    emit(SystemEventType.DEVICE_LOCKED)
+                Intent.ACTION_SCREEN_OFF -> {
+                    // Screen-off is not equivalent to a lock (e.g. timeout with no secure lock).
+                    // Check after Android has had a moment to update keyguard state.
+                    mainHandler.postDelayed({
+                        val locked = keyguardManager?.isKeyguardLocked == true
+                        if (locked && !deviceWasLocked) emit(SystemEventType.DEVICE_LOCKED)
+                        deviceWasLocked = locked
+                    }, 500L)
+                }
 
-                Intent.ACTION_USER_PRESENT ->
-                    emit(SystemEventType.DEVICE_UNLOCKED)
+                Intent.ACTION_USER_PRESENT -> {
+                    if (deviceWasLocked) emit(SystemEventType.DEVICE_UNLOCKED)
+                    deviceWasLocked = false
+                }
 
                 UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
                     emit(SystemEventType.USB_MOUNTED)
@@ -156,6 +216,13 @@ class SystemEventMonitor(private val context: Context) {
                         }
                     }
                 }
+
+                Intent.ACTION_AIRPLANE_MODE_CHANGED -> updateAirplaneModeState()
+                NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED -> updateDndState()
+                PowerManager.ACTION_POWER_SAVE_MODE_CHANGED -> updateBatterySaverState()
+                NfcAdapter.ACTION_ADAPTER_STATE_CHANGED -> updateNfcState()
+                LocationManager.MODE_CHANGED_ACTION -> updateLocationState()
+                ConnectivityManager.ACTION_RESTRICT_BACKGROUND_CHANGED -> updateDataSaverState()
 
                 "android.net.wifi.WIFI_AP_STATE_CHANGED" -> {
                     val state = intent.getIntExtra(
@@ -209,7 +276,6 @@ class SystemEventMonitor(private val context: Context) {
             }
         }
     }
-
     private val audioDeviceCallback = object : AudioDeviceCallback() {
 
         override fun onAudioDevicesAdded(
@@ -228,6 +294,7 @@ class SystemEventMonitor(private val context: Context) {
                         emit(SystemEventType.HEADPHONES_CONNECTED)
                     }
                 }
+            updateAudioOutputDevices()
         }
 
         override fun onAudioDevicesRemoved(
@@ -240,6 +307,7 @@ class SystemEventMonitor(private val context: Context) {
                 HeadphonesBus.update(null)
                 emit(SystemEventType.HEADPHONES_DISCONNECTED)
             }
+            updateAudioOutputDevices()
         }
     }
 
@@ -266,21 +334,71 @@ class SystemEventMonitor(private val context: Context) {
             }
         }
 
-    private val vpnNetworkCallback =
+    /**
+     * Observe the device's active default network rather than requesting TRANSPORT_VPN
+     * directly. Android's VPN network visibility can make transport-specific requests
+     * unreliable for ordinary apps, while the default-network callback reports the
+     * capabilities of the route currently used by the device.
+     */
+    private val defaultNetworkCallback =
         object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                val capabilities = connectivityManager?.getNetworkCapabilities(network)
-                if (capabilities?.hasTransport(TRANSPORT_VPN) == true && vpnNetworks.add(network)) {
-                    emit(SystemEventType.VPN_CONNECTED)
-                }
+            override fun onCapabilitiesChanged(
+                network: Network,
+                capabilities: NetworkCapabilities,
+            ) {
+                defaultNetworkIsVpn = capabilities.hasTransport(TRANSPORT_VPN)
+                publishVpnState("default network capabilities changed")
             }
 
             override fun onLost(network: Network) {
-                if (vpnNetworks.remove(network) && vpnNetworks.isEmpty()) {
-                    emit(SystemEventType.VPN_DISCONNECTED)
-                }
+                // A replacement default network reports its capabilities separately.
+                Log.d("SystemEventMonitor", "Default network lost: $network")
             }
         }
+
+    /**
+     * Also observe VPN transports directly. clearCapabilities() is essential here:
+     * NetworkRequest.Builder otherwise adds NOT_VPN by default, which excludes VPNs.
+     * This catches VPN networks even when they are not the device's default route.
+     */
+    private val vpnNetworkCallback =
+        object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                vpnNetworks.add(network)
+                publishVpnState("VPN network available: $network")
+            }
+
+            override fun onCapabilitiesChanged(
+                network: Network,
+                capabilities: NetworkCapabilities,
+            ) {
+                if (capabilities.hasTransport(TRANSPORT_VPN)) {
+                    vpnNetworks.add(network)
+                } else {
+                    vpnNetworks.remove(network)
+                }
+                publishVpnState("VPN capabilities changed: $network")
+            }
+
+            override fun onLost(network: Network) {
+                vpnNetworks.remove(network)
+                publishVpnState("VPN network lost: $network")
+            }
+        }
+
+    private fun publishVpnState(reason: String) {
+        val isVpnActive = defaultNetworkIsVpn || vpnNetworks.isNotEmpty()
+        if (lastPublishedVpnState == isVpnActive) return
+        lastPublishedVpnState = isVpnActive
+        Log.i(
+            "SystemEventMonitor",
+            "VPN state changed: active=$isVpnActive ($reason)",
+        )
+        emit(
+            if (isVpnActive) SystemEventType.VPN_CONNECTED
+            else SystemEventType.VPN_DISCONNECTED
+        )
+    }
 
     private fun updateWifiState(
         network: Network,
@@ -343,6 +461,18 @@ class SystemEventMonitor(private val context: Context) {
 
     fun start() {
 
+        airplaneMode = Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
+        dndEnabled = notificationManager?.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
+        batterySaverEnabled = powerManager?.isPowerSaveMode == true
+        nfcEnabled = runCatching { nfcAdapter?.isEnabled }.getOrNull()
+        locationEnabled = isLocationEnabled()
+        flashlightEnabled = false
+        dataSaverEnabled = connectivityManager?.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
+        autoRotateEnabled = Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 1) == 1
+        thermalWarningActive = null
+        deviceWasLocked = keyguardManager?.isKeyguardLocked == true
+        synchronized(activeTorchCameras) { activeTorchCameras.clear() }
+
         lastRingerMode = audioManager?.ringerMode
             ?: AudioManager.RINGER_MODE_NORMAL
 
@@ -353,19 +483,37 @@ class SystemEventMonitor(private val context: Context) {
             ContextCompat.RECEIVER_EXPORTED,
         )
 
+        audioOutputSnapshot = currentAudioOutputSnapshot()
         audioManager?.registerAudioDeviceCallback(
             audioDeviceCallback,
-            null,
+            mainHandler,
         )
+
+        context.contentResolver.registerContentObserver(
+            Settings.Secure.getUriFor(Settings.Secure.LOCATION_MODE), false, locationObserver
+        )
+        context.contentResolver.registerContentObserver(
+            Settings.System.getUriFor(Settings.System.ACCELEROMETER_ROTATION), false, autoRotateObserver
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            powerManager?.addThermalStatusListener(thermalStatusListener)
+        }
+        cameraManager?.registerTorchCallback(flashlightCallback, mainHandler)
 
         connectivityManager?.registerNetworkCallback(
             wifiRequest(),
             wifiNetworkCallback,
         )
-        connectivityManager?.registerNetworkCallback(
-            vpnRequest(),
-            vpnNetworkCallback,
-        )
+        connectivityManager?.registerDefaultNetworkCallback(defaultNetworkCallback)
+        connectivityManager?.registerNetworkCallback(vpnRequest(), vpnNetworkCallback)
+        updateAirplaneModeState()
+        updateDndState()
+        updateBatterySaverState()
+        updateNfcState()
+        updateLocationState()
+        updateDataSaverState()
+        updateAutoRotateState()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) updateThermalState(powerManager?.currentThermalStatus ?: PowerManager.THERMAL_STATUS_NONE)
 
         // Populate charging state immediately if the monitor starts while
         // the device is already plugged in.
@@ -385,11 +533,21 @@ class SystemEventMonitor(private val context: Context) {
         audioManager?.unregisterAudioDeviceCallback(
             audioDeviceCallback
         )
+        audioOutputSnapshot = null
+        context.contentResolver.unregisterContentObserver(locationObserver)
+        context.contentResolver.unregisterContentObserver(autoRotateObserver)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            runCatching { powerManager?.removeThermalStatusListener(thermalStatusListener) }
+        }
+        runCatching { cameraManager?.unregisterTorchCallback(flashlightCallback) }
 
         connectivityManager?.unregisterNetworkCallback(wifiNetworkCallback)
+        connectivityManager?.unregisterNetworkCallback(defaultNetworkCallback)
         connectivityManager?.unregisterNetworkCallback(vpnNetworkCallback)
 
+        defaultNetworkIsVpn = false
         vpnNetworks.clear()
+        lastPublishedVpnState = false
         wifiNetworks.clear()
         bluetoothDevices.clear()
         headphoneDevices.clear()
@@ -512,6 +670,90 @@ class SystemEventMonitor(private val context: Context) {
         )
     }
 
+    private fun updateAirplaneModeState() {
+        val enabled = Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
+        val previous = airplaneMode
+        airplaneMode = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.AIRPLANE_MODE_ENABLED else SystemEventType.AIRPLANE_MODE_DISABLED)
+    }
+
+    private fun updateDndState() {
+        val enabled = notificationManager?.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
+        val previous = dndEnabled
+        dndEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.DND_ENABLED else SystemEventType.DND_DISABLED)
+    }
+
+    private fun updateBatterySaverState() {
+        val enabled = powerManager?.isPowerSaveMode == true
+        val previous = batterySaverEnabled
+        batterySaverEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.BATTERY_SAVER_ENABLED else SystemEventType.BATTERY_SAVER_DISABLED)
+    }
+
+    private fun updateNfcState() {
+        val enabled = runCatching { nfcAdapter?.isEnabled }.getOrNull() ?: return
+        val previous = nfcEnabled
+        nfcEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.NFC_ENABLED else SystemEventType.NFC_DISABLED)
+    }
+
+    private fun isLocationEnabled(): Boolean = runCatching {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            context.getSystemService<LocationManager>()?.isLocationEnabled == true
+        } else {
+            Settings.Secure.getInt(context.contentResolver, Settings.Secure.LOCATION_MODE, Settings.Secure.LOCATION_MODE_OFF) != Settings.Secure.LOCATION_MODE_OFF
+        }
+    }.getOrDefault(false)
+
+    private fun updateLocationState() {
+        val enabled = isLocationEnabled()
+        val previous = locationEnabled
+        locationEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.LOCATION_ENABLED else SystemEventType.LOCATION_DISABLED)
+    }
+
+    private fun updateDataSaverState() {
+        val enabled = connectivityManager?.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
+        val previous = dataSaverEnabled
+        dataSaverEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.DATA_SAVER_ENABLED else SystemEventType.DATA_SAVER_DISABLED)
+    }
+
+    private fun updateAutoRotateState() {
+        val enabled = Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 1) == 1
+        val previous = autoRotateEnabled
+        autoRotateEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.AUTO_ROTATE_ENABLED else SystemEventType.AUTO_ROTATE_DISABLED)
+    }
+
+    private fun updateThermalState(status: Int) {
+        val warning = status >= PowerManager.THERMAL_STATUS_MODERATE
+        val previous = thermalWarningActive
+        thermalWarningActive = warning
+        if (previous != null && previous != warning) emit(if (warning) SystemEventType.THERMAL_WARNING else SystemEventType.THERMAL_NORMAL)
+    }
+
+    private fun currentAudioOutputSnapshot(): Set<String>? = runCatching {
+        audioManager?.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+            ?.filter { it.isSink }
+            ?.map { "${it.id}:${it.type}" }
+            ?.toSet()
+    }.getOrNull()
+
+    private fun updateAudioOutputDevices() {
+        val current = currentAudioOutputSnapshot() ?: return
+        val previous = audioOutputSnapshot
+        audioOutputSnapshot = current
+        if (previous != null && previous != current) emit(SystemEventType.AUDIO_OUTPUT_CHANGED)
+    }
+
+    private fun updateFlashlightState(enabled: Boolean) {
+        val previous = flashlightEnabled
+        flashlightEnabled = enabled
+        if (previous != null && previous != enabled) emit(if (enabled) SystemEventType.FLASHLIGHT_ENABLED else SystemEventType.FLASHLIGHT_DISABLED)
+    }
+
     private fun emit(type: SystemEventType) {
         IslandEventBus.emit(
             CutoutSignal.System(type)
@@ -543,6 +785,12 @@ class SystemEventMonitor(private val context: Context) {
             addAction("android.net.wifi.WIFI_AP_STATE_CHANGED")
 
             addAction(AudioManager.RINGER_MODE_CHANGED_ACTION)
+            addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)
+            addAction(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED)
+            addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+            addAction(NfcAdapter.ACTION_ADAPTER_STATE_CHANGED)
+            addAction(LocationManager.MODE_CHANGED_ACTION)
+            addAction(ConnectivityManager.ACTION_RESTRICT_BACKGROUND_CHANGED)
         }
 
     private fun wifiRequest() =
@@ -552,7 +800,8 @@ class SystemEventMonitor(private val context: Context) {
 
     private fun vpnRequest() =
         NetworkRequest.Builder()
-            .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
+            .clearCapabilities()
+            .addTransportType(TRANSPORT_VPN)
             .build()
 
     private val AudioDeviceInfo.isHeadphone: Boolean

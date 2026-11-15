@@ -598,31 +598,26 @@ class CutoutNotificationListenerService : NotificationListenerService() {
 
         val flags = notification.flags
 
-        val isSummary =
-            flags and Notification.FLAG_GROUP_SUMMARY != 0
-
-        val isOngoing =
-            flags and Notification.FLAG_ONGOING_EVENT != 0
-
-        // Media notifications are handled by the media/session pipeline.
-        // Do not also surface them as generic notification tiles.
-        val isMedia =
-            notification.extras?.containsKey(Notification.EXTRA_MEDIA_SESSION) == true
-
-        if (isMedia) {
+        // Group summaries represent their children, not a separate notification.
+        if (flags and Notification.FLAG_GROUP_SUMMARY != 0) {
             return false
         }
 
-        val hasProgress =
-            getProgressDataOrNull(this) != null
+        // Media notifications have their own session pipeline and must never be duplicated
+        // as generic notification tiles.
+        if (notification.extras?.containsKey(Notification.EXTRA_MEDIA_SESSION) == true) {
+            return false
+        }
 
-        val hasActions =
-            notification.actions?.any {
-                it.title != null && it.actionIntent != null
-            } == true
+        // Match Android's actual notification semantics: ordinary notifications must be
+        // clearable, while ongoing notifications are admitted only when they publish real
+        // progress. Actions alone are not evidence of progress (VPNs and sync services often
+        // expose buttons but should not occupy the island).
+        val hasProgress = getProgressDataOrNull(this) != null
+        if (hasProgress) return true
 
-        return !isSummary &&
-                (!isOngoing || hasProgress || hasActions)
+        val isOngoing = flags and Notification.FLAG_ONGOING_EVENT != 0
+        return isClearable && !isOngoing
     }
 
     private fun isSilentNotification(

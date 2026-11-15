@@ -6,6 +6,24 @@ import android.graphics.drawable.Icon
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Adb
+import androidx.compose.material.icons.rounded.AirplanemodeActive
+import androidx.compose.material.icons.rounded.AirplanemodeInactive
+import androidx.compose.material.icons.rounded.BatteryFull
+import androidx.compose.material.icons.rounded.BatterySaver
+import androidx.compose.material.icons.rounded.DoNotDisturbOff
+import androidx.compose.material.icons.rounded.DoNotDisturbOn
+import androidx.compose.material.icons.rounded.DataSaverOn
+import androidx.compose.material.icons.rounded.DataSaverOff
+import androidx.compose.material.icons.rounded.ScreenRotation
+import androidx.compose.material.icons.rounded.ScreenLockRotation
+import androidx.compose.material.icons.rounded.DeviceThermostat
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Speaker
+import androidx.compose.material.icons.rounded.FlashOff
+import androidx.compose.material.icons.rounded.FlashOn
+import androidx.compose.material.icons.rounded.LocationOff
+import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Nfc
 import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.BluetoothConnected
@@ -229,4 +247,23 @@ enum class SystemEventType(
     RINGER_NORMAL(Icons.Rounded.VolumeUp, R.string.event_ringer_normal, 0xFF4ADE80),
     RINGER_VIBRATE(Icons.Rounded.Vibration, R.string.event_ringer_vibrate, 0xFFFACC15),
     RINGER_SILENT(Icons.Rounded.VolumeOff, R.string.event_ringer_silent, 0xFFF87171),
+    AIRPLANE_MODE_ENABLED(Icons.Rounded.AirplanemodeActive, R.string.event_airplane_enabled, 0xFF60A5FA),
+    AIRPLANE_MODE_DISABLED(Icons.Rounded.AirplanemodeInactive, R.string.event_airplane_disabled, 0xFF4ADE80),
+    DND_ENABLED(Icons.Rounded.DoNotDisturbOn, R.string.event_dnd_enabled, 0xFFA78BFA),
+    DND_DISABLED(Icons.Rounded.DoNotDisturbOff, R.string.event_dnd_disabled, 0xFF4ADE80),
+    BATTERY_SAVER_ENABLED(Icons.Rounded.BatterySaver, R.string.event_battery_saver_enabled, 0xFFFACC15),
+    BATTERY_SAVER_DISABLED(Icons.Rounded.BatteryFull, R.string.event_battery_saver_disabled, 0xFF4ADE80),
+    NFC_ENABLED(Icons.Rounded.Nfc, R.string.event_nfc_enabled, 0xFF60A5FA),
+    NFC_DISABLED(Icons.Rounded.Nfc, R.string.event_nfc_disabled, 0xFF94A3B8),
+    LOCATION_ENABLED(Icons.Rounded.LocationOn, R.string.event_location_enabled, 0xFF60A5FA),
+    LOCATION_DISABLED(Icons.Rounded.LocationOff, R.string.event_location_disabled, 0xFF94A3B8),
+    FLASHLIGHT_ENABLED(Icons.Rounded.FlashOn, R.string.event_flashlight_enabled, 0xFFFACC15),
+    FLASHLIGHT_DISABLED(Icons.Rounded.FlashOff, R.string.event_flashlight_disabled, 0xFF94A3B8),
+    DATA_SAVER_ENABLED(Icons.Rounded.DataSaverOn, R.string.event_data_saver_enabled, 0xFF60A5FA),
+    DATA_SAVER_DISABLED(Icons.Rounded.DataSaverOff, R.string.event_data_saver_disabled, 0xFF94A3B8),
+    AUTO_ROTATE_ENABLED(Icons.Rounded.ScreenRotation, R.string.event_auto_rotate_enabled, 0xFF60A5FA),
+    AUTO_ROTATE_DISABLED(Icons.Rounded.ScreenLockRotation, R.string.event_auto_rotate_disabled, 0xFF94A3B8),
+    THERMAL_WARNING(Icons.Rounded.DeviceThermostat, R.string.event_thermal_warning, 0xFFF87171),
+    THERMAL_NORMAL(Icons.Rounded.DeviceThermostat, R.string.event_thermal_normal, 0xFF4ADE80),
+    AUDIO_OUTPUT_CHANGED(Icons.Rounded.Speaker, R.string.event_audio_output_changed, 0xFFA78BFA),
 }

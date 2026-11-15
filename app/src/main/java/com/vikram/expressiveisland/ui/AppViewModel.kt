@@ -23,6 +23,7 @@ import com.vikram.expressiveisland.data.AssistantActivationMode
 import com.vikram.expressiveisland.data.AssistantTileSettings
 import com.vikram.expressiveisland.data.BehaviourPreferences
 import com.vikram.expressiveisland.data.BehaviourSettings
+import com.vikram.expressiveisland.data.PillWidgetType
 import com.vikram.expressiveisland.data.NotificationIconMode
 import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CenterShortcut
@@ -682,6 +683,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setShowsWhenEmpty(enabled: Boolean) = viewModelScope.launch {
         behaviourPreferences.setShowsWhenEmpty(enabled)
+    }
+
+    fun setPersistentPillWidget(left: Boolean, type: PillWidgetType) = viewModelScope.launch {
+        behaviourPreferences.setPersistentPillWidget(left, type)
     }
 
     fun setShowsWhenEmptyShowIcon(enabled: Boolean) = viewModelScope.launch {

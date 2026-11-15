@@ -53,6 +53,7 @@ import com.vikram.expressiveisland.data.CALL_MIN_WIDTH_PERCENT
 import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.IconSource
+import com.vikram.expressiveisland.data.PillWidgetType
 import com.vikram.expressiveisland.data.IslandDimensions
 import com.vikram.expressiveisland.data.PermissionDotColors
 import com.vikram.expressiveisland.data.PermissionDotPosition
@@ -171,6 +172,8 @@ internal fun DynamicIsland(
     showsWhenEmpty: Boolean,
     emptyIcon: IconSource? = null,
     emptyIconColor: CutoutColor? = null,
+    persistentPillLeftWidget: PillWidgetType = PillWidgetType.NONE,
+    persistentPillRightWidget: PillWidgetType = PillWidgetType.NONE,
     emptyOpensCenter: Boolean = false,
     assistantTapEnabled: Boolean = false,
     onAssistantTap: () -> Unit = {},
@@ -830,10 +833,12 @@ internal fun DynamicIsland(
                                             onCenterShortcut(shortcut)
                                         },
                                     )
-                                } else if (emptyIcon != null) {
+                                } else if (emptyIcon != null || persistentPillLeftWidget != PillWidgetType.NONE || persistentPillRightWidget != PillWidgetType.NONE) {
                                     EmptyPillContent(
                                         icon = emptyIcon,
                                         containerColor = emptyIconColor,
+                                        leftWidget = persistentPillLeftWidget,
+                                        rightWidget = persistentPillRightWidget,
                                         heightDp = collapsed.heightDp,
                                         isStickToCamera = isStickToCamera,
                                     )

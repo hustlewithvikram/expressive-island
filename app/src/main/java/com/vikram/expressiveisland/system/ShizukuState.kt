@@ -6,9 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import rikka.shizuku.Shizuku
-
-/** The Shizuku app's package, needed to tell "not installed" apart from "not running". */
-private const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
+import rikka.shizuku.ShizukuProvider
 
 /** Arbitrary code echoed back to [Shizuku.OnRequestPermissionResultListener]. */
 private const val PERMISSION_REQUEST_CODE = 4919
@@ -64,12 +62,23 @@ object ShizukuState {
     }
 
     /**
+     * Returns the package that declares Shizuku's API permission.
+     *
+     * Do not look up Shizuku by its application ID: Stealth Mode can change that ID. The API
+     * permission remains the stable identifier and its [android.content.pm.PermissionInfo.packageName]
+     * tells us the currently installed manager package.
+     */
+    fun getShizukuPackageName(context: Context): String? = runCatching {
+        context.packageManager.getPermissionInfo(ShizukuProvider.PERMISSION, 0).packageName
+    }.getOrNull()
+
+    /**
      * Works out the live Shizuku status, distinguishing not-installed from installed-but-stopped
      * and from an old version whose handshake this app no longer speaks.
      */
     private fun currentStatus(): ShizukuStatus {
         val context = appContext ?: return ShizukuStatus.NOT_INSTALLED
-        if (!isInstalled(context)) return ShizukuStatus.NOT_INSTALLED
+        if (getShizukuPackageName(context) == null) return ShizukuStatus.NOT_INSTALLED
         // pingBinder is the only honest "is it running" check — the grant can read fine while the
         // process is gone, exactly like the accessibility service after an app update.
         if (!runCatching { Shizuku.pingBinder() }.getOrDefault(false)) return ShizukuStatus.NOT_RUNNING
@@ -86,10 +95,4 @@ object ShizukuState {
     fun requestPermission() {
         runCatching { Shizuku.requestPermission(PERMISSION_REQUEST_CODE) }
     }
-
-    /** Whether the Shizuku app is installed, treating any lookup failure as absent. */
-    private fun isInstalled(context: Context): Boolean = runCatching {
-        context.packageManager.getPackageInfo(SHIZUKU_PACKAGE, 0)
-        true
-    }.getOrDefault(false)
 }

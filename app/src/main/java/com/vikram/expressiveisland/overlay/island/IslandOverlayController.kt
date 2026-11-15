@@ -72,6 +72,7 @@ import com.vikram.expressiveisland.data.GlobalAction
 import com.vikram.expressiveisland.data.HorizontalCutoutMode
 import com.vikram.expressiveisland.data.IconPreferences
 import com.vikram.expressiveisland.data.IconSource
+import com.vikram.expressiveisland.data.PillWidgetType
 import com.vikram.expressiveisland.data.IslandDimensions
 import com.vikram.expressiveisland.data.IslandLayout
 import com.vikram.expressiveisland.data.LayoutPreferences
@@ -660,8 +661,13 @@ class IslandOverlayController(private val context: Context) {
                                 else -> CenterShortcutExecutor.executeCameraHoleAction(action, context)
                             }
                         },
-                        emptyIcon = behaviour.showsWhenEmptyIcon.takeIf { behaviour.showsWhenEmptyShowIcon },
+                        emptyIcon = behaviour.showsWhenEmptyIcon.takeIf {
+                            behaviour.persistentPillLeftWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON) ||
+                                behaviour.persistentPillRightWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON)
+                        },
                         emptyIconColor = behaviour.showsWhenEmptyIconColor,
+                        persistentPillLeftWidget = behaviour.persistentPillLeftWidget,
+                        persistentPillRightWidget = behaviour.persistentPillRightWidget,
                         emptyOpensCenter = cameraHoleQuickActionsValue ||
                                 behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
                         centerShortcuts = behaviour.centerShortcuts,
@@ -2818,6 +2824,55 @@ class IslandOverlayController(private val context: Context) {
                 incomingType == SystemEventType.HOTSPOT_ENABLED ||
                         incomingType == SystemEventType.HOTSPOT_DISABLED
 
+            SystemEventType.AIRPLANE_MODE_ENABLED,
+            SystemEventType.AIRPLANE_MODE_DISABLED,
+                ->
+                incomingType == SystemEventType.AIRPLANE_MODE_ENABLED ||
+                        incomingType == SystemEventType.AIRPLANE_MODE_DISABLED
+
+            SystemEventType.DND_ENABLED,
+            SystemEventType.DND_DISABLED,
+                ->
+                incomingType == SystemEventType.DND_ENABLED ||
+                        incomingType == SystemEventType.DND_DISABLED
+
+            SystemEventType.BATTERY_SAVER_ENABLED,
+            SystemEventType.BATTERY_SAVER_DISABLED,
+                ->
+                incomingType == SystemEventType.BATTERY_SAVER_ENABLED ||
+                        incomingType == SystemEventType.BATTERY_SAVER_DISABLED
+
+            SystemEventType.NFC_ENABLED,
+            SystemEventType.NFC_DISABLED,
+                ->
+                incomingType == SystemEventType.NFC_ENABLED ||
+                        incomingType == SystemEventType.NFC_DISABLED
+
+            SystemEventType.LOCATION_ENABLED,
+            SystemEventType.LOCATION_DISABLED,
+                ->
+                incomingType == SystemEventType.LOCATION_ENABLED ||
+                        incomingType == SystemEventType.LOCATION_DISABLED
+
+            SystemEventType.FLASHLIGHT_ENABLED,
+            SystemEventType.FLASHLIGHT_DISABLED,
+                ->
+                incomingType == SystemEventType.FLASHLIGHT_ENABLED ||
+                        incomingType == SystemEventType.FLASHLIGHT_DISABLED
+
+            SystemEventType.DATA_SAVER_ENABLED,
+            SystemEventType.DATA_SAVER_DISABLED,
+                -> incomingType == SystemEventType.DATA_SAVER_ENABLED || incomingType == SystemEventType.DATA_SAVER_DISABLED
+
+            SystemEventType.AUTO_ROTATE_ENABLED,
+            SystemEventType.AUTO_ROTATE_DISABLED,
+                -> incomingType == SystemEventType.AUTO_ROTATE_ENABLED || incomingType == SystemEventType.AUTO_ROTATE_DISABLED
+
+            SystemEventType.THERMAL_WARNING,
+            SystemEventType.THERMAL_NORMAL,
+                -> incomingType == SystemEventType.THERMAL_WARNING || incomingType == SystemEventType.THERMAL_NORMAL
+            SystemEventType.AUDIO_OUTPUT_CHANGED -> incomingType == SystemEventType.AUDIO_OUTPUT_CHANGED
+
             SystemEventType.RINGER_NORMAL,
             SystemEventType.RINGER_VIBRATE,
             SystemEventType.RINGER_SILENT,
@@ -2867,6 +2922,14 @@ class IslandOverlayController(private val context: Context) {
 
             SystemEventType.DEVICE_LOCKED,
             SystemEventType.DEVICE_UNLOCKED,
+
+            SystemEventType.DATA_SAVER_ENABLED,
+            SystemEventType.DATA_SAVER_DISABLED,
+            SystemEventType.AUTO_ROTATE_ENABLED,
+            SystemEventType.AUTO_ROTATE_DISABLED,
+            SystemEventType.THERMAL_WARNING,
+            SystemEventType.THERMAL_NORMAL,
+            SystemEventType.AUDIO_OUTPUT_CHANGED,
                 -> false
 
             else -> true

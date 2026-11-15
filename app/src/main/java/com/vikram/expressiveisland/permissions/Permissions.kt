@@ -9,6 +9,7 @@ import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.getSystemService
 import com.vikram.expressiveisland.service.CutoutAccessibilityService
+import com.vikram.expressiveisland.system.ShizukuState
 
 /**
  * Thin, side-effect-free helpers for querying and requesting the three grants the app
@@ -57,13 +58,24 @@ object Permissions {
     }
 
     /**
-     * Opens the Shizuku app so the user can start it, or its store listing when it isn't installed.
-     * Shizuku has to be restarted by hand after every reboot, so this is a link the Status bar
-     * screen surfaces often rather than a one-time grant.
+     * Opens the installed Shizuku manager using the package that declares its stable API
+     * permission. This also works when Shizuku Stealth Mode changes the manager package ID.
+     * Falls back to the manager's app-details page if it has no launchable activity, and to
+     * the Play Store only when no Shizuku installation can be detected.
      */
     fun openShizuku(context: Context) {
-        val launch = context.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE)
-        if (launch != null && context.startActivitySafely(launch)) return
+        val packageName = ShizukuState.getShizukuPackageName(context)
+        if (packageName != null) {
+            val launch = context.packageManager.getLaunchIntentForPackage(packageName)
+            if (launch != null && context.startActivitySafely(launch)) return
+
+            val details = Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:$packageName"),
+            )
+            if (context.startActivitySafely(details)) return
+        }
+
         context.startActivitySafely(Intent(Intent.ACTION_VIEW, Uri.parse(SHIZUKU_STORE_URL)))
     }
 
@@ -71,7 +83,6 @@ object Permissions {
         startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }.isSuccess
 
-    private const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
     private const val SHIZUKU_STORE_URL =
         "https://play.google.com/store/apps/details?id=moe.shizuku.privileged.api"
 }
