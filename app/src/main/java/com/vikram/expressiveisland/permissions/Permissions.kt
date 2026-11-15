@@ -44,6 +44,20 @@ object Permissions {
         context.startActivitySafely(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
 
     /**
+     * Opens the direct "ignore battery optimisation" prompt for this app. Falls back to
+     * the general list if the OEM blocks the targeted request.
+     */
+    fun requestIgnoreBatteryOptimization(context: Context) {
+        val targeted = Intent(
+            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            Uri.parse("package:${context.packageName}"),
+        )
+        if (!context.startActivitySafely(targeted)) {
+            context.startActivitySafely(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        }
+    }
+
+    /**
      * Opens the installed Shizuku manager using the package that declares its stable API
      * permission. This also works when Shizuku Stealth Mode changes the manager package ID.
      * Falls back to the manager's app-details page if it has no launchable activity, and to
