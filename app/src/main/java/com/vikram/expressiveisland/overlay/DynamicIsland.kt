@@ -582,13 +582,20 @@ internal fun DynamicIsland(
                                 val widen =
                                     if (size.width > 0f) (size.width + extraPx) / size.width else 1f
                                 val mergeSwell = satelliteMergeSwell(satelliteMerge.value)
-                                scaleX = boopScale.value * widen * (1f + 0.055f * mergeSwell)
-                                scaleY = boopScale.value * (1f + 0.035f * mergeSwell)
-                                translationX = dismissOffsetX.value
                                 val travel =
-                                    abs(dismissOffsetX.value) / size.width.coerceAtLeast(1f)
+                                    (abs(dismissOffsetX.value) / size.width.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                                // Keep the shell physically connected to the finger: a slight tilt and
+                                // cross-axis squash communicate drag force, then the shared spring settle
+                                // carries the pill back without snapping its rotation or proportions.
+                                scaleX = boopScale.value * widen *
+                                    (1f + 0.055f * mergeSwell - 0.045f * travel)
+                                scaleY = boopScale.value *
+                                    (1f + 0.035f * mergeSwell + 0.075f * travel)
+                                rotationZ = (dismissOffsetX.value / size.width.coerceAtLeast(1f) * 7f)
+                                    .coerceIn(-7f, 7f)
+                                translationX = dismissOffsetX.value
                                 val revealAlpha = (reveal.value / 0.2f).coerceIn(0f, 1f)
-                                alpha = (1f - travel).coerceIn(0.25f, 1f) * revealAlpha
+                                alpha = (1f - travel * 0.75f).coerceIn(0.25f, 1f) * revealAlpha
                             }
                             .pointerInput(
                                 forcedExpanded,
