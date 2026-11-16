@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -121,6 +123,13 @@ fun SettingsTab(
 ) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var searchExpanded by rememberSaveable { mutableStateOf(false) }
+    // Back/collapse must restore the untouched Settings home, not leave a hidden query behind.
+    val updateSearchExpanded: (Boolean) -> Unit = { expanded ->
+        searchExpanded = expanded
+        if (!expanded) {
+            searchQuery = ""
+        }
+    }
 
     // Routing (and back navigation, via the bottom bar) is owned by MainScreen.
     // Deeper routes slide in from the right; stepping back slides in from the left, so the
@@ -149,7 +158,7 @@ fun SettingsTab(
                     searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },
                     searchExpanded = searchExpanded,
-                    onSearchExpandedChange = { searchExpanded = it },
+                    onSearchExpandedChange = updateSearchExpanded,
                     onOpenSizePosition = onOpenSizePosition,
                     onOpenEventIcons = onOpenEventIcons,
                     onOpenDynamicTiles = onOpenDynamicTiles,
@@ -335,7 +344,14 @@ private fun SettingsList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 8.dp,
+                        // This inset belongs to the scroll content: the final result can scroll
+                        // fully above the floating navigation bar without reducing the viewport.
+                        bottom = 104.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+                    ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
             if (searchQuery.isBlank()) {
@@ -746,7 +762,7 @@ private fun CutoutEnableCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
     ) {
         Row(
             modifier = Modifier
@@ -764,11 +780,12 @@ private fun CutoutEnableCard(
                 Text(
                     text = stringResource(R.string.cutout_enable_title),
                     style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
                     text = stringResource(R.string.cutout_enable_desc),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f),
                 )
             }
             Spacer(Modifier.width(12.dp))
@@ -776,7 +793,7 @@ private fun CutoutEnableCard(
                 modifier = Modifier
                     .width(1.dp)
                     .height(36.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant),
+                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.18f)),
             )
             Spacer(Modifier.width(12.dp))
             Switch(checked = enabled, onCheckedChange = onEnabledChange)
