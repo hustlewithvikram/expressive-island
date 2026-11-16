@@ -73,6 +73,7 @@ import com.vikram.expressiveisland.overlay.island.IslandAction
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.island.IslandIcon
 import com.vikram.expressiveisland.overlay.expandedActionsExtraDp
+import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
 import kotlin.math.roundToInt
 
@@ -252,8 +253,8 @@ internal fun ButtonScreen(
                             inputStyle = appearance.replyInputStyle,
                             cancelOnLeft = appearance.cancelButtonOnLeft,
                             heightDp = buttonHeight.roundToInt(),
-                            sendColor = appearance.sendButtonColor ?: PreviewAccent,
-                            cancelColor = appearance.cancelButtonColor ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                            sendColor = appearance.sendButtonColor?.resolve() ?: PreviewAccent,
+                            cancelColor = appearance.cancelButtonColor?.resolve() ?: MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
