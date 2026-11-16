@@ -52,7 +52,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -833,7 +832,7 @@ private fun PillWidgetSlotCard(
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowDown, contentDescription = "Choose $title", tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Choose $title", tint = MaterialTheme.colorScheme.primary)
         }
     }
     if (showDialog) {
