@@ -616,6 +616,8 @@
     <string name="center_action_notifications">Notifications</string>
     <string name="center_action_quick_settings">Quick settings</string>
     <string name="center_action_recents">Recents</string>
+    <string name="center_action_home">Home</string>
+    <string name="center_action_back">Back</string>
     <string name="center_panel_internet">Internet</string>
     <string name="center_panel_wifi">Wi‑Fi</string>
     <string name="center_panel_nfc">NFC</string>

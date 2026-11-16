@@ -7,6 +7,8 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.FlashlightOn
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Nfc
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.PowerSettingsNew
@@ -38,6 +40,8 @@ object CenterShortcutCatalog {
             GlobalAction.NOTIFICATIONS -> Icons.Rounded.Notifications
             GlobalAction.QUICK_SETTINGS -> Icons.Rounded.Tune
             GlobalAction.RECENTS -> Icons.Rounded.Apps
+            GlobalAction.HOME -> Icons.Rounded.Home
+            GlobalAction.BACK -> Icons.Rounded.ArrowBack
         }
         is CenterShortcut.Panel -> when (shortcut.panel) {
             SettingsPanel.INTERNET -> Icons.Rounded.Wifi

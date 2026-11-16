@@ -38,6 +38,8 @@ import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -50,6 +52,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -806,35 +809,69 @@ private fun PillWidgetSlotCard(
     selected: PillWidgetType,
     onSelect: (PillWidgetType) -> Unit,
 ) {
+    var showDialog by remember { mutableStateOf(false) }
+    var pending by remember(selected) { mutableStateOf(selected) }
+    val label = when (selected) {
+        PillWidgetType.NONE -> "Nothing"
+        PillWidgetType.ICON -> "Icon"
+        PillWidgetType.ANIMATED_ICON -> "Animated icon"
+        PillWidgetType.NETWORK_SPEED -> "Internet speed"
+        PillWidgetType.BATTERY -> "Battery percentage"
+        PillWidgetType.CLOCK -> "Clock"
+        PillWidgetType.WIFI_SIGNAL -> "Wi-Fi signal"
+    }
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable { pending = selected; showDialog = true },
         shape = persistentPillGroupShape(isFirst = false, isLast = true),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            PillWidgetType.entries.forEach { type ->
-                val label = when (type) {
-                    PillWidgetType.NONE -> "Nothing"
-                    PillWidgetType.ICON -> "Icon"
-                    PillWidgetType.ANIMATED_ICON -> "Animated icon"
-                    PillWidgetType.NETWORK_SPEED -> "Internet speed"
-                    PillWidgetType.BATTERY -> "Battery percentage"
-                    PillWidgetType.CLOCK -> "Clock"
-                    PillWidgetType.WIFI_SIGNAL -> "Wi-Fi signal"
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                        .clickable { onSelect(type) }.padding(vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(selected = selected == type, onClick = { onSelect(type) })
-                    Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
-                }
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowDown, contentDescription = "Choose $title", tint = MaterialTheme.colorScheme.primary)
         }
+    }
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text(title) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    PillWidgetType.entries.forEachIndexed { index, type ->
+                        val optionLabel = when (type) {
+                            PillWidgetType.NONE -> "Nothing"
+                            PillWidgetType.ICON -> "Icon"
+                            PillWidgetType.ANIMATED_ICON -> "Animated icon"
+                            PillWidgetType.NETWORK_SPEED -> "Internet speed"
+                            PillWidgetType.BATTERY -> "Battery percentage"
+                            PillWidgetType.CLOCK -> "Clock"
+                            PillWidgetType.WIFI_SIGNAL -> "Wi-Fi signal"
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                                .clip(persistentPillGroupShape(index == 0, index == PillWidgetType.entries.lastIndex))
+                                .background(if (pending == type) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer)
+                                .clickable { pending = type }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = pending == type, onClick = { pending = type })
+                            Text(optionLabel, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { onSelect(pending); showDialog = false }) { Text("Confirm") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) { Text("Cancel") }
+            },
+        )
     }
 }

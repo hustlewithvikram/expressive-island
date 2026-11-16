@@ -659,7 +659,7 @@ internal fun DynamicIsland(
                                             return@detectTapGestures
                                         }
 
-                                        if (!isExpanded) {
+                                        if (!isExpanded && !emptyPill) {
                                             scope.launch {
                                                 if (pressWidens) {
                                                     pressExpand.animateTo(1f, motion.boop())
@@ -672,7 +672,7 @@ internal fun DynamicIsland(
 
                                         tryAwaitRelease()
 
-                                        if (!isExpanded) {
+                                        if (!isExpanded && !emptyPill) {
                                             scope.launch {
                                                 if (pressWidens) {
                                                     pressExpand.animateTo(0f, motion.boop())
@@ -706,12 +706,8 @@ internal fun DynamicIsland(
                                             // Use long press as a fallback expansion gesture.
                                             tapExpanded = true
 
-                                            scope.launch {
-                                                motion.pop(
-                                                    boopScale,
-                                                    peak = 1.03f,
-                                                )
-                                            }
+                                            // The empty-pill center expands through the shared
+                                            // island size and corner animations, without a separate pop.
                                         }
                                     },
                                     onTap = {
@@ -735,14 +731,9 @@ internal fun DynamicIsland(
                                                     if (wasExpanded && cameraHoleQuickActions) {
                                                         onCameraHoleQuickActionsDismiss()
                                                     }
-                                                    if (tapExpanded) {
-                                                        scope.launch {
-                                                            motion.pop(
-                                                                boopScale,
-                                                                peak = 1.03f
-                                                            )
-                                                        }
-                                                    }
+                                                    // The empty-pill center uses the same width/height
+                                                    // transition as notification expansion; avoid an
+                                                    // extra scale pop that makes the surface feel detached.
                                                 }
                                             } else {
                                                 onEmptyClick()
