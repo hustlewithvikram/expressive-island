@@ -73,6 +73,9 @@ import com.vikram.expressiveisland.overlay.contents.callCutoutWidthPercent
 import com.vikram.expressiveisland.overlay.island.IslandAction
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.island.AnimationEngine
+import com.vikram.expressiveisland.overlay.island.satelliteMergeAlpha
+import com.vikram.expressiveisland.overlay.island.satelliteMergeStretch
+import com.vikram.expressiveisland.overlay.island.satelliteMergeSwell
 import com.vikram.expressiveisland.overlay.island.SATELLITE_GAP_DP
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.system.PermissionUsage
@@ -968,7 +971,7 @@ internal fun DynamicIsland(
                 val step = revealWidth / 2 + SATELLITE_GAP_DP.dp + (diameterDp / 2f).dp
                 val mergeProgress = satelliteMerge.value.coerceIn(0f, 1f)
                 val mergeDirection = if (satellitePosition == SatellitePosition.LEFT) -1f else 1f
-                val satelliteOffsetX = offsetX + (mergeDirection * step * (1f - mergeProgress))
+                val satelliteOffsetX = offsetX + (step * mergeDirection * (1f - mergeProgress))
 
                 Box(
                     modifier = Modifier
