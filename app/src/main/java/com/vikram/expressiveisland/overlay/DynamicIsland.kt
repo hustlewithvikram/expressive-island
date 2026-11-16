@@ -3,12 +3,9 @@ package com.vikram.expressiveisland.overlay
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -75,14 +72,13 @@ import com.vikram.expressiveisland.overlay.satellite.SatelliteBubble
 import com.vikram.expressiveisland.overlay.contents.callCutoutWidthPercent
 import com.vikram.expressiveisland.overlay.island.IslandAction
 import com.vikram.expressiveisland.overlay.island.IslandEvent
-import com.vikram.expressiveisland.overlay.island.IslandMotion
+import com.vikram.expressiveisland.overlay.island.AnimationEngine
 import com.vikram.expressiveisland.overlay.island.SATELLITE_GAP_DP
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.system.PermissionUsage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
-import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.ui.unit.lerp as lerpDp
 
@@ -95,11 +91,6 @@ private const val SWIPE_DISMISS_THRESHOLD_DP = 90
 
 // How long the "reply sent" confirmation stays on screen before the reply is dispatched.
 private const val REPLY_SENT_FEEDBACK_MS = 900L
-
-// The tuned baseline for the island's primary expand/collapse transition. Every tween-based
-// animation is expressed relative to this, so the user's single "animation duration" knob scales
-// them all in proportion (see `animScale` in DynamicIsland). Its default equals this value.
-private const val BASE_TRANSITION_MS = IslandMotion.BASE_TRANSITION_MS
 
 /**
  * Extra height added to the expanded island when it shows action buttons, so the added row grows
@@ -265,11 +256,8 @@ internal fun DynamicIsland(
     val dismissOffsetX = remember(shownEvent?.id) { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
-    val animScale = animationDurationMs / BASE_TRANSITION_MS.toFloat()
-    fun scaled(baseMs: Int) = (baseMs * animScale).roundToInt()
-
     val motion = remember(animationStyle, animationSpeed, animationBounce, animationDurationMs) {
-        IslandMotion(animationStyle, animationSpeed, animationBounce, animationDurationMs)
+        AnimationEngine(animationStyle, animationSpeed, animationBounce, animationDurationMs)
     }
 
     LaunchedEffect(replying) { onReplyActiveChange(replying) }
@@ -387,7 +375,7 @@ internal fun DynamicIsland(
     LaunchedEffect(present) {
         reveal.animateTo(
             targetValue = if (present) 1f else 0f,
-            animationSpec = motion.float(baseMs = if (present) 320 else 200),
+            animationSpec = motion.reveal(present),
         )
     }
 
@@ -397,14 +385,16 @@ internal fun DynamicIsland(
             if (dismissOffsetX.value != 0f) {
                 reveal.snapTo(0f)
                 dismissOffsetX.snapTo(0f)
-                reveal.animateTo(1f, animationSpec = motion.float(baseMs = 320))
+                reveal.animateTo(1f, animationSpec = motion.reveal(entering = true))
             }
         }
     }
 
     val spec: AnimationSpec<Dp> = if (reveal.value == 0f) snap() else motion.dp()
     val isAssistantAnswer = isExpanded && shownEvent?.assistant?.displayAnswerInCutout == true
-    val heightSpec: AnimationSpec<Dp> = spec
+    // Assistant responses can grow repeatedly while streaming. Use a critically damped height
+    // spring so each incremental measurement is followed smoothly without a visible bob.
+    val heightSpec: AnimationSpec<Dp> = if (isAssistantAnswer) motion.dpSmooth() else spec
 
     // The bubble shares the normal cutout's total width instead of making the island wider.
     val satelliteCandidate = satellite != null && !isExpanded && !isCall && !isStickToCamera
@@ -490,7 +480,7 @@ internal fun DynamicIsland(
     LaunchedEffect(satelliteShown) {
         satelliteReveal.animateTo(
             targetValue = if (satelliteShown) 1f else 0f,
-            animationSpec = motion.float(baseMs = if (satelliteShown) 320 else 200),
+            animationSpec = motion.reveal(satelliteShown),
         )
     }
 
@@ -777,10 +767,7 @@ internal fun DynamicIsland(
                                             scope.launch {
                                                 dismissOffsetX.animateTo(
                                                     targetValue = 0f,
-                                                    animationSpec = spring(
-                                                        dampingRatio = 0.6f,
-                                                        stiffness = Spring.StiffnessMediumLow
-                                                    ),
+                                                    animationSpec = motion.gestureSettle(),
                                                 )
                                             }
                                         }
@@ -811,7 +798,7 @@ internal fun DynamicIsland(
                     ) {
                         Crossfade(
                             targetState = isExpanded,
-                            animationSpec = tween(scaled(150)),
+                            animationSpec = motion.contentTransition(),
                             label = "islandContent"
                         ) { showExpanded ->
                             if (emptyPill) {

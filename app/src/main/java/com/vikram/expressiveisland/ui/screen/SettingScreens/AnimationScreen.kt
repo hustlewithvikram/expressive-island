@@ -44,7 +44,7 @@ import com.vikram.expressiveisland.data.AnimationSpeed
 import com.vikram.expressiveisland.data.AnimationStyle
 import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.PageTransitionStyle
-import com.vikram.expressiveisland.overlay.island.IslandMotion
+import com.vikram.expressiveisland.overlay.island.AnimationEngine
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 import kotlinx.coroutines.delay
@@ -482,7 +482,7 @@ private fun AnimationExampleCard(
     }
 
     val selectedMotion = remember(style, speed, bounce, durationMs) {
-        IslandMotion(style, speed, bounce, durationMs)
+        AnimationEngine(style, speed, bounce, durationMs)
     }
 
     Card(
@@ -539,7 +539,7 @@ private fun AnimationStyle.displayLabel(): String = when (this) {
 @Composable
 private fun ExamplePill(
     label: String,
-    motion: IslandMotion,
+    motion: AnimationEngine,
     expanded: Boolean,
 ) {
     val target =

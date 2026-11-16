@@ -2,6 +2,7 @@ package com.vikram.expressiveisland.overlay.island
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.SpringSpec
@@ -26,7 +27,7 @@ import kotlin.math.sqrt
  * how the values here deviate). [com.vikram.expressiveisland.data.AnimationStyle.EASE_IN_OUT] uses a standard ease-in-out tween
  * scaled by the duration slider.
  */
-internal class IslandMotion(
+internal class AnimationEngine(
     private val style: AnimationStyle,
     private val speed: AnimationSpeed,
     private val bounce: AnimationBounce,
@@ -155,6 +156,38 @@ internal class IslandMotion(
     fun fade(): AnimationSpec<Float> =
         if (springMotion) effectsSpec(speed)
         else tween(durationMillis = scaled(BASE_TRANSITION_MS), easing = easing)
+
+
+    /**
+     * Shared reveal timing for the main pill and its satellite. Keeping both on the same motion
+     * curve prevents the secondary bubble from feeling detached from the island.
+     */
+    fun reveal(entering: Boolean): AnimationSpec<Float> =
+        float(baseMs = if (entering) 320 else 200)
+
+    /**
+     * Release motion for a finger-driven dismissal. Springs preserve the current Animatable
+     * velocity on animateTo(), so the pill settles from the actual drag instead of restarting
+     * from an artificial zero-velocity state.
+     */
+    fun gestureSettle(): AnimationSpec<Float> =
+        if (springMotion) {
+            spring(
+                dampingRatio = if (style == AnimationStyle.BOUNCY) 0.55f else springDamping(),
+                stiffness = maxOf(spatialStiffness(speed), 420f),
+                visibilityThreshold = 0.001f
+            )
+        } else {
+            tween(durationMillis = scaled(180), easing = easing)
+        }
+
+    /**
+     * Content replacement uses a restrained effects curve rather than the spatial spring used
+     * by the island shell. This avoids overshooting alpha while preserving the selected speed.
+     */
+    fun contentTransition(baseMs: Int = 150): FiniteAnimationSpec<Float> =
+        if (springMotion) effectsSpec(speed)
+        else tween(durationMillis = scaled(baseMs), easing = easing)
 
     companion object {
         // The tuned baseline for the island's primary expand/collapse transition. Every tween-based
