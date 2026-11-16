@@ -399,14 +399,20 @@ internal fun DynamicIsland(
                 arrivalScaleX.animateTo(
                     targetValue = 1f,
                     animationSpec = tween(
-                        durationMillis = 520,
+                        durationMillis = 468,
                         easing = CubicBezierEasing(0f, 0f, 0.2f, 1f),
                     ),
                 )
             }
             // Keep the icon hidden until the pill itself has completed its centre-out reveal.
             snapshotFlow { reveal.value }.first { it >= 0.98f }
-            arrivalIconAlpha.animateTo(1f, tween(durationMillis = 190))
+            arrivalIconAlpha.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 240,
+                    easing = CubicBezierEasing(0.2f, 0f, 0f, 1f),
+                ),
+            )
         }
     }
 
