@@ -58,16 +58,16 @@ fun ExpressiveNavBar(
     val barShape = RoundedCornerShape(32.dp)
     Surface(
         modifier = modifier.border(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.58f),
+            width = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f),
             shape = barShape,
         ),
         shape = barShape,
         // Translucent theme surface gives a frosted-glass look while keeping text readable.
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.78f),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.70f),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 2.dp,
-        shadowElevation = 8.dp,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier

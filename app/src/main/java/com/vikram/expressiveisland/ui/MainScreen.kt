@@ -229,7 +229,11 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                     targetState = current,
                     transitionSpec = {
                         pageTransition(
-                            viewModel.appearance.value.pageTransitionStyle
+                            style = viewModel.appearance.value.pageTransitionStyle,
+                            // Move in the same direction as the selected tab order:
+                            // Settings -> Profile enters from the right; Profile -> Settings
+                            // enters from the left.
+                            direction = if (targetState.ordinal > initialState.ordinal) 1 else -1,
                         )
                     },
                     label = "homeTab",
