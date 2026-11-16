@@ -28,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -83,6 +84,7 @@ import com.vikram.expressiveisland.overlay.island.SATELLITE_GAP_DP
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.system.PermissionUsage
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
@@ -403,7 +405,7 @@ internal fun DynamicIsland(
                 )
             }
             // Keep the icon hidden until the pill itself has completed its centre-out reveal.
-            delay(340)
+            snapshotFlow { reveal.value }.first { it >= 0.98f }
             arrivalIconAlpha.animateTo(1f, tween(durationMillis = 190))
         }
     }
