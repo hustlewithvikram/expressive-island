@@ -516,7 +516,7 @@ internal fun DynamicIsland(
     )
 
     val dotDp = collapsed.heightDp.dp
-    val shellMorph = if (emptyPill) centerMorph else reveal.value
+    val shellMorph = if (emptyPill && isExpanded) centerMorph else 1f
     val revealWidth = lerpDp(dotDp, width, shellMorph)
     val revealHeight = lerpDp(dotDp, height, shellMorph)
     val dotCorner = dotDp / 2
