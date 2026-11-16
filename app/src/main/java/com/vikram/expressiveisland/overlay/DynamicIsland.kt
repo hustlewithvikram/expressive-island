@@ -6,6 +6,7 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -27,7 +28,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -83,7 +83,6 @@ import com.vikram.expressiveisland.overlay.island.SATELLITE_GAP_DP
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.system.PermissionUsage
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
@@ -379,24 +378,32 @@ internal fun DynamicIsland(
     val present = event != null || showsWhenEmpty || cameraHoleQuickActions
     val reveal = remember { Animatable(0f) }
     val arrivalIconAlpha = remember { Animatable(1f) }
-    val arrivalWidthDp = remember { Animatable(0f) }
-    val arrivalBounceX = remember { Animatable(0f) }
+    val arrivalScaleX = remember { Animatable(1f) }
 
-    // Reveal incoming notification content only after the collapsed shell has finished opening.
+    // Start the horizontal overshoot at the same time as the shell reveal. The pill reaches
+    // 110% around the end of its medium-speed expansion, then eases gently back to 100%.
     LaunchedEffect(event?.id, event?.notificationKey, isExpanded) {
         arrivalIconAlpha.snapTo(if (event?.notificationKey == null || isExpanded) 1f else 0f)
-        arrivalWidthDp.snapTo(0f)
-        arrivalBounceX.snapTo(0f)
+        arrivalScaleX.snapTo(1f)
         if (event?.notificationKey != null && !isExpanded) {
-            snapshotFlow { reveal.value }.first { it >= 0.98f }
             launch {
-                arrivalWidthDp.animateTo(9f, spring(dampingRatio = 0.58f, stiffness = 650f))
-                arrivalWidthDp.animateTo(0f, spring(dampingRatio = 0.82f, stiffness = 850f))
+                arrivalScaleX.animateTo(
+                    targetValue = 1.10f,
+                    animationSpec = tween(
+                        durationMillis = 260,
+                        easing = CubicBezierEasing(0.2f, 0f, 0f, 1f),
+                    ),
+                )
+                arrivalScaleX.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(
+                        durationMillis = 520,
+                        easing = CubicBezierEasing(0f, 0f, 0.2f, 1f),
+                    ),
+                )
             }
-            launch {
-                arrivalBounceX.animateTo(1f, spring(dampingRatio = 0.52f, stiffness = 700f))
-                arrivalBounceX.animateTo(0f, spring(dampingRatio = 0.82f, stiffness = 900f))
-            }
+            // Keep the icon hidden until the pill itself has completed its centre-out reveal.
+            delay(340)
             arrivalIconAlpha.animateTo(1f, tween(durationMillis = 190))
         }
     }
@@ -494,7 +501,7 @@ internal fun DynamicIsland(
     )
 
     val dotDp = collapsed.heightDp.dp
-    val revealWidth = lerpDp(dotDp, width, reveal.value) + arrivalWidthDp.value.dp
+    val revealWidth = lerpDp(dotDp, width, reveal.value)
     val revealHeight = lerpDp(dotDp, height, reveal.value)
     val dotCorner = dotDp / 2
     val revealTopLeft = lerpDp(dotCorner, topLeft, reveal.value)
@@ -616,13 +623,13 @@ internal fun DynamicIsland(
                                 // Keep the shell physically connected to the finger: a slight tilt and
                                 // cross-axis squash communicate drag force, then the shared spring settle
                                 // carries the pill back without snapping its rotation or proportions.
-                                scaleX = boopScale.value * widen *
+                                scaleX = boopScale.value * widen * arrivalScaleX.value *
                                     (1f + 0.055f * mergeSwell - 0.045f * travel)
                                 scaleY = boopScale.value *
                                     (1f + 0.035f * mergeSwell + 0.075f * travel)
                                 rotationZ = (dismissOffsetX.value / size.width.coerceAtLeast(1f) * 7f)
                                     .coerceIn(-7f, 7f)
-                                translationX = dismissOffsetX.value + arrivalBounceX.value * 2.2f.dp.toPx()
+                                translationX = dismissOffsetX.value
                                 val revealAlpha = (reveal.value / 0.2f).coerceIn(0f, 1f)
                                 alpha = (1f - travel * 0.75f).coerceIn(0.25f, 1f) * revealAlpha
                             }
