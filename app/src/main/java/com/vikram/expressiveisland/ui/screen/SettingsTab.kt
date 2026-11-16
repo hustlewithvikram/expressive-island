@@ -59,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -122,6 +123,7 @@ fun SettingsTab(
     onOpenIntegrationDevice: () -> Unit,
     onOpenPermissionDot: () -> Unit,
 ) {
+    val routeStateHolder = rememberSaveableStateHolder()
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var searchExpanded by rememberSaveable { mutableStateOf(false) }
     // Back/collapse must restore the untouched Settings home, not leave a hidden query behind.
@@ -148,6 +150,7 @@ fun SettingsTab(
         },
         label = "settingsRoute",
     ) { current ->
+        routeStateHolder.SaveableStateProvider(current) {
         when (current) {
             SettingsRoute.List -> {
                 val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
@@ -208,6 +211,7 @@ fun SettingsTab(
             SettingsRoute.IntegrationAutomation -> IntegrationDetailScreen(contentPadding, "Automation & webhooks", "Connect external workflows and trigger actions from supported island events.")
             SettingsRoute.IntegrationDevice -> IntegrationDetailScreen(contentPadding, "Device services", "Connect Android system capabilities and companion services.")
             SettingsRoute.PermissionDot -> PermissionDotScreen(viewModel, contentPadding)
+        }
         }
     }
 }

@@ -38,6 +38,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,6 +83,7 @@ private enum class HomeTab(
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun MainScreen(viewModel: AppViewModel = viewModel()) {
+    val tabStateHolder = rememberSaveableStateHolder()
     var selectedIndex by rememberSaveable { mutableIntStateOf(0) }
     var settingsRoute by rememberSaveable { mutableStateOf(SettingsRoute.List) }
     var profileRoute by rememberSaveable { mutableStateOf(ProfileRoute.List) }
@@ -238,6 +240,7 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                     },
                     label = "homeTab",
                 ) { tab ->
+                    tabStateHolder.SaveableStateProvider(tab) {
                     when (tab) {
                         HomeTab.Settings -> SettingsTab(
                             viewModel = viewModel,
@@ -290,6 +293,7 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
                             },
                             onImportSettings = { importLauncher.launch(arrayOf("application/json")) },
                         )
+                    }
                     }
                 }
             }
