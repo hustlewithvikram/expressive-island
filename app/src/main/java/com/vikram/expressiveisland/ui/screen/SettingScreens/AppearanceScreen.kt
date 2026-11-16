@@ -255,54 +255,61 @@ internal fun AppearanceScreen(
                     text = "Notification icons",
                     padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp)
                 )
-                Card(
-                    modifier = Modifier.fillMaxWidth().clickable { pendingNotificationIconMode = behaviour.notificationIconMode; showNotificationIconModeDialog = true },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Notification icon style", style = MaterialTheme.typography.titleMedium)
-                            Text(when (behaviour.notificationIconMode) {
-                                NotificationIconMode.ORIGINAL -> "Original"
-                                NotificationIconMode.MONOCHROME -> "Monochrome"
-                                NotificationIconMode.AUTOMATIC -> "Automatic"
-                            }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable { pendingNotificationIconMode = behaviour.notificationIconMode; showNotificationIconModeDialog = true },
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    ) {
+                        Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Notification icon style", style = MaterialTheme.typography.titleMedium)
+                                Text(when (behaviour.notificationIconMode) {
+                                    NotificationIconMode.ORIGINAL -> "Original"
+                                    NotificationIconMode.MONOCHROME -> "Monochrome"
+                                    NotificationIconMode.AUTOMATIC -> "Automatic"
+                                }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text("Change", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         }
-                        Text("Change", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     }
-                }
-                Card(
-                    modifier = Modifier.fillMaxWidth().clickable { pendingNotificationIconShape = behaviour.notificationIconShape; showNotificationIconShapeDialog = true },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Notification icon shape", style = MaterialTheme.typography.titleMedium)
-                            Text(behaviour.notificationIconShape.name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable { pendingNotificationIconShape = behaviour.notificationIconShape; showNotificationIconShapeDialog = true },
+                        shape = RoundedCornerShape(4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    ) {
+                        Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Notification icon shape", style = MaterialTheme.typography.titleMedium)
+                                Text(behaviour.notificationIconShape.name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text("Change", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         }
-                        Text("Change", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     }
-                }
-                SettingsToggleCard(
-                    shape = RoundedCornerShape(24.dp),
-                    title = "Icon stroke",
-                    description = "Outline notification app icons using the selected shape",
-                    checked = behaviour.notificationIconStrokeEnabled,
-                    onCheckedChange = viewModel::setNotificationIconStrokeEnabled,
-                )
-                AnimatedVisibility(visible = behaviour.notificationIconStrokeEnabled) {
-                    ColorPickerCard(
-                        label = "Icon stroke color",
-                        selected = behaviour.notificationIconStrokeColor,
-                        defaultLabel = "Use notification accent",
-                        defaultColor = MaterialTheme.colorScheme.primary,
-                        onSelect = viewModel::setNotificationIconStrokeColor,
-                        shape = RoundedCornerShape(24.dp),
+                    SettingsToggleCard(
+                        shape = RoundedCornerShape(
+                            topStart = 4.dp,
+                            topEnd = 4.dp,
+                            bottomStart = if (behaviour.notificationIconStrokeEnabled) 4.dp else 24.dp,
+                            bottomEnd = if (behaviour.notificationIconStrokeEnabled) 4.dp else 24.dp,
+                        ),
+                        title = "Icon stroke",
+                        description = "Outline notification app icons using the selected shape",
+                        checked = behaviour.notificationIconStrokeEnabled,
+                        onCheckedChange = viewModel::setNotificationIconStrokeEnabled,
                     )
+                    AnimatedVisibility(visible = behaviour.notificationIconStrokeEnabled) {
+                        ColorPickerCard(
+                            label = "Icon stroke color",
+                            selected = behaviour.notificationIconStrokeColor,
+                            defaultLabel = "Use notification accent",
+                            defaultColor = MaterialTheme.colorScheme.primary,
+                            onSelect = viewModel::setNotificationIconStrokeColor,
+                            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+                        )
+                    }
                 }
                 if (showNotificationIconModeDialog) {
                     AlertDialog(
