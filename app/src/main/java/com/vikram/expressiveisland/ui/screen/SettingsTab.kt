@@ -759,10 +759,22 @@ private fun CutoutEnableCard(
     onEnabledChange: (Boolean) -> Unit,
     onOpenAccessibility: () -> Unit,
 ) {
+    val containerColor = if (enabled) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    val contentColor = if (enabled) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        // Keep all four corners consistently rounded in both enabled and disabled states.
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
     ) {
         Row(
             modifier = Modifier
@@ -780,12 +792,12 @@ private fun CutoutEnableCard(
                 Text(
                     text = stringResource(R.string.cutout_enable_title),
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = contentColor,
                 )
                 Text(
                     text = stringResource(R.string.cutout_enable_desc),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f),
+                    color = contentColor.copy(alpha = 0.82f),
                 )
             }
             Spacer(Modifier.width(12.dp))
@@ -793,7 +805,7 @@ private fun CutoutEnableCard(
                 modifier = Modifier
                     .width(1.dp)
                     .height(36.dp)
-                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.18f)),
+                    .background(contentColor.copy(alpha = 0.18f)),
             )
             Spacer(Modifier.width(12.dp))
             Switch(checked = enabled, onCheckedChange = onEnabledChange)
