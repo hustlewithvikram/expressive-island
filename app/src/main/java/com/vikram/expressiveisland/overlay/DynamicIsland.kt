@@ -477,11 +477,27 @@ internal fun DynamicIsland(
     if (satellite != null) lastSatellite = satellite
     val satelliteShown = satellite != null && present && !isCall && !isStickToCamera
     val satelliteReveal = remember { Animatable(0f) }
-    LaunchedEffect(satelliteShown) {
-        satelliteReveal.animateTo(
-            targetValue = if (satelliteShown) 1f else 0f,
-            animationSpec = motion.reveal(satelliteShown),
-        )
+    val satelliteMerge = remember { Animatable(0f) }
+    LaunchedEffect(satelliteShown, satellite?.id, isExpanded, isCall, isStickToCamera, event?.id) {
+        if (satelliteShown) {
+            satelliteMerge.snapTo(0f)
+            satelliteReveal.animateTo(1f, animationSpec = motion.reveal(entering = true))
+        } else {
+            // When the secondary activity is promoted into the main pill, pull it into the pill
+            // before fading it. Hiding it immediately makes the transition look like a pop-out.
+            val canMerge = satellite == null && event != null && present &&
+                !isExpanded && !isCall && !isStickToCamera && lastSatellite != null
+            if (canMerge) {
+                satelliteMerge.animateTo(1f, animationSpec = motion.merge())
+                satelliteReveal.animateTo(0f, animationSpec = motion.reveal(entering = false))
+                satelliteMerge.snapTo(0f)
+                lastSatellite = null
+            } else {
+                satelliteMerge.snapTo(0f)
+                satelliteReveal.animateTo(0f, animationSpec = motion.reveal(entering = false))
+                lastSatellite = null
+            }
+        }
     }
 
     val haptic = LocalHapticFeedback.current
@@ -565,8 +581,9 @@ internal fun DynamicIsland(
                                 val extraPx = PressExpandDp.toPx() * 2f * pressExpand.value
                                 val widen =
                                     if (size.width > 0f) (size.width + extraPx) / size.width else 1f
-                                scaleX = boopScale.value * widen
-                                scaleY = boopScale.value
+                                val mergeSwell = satelliteMergeSwell(satelliteMerge.value)
+                                scaleX = boopScale.value * widen * (1f + 0.055f * mergeSwell)
+                                scaleY = boopScale.value * (1f + 0.035f * mergeSwell)
                                 translationX = dismissOffsetX.value
                                 val travel =
                                     abs(dismissOffsetX.value) / size.width.coerceAtLeast(1f)
@@ -942,8 +959,9 @@ internal fun DynamicIsland(
             lastSatellite?.takeIf { satelliteReveal.value > 0.01f }?.let { bubble ->
                 val diameterDp = collapsed.heightDp
                 val step = revealWidth / 2 + SATELLITE_GAP_DP.dp + (diameterDp / 2f).dp
-                val satelliteOffsetX =
-                    if (satellitePosition == SatellitePosition.LEFT) offsetX - step else offsetX + step
+                val mergeProgress = satelliteMerge.value.coerceIn(0f, 1f)
+                val mergeDirection = if (satellitePosition == SatellitePosition.LEFT) -1f else 1f
+                val satelliteOffsetX = offsetX + (mergeDirection * step * (1f - mergeProgress))
 
                 Box(
                     modifier = Modifier
@@ -959,9 +977,13 @@ internal fun DynamicIsland(
                         appearance = appearance,
                         onClick = onSatelliteClick,
                         modifier = Modifier.graphicsLayer {
-                            scaleX = satelliteReveal.value
-                            scaleY = satelliteReveal.value
-                            alpha = satelliteReveal.value
+                            val merge = satelliteMerge.value.coerceIn(0f, 1f)
+                            // Stretch along the travel axis as the bubble is pulled into the pill,
+                            // then contract and fade only after it has visually joined the surface.
+                            val stretch = 1f + 0.38f * satelliteMergeStretch(merge)
+                            scaleX = satelliteReveal.value * if (satellitePosition == SatellitePosition.LEFT) stretch else stretch
+                            scaleY = satelliteReveal.value * (1f - 0.12f * merge)
+                            alpha = satelliteReveal.value * satelliteMergeAlpha(merge)
                         },
                     )
                 }

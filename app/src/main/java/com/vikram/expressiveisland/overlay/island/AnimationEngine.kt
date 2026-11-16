@@ -189,6 +189,17 @@ internal class AnimationEngine(
         if (springMotion) effectsSpec(speed)
         else tween(durationMillis = scaled(baseMs), easing = easing)
 
+    /**
+     * Bubble-to-pill merge: a firm, slightly elastic pull that completes quickly without a long
+     * oscillation. It shares the selected speed and duration controls with the rest of the island.
+     */
+    fun merge(): AnimationSpec<Float> =
+        if (springMotion) spring(
+            dampingRatio = 0.82f,
+            stiffness = maxOf(spatialStiffness(speed), 500f),
+            visibilityThreshold = 0.001f
+        ) else tween(durationMillis = scaled(260), easing = easing)
+
     companion object {
         // The tuned baseline for the island's primary expand/collapse transition. Every tween-based
         // animation is expressed relative to this, so the duration slider scales them in proportion.
