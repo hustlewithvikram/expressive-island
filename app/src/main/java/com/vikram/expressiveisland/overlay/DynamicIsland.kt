@@ -507,15 +507,23 @@ internal fun DynamicIsland(
         animationSpec = motion.fade(),
         label = "islandBackgroundFade",
     )
+    // Empty-pill center expansion has no event arrival/removal to drive the reveal animation.
+    // Give it the same centre-out shell morph used by notification expansion.
+    val centerMorph by animateFloatAsState(
+        targetValue = if (emptyPill && isExpanded) 1f else 0f,
+        animationSpec = motion.float(),
+        label = "persistentPillCenterMorph",
+    )
 
     val dotDp = collapsed.heightDp.dp
-    val revealWidth = lerpDp(dotDp, width, reveal.value)
-    val revealHeight = lerpDp(dotDp, height, reveal.value)
+    val shellMorph = if (emptyPill) centerMorph else reveal.value
+    val revealWidth = lerpDp(dotDp, width, shellMorph)
+    val revealHeight = lerpDp(dotDp, height, shellMorph)
     val dotCorner = dotDp / 2
-    val revealTopLeft = lerpDp(dotCorner, topLeft, reveal.value)
-    val revealTopRight = lerpDp(dotCorner, topRight, reveal.value)
-    val revealBottomLeft = lerpDp(dotCorner, bottomLeft, reveal.value)
-    val revealBottomRight = lerpDp(dotCorner, bottomRight, reveal.value)
+    val revealTopLeft = lerpDp(dotCorner, topLeft, shellMorph)
+    val revealTopRight = lerpDp(dotCorner, topRight, shellMorph)
+    val revealBottomLeft = lerpDp(dotCorner, bottomLeft, shellMorph)
+    val revealBottomRight = lerpDp(dotCorner, bottomRight, shellMorph)
 
     var lastSatellite by remember { mutableStateOf<IslandEvent?>(null) }
     if (satellite != null) lastSatellite = satellite

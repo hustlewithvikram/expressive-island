@@ -152,11 +152,13 @@ internal fun ShowsWhenEmptyScreen(
         PillWidgetSlotCard(
             title = "Left side",
             selected = behaviour.persistentPillLeftWidget,
+            shape = persistentPillGroupShape(isFirst = true, isLast = false),
             onSelect = { viewModel.setPersistentPillWidget(true, it) },
         )
         PillWidgetSlotCard(
             title = "Right side",
             selected = behaviour.persistentPillRightWidget,
+            shape = persistentPillGroupShape(isFirst = false, isLast = true),
             onSelect = { viewModel.setPersistentPillWidget(false, it) },
         )
         Text(
@@ -806,6 +808,7 @@ private fun EmptyIconThumbnail(
 private fun PillWidgetSlotCard(
     title: String,
     selected: PillWidgetType,
+    shape: androidx.compose.ui.graphics.Shape,
     onSelect: (PillWidgetType) -> Unit,
 ) {
     var showDialog by remember { mutableStateOf(false) }
@@ -821,18 +824,18 @@ private fun PillWidgetSlotCard(
     }
     Card(
         modifier = Modifier.fillMaxWidth().clickable { pending = selected; showDialog = true },
-        shape = persistentPillGroupShape(isFirst = false, isLast = true),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Choose $title", tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Change", tint = MaterialTheme.colorScheme.primary)
         }
     }
     if (showDialog) {
@@ -840,8 +843,8 @@ private fun PillWidgetSlotCard(
             onDismissRequest = { showDialog = false },
             title = { Text(title) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    PillWidgetType.entries.forEachIndexed { index, type ->
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    PillWidgetType.entries.forEach { type ->
                         val optionLabel = when (type) {
                             PillWidgetType.NONE -> "Nothing"
                             PillWidgetType.ICON -> "Icon"
@@ -853,14 +856,15 @@ private fun PillWidgetSlotCard(
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth()
-                                .clip(persistentPillGroupShape(index == 0, index == PillWidgetType.entries.lastIndex))
-                                .background(if (pending == type) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer)
+                                .clip(RoundedCornerShape(16.dp))
                                 .clickable { pending = type }
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(optionLabel, style = MaterialTheme.typography.bodyLarge)
+                            }
                             RadioButton(selected = pending == type, onClick = { pending = type })
-                            Text(optionLabel, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
                         }
                     }
                 }
@@ -871,6 +875,7 @@ private fun PillWidgetSlotCard(
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) { Text("Cancel") }
             },
+            shape = RoundedCornerShape(24.dp),
         )
     }
 }
