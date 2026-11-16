@@ -6,6 +6,8 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -80,6 +82,8 @@ import com.vikram.expressiveisland.overlay.island.SATELLITE_GAP_DP
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.system.PermissionUsage
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.snapshotFlow
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
@@ -374,6 +378,28 @@ internal fun DynamicIsland(
 
     val present = event != null || showsWhenEmpty || cameraHoleQuickActions
     val reveal = remember { Animatable(0f) }
+    val arrivalIconAlpha = remember { Animatable(1f) }
+    val arrivalWidthDp = remember { Animatable(0f) }
+    val arrivalBounceX = remember { Animatable(0f) }
+
+    // Reveal incoming notification content only after the collapsed shell has finished opening.
+    LaunchedEffect(event?.id, event?.notificationKey, isExpanded) {
+        arrivalIconAlpha.snapTo(if (event?.notificationKey == null || isExpanded) 1f else 0f)
+        arrivalWidthDp.snapTo(0f)
+        arrivalBounceX.snapTo(0f)
+        if (event?.notificationKey != null && !isExpanded) {
+            snapshotFlow { reveal.value }.first { it >= 0.98f }
+            launch {
+                arrivalWidthDp.animateTo(9f, spring(dampingRatio = 0.58f, stiffness = 650f))
+                arrivalWidthDp.animateTo(0f, spring(dampingRatio = 0.82f, stiffness = 850f))
+            }
+            launch {
+                arrivalBounceX.animateTo(1f, spring(dampingRatio = 0.52f, stiffness = 700f))
+                arrivalBounceX.animateTo(0f, spring(dampingRatio = 0.82f, stiffness = 900f))
+            }
+            arrivalIconAlpha.animateTo(1f, tween(durationMillis = 190))
+        }
+    }
 
     LaunchedEffect(present) {
         reveal.animateTo(
@@ -468,7 +494,7 @@ internal fun DynamicIsland(
     )
 
     val dotDp = collapsed.heightDp.dp
-    val revealWidth = lerpDp(dotDp, width, reveal.value)
+    val revealWidth = lerpDp(dotDp, width, reveal.value) + arrivalWidthDp.value.dp
     val revealHeight = lerpDp(dotDp, height, reveal.value)
     val dotCorner = dotDp / 2
     val revealTopLeft = lerpDp(dotCorner, topLeft, reveal.value)
@@ -596,7 +622,7 @@ internal fun DynamicIsland(
                                     (1f + 0.035f * mergeSwell + 0.075f * travel)
                                 rotationZ = (dismissOffsetX.value / size.width.coerceAtLeast(1f) * 7f)
                                     .coerceIn(-7f, 7f)
-                                translationX = dismissOffsetX.value
+                                translationX = dismissOffsetX.value + arrivalBounceX.value * 2.2f.dp.toPx()
                                 val revealAlpha = (reveal.value / 0.2f).coerceIn(0f, 1f)
                                 alpha = (1f - travel * 0.75f).coerceIn(0.25f, 1f) * revealAlpha
                             }
@@ -905,13 +931,21 @@ internal fun DynamicIsland(
                                             onMediaInteraction = { mediaInteraction++ },
                                         )
                                     } else {
-                                        CollapsedContent(
-                                            event = e,
-                                            heightDp = collapsed.heightDp,
-                                            isStickToCamera = isStickToCamera,
-                                            trailingInsetDp = collapsedTrailingInsetDp,
-                                            satelliteSharing = satelliteShown && satelliteSharing,
-                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .graphicsLayer {
+                                                    alpha = if (e.notificationKey != null) arrivalIconAlpha.value else 1f
+                                                },
+                                        ) {
+                                            CollapsedContent(
+                                                event = e,
+                                                heightDp = collapsed.heightDp,
+                                                isStickToCamera = isStickToCamera,
+                                                trailingInsetDp = collapsedTrailingInsetDp,
+                                                satelliteSharing = satelliteShown && satelliteSharing,
+                                            )
+                                        }
                                     }
                                 }
                             }
