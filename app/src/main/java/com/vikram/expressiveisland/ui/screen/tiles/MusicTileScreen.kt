@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Replay5
 import androidx.compose.material.icons.rounded.Forward5
@@ -71,6 +72,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.MusicProgressStyle
 import com.vikram.expressiveisland.data.MusicVisualizerStyle
@@ -78,6 +80,8 @@ import com.vikram.expressiveisland.data.SeekButtonMode
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
+import com.vikram.expressiveisland.ui.screen.IslandLivePreviewEffect
+import com.vikram.expressiveisland.ui.screen.IslandPreviewSpacer
 import com.vikram.expressiveisland.ui.screen.AdjustableSlider
 import com.vikram.expressiveisland.ui.screen.CardSectionHeader
 import com.vikram.expressiveisland.ui.screen.ColorPickerCard
@@ -147,6 +151,13 @@ internal fun MusicTileScreen(
     var leftSeekTimeDialog by remember { mutableStateOf(false) }
     var rightSeekTimeDialog by remember { mutableStateOf(false) }
 
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.MUSIC_TILE,
+        label = if (selectedTab == MusicSettingsTab.SHRINKED) "Now playing" else "Midnight City",
+        detail = if (selectedTab == MusicSettingsTab.SHRINKED) "M83" else "M83 • Hurry Up, We're Dreaming",
+        expanded = selectedTab != MusicSettingsTab.SHRINKED,
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -154,6 +165,7 @@ internal fun MusicTileScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        IslandPreviewSpacer()
 
         // =====================================================================
         // MUSIC TILE
@@ -167,22 +179,6 @@ internal fun MusicTileScreen(
                 bottom = 0.dp,
             ),
         )
-        MusicButtonsPreview(
-            skipStyle = settings.skipButton,
-            playPauseStyle = settings.playPauseButton,
-            leftSeekEnabled = settings.leftSeekEnabled,
-            rightSeekEnabled = settings.rightSeekEnabled,
-            leftSeekSeconds = settings.leftSeekSeconds,
-            rightSeekSeconds = settings.rightSeekSeconds,
-            showProgress = settings.showProgress,
-            progressStyle = settings.progressStyle,
-            showPlayPauseIcon = settings.showPlayPauseIcon,
-            showPlayPauseText = settings.showPlayPauseText,
-            skipIconColor = settings.skipIconColor?.resolve(),
-            playPauseIconColor = settings.playPauseIconColor?.resolve(),
-            seekIconColor = settings.seekIconColor?.resolve(),
-        )
-
         ExpressiveSegmentedRow(
             options = MusicSettingsTab.entries.map { it.label },
             selectedIndex = MusicSettingsTab.entries.indexOf(selectedTab),
@@ -613,7 +609,7 @@ internal fun MusicTileScreen(
                             modifier = Modifier.fillMaxWidth().clickable { viewModel.setMusicVisualizerStyle(style) },
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (settings.visualizerStyle == style) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                                containerColor = if (settings.visualizerStyle == style) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerLow,
                             ),
                         ) {
                             Column(
@@ -622,9 +618,8 @@ internal fun MusicTileScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(style.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-                                    if (settings.visualizerStyle == style) Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.music_selected), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    if (settings.visualizerStyle == style) Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.music_selected), tint = MaterialTheme.colorScheme.onSurface)
                                 }
-                                MusicVisualizerPreview(style = style)
                             }
                         }
                     }

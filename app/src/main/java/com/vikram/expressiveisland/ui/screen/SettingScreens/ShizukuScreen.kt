@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen
 
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -69,6 +70,13 @@ internal fun ShizukuScreen(
     contentPadding: PaddingValues,
     onOpenPermissionDot: () -> Unit,
 ) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.SHIZUKU,
+        label = "Shizuku connection",
+        detail = "Preview island status while configuring system access",
+        expanded = false,
+    )
+
     val context = LocalContext.current
 
     val hideIcons by viewModel.hideNotificationIcons.collectAsStateWithLifecycle()

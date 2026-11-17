@@ -25,8 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,18 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
-import com.vikram.expressiveisland.core.IslandPreviewBus
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.data.IslandDimensions
 import com.vikram.expressiveisland.data.IslandLayout
-import com.vikram.expressiveisland.permissions.Permissions
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 import kotlin.math.roundToInt
@@ -57,52 +50,25 @@ internal fun SizePositionScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
 ) {
-    val context = LocalContext.current
     val layout by viewModel.layout.collectAsStateWithLifecycle()
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
 
-    val lifecycleOwner = LocalLifecycleOwner.current
 
     /*
      * The real overlay is pinned while this screen is visible so changes can be
      * previewed directly on the device cutout.
      *
-     * The overlay is made non-touchable while pinned by IslandOverlayController.
-     * This means a large expanded preview can never steal interaction from this
-     * editor.
+     * The overlay remains touchable so the expanded preview can be swiped upward
+     * to collapse. IslandPreviewSpacer reserves room for it, keeping the controls
+     * below the live island accessible.
      */
-    DisposableEffect(lifecycleOwner) {
-        fun refresh() {
-            IslandPreviewBus.setActive(
-                Permissions.isAccessibilityGranted(context)
-            )
-        }
-
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> refresh()
-                Lifecycle.Event.ON_PAUSE -> {
-                    IslandPreviewBus.setActive(false)
-                }
-
-                else -> Unit
-            }
-        }
-
-        refresh()
-        lifecycleOwner.lifecycle.addObserver(observer)
-
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            IslandPreviewBus.setActive(false)
-            IslandPreviewBus.setExpandedPreview(false)
-        }
-    }
-
-    LaunchedEffect(tab) {
-        IslandPreviewBus.setExpandedPreview(tab == 1)
-    }
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.SIZE_POSITION,
+        label = if (tab == 0) "Normal size" else "Expanded size",
+        detail = if (tab == 0) "Adjust width, height and position" else "Adjust expanded island geometry",
+        expanded = tab == 1,
+    )
 
     Column(
         modifier = Modifier
@@ -111,6 +77,7 @@ internal fun SizePositionScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        IslandPreviewSpacer()
         CardSectionHeader(
             text = "Size & Position",
             padding = PaddingValues(
@@ -260,7 +227,7 @@ private fun DimensionsEditor(
                     IslandDimensions.MIN_WIDTH_PERCENT.toFloat()..
                             IslandDimensions.MAX_WIDTH_PERCENT.toFloat(),
                 step = 1f,
-                onValueChange = { width = it },
+                onValueChange = { width = it; commit() },
                 onCommit = { commit() },
             )
 
@@ -272,7 +239,7 @@ private fun DimensionsEditor(
                     IslandDimensions.MIN_HEIGHT_DP.toFloat()..
                             IslandDimensions.MAX_HEIGHT_DP.toFloat(),
                 step = 2f,
-                onValueChange = { height = it },
+                onValueChange = { height = it; commit() },
                 onCommit = { commit() },
             )
         }
@@ -291,10 +258,10 @@ private fun DimensionsEditor(
                 cornerBr = cornerBr,
                 mode = cornerMode,
                 onModeChange = { cornerMode = it },
-                onTlChange = { cornerTl = it },
-                onTrChange = { cornerTr = it },
-                onBlChange = { cornerBl = it },
-                onBrChange = { cornerBr = it },
+                onTlChange = { cornerTl = it; commit() },
+                onTrChange = { cornerTr = it; commit() },
+                onBlChange = { cornerBl = it; commit() },
+                onBrChange = { cornerBr = it; commit() },
                 onCommit = { commit() },
             )
         }
@@ -314,7 +281,7 @@ private fun DimensionsEditor(
                     IslandDimensions.MIN_OFFSET_Y_DP.toFloat()..
                             IslandDimensions.MAX_OFFSET_Y_DP.toFloat(),
                 step = 2f,
-                onValueChange = { offsetY = it },
+                onValueChange = { offsetY = it; commit() },
                 onCommit = { commit() },
             )
 
@@ -326,7 +293,7 @@ private fun DimensionsEditor(
                     IslandDimensions.MIN_OFFSET_X_DP.toFloat()..
                             IslandDimensions.MAX_OFFSET_X_DP.toFloat(),
                 step = 2f,
-                onValueChange = { offsetX = it },
+                onValueChange = { offsetX = it; commit() },
                 onCommit = { commit() },
             )
         }

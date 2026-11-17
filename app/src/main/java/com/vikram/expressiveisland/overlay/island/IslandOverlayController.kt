@@ -27,7 +27,6 @@ import android.view.View
 import android.view.ViewTreeObserver
 import android.view.WindowManager
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
@@ -45,6 +44,8 @@ import com.vikram.expressiveisland.core.DynamicTile
 import com.vikram.expressiveisland.core.ForegroundAppBus
 import com.vikram.expressiveisland.core.IslandEventBus
 import com.vikram.expressiveisland.core.IslandPreviewBus
+import com.vikram.expressiveisland.core.IslandPreviewCategory
+import com.vikram.expressiveisland.core.IslandPreviewContent
 import com.vikram.expressiveisland.core.NowPlayingBus
 import com.vikram.expressiveisland.core.OnCallBus
 import com.vikram.expressiveisland.core.RunningTimerBus
@@ -204,6 +205,9 @@ class IslandOverlayController(private val context: Context) {
 
     // One visible satellite plus a queue for other active persistent tiles.
     private val satelliteEvent = MutableStateFlow<IslandEvent?>(null)
+    private val previewSatelliteEvent = MutableStateFlow<IslandEvent?>(null)
+    private var previewBubbleJob: Job? = null
+    private var previewAnimationJob: Job? = null
     private val waitingSatelliteEvents = mutableListOf<ParkedSatelliteEvent>()
     // Interrupting notifications/system events wait here while a persistent tile is expanded.
     // They are shown after the user finishes interacting, rather than replacing the expanded tile.
@@ -243,7 +247,16 @@ class IslandOverlayController(private val context: Context) {
     private var timerSettings: TimerTileSettings = TimerTileSettings()
     private var assistantSettings: AssistantTileSettings = AssistantTileSettings()
     private var previewPinned = false
+    // Preserve the real overlay slots while a settings preview temporarily owns the island.
+    private var eventBeforePreview: IslandEvent? = null
+    private var satelliteBeforePreview: IslandEvent? = null
+    private var systemEventTypeBeforePreview: SystemEventType? = null
+    private var deadlineBeforePreviewMs: Long? = null
+    private var satelliteDeadlineBeforePreviewMs: Long? = null
     private var previewExpanded = false
+    private var previewCategory = IslandPreviewCategory.APPEARANCE
+    private var previewContent = IslandPreviewContent("Preview", "Settings preview")
+    private var previewSystemEventType: SystemEventType? = null
     private var expanded = false
 
     // True while a media session is actively playing; keeps the music cutout pinned up (no
@@ -278,15 +291,154 @@ class IslandOverlayController(private val context: Context) {
     private var assistantActive = false
     private var lastAssistantEvent: IslandEvent? = null
 
-    // A neutral sample shown while the settings screen pins the island open.
-    private val previewEvent by lazy {
-        IslandEvent(
-            id = -1L,
-            icon = IslandIcon.Vector(Icons.Rounded.Palette),
-            label = context.getString(R.string.preview_label),
-            detail = context.getString(R.string.preview_detail),
-            accent = Color(0xFF60A5FA),
+    // Settings preview presentation is centralised in PreviewRenderer. Notification-related
+    // settings use a real notification-shaped event so icon mode, stroke, app header, timestamp,
+    // long text and action chips all pass through the same production composables as real posts.
+    private fun previewEventOrNull(): IslandEvent? {
+        if (previewCategory == IslandPreviewCategory.EMPTY_STATE) return null
+        if (previewCategory == IslandPreviewCategory.EVENT_DETAIL && previewSystemEventType != null) {
+            return resolver.resolve(
+                CutoutSignal.System(previewSystemEventType!!),
+                customIcons,
+                musicSettings,
+                phoneSettings,
+                timerSettings,
+                assistantSettings,
+                eventDynamicColor,
+                eventDynamicColorRole,
+                eventDynamicColorOpacity,
+                eventAnimatedIcons,
+                eventAnimatedIconLoops,
+                eventColors,
+                appearanceState.value.preferDynamicIconColor,
+                behaviourState.value.notificationIconMode,
+                behaviourState.value.notificationIconShape,
+            )
+        }
+
+        if (previewCategory in setOf(
+                IslandPreviewCategory.NOTIFICATION_CONTENT,
+                IslandPreviewCategory.ACTION_BUTTONS,
+                IslandPreviewCategory.CAMERA_RING,
+            )
+        ) {
+            val previewKey = "expressive-island-settings-preview-${previewCategory.name.lowercase()}"
+            val signal = CutoutSignal.Notification(
+                packageName = context.packageName,
+                title = previewContent.label,
+                text = previewContent.detail,
+                postTimeMs = System.currentTimeMillis() - 42_000L,
+                key = previewKey,
+            )
+            val resolved = resolver.resolve(
+                signal,
+                customIcons,
+                musicSettings,
+                phoneSettings,
+                timerSettings,
+                assistantSettings,
+                eventDynamicColor,
+                eventDynamicColorRole,
+                eventDynamicColorOpacity,
+                eventAnimatedIcons,
+                eventAnimatedIconLoops,
+                eventColors,
+                appearanceState.value.preferDynamicIconColor,
+                behaviourState.value.notificationIconMode,
+                behaviourState.value.notificationIconShape,
+            )
+            val demoActions = if (previewCategory == IslandPreviewCategory.ACTION_BUTTONS) {
+                PreviewRenderer.createEvent(
+                    context,
+                    IslandPreviewCategory.ACTION_BUTTONS,
+                    previewContent,
+                ).actions
+            } else {
+                emptyList()
+            }
+            return resolved.copy(
+                id = -1L,
+                notificationKey = previewKey,
+                notificationIconStrokeEnabled = behaviourState.value.notificationIconStrokeEnabled,
+                notificationIconStrokeColor = behaviourState.value.notificationIconStrokeColor,
+                actions = demoActions,
+                progressData = if (previewCategory == IslandPreviewCategory.CAMERA_RING) {
+                    com.vikram.expressiveisland.service.ProgressData(
+                        max = 100,
+                        current = 64,
+                        isIndeterminate = false,
+                        title = "Downloading update",
+                    )
+                } else null,
+            )
+        }
+
+        return PreviewRenderer.createEvent(
+            context = context,
+            category = previewCategory,
+            content = previewContent,
+            musicSettings = musicSettings,
+            phoneSettings = phoneSettings,
+            timerSettings = timerSettings,
         )
+    }
+
+    /** A secondary sample drives the real split-island bubble and camera activity ring. */
+    private fun refreshPreviewSatellite() {
+        previewBubbleJob?.cancel()
+        previewBubbleJob = null
+        val shouldShow = previewPinned &&
+            behaviourState.value.splitIslandEnabled &&
+            (previewCategory == IslandPreviewCategory.CAMERA_RING ||
+                previewCategory == IslandPreviewCategory.BEHAVIOUR)
+        if (!shouldShow) {
+            previewSatelliteEvent.value = null
+            return
+        }
+
+        previewSatelliteEvent.value = PreviewRenderer.createEvent(
+            context = context,
+            category = IslandPreviewCategory.DYNAMIC_TILES,
+            content = IslandPreviewContent("Background task", "Running in background"),
+        ).copy(id = -2L)
+
+        // The split-island toggle is demonstrated as a short arrival preview. Camera Ring keeps
+        // the sample bubble mounted while that tab is open so its ring settings remain visible.
+        if (previewCategory == IslandPreviewCategory.BEHAVIOUR) {
+            previewBubbleJob = scope.launch {
+                delay(2_600L)
+                if (previewPinned && previewCategory == IslandPreviewCategory.BEHAVIOUR &&
+                    behaviourState.value.splitIslandEnabled
+                ) {
+                    previewSatelliteEvent.value = null
+                }
+            }
+        }
+    }
+
+    /** Replay the real collapse/expand transition after a motion setting changes. */
+    private fun replayAnimationPreview() {
+        if (!previewPinned || previewCategory != IslandPreviewCategory.ANIMATION || !previewExpanded) return
+        previewAnimationJob?.cancel()
+        previewAnimationJob = scope.launch {
+            forcedExpanded.value = false
+            expanded = false
+            syncWindowSize()
+            delay(180L)
+            if (previewPinned && previewCategory == IslandPreviewCategory.ANIMATION && previewExpanded) {
+                currentEvent.value = previewEventOrNull()
+                expanded = true
+                forcedExpanded.value = true
+                syncWindowSize()
+            }
+        }
+    }
+
+    /** Rebuilds the pinned sample whenever the tile settings backing it change. */
+    private fun refreshPinnedPreview() {
+        if (!previewPinned) return
+        currentEvent.value = previewEventOrNull()
+        syncWindowSize()
     }
 
     private var composeView: ComposeView? = null
@@ -300,6 +452,7 @@ class IslandOverlayController(private val context: Context) {
     private var touchDownY = 0f
     private var touchDownTime = 0L
     private var shadeSwipeTriggered = false
+    private var previewCollapseSwipeTriggered = false
 
     // The installed OnComputeInternalInsetsListener (a reflection Proxy), kept so it can be removed.
     private var insetsListener: Any? = null
@@ -316,6 +469,8 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private val collapseRequest = MutableStateFlow(0)
+    private val notificationTextExpanded = MutableStateFlow(false)
+    private val notificationTextExtraHeightDp = MutableStateFlow(0)
 
     private var permissionDotsEnabled = false
     private var permissionDotPosition = PermissionDotPosition.RIGHT
@@ -454,9 +609,9 @@ class IslandOverlayController(private val context: Context) {
         when {
             previewPinned -> {
                 dismissJob?.cancel()
-                forcedExpanded.value = null
-                expanded = false
-                currentEvent.value = previewEvent
+                forcedExpanded.value = previewExpanded
+                expanded = previewExpanded
+                currentEvent.value = previewEventOrNull()
             }
 
             callActive && lastCallEvent != null -> {
@@ -482,6 +637,49 @@ class IslandOverlayController(private val context: Context) {
                 scheduleDismiss()
             }
         }
+    }
+
+    /**
+     * Settings previews temporarily replace the visible event, but must never consume it.
+     * Restore still-running live tiles first, then the previous notification/system event if its
+     * original timeout has not elapsed. A preview-only event is never eligible for restoration.
+     */
+    private fun restorePreviewState() {
+        val previousEvent = eventBeforePreview
+        val previousSatellite = satelliteBeforePreview
+        val previousDeadline = deadlineBeforePreviewMs
+        val previousSatelliteDeadline = satelliteDeadlineBeforePreviewMs
+        val previousSystemType = systemEventTypeBeforePreview
+
+        currentDeadlineMs = null
+        restoreActiveState()
+
+        if (currentEvent.value == null && previousEvent != null &&
+            (previousDeadline == null || previousDeadline > System.currentTimeMillis())
+        ) {
+            currentSystemEventType = previousSystemType
+            expanded = false
+            forcedExpanded.value = null
+            currentEvent.value = previousEvent.copy(initiallyExpanded = false)
+            scheduleDismiss(previousDeadline)
+        }
+
+        if (satelliteEvent.value == null && previousSatellite != null &&
+            (previousSatelliteDeadline == null || previousSatelliteDeadline > System.currentTimeMillis())
+        ) {
+            satelliteEvent.value = previousSatellite.copy(initiallyExpanded = false)
+            satelliteDeadlineMs = previousSatelliteDeadline
+            if (previousSatelliteDeadline != null) {
+                armSatelliteDeadline(satelliteEvent.value!!, previousSatelliteDeadline)
+            }
+        }
+
+        eventBeforePreview = null
+        satelliteBeforePreview = null
+        systemEventTypeBeforePreview = null
+        deadlineBeforePreviewMs = null
+        satelliteDeadlineBeforePreviewMs = null
+        syncWindowSize()
     }
 
     /** The current window width in px, following the device's live orientation. */
@@ -545,30 +743,55 @@ class IslandOverlayController(private val context: Context) {
                         touchDownY = event.rawY
                         touchDownTime = SystemClock.uptimeMillis()
                         shadeSwipeTriggered = false
+                        previewCollapseSwipeTriggered = false
                         false
                     }
 
                     MotionEvent.ACTION_MOVE -> {
                         val dy = event.rawY - touchDownY
                         val elapsed = SystemClock.uptimeMillis() - touchDownTime
-                        if (!shadeSwipeTriggered && dy >= SHADE_SWIPE_DISTANCE_DP * density && elapsed <= SHADE_SWIPE_MAX_TIME_MS) {
-                            shadeSwipeTriggered = openNotificationShade()
-                            if (shadeSwipeTriggered) true else false
-                        } else {
-                            shadeSwipeTriggered
+                        when {
+                            previewPinned && previewExpanded &&
+                                    -dy >= PREVIEW_COLLAPSE_SWIPE_DISTANCE_DP * density -> {
+                                if (!previewCollapseSwipeTriggered) {
+                                    previewCollapseSwipeTriggered = true
+                                    previewExpanded = false
+                                    expanded = false
+                                    forcedExpanded.value = false
+                                    IslandPreviewBus.setExpandedPreview(false)
+                                    syncWindowSize()
+                                }
+                                true
+                            }
+
+                            !shadeSwipeTriggered &&
+                                    dy >= SHADE_SWIPE_DISTANCE_DP * density &&
+                                    elapsed <= SHADE_SWIPE_MAX_TIME_MS -> {
+                                shadeSwipeTriggered = openNotificationShade()
+                                shadeSwipeTriggered
+                            }
+
+                            else -> shadeSwipeTriggered || previewCollapseSwipeTriggered
                         }
                     }
 
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        val handled = shadeSwipeTriggered
+                        val handled = shadeSwipeTriggered || previewCollapseSwipeTriggered
                         shadeSwipeTriggered = false
+                        previewCollapseSwipeTriggered = false
                         handled
                     }
 
                     MotionEvent.ACTION_OUTSIDE -> {
-                        if (expanded && !previewPinned) {
+                        if (expanded && !previewPinned && notificationTextExpanded.value) {
+                            notificationTextExpanded.value = false
+                            notificationTextExtraHeightDp.value = 0
+                            syncWindowSize()
+                            true
+                        } else if (previewPinned) {
+                            false
+                        } else if (expanded) {
                             collapseRequest.value++
-//                            onExpandedChanged(false)
                             true
                         } else {
                             false
@@ -581,6 +804,9 @@ class IslandOverlayController(private val context: Context) {
             setContent {
                 val event by currentEvent.collectAsStateWithLifecycle()
                 val satellite by satelliteEvent.collectAsStateWithLifecycle()
+                val previewSatellite by previewSatelliteEvent.collectAsStateWithLifecycle()
+                val previewActive by IslandPreviewBus.active.collectAsStateWithLifecycle()
+                val displayedSatellite = if (previewActive) previewSatellite else satellite
                 val layout by layoutState.collectAsStateWithLifecycle()
                 val forced by forcedExpanded.collectAsStateWithLifecycle()
                 val behaviour by behaviourState.collectAsStateWithLifecycle()
@@ -588,6 +814,8 @@ class IslandOverlayController(private val context: Context) {
                 val widthDp by displayWidthDp.collectAsStateWithLifecycle()
                 val orientation by orientationState.collectAsStateWithLifecycle()
                 val collapseRequestValue by collapseRequest.collectAsStateWithLifecycle()
+                val notificationTextExpandedValue by notificationTextExpanded.collectAsStateWithLifecycle()
+                val notificationTextExtraHeightValue by notificationTextExtraHeightDp.collectAsStateWithLifecycle()
                 val cameraHoleQuickActionsValue by cameraHoleQuickActions.collectAsStateWithLifecycle()
                 val isNoExpandLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE &&
                         (behaviour.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
@@ -686,13 +914,22 @@ class IslandOverlayController(private val context: Context) {
                         permissionDotColors = permissionDotColors,
                         permissionDotsVertical = permissionDotVertical,
 
-                        satellite = satellite,
+                        satellite = displayedSatellite,
                         satellitePosition = behaviour.satellitePosition,
-                        onSatelliteClick = ::onSatellitePromote,
+                        onSatelliteClick = {
+                            if (!previewActive) onSatellitePromote()
+                        },
 
                         onEmptyClick = ::onEmptyClick,
                         onCenterShortcut = ::onCenterShortcut,
                         collapseRequest = collapseRequestValue,
+                        notificationTextExpanded = notificationTextExpandedValue,
+                        notificationTextExtraHeightDp = notificationTextExtraHeightValue,
+                        onNotificationTextExpandedChange = { isExpanded, extraHeightDp ->
+                            notificationTextExpanded.value = isExpanded
+                            notificationTextExtraHeightDp.value = if (isExpanded) extraHeightDp.coerceAtLeast(0) else 0
+                            syncWindowSize()
+                        },
                         onExpandedChange = ::onExpandedChanged,
                         onAssistantContentHeightChanged = { eventId, heightDp ->
                             val isNewEvent = assistantContentHeightEventId != eventId
@@ -742,7 +979,10 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeIconPreferences() = scope.launch {
-        iconPreferences.customIcons.collect { customIcons = it }
+        iconPreferences.customIcons.collect {
+            customIcons = it
+            refreshPinnedPreview()
+        }
     }
 
     private fun observeBehaviour() = scope.launch {
@@ -753,6 +993,9 @@ class IslandOverlayController(private val context: Context) {
             }
             previousShowsWhenEmpty = it.showsWhenEmpty
             behaviourState.value = it
+            refreshPinnedPreview()
+            refreshPreviewSatellite()
+            replayAnimationPreview()
             // Toggling "hide on lockscreen" (or first load while already locked) must take effect now.
             applyLockVisibility()
         }
@@ -761,13 +1004,15 @@ class IslandOverlayController(private val context: Context) {
     private fun observeAppearance() = scope.launch {
         appearancePreferences.settings.collect {
             appearanceState.value = it
+            refreshPinnedPreview()
+            replayAnimationPreview()
             // The action-button height feeds the expanded window's extra room; keep them in step.
             syncWindowSize()
         }
     }
 
     private fun observeEventPreferences() = scope.launch {
-        eventPreferences.enabled.collect { eventEnabled = it }
+        eventPreferences.enabled.collect { eventEnabled = it; refreshPinnedPreview() }
     }
 
     private fun observeEventDurations() = scope.launch {
@@ -775,24 +1020,24 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeEventAnimatedIcons() {
-        scope.launch { eventPreferences.animatedIcons.collect { eventAnimatedIcons = it } }
-        scope.launch { eventPreferences.animatedIconLoops.collect { eventAnimatedIconLoops = it } }
+        scope.launch { eventPreferences.animatedIcons.collect { eventAnimatedIcons = it; refreshPinnedPreview() } }
+        scope.launch { eventPreferences.animatedIconLoops.collect { eventAnimatedIconLoops = it; refreshPinnedPreview() } }
     }
 
     private fun observeEventColors() = scope.launch {
-        eventPreferences.colors.collect { eventColors = it }
+        eventPreferences.colors.collect { eventColors = it; refreshPinnedPreview() }
     }
 
     private fun observeEventDynamicColor() = scope.launch {
-        eventPreferences.dynamicColor.collect { eventDynamicColor = it }
+        eventPreferences.dynamicColor.collect { eventDynamicColor = it; refreshPinnedPreview() }
     }
 
     private fun observeEventDynamicColorRole() = scope.launch {
-        eventPreferences.dynamicColorRole.collect { eventDynamicColorRole = it }
+        eventPreferences.dynamicColorRole.collect { eventDynamicColorRole = it; refreshPinnedPreview() }
     }
 
     private fun observeEventDynamicColorOpacity() = scope.launch {
-        eventPreferences.dynamicColorOpacity.collect { eventDynamicColorOpacity = it }
+        eventPreferences.dynamicColorOpacity.collect { eventDynamicColorOpacity = it; refreshPinnedPreview() }
     }
 
     private fun observeTilePreferences() = scope.launch {
@@ -810,17 +1055,24 @@ class IslandOverlayController(private val context: Context) {
     private fun observeMusicSettings() = scope.launch {
         musicTilePreferences.settings.collect {
             musicSettings = it
+            refreshPinnedPreview()
             // Toggling "Visible in player app" should take effect immediately, even mid-playback.
             applyPlayerAppVisibility()
         }
     }
 
     private fun observePhoneSettings() = scope.launch {
-        phoneTilePreferences.settings.collect { phoneSettings = it }
+        phoneTilePreferences.settings.collect {
+            phoneSettings = it
+            refreshPinnedPreview()
+        }
     }
 
     private fun observeTimerSettings() = scope.launch {
-        timerTilePreferences.settings.collect { timerSettings = it }
+        timerTilePreferences.settings.collect {
+            timerSettings = it
+            refreshPinnedPreview()
+        }
     }
 
     private fun observeAssistantSettings() = scope.launch {
@@ -1095,10 +1347,22 @@ class IslandOverlayController(private val context: Context) {
      * so the window always has room for the pill and never clips it mid-animation.
      */
     private fun syncWindowSize() {
+        val layout = layoutState.value
         requestWindowSize(
-            windowWidthPx(layoutState.value),
-            windowHeightPx(layoutState.value, expanded),
+            windowWidthPx(layout),
+            windowHeightPx(layout, expanded),
         )
+
+        // Publish the island's actual rendered height (including expanded action rows), not the
+        // overlay window's margins or a hard-coded estimate. The settings screen adds exactly 20%.
+        val previewHeight = if (previewPinned && expanded && currentEvent.value?.id == -1L) {
+            val dimensions = effectiveDims(layout, expanded)
+            (dimensions.heightDp + currentHeightBonusDp(expanded) +
+                    if (currentEvent.value?.media != null) 20 else 0).coerceAtLeast(0)
+        } else {
+            0
+        }
+        IslandPreviewBus.setPreviewHeightDp(previewHeight)
     }
 
     private fun requestWindowSize(targetWidthPx: Int, targetHeightPx: Int) {
@@ -1642,7 +1906,7 @@ class IslandOverlayController(private val context: Context) {
     private fun isTwoRowCall(): Boolean {
         val event = currentEvent.value ?: return false
         val call = event.call ?: return false
-        val incoming = OnCallBus.state.value?.ongoing == false
+        val incoming = OnCallBus.state.value?.ongoing == false || (previewPinned && event.id == -1L)
         return incoming && call.incomingExpandedLayout && call.showActions && event.actions.isNotEmpty()
     }
 
@@ -1655,19 +1919,39 @@ class IslandOverlayController(private val context: Context) {
         val hasCallActions = event?.call?.showActions == true && event.actions.isNotEmpty()
         val hasTimerActions = event?.timer?.showActions == true && event.actions.isNotEmpty()
         val hasAssistantActions = behaviourState.value.showActionButtons && event?.assistant != null
-        return if (hasActions || hasMediaControls || hasCallActions || hasTimerActions || hasAssistantActions) {
+        val actionHeight = if (hasActions || hasMediaControls || hasCallActions || hasTimerActions || hasAssistantActions) {
             expandedActionsExtraDp(appearanceState.value.actionButtonHeightDp)
-        } else {
-            0
-        }
+        } else 0
+        return actionHeight + if (expanded && notificationTextExpanded.value) notificationTextExtraHeightDp.value else 0
     }
 
     /** While pinned (settings open), keep a persistent preview matching the tab being edited. */
+    private data class PreviewSnapshot(val pinned: Boolean, val expanded: Boolean, val category: IslandPreviewCategory, val content: IslandPreviewContent, val systemEventType: SystemEventType?)
+
     private fun observePreviewPin() = scope.launch {
-        combine(IslandPreviewBus.active, IslandPreviewBus.expandedPreview, ::Pair)
-            .collect { (pinned, expandedTab) ->
+        combine(IslandPreviewBus.active, IslandPreviewBus.expandedPreview, IslandPreviewBus.category, IslandPreviewBus.content, IslandPreviewBus.systemEventType) { pinned, expandedTab, category, content, systemEventType ->
+            PreviewSnapshot(pinned, expandedTab, category, content, systemEventType)
+        }.collect { snapshot ->
+                val pinned = snapshot.pinned
+                val expandedTab = snapshot.expanded
+                if (previewCategory != snapshot.category) {
+                    notificationTextExpanded.value = false
+                    notificationTextExtraHeightDp.value = 0
+                }
+                if (!previewPinned && pinned) {
+                    // Keep the real event slots intact while the preview owns the visible surface.
+                    eventBeforePreview = currentEvent.value?.takeIf { it.id != -1L }
+                    satelliteBeforePreview = satelliteEvent.value?.takeIf { it.id != -2L }
+                    systemEventTypeBeforePreview = currentSystemEventType
+                    deadlineBeforePreviewMs = currentDeadlineMs
+                    satelliteDeadlineBeforePreviewMs = satelliteDeadlineMs
+                }
+                previewCategory = snapshot.category
+                previewContent = snapshot.content
+                previewSystemEventType = snapshot.systemEventType
                 previewPinned = pinned
                 previewExpanded = expandedTab
+                refreshPreviewSatellite()
                 val isNoExpandLandscape =
                     currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
                             (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
@@ -1675,13 +1959,17 @@ class IslandOverlayController(private val context: Context) {
                 val targetExpanded = if (isNoExpandLandscape) false else expandedTab
                 if (pinned) {
                     dismissJob?.cancel()
-                    forcedExpanded.value = null
-                    expanded = false
-                    currentEvent.value = previewEvent
+                    forcedExpanded.value = targetExpanded
+                    expanded = targetExpanded
+                    currentEvent.value = previewEventOrNull()
                 } else {
+                    previewAnimationJob?.cancel()
                     forcedExpanded.value = if (isNoExpandLandscape) false else null
                     expanded = false
                     currentEvent.value = null
+                    previewSatelliteEvent.value = null
+                    IslandPreviewBus.setPreviewHeightDp(0)
+                    restorePreviewState()
                 }
                 syncWindowSize()
             }
@@ -2076,6 +2364,10 @@ class IslandOverlayController(private val context: Context) {
 
     /** Pause auto-dismiss while expanded; on collapse either hide or return to the normal cutout. */
     private fun onExpandedChanged(isExpanded: Boolean) {
+        if (!isExpanded && notificationTextExpanded.value) {
+            notificationTextExpanded.value = false
+            notificationTextExtraHeightDp.value = 0
+        }
         val isNoExpandLandscape = currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
                 (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
                         behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
@@ -2447,6 +2739,8 @@ class IslandOverlayController(private val context: Context) {
 
     /** Fire one of the notification's action buttons, then dismiss the island. */
     private fun onAction(action: IslandAction) {
+        // Settings previews are illustrative only; never dispatch or dismiss on their demo actions.
+        if (previewPinned && currentEvent.value?.id == -1L) return
         // Timer actions act on the clock's own countdown notification. A destructive one (Reset / Stop)
         // ends the timer, so dismiss the pill right away for instant feedback — like a call's hang-up —
         // rather than letting it linger until the removed notification trips the auto-dismiss timer.
@@ -2615,9 +2909,12 @@ class IslandOverlayController(private val context: Context) {
         }.onFailure { Log.w(TAG, "Failed to send pending intent", it) }
     }
 
-    private fun scheduleDismiss() {
+    private fun scheduleDismiss(preserveDeadlineMs: Long? = null) {
         dismissJob?.cancel()
         currentDeadlineMs = null
+        // A settings preview is intentionally persistent; transient event timeout paths must
+        // never collapse or clear it while the settings owner still holds the preview lease.
+        if (previewPinned) return
         // Keep active media/calls/timers pinned. A manually opened Assistant panel is the
         // exception when its explicit auto-hide option is enabled.
         val autoHideManualAssistant =
@@ -2640,7 +2937,7 @@ class IslandOverlayController(private val context: Context) {
                 ?: behaviourState.value.normalDurationSeconds
             else -> behaviourState.value.normalDurationSeconds
         }
-        val deadlineMs = System.currentTimeMillis() + seconds * 1_000L
+        val deadlineMs = preserveDeadlineMs ?: (System.currentTimeMillis() + seconds * 1_000L)
         currentDeadlineMs = deadlineMs
         dismissJob = scope.launch {
             delay((deadlineMs - System.currentTimeMillis()).coerceAtLeast(0L))
@@ -2662,7 +2959,7 @@ class IslandOverlayController(private val context: Context) {
                 previewPinned -> {
                     expanded = previewExpanded
                     forcedExpanded.value = previewExpanded
-                    currentEvent.value = previewEvent
+                    currentEvent.value = previewEventOrNull()
                 }
                 // A live tile outlived an interrupting event — fall back to its pill, collapsed.
                 livePill != null -> {
@@ -2946,6 +3243,7 @@ class IslandOverlayController(private val context: Context) {
 
         // A normal top-edge shade pull is much larger than this; this threshold prevents ordinary
         // pill taps from being interpreted as a shade gesture.
+        const val PREVIEW_COLLAPSE_SWIPE_DISTANCE_DP = 40f
         const val SHADE_SWIPE_DISTANCE_DP = 48f
         const val SHADE_SWIPE_MAX_TIME_MS = 900L
 

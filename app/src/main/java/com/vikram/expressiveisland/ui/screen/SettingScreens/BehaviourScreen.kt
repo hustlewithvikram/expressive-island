@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen
 
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -68,6 +69,13 @@ internal fun BehaviourScreen(
     onOpenShowsWhenEmpty: () -> Unit,
     onOpenCameraHoleTap: () -> Unit,
 ) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.BEHAVIOUR,
+        label = "Island behaviour",
+        detail = "Preview how the island responds to gestures and events",
+        expanded = false,
+    )
+
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
     var normalSeconds by remember(behaviour.normalDurationSeconds) {
         mutableStateOf(behaviour.normalDurationSeconds.toFloat())

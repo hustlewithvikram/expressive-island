@@ -66,7 +66,7 @@ import kotlin.math.roundToInt
 
 /**
  * A single event's edit screen, reached by tapping its row on the Events list. Lets the user change
- * the event's icon (custom image / app icon / built-in default), fire a live preview of the cutout,
+ * the event's icon (custom image / app icon / built-in default), trigger the event for testing,
  * and tune how long that event lingers before it auto-dismisses.
  */
 @Composable
@@ -130,7 +130,7 @@ internal fun EventDetailScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Hero: the current icon at a glance, plus the two primary actions (change icon / test).
+        // Hero: the current icon at a glance, plus the two primary actions (change icon / trigger test).
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(32.dp),

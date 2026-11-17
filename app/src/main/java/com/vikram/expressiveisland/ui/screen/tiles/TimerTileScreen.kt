@@ -19,7 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.core.DynamicTile
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.ui.AppViewModel
+import com.vikram.expressiveisland.ui.screen.IslandLivePreviewEffect
+import com.vikram.expressiveisland.ui.screen.IslandPreviewSpacer
 import com.vikram.expressiveisland.ui.screen.ColorPickerCard
 import com.vikram.expressiveisland.ui.screen.SettingsToggleCard
 
@@ -35,6 +38,13 @@ internal fun TimerTileScreen(
 ) {
     val settings by viewModel.timerTile.collectAsStateWithLifecycle()
 
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.TIMER_TILE,
+        label = "15:00 remaining",
+        detail = "Kitchen timer",
+        expanded = true,
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -42,6 +52,7 @@ internal fun TimerTileScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        IslandPreviewSpacer()
         SettingsToggleCard(
             shape = RoundedCornerShape(32.dp),
             title = stringResource(R.string.timer_show_actions_title),

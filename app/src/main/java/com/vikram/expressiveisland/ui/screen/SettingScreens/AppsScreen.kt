@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen
 
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -100,6 +101,13 @@ internal fun AppsScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
 ) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.APPS,
+        label = "Apps visibility",
+        detail = "Choose which apps can show island notifications",
+        expanded = false,
+    )
+
     val context = LocalContext.current
     val disabled by viewModel.disabledApps.collectAsStateWithLifecycle()
     val normalOnly by viewModel.normalOnlyApps.collectAsStateWithLifecycle()
@@ -225,7 +233,10 @@ internal fun AppsScreen(
                         },
                         expanded = false,
                         onExpandedChange = {},
-                        modifier = Modifier.weight(1f).height(56.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                            .align(Alignment.CenterVertically),
                         shape = RoundedCornerShape(28.dp),
                         colors = SearchBarDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -238,7 +249,9 @@ internal fun AppsScreen(
 
                     IconButton(
                         onClick = { sortDialogVisible = true },
-                        modifier = Modifier.size(56.dp),
+                        modifier = Modifier
+                            .size(56.dp)
+                            .align(Alignment.CenterVertically),
                         colors = IconButtonDefaults.filledIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,

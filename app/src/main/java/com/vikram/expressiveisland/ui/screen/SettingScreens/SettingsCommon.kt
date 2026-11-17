@@ -1,6 +1,7 @@
 package com.vikram.expressiveisland.ui.screen
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,6 +32,9 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +43,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.vikram.expressiveisland.core.IslandPreviewBus
+import com.vikram.expressiveisland.core.IslandPreviewCategory
+import com.vikram.expressiveisland.permissions.Permissions
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,6 +61,69 @@ import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.IslandLayout
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.island.IslandPreview
+
+/**
+ * Pins the actual system island while a settings screen is visible. The preview is rendered by
+ * DynamicIsland itself, so appearance, dimensions, animations and tile content stay faithful.
+ */
+/**
+ * Reserves room for the expanded system overlay so it never covers the first controls on the
+ * settings page. It collapses with the same state as the real island (including swipe-up collapse).
+ */
+@Composable
+internal fun IslandPreviewSpacer() {
+    val expanded = IslandPreviewBus.expandedPreview.collectAsState().value
+    val active = IslandPreviewBus.active.collectAsState().value
+    val islandHeightDp = IslandPreviewBus.previewHeightDp.collectAsState().value
+    val reservedHeight by animateDpAsState(
+        targetValue = if (active && expanded) (islandHeightDp * 1.1f).dp else 0.dp,
+        label = "islandPreviewSpacer",
+    )
+    Spacer(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(reservedHeight),
+    )
+}
+
+@Composable
+internal fun IslandLivePreviewEffect(
+    category: IslandPreviewCategory,
+    label: String,
+    detail: String,
+    expanded: Boolean = false,
+    systemEventType: com.vikram.expressiveisland.core.SystemEventType? = null,
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val previewOwner = remember { Any() }
+
+    DisposableEffect(lifecycleOwner, previewOwner, category, label, detail, expanded, systemEventType) {
+        fun refresh() {
+            IslandPreviewBus.setCategory(category)
+            IslandPreviewBus.setContent(label, detail)
+            IslandPreviewBus.setSystemEventType(systemEventType)
+            IslandPreviewBus.setExpandedPreview(expanded)
+            IslandPreviewBus.activate(
+                owner = previewOwner,
+                enabled = Permissions.isAccessibilityGranted(context),
+            )
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> refresh()
+                Lifecycle.Event.ON_STOP -> IslandPreviewBus.release(previewOwner)
+                else -> Unit
+            }
+        }
+        refresh()
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            IslandPreviewBus.release(previewOwner)
+        }
+    }
+}
 
 // Shared building blocks used by more than one settings sub-screen. Kept `internal` so each
 // screen file (same package, split across the SettingScreens/ folder) can reach them.

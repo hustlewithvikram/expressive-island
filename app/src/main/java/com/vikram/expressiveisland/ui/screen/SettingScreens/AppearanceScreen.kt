@@ -52,7 +52,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -84,9 +83,6 @@ import kotlinx.coroutines.launch
 import com.vikram.expressiveisland.data.SatelliteRingPreferences
 import com.vikram.expressiveisland.data.SatelliteRingStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.AppearanceSettings
@@ -95,8 +91,7 @@ import com.vikram.expressiveisland.data.NotificationIconMode
 import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
-import com.vikram.expressiveisland.core.IslandPreviewBus
-import com.vikram.expressiveisland.permissions.Permissions
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
@@ -124,35 +119,32 @@ internal fun AppearanceScreen(
     var pendingNotificationIconMode by remember(behaviour.notificationIconMode) { mutableStateOf(behaviour.notificationIconMode) }
     var pendingNotificationIconShape by remember(behaviour.notificationIconShape) { mutableStateOf(behaviour.notificationIconShape) }
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Pin the real overlay to the device cutout while Appearance is visible. The overlay
-    // controller supplies its built-in demo event and observes appearance preferences live.
-    DisposableEffect(lifecycleOwner) {
-        fun refresh() {
-            IslandPreviewBus.setActive(Permissions.isAccessibilityGranted(context))
-        }
-
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> refresh()
-                Lifecycle.Event.ON_PAUSE -> IslandPreviewBus.setActive(false)
-                else -> Unit
-            }
-        }
-
-        refresh()
-        IslandPreviewBus.setExpandedPreview(false)
-        lifecycleOwner.lifecycle.addObserver(observer)
-
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            IslandPreviewBus.setActive(false)
-            IslandPreviewBus.setExpandedPreview(false)
-        }
-    }
-    var strokeWidth by remember(appearance.strokeWidthDp) { mutableStateOf(appearance.strokeWidthDp.toFloat()) }
     var selectedTab by remember { mutableStateOf(0) }
+    var strokeWidth by remember(appearance.strokeWidthDp) { mutableStateOf(appearance.strokeWidthDp.toFloat()) }
+
+    // Each Appearance tab gets a preview event shaped for the controls being edited.
+    IslandLivePreviewEffect(
+        category = when (selectedTab) {
+            1 -> IslandPreviewCategory.NOTIFICATION_CONTENT
+            2 -> IslandPreviewCategory.ACTION_BUTTONS
+            3 -> IslandPreviewCategory.CAMERA_RING
+            else -> IslandPreviewCategory.APPEARANCE
+        },
+        label = when (selectedTab) {
+            1 -> "Your package is ready"
+            2 -> "New message from Alex"
+            3 -> "Downloading update"
+            else -> "Appearance"
+        },
+        detail = when (selectedTab) {
+            1 -> "Your order has been packed and is ready for collection. Open the app to view the full delivery details, pickup location, and the latest updates from the store."
+            2 -> "Hey! I have shared the latest design files with you. Let me know what you think and whether you want any changes before we send the final version."
+            3 -> "Downloading system update • 64% complete"
+            else -> "Live island appearance"
+        },
+        expanded = selectedTab == 1 || selectedTab == 2,
+    )
 
     Column(
         modifier = Modifier
@@ -162,6 +154,7 @@ internal fun AppearanceScreen(
             .padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        IslandPreviewSpacer()
         CardSectionHeader(
             text = "Appearance",
             padding = PaddingValues(start = 4.dp, bottom = 2.dp)

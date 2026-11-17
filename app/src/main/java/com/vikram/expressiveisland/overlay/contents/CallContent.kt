@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -94,21 +95,23 @@ fun IncomingCallExpandedContent(
                 horizontalArrangement = Arrangement.spacedBy(CALL_INCOMING_BUTTON_GAP_DP.dp),
             ) {
                 if (answer != null) {
+                    val answerFill = call.otherButtonColor.resolve()
                     CallWideButton(
                         icon = Icons.Rounded.Call,
                         label = stringResource(R.string.phone_answer),
-                        container = MaterialTheme.colorScheme.primary,
-                        content = MaterialTheme.colorScheme.onPrimary,
+                        container = answerFill,
+                        content = if (answerFill.luminance() > 0.5f) Color.Black else Color.White,
                         modifier = Modifier.weight(1f),
                         onClick = { onAction(answer) },
                     )
                 }
                 if (hangUp != null) {
+                    val hangUpFill = call.hangUpColor.resolve()
                     CallWideButton(
                         icon = Icons.Rounded.CallEnd,
                         label = stringResource(R.string.phone_hang_up),
-                        container = MaterialTheme.colorScheme.error,
-                        content = MaterialTheme.colorScheme.onError,
+                        container = hangUpFill,
+                        content = if (hangUpFill.luminance() > 0.5f) Color.Black else Color.White,
                         modifier = Modifier.weight(1f),
                         onClick = { onAction(hangUp) },
                     )
@@ -212,15 +215,24 @@ fun CallNormalContent(
 ) {
     val call = event.call ?: return
     val onCall by OnCallBus.state.collectAsStateWithLifecycle()
-    val incoming = onCall?.ongoing == false
+    val incoming = onCall?.ongoing == false || event.id == -1L
 
-    CallSingleRowContent(
-        event = event,
-        call = call,
-        onCall = onCall,
-        onAction = onAction,
-        incoming = incoming
-    )
+    if (incoming && call.incomingExpandedLayout && call.showActions && event.actions.isNotEmpty()) {
+        IncomingCallExpandedContent(
+            event = event,
+            call = call,
+            onCall = onCall,
+            onAction = onAction,
+        )
+    } else {
+        CallSingleRowContent(
+            event = event,
+            call = call,
+            onCall = onCall,
+            onAction = onAction,
+            incoming = incoming,
+        )
+    }
 }
 
 /**

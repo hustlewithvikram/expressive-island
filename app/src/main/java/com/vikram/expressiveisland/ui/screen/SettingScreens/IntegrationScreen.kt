@@ -90,7 +90,7 @@ internal fun IntegrationsScreen(
     onOpenAutomation: () -> Unit,
     onOpenDevice: () -> Unit,
 ) {
-    Column(
+Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -107,7 +107,7 @@ internal fun IntegrationsScreen(
 
 @Composable
 internal fun IntegrationDetailScreen(contentPadding: PaddingValues, title: String, description: String) {
-    Column(
+Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -127,7 +127,7 @@ internal fun IntegrationDetailScreen(contentPadding: PaddingValues, title: Strin
 
 @Composable
 internal fun AssistantIntegrationScreen(contentPadding: PaddingValues) {
-    Column(
+Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

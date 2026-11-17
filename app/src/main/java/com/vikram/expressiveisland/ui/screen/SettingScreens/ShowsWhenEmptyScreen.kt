@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen
 
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -110,6 +111,13 @@ internal fun ShowsWhenEmptyScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
 ) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.EMPTY_STATE,
+        label = "Empty island",
+        detail = "Preview the island when no notification is active",
+        expanded = false,
+    )
+
     val context = LocalContext.current
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
     val showIcon = behaviour.persistentPillLeftWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON) ||

@@ -19,7 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.core.DynamicTile
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.ui.AppViewModel
+import com.vikram.expressiveisland.ui.screen.IslandLivePreviewEffect
+import com.vikram.expressiveisland.ui.screen.IslandPreviewSpacer
 import com.vikram.expressiveisland.ui.screen.ColorPickerCard
 import com.vikram.expressiveisland.ui.screen.SettingsToggleCard
 
@@ -35,6 +38,13 @@ internal fun PhoneTileScreen(
 ) {
     val settings by viewModel.phoneTile.collectAsStateWithLifecycle()
 
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.PHONE_TILE,
+        label = "Alex Morgan",
+        detail = "Incoming call",
+        expanded = false,
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -42,6 +52,7 @@ internal fun PhoneTileScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        IslandPreviewSpacer()
         SettingsToggleCard(
             shape = RoundedCornerShape(
                 topStart = 32.dp,
