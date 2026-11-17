@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
@@ -29,6 +30,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -90,6 +93,8 @@ fun NotificationExpandedContent(
     replySent: Boolean,
     showActions: Boolean,
     progressData: ProgressData?,
+    notificationTextExpanded: Boolean = false,
+    onNotificationTextExpandedChange: (Boolean, Int) -> Unit = { _, _ -> },
     onAction: (IslandAction) -> Unit,
     onStartReply: (IslandAction) -> Unit,
     onCancelReply: () -> Unit,
@@ -151,35 +156,40 @@ fun NotificationExpandedContent(
                     )
 
                     event.detail?.let { detail ->
-                        val detailModifier =
-                            Modifier.weight(1f, fill = false).let { modifier ->
-                                if (appearance.showFullNotificationText) {
-                                    modifier.verticalScroll(
-                                        rememberScrollState(),
+                        var detailOverflows by remember(event.id, detail) { mutableStateOf(false) }
+                        val estimatedFullHeightDp = (((detail.length / 28f).toInt() + 1) * 16)
+                        Row(verticalAlignment = Alignment.Top) {
+                            Text(
+                                text = detail,
+                                modifier = Modifier.weight(1f).then(
+                                    if (notificationTextExpanded) Modifier else Modifier.heightIn(max = 36.dp)
+                                ),
+                                color = LocalContentColor.current.copy(alpha = 0.70f),
+                                fontSize = 12.sp,
+                                maxLines = if (notificationTextExpanded) Int.MAX_VALUE else 2,
+                                overflow = if (notificationTextExpanded) TextOverflow.Clip else TextOverflow.Ellipsis,
+                                onTextLayout = { result ->
+                                    detailOverflows = result.didOverflowHeight || result.hasVisualOverflow
+                                },
+                            )
+                            if (appearance.showFullNotificationText && detailOverflows) {
+                                IconButton(
+                                    onClick = {
+                                        onNotificationTextExpandedChange(
+                                            !notificationTextExpanded,
+                                            estimatedFullHeightDp.coerceAtLeast(48),
+                                        )
+                                    },
+                                    modifier = Modifier.size(40.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = if (notificationTextExpanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
+                                        contentDescription = if (notificationTextExpanded) "Show less text" else "Show full text",
+                                        modifier = Modifier.size(20.dp),
                                     )
-                                } else {
-                                    modifier
                                 }
                             }
-
-                        Text(
-                            text = detail,
-                            modifier = detailModifier,
-                            color = LocalContentColor.current.copy(alpha = 0.70f),
-                            fontSize = 12.sp,
-                            maxLines =
-                                if (appearance.showFullNotificationText) {
-                                    Int.MAX_VALUE
-                                } else {
-                                    2
-                                },
-                            overflow =
-                                if (appearance.showFullNotificationText) {
-                                    TextOverflow.Clip
-                                } else {
-                                    TextOverflow.Ellipsis
-                                },
-                        )
+                        }
                     }
 
                     var lastProgressData by remember {
