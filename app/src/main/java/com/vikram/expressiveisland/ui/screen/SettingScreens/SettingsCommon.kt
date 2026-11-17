@@ -66,7 +66,6 @@ import com.vikram.expressiveisland.overlay.island.IslandPreview
  * Pins the actual system island while a settings screen is visible. The preview is rendered by
  * DynamicIsland itself, so appearance, dimensions, animations and tile content stay faithful.
  */
-@Composable
 /**
  * Reserves room for the expanded system overlay so it never covers the first controls on the
  * settings page. It collapses with the same state as the real island (including swipe-up collapse).
