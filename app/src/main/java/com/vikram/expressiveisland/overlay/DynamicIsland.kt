@@ -205,6 +205,9 @@ internal fun DynamicIsland(
     onDismiss: () -> Unit,
     onAssistantContentHeightChanged: (Long?, Int) -> Unit = { _, _ -> },
     collapseRequest: Int = 0,
+    notificationTextExpanded: Boolean = false,
+    notificationTextExtraHeightDp: Int = 0,
+    onNotificationTextExpandedChange: (Boolean, Int) -> Unit = { _, _ -> },
     satellite: IslandEvent? = null,
     satellitePosition: SatellitePosition = SatellitePosition.RIGHT,
     onSatelliteClick: () -> Unit = {},
@@ -380,7 +383,7 @@ internal fun DynamicIsland(
             expandedActionsExtraDp(appearance.actionButtonHeightDp)
 
         else -> 0
-    }
+    } + if (isExpanded && notificationTextExpanded) notificationTextExtraHeightDp else 0
 
     val present = event != null || showsWhenEmpty || cameraHoleQuickActions
     val reveal = remember { Animatable(0f) }
@@ -931,6 +934,8 @@ internal fun DynamicIsland(
                                                 replyingTo = null
                                             },
                                             onDismiss = onDismiss,
+                                            notificationTextExpanded = notificationTextExpanded,
+                                            onNotificationTextExpandedChange = onNotificationTextExpandedChange,
                                             onAssistantPrompt = onAssistantPrompt,
                                             onNewAssistantChat = onNewAssistantChat,
                                             onSelectAssistantChat = onSelectAssistantChat,
