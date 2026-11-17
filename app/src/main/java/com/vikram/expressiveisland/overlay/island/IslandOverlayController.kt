@@ -284,7 +284,14 @@ class IslandOverlayController(private val context: Context) {
     // Settings preview presentation is centralised in PreviewRenderer.
     private fun previewEventOrNull(): IslandEvent? =
         if (previewCategory == IslandPreviewCategory.EMPTY_STATE) null
-        else PreviewRenderer.createEvent(context, previewCategory, previewContent)
+        else PreviewRenderer.createEvent(
+            context = context,
+            category = previewCategory,
+            content = previewContent,
+            musicSettings = musicSettings,
+            phoneSettings = phoneSettings,
+            timerSettings = timerSettings,
+        )
 
     private var composeView: ComposeView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
