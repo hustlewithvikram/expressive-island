@@ -27,8 +27,6 @@ import android.view.View
 import android.view.ViewTreeObserver
 import android.view.WindowManager
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
@@ -283,34 +281,10 @@ class IslandOverlayController(private val context: Context) {
     private var assistantActive = false
     private var lastAssistantEvent: IslandEvent? = null
 
-    // A contextual sample rendered by the actual island UI while a settings page is open.
-    private fun previewEvent() = IslandEvent(
-        id = -1L,
-        icon = IslandIcon.Vector(
-            when (previewCategory) {
-                IslandPreviewCategory.SIZE_POSITION -> Icons.Rounded.Straighten
-                else -> Icons.Rounded.Palette
-            }
-        ),
-        label = previewContent.label,
-        detail = previewContent.detail,
-        accent = Color(0xFF60A5FA),
-        actions = if (previewCategory == IslandPreviewCategory.ACTION_BUTTONS) {
-            val noOp = PendingIntent.getActivity(
-                context,
-                0,
-                Intent(),
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-            )
-            listOf(
-                IslandAction(label = "Reply", intent = noOp),
-                IslandAction(label = "Archive", intent = noOp),
-            )
-        } else emptyList(),
-    )
-
+    // Settings preview presentation is centralised in PreviewRenderer.
     private fun previewEventOrNull(): IslandEvent? =
-        if (previewCategory == IslandPreviewCategory.EMPTY_STATE) null else previewEvent()
+        if (previewCategory == IslandPreviewCategory.EMPTY_STATE) null
+        else PreviewRenderer.createEvent(context, previewCategory, previewContent)
 
     private var composeView: ComposeView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
@@ -323,6 +297,7 @@ class IslandOverlayController(private val context: Context) {
     private var touchDownY = 0f
     private var touchDownTime = 0L
     private var shadeSwipeTriggered = false
+    private var previewCollapseSwipeTriggered = false
 
     // The installed OnComputeInternalInsetsListener (a reflection Proxy), kept so it can be removed.
     private var insetsListener: Any? = null
@@ -568,23 +543,43 @@ class IslandOverlayController(private val context: Context) {
                         touchDownY = event.rawY
                         touchDownTime = SystemClock.uptimeMillis()
                         shadeSwipeTriggered = false
+                        previewCollapseSwipeTriggered = false
                         false
                     }
 
                     MotionEvent.ACTION_MOVE -> {
                         val dy = event.rawY - touchDownY
                         val elapsed = SystemClock.uptimeMillis() - touchDownTime
-                        if (!shadeSwipeTriggered && dy >= SHADE_SWIPE_DISTANCE_DP * density && elapsed <= SHADE_SWIPE_MAX_TIME_MS) {
-                            shadeSwipeTriggered = openNotificationShade()
-                            if (shadeSwipeTriggered) true else false
-                        } else {
-                            shadeSwipeTriggered
+                        when {
+                            previewPinned && previewExpanded &&
+                                    -dy >= PREVIEW_COLLAPSE_SWIPE_DISTANCE_DP * density &&
+                                    elapsed <= SHADE_SWIPE_MAX_TIME_MS -> {
+                                if (!previewCollapseSwipeTriggered) {
+                                    previewCollapseSwipeTriggered = true
+                                    previewExpanded = false
+                                    expanded = false
+                                    forcedExpanded.value = false
+                                    IslandPreviewBus.setExpandedPreview(false)
+                                    syncWindowSize()
+                                }
+                                true
+                            }
+
+                            !shadeSwipeTriggered &&
+                                    dy >= SHADE_SWIPE_DISTANCE_DP * density &&
+                                    elapsed <= SHADE_SWIPE_MAX_TIME_MS -> {
+                                shadeSwipeTriggered = openNotificationShade()
+                                shadeSwipeTriggered
+                            }
+
+                            else -> shadeSwipeTriggered || previewCollapseSwipeTriggered
                         }
                     }
 
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        val handled = shadeSwipeTriggered
+                        val handled = shadeSwipeTriggered || previewCollapseSwipeTriggered
                         shadeSwipeTriggered = false
+                        previewCollapseSwipeTriggered = false
                         handled
                     }
 
