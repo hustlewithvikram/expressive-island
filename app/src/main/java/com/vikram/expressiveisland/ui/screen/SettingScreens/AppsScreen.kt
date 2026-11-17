@@ -233,7 +233,10 @@ internal fun AppsScreen(
                         },
                         expanded = false,
                         onExpandedChange = {},
-                        modifier = Modifier.weight(1f).height(56.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                            .align(Alignment.CenterVertically),
                         shape = RoundedCornerShape(28.dp),
                         colors = SearchBarDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -246,7 +249,9 @@ internal fun AppsScreen(
 
                     IconButton(
                         onClick = { sortDialogVisible = true },
-                        modifier = Modifier.size(56.dp),
+                        modifier = Modifier
+                            .size(56.dp)
+                            .align(Alignment.CenterVertically),
                         colors = IconButtonDefaults.filledIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
