@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
@@ -158,7 +159,7 @@ fun NotificationExpandedContent(
                     event.detail?.let { detail ->
                         var detailOverflows by remember(event.id, detail) { mutableStateOf(false) }
                         val estimatedFullHeightDp = ((((detail.length / 28f).toInt() + 1) * 16) - 36).coerceIn(48, 400)
-                        Row(verticalAlignment = Alignment.Top) {
+                        Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 text = detail,
                                 modifier = Modifier.weight(1f).then(
@@ -180,7 +181,7 @@ fun NotificationExpandedContent(
                                             estimatedFullHeightDp.coerceAtLeast(48),
                                         )
                                     },
-                                    modifier = Modifier.size(40.dp),
+                                    modifier = Modifier.size(40.dp).offset(y = 5.dp),
                                 ) {
                                     Icon(
                                         imageVector = if (notificationTextExpanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
