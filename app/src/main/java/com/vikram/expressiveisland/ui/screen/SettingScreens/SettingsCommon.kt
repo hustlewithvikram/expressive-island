@@ -73,8 +73,9 @@ import com.vikram.expressiveisland.overlay.island.IslandPreview
 @Composable
 internal fun IslandPreviewSpacer() {
     val expanded = IslandPreviewBus.expandedPreview.collectAsState().value
+    val active = IslandPreviewBus.active.collectAsState().value
     val spacerHeight by animateDpAsState(
-        targetValue = if (expanded) 184.dp else 0.dp,
+        targetValue = if (active && expanded) 184.dp else 0.dp,
         label = "islandPreviewSpacer",
     )
     Spacer(
