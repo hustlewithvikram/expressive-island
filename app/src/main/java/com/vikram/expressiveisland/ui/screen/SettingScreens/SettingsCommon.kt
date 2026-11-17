@@ -74,14 +74,15 @@ import com.vikram.expressiveisland.overlay.island.IslandPreview
 internal fun IslandPreviewSpacer() {
     val expanded = IslandPreviewBus.expandedPreview.collectAsState().value
     val active = IslandPreviewBus.active.collectAsState().value
-    val spacerHeight by animateDpAsState(
-        targetValue = if (active && expanded) 224.dp else 0.dp,
+    val islandHeightDp = IslandPreviewBus.previewHeightDp.collectAsState().value
+    val reservedHeight by animateDpAsState(
+        targetValue = if (active && expanded) (islandHeightDp * 1.2f).dp else 0.dp,
         label = "islandPreviewSpacer",
     )
     Spacer(
         modifier = Modifier
             .fillMaxWidth()
-            .height(spacerHeight),
+            .height(reservedHeight),
     )
 }
 
@@ -95,29 +96,27 @@ internal fun IslandLivePreviewEffect(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val previewOwner = remember { Any() }
 
-    DisposableEffect(lifecycleOwner, category, label, detail, expanded, systemEventType) {
+    DisposableEffect(lifecycleOwner, previewOwner, category, label, detail, expanded, systemEventType) {
         fun refresh() {
             IslandPreviewBus.setCategory(category)
             IslandPreviewBus.setContent(label, detail)
             IslandPreviewBus.setSystemEventType(systemEventType)
             IslandPreviewBus.setExpandedPreview(expanded)
-            IslandPreviewBus.setActive(Permissions.isAccessibilityGranted(context))
+            IslandPreviewBus.activate(
+                owner = previewOwner,
+                enabled = Permissions.isAccessibilityGranted(context),
+            )
         }
         val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> refresh()
-                Lifecycle.Event.ON_PAUSE -> IslandPreviewBus.setActive(false)
-                else -> Unit
-            }
+            if (event == Lifecycle.Event.ON_RESUME) refresh()
         }
         refresh()
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            IslandPreviewBus.setActive(false)
-            IslandPreviewBus.setExpandedPreview(false)
-            IslandPreviewBus.setSystemEventType(null)
+            IslandPreviewBus.release(previewOwner)
         }
     }
 }
