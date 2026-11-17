@@ -74,6 +74,7 @@ internal fun CameraHoleTapScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        IslandPreviewSpacer()
         Text(
             text = stringResource(R.string.camera_hole_section_touch),
             style = MaterialTheme.typography.titleSmall,
