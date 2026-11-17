@@ -53,7 +53,6 @@ internal fun AssistantScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        IslandPreviewSpacer()
         ExpressiveSegmentedRow(
             options = listOf("Auto", "Manual"),
             selectedIndex = selectedTab,
