@@ -52,7 +52,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -84,9 +83,6 @@ import kotlinx.coroutines.launch
 import com.vikram.expressiveisland.data.SatelliteRingPreferences
 import com.vikram.expressiveisland.data.SatelliteRingStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.data.AppearanceSettings
@@ -95,9 +91,7 @@ import com.vikram.expressiveisland.data.NotificationIconMode
 import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
-import com.vikram.expressiveisland.core.IslandPreviewBus
 import com.vikram.expressiveisland.core.IslandPreviewCategory
-import com.vikram.expressiveisland.permissions.Permissions
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
