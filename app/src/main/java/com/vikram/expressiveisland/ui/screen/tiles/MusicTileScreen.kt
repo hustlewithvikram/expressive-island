@@ -152,9 +152,9 @@ internal fun MusicTileScreen(
 
     IslandLivePreviewEffect(
         category = IslandPreviewCategory.MUSIC_TILE,
-        label = "Midnight City",
-        detail = "M83 • Hurry Up, We're Dreaming",
-        expanded = true,
+        label = if (selectedTab == MusicSettingsTab.SHRINKED) "Now playing" else "Midnight City",
+        detail = if (selectedTab == MusicSettingsTab.SHRINKED) "M83" else "M83 • Hurry Up, We're Dreaming",
+        expanded = selectedTab != MusicSettingsTab.SHRINKED,
     )
 
     Column(
