@@ -4,6 +4,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import kotlin.math.roundToInt
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.text.style.TextOverflow
 
 import android.app.PendingIntent
 import android.content.Intent
