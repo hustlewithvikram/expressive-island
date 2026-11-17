@@ -212,15 +212,24 @@ fun CallNormalContent(
 ) {
     val call = event.call ?: return
     val onCall by OnCallBus.state.collectAsStateWithLifecycle()
-    val incoming = onCall?.ongoing == false
+    val incoming = onCall?.ongoing == false || event.id == -1L
 
-    CallSingleRowContent(
-        event = event,
-        call = call,
-        onCall = onCall,
-        onAction = onAction,
-        incoming = incoming
-    )
+    if (incoming && call.incomingExpandedLayout && call.showActions && event.actions.isNotEmpty()) {
+        IncomingCallExpandedContent(
+            event = event,
+            call = call,
+            onCall = onCall,
+            onAction = onAction,
+        )
+    } else {
+        CallSingleRowContent(
+            event = event,
+            call = call,
+            onCall = onCall,
+            onAction = onAction,
+            incoming = incoming,
+        )
+    }
 }
 
 /**
