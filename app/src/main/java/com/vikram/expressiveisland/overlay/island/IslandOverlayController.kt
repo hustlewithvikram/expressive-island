@@ -205,6 +205,9 @@ class IslandOverlayController(private val context: Context) {
 
     // One visible satellite plus a queue for other active persistent tiles.
     private val satelliteEvent = MutableStateFlow<IslandEvent?>(null)
+    private val previewSatelliteEvent = MutableStateFlow<IslandEvent?>(null)
+    private var previewBubbleJob: Job? = null
+    private var previewAnimationJob: Job? = null
     private val waitingSatelliteEvents = mutableListOf<ParkedSatelliteEvent>()
     // Interrupting notifications/system events wait here while a persistent tile is expanded.
     // They are shown after the user finishes interacting, rather than replacing the expanded tile.
@@ -282,11 +285,13 @@ class IslandOverlayController(private val context: Context) {
     private var assistantActive = false
     private var lastAssistantEvent: IslandEvent? = null
 
-    // Settings preview presentation is centralised in PreviewRenderer.
-    private fun previewEventOrNull(): IslandEvent? =
-        if (previewCategory == IslandPreviewCategory.EMPTY_STATE) null
-        else if (previewCategory == IslandPreviewCategory.EVENT_DETAIL && previewSystemEventType != null) {
-            resolver.resolve(
+    // Settings preview presentation is centralised in PreviewRenderer. Notification-related
+    // settings use a real notification-shaped event so icon mode, stroke, app header, timestamp,
+    // long text and action chips all pass through the same production composables as real posts.
+    private fun previewEventOrNull(): IslandEvent? {
+        if (previewCategory == IslandPreviewCategory.EMPTY_STATE) return null
+        if (previewCategory == IslandPreviewCategory.EVENT_DETAIL && previewSystemEventType != null) {
+            return resolver.resolve(
                 CutoutSignal.System(previewSystemEventType!!),
                 customIcons,
                 musicSettings,
@@ -303,7 +308,66 @@ class IslandOverlayController(private val context: Context) {
                 behaviourState.value.notificationIconMode,
                 behaviourState.value.notificationIconShape,
             )
-        } else PreviewRenderer.createEvent(
+        }
+
+        if (previewCategory in setOf(
+                IslandPreviewCategory.NOTIFICATION_CONTENT,
+                IslandPreviewCategory.ACTION_BUTTONS,
+                IslandPreviewCategory.CAMERA_RING,
+            )
+        ) {
+            val previewKey = "expressive-island-settings-preview-${previewCategory.name.lowercase()}"
+            val signal = CutoutSignal.Notification(
+                packageName = context.packageName,
+                title = previewContent.label,
+                text = previewContent.detail,
+                postTimeMs = System.currentTimeMillis() - 42_000L,
+                key = previewKey,
+            )
+            val resolved = resolver.resolve(
+                signal,
+                customIcons,
+                musicSettings,
+                phoneSettings,
+                timerSettings,
+                assistantSettings,
+                eventDynamicColor,
+                eventDynamicColorRole,
+                eventDynamicColorOpacity,
+                eventAnimatedIcons,
+                eventAnimatedIconLoops,
+                eventColors,
+                appearanceState.value.preferDynamicIconColor,
+                behaviourState.value.notificationIconMode,
+                behaviourState.value.notificationIconShape,
+            )
+            val demoActions = if (previewCategory == IslandPreviewCategory.ACTION_BUTTONS) {
+                PreviewRenderer.createEvent(
+                    context,
+                    IslandPreviewCategory.ACTION_BUTTONS,
+                    previewContent,
+                ).actions
+            } else {
+                emptyList()
+            }
+            return resolved.copy(
+                id = -1L,
+                notificationKey = previewKey,
+                notificationIconStrokeEnabled = behaviourState.value.notificationIconStrokeEnabled,
+                notificationIconStrokeColor = behaviourState.value.notificationIconStrokeColor,
+                actions = demoActions,
+                progressData = if (previewCategory == IslandPreviewCategory.CAMERA_RING) {
+                    com.vikram.expressiveisland.service.ProgressData(
+                        max = 100,
+                        current = 64,
+                        isIndeterminate = false,
+                        title = "Downloading update",
+                    )
+                } else null,
+            )
+        }
+
+        return PreviewRenderer.createEvent(
             context = context,
             category = previewCategory,
             content = previewContent,
@@ -311,6 +375,58 @@ class IslandOverlayController(private val context: Context) {
             phoneSettings = phoneSettings,
             timerSettings = timerSettings,
         )
+    }
+
+    /** A secondary sample drives the real split-island bubble and camera activity ring. */
+    private fun refreshPreviewSatellite() {
+        previewBubbleJob?.cancel()
+        previewBubbleJob = null
+        val shouldShow = previewPinned &&
+            behaviourState.value.splitIslandEnabled &&
+            (previewCategory == IslandPreviewCategory.CAMERA_RING ||
+                previewCategory == IslandPreviewCategory.BEHAVIOUR)
+        if (!shouldShow) {
+            previewSatelliteEvent.value = null
+            return
+        }
+
+        previewSatelliteEvent.value = PreviewRenderer.createEvent(
+            context = context,
+            category = IslandPreviewCategory.DYNAMIC_TILES,
+            content = IslandPreviewContent("Background task", "Running in background"),
+        ).copy(id = -2L)
+
+        // The split-island toggle is demonstrated as a short arrival preview. Camera Ring keeps
+        // the sample bubble mounted while that tab is open so its ring settings remain visible.
+        if (previewCategory == IslandPreviewCategory.BEHAVIOUR) {
+            previewBubbleJob = scope.launch {
+                delay(2_600L)
+                if (previewPinned && previewCategory == IslandPreviewCategory.BEHAVIOUR &&
+                    behaviourState.value.splitIslandEnabled
+                ) {
+                    previewSatelliteEvent.value = null
+                }
+            }
+        }
+    }
+
+    /** Replay the real collapse/expand transition after a motion setting changes. */
+    private fun replayAnimationPreview() {
+        if (!previewPinned || previewCategory != IslandPreviewCategory.ANIMATION || !previewExpanded) return
+        previewAnimationJob?.cancel()
+        previewAnimationJob = scope.launch {
+            forcedExpanded.value = false
+            expanded = false
+            syncWindowSize()
+            delay(180L)
+            if (previewPinned && previewCategory == IslandPreviewCategory.ANIMATION && previewExpanded) {
+                currentEvent.value = previewEventOrNull()
+                expanded = true
+                forcedExpanded.value = true
+                syncWindowSize()
+            }
+        }
+    }
 
     /** Rebuilds the pinned sample whenever the tile settings backing it change. */
     private fun refreshPinnedPreview() {
