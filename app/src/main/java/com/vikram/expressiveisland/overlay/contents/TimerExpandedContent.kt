@@ -59,7 +59,7 @@ fun TimerExpandedContent(
                 // The remaining time is the headline; the timer name sits beneath.
                 TileTitle(
                     title = timerRemainingText() ?: event.label,
-                    subtitle = event.label,
+                    subtitle = event.detail ?: event.label,
                     modifier = Modifier.weight(1f),
                 )
             }
