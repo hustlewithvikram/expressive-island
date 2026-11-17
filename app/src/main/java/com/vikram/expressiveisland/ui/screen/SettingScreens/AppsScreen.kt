@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen
 
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -100,6 +101,13 @@ internal fun AppsScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
 ) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.APPS,
+        label = "Apps visibility",
+        detail = "Choose which apps can show island notifications",
+        expanded = false,
+    )
+
     val context = LocalContext.current
     val disabled by viewModel.disabledApps.collectAsStateWithLifecycle()
     val normalOnly by viewModel.normalOnlyApps.collectAsStateWithLifecycle()
