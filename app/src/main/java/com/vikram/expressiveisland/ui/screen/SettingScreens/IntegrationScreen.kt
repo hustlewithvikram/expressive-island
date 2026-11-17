@@ -1,5 +1,4 @@
 package com.vikram.expressiveisland.ui.screen
-import com.vikram.expressiveisland.core.IslandPreviewCategory
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
