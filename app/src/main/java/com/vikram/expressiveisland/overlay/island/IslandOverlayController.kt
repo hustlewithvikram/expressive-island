@@ -1155,10 +1155,21 @@ class IslandOverlayController(private val context: Context) {
      * so the window always has room for the pill and never clips it mid-animation.
      */
     private fun syncWindowSize() {
+        val layout = layoutState.value
         requestWindowSize(
-            windowWidthPx(layoutState.value),
-            windowHeightPx(layoutState.value, expanded),
+            windowWidthPx(layout),
+            windowHeightPx(layout, expanded),
         )
+
+        // Publish the island's actual rendered height (including expanded action rows), not the
+        // overlay window's margins or a hard-coded estimate. The settings screen adds exactly 20%.
+        val previewHeight = if (previewPinned && expanded && currentEvent.value?.id == -1L) {
+            val dimensions = effectiveDims(layout, expanded)
+            (dimensions.heightDp + currentHeightBonusDp(expanded)).coerceAtLeast(0)
+        } else {
+            0
+        }
+        IslandPreviewBus.setPreviewHeightDp(previewHeight)
     }
 
     private fun requestWindowSize(targetWidthPx: Int, targetHeightPx: Int) {
