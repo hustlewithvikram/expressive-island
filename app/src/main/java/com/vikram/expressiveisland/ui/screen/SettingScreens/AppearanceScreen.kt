@@ -119,7 +119,6 @@ internal fun AppearanceScreen(
     var pendingNotificationIconMode by remember(behaviour.notificationIconMode) { mutableStateOf(behaviour.notificationIconMode) }
     var pendingNotificationIconShape by remember(behaviour.notificationIconShape) { mutableStateOf(behaviour.notificationIconShape) }
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
 
     // Pin the real overlay to the device cutout while Appearance is visible. The overlay
     // controller supplies its built-in demo event and observes appearance preferences live.
