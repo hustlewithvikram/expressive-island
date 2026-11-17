@@ -75,6 +75,7 @@ internal fun DynamicTilesScreen(
             modifier = Modifier.clip(RoundedCornerShape(24.dp)),
             contentPadding = contentPadding,
         ) {
+        item(key = "island_preview_spacer") { IslandPreviewSpacer() }
             item {
                 CardSectionHeader(
                     text = "Dynamic tiles",
