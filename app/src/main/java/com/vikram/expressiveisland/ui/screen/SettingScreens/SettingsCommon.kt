@@ -97,14 +97,16 @@ internal fun IslandLivePreviewEffect(
     label: String,
     detail: String,
     expanded: Boolean = false,
+    systemEventType: com.vikram.expressiveisland.core.SystemEventType? = null,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    DisposableEffect(lifecycleOwner, category, label, detail, expanded) {
+    DisposableEffect(lifecycleOwner, category, label, detail, expanded, systemEventType) {
         fun refresh() {
             IslandPreviewBus.setCategory(category)
             IslandPreviewBus.setContent(label, detail)
+            IslandPreviewBus.setSystemEventType(systemEventType)
             IslandPreviewBus.setExpandedPreview(expanded)
             IslandPreviewBus.setActive(Permissions.isAccessibilityGranted(context))
         }
@@ -121,6 +123,7 @@ internal fun IslandLivePreviewEffect(
             lifecycleOwner.lifecycle.removeObserver(observer)
             IslandPreviewBus.setActive(false)
             IslandPreviewBus.setExpandedPreview(false)
+            IslandPreviewBus.setSystemEventType(null)
         }
     }
 }
