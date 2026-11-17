@@ -79,6 +79,13 @@ internal fun AnimationScreen(
     val expressive =
         behaviour.animationStyle == AnimationStyle.EXPRESSIVE
 
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.ANIMATION,
+        label = "Island animation",
+        detail = "Live preview of the selected motion",
+        expanded = true,
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -97,23 +104,6 @@ internal fun AnimationScreen(
         )
 
         if (selectedTab == 0) {
-        // Preview
-        CardSectionHeader(
-            text = "Preview",
-            padding = PaddingValues(
-                start = 4.dp,
-                bottom = 4.dp,
-            ),
-        )
-
-        AnimationExampleCard(
-            shape = RoundedCornerShape(28.dp),
-            style = behaviour.animationStyle,
-            speed = behaviour.animationSpeed,
-            bounce = behaviour.animationBounce,
-            durationMs = behaviour.animationDurationMs,
-        )
-
         // Motion
         CardSectionHeader(
             text = "Motion",
