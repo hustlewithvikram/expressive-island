@@ -71,6 +71,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.MusicProgressStyle
 import com.vikram.expressiveisland.data.MusicVisualizerStyle
@@ -78,6 +79,8 @@ import com.vikram.expressiveisland.data.SeekButtonMode
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
+import com.vikram.expressiveisland.ui.screen.IslandLivePreviewEffect
+import com.vikram.expressiveisland.ui.screen.IslandPreviewSpacer
 import com.vikram.expressiveisland.ui.screen.AdjustableSlider
 import com.vikram.expressiveisland.ui.screen.CardSectionHeader
 import com.vikram.expressiveisland.ui.screen.ColorPickerCard
@@ -147,6 +150,13 @@ internal fun MusicTileScreen(
     var leftSeekTimeDialog by remember { mutableStateOf(false) }
     var rightSeekTimeDialog by remember { mutableStateOf(false) }
 
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.MUSIC_TILE,
+        label = "Midnight City",
+        detail = "M83 • Hurry Up, We're Dreaming",
+        expanded = true,
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -154,6 +164,7 @@ internal fun MusicTileScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        IslandPreviewSpacer()
 
         // =====================================================================
         // MUSIC TILE
@@ -167,22 +178,6 @@ internal fun MusicTileScreen(
                 bottom = 0.dp,
             ),
         )
-        MusicButtonsPreview(
-            skipStyle = settings.skipButton,
-            playPauseStyle = settings.playPauseButton,
-            leftSeekEnabled = settings.leftSeekEnabled,
-            rightSeekEnabled = settings.rightSeekEnabled,
-            leftSeekSeconds = settings.leftSeekSeconds,
-            rightSeekSeconds = settings.rightSeekSeconds,
-            showProgress = settings.showProgress,
-            progressStyle = settings.progressStyle,
-            showPlayPauseIcon = settings.showPlayPauseIcon,
-            showPlayPauseText = settings.showPlayPauseText,
-            skipIconColor = settings.skipIconColor?.resolve(),
-            playPauseIconColor = settings.playPauseIconColor?.resolve(),
-            seekIconColor = settings.seekIconColor?.resolve(),
-        )
-
         ExpressiveSegmentedRow(
             options = MusicSettingsTab.entries.map { it.label },
             selectedIndex = MusicSettingsTab.entries.indexOf(selectedTab),
@@ -624,7 +619,6 @@ internal fun MusicTileScreen(
                                     Text(style.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
                                     if (settings.visualizerStyle == style) Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.music_selected), tint = MaterialTheme.colorScheme.onSecondaryContainer)
                                 }
-                                MusicVisualizerPreview(style = style)
                             }
                         }
                     }
