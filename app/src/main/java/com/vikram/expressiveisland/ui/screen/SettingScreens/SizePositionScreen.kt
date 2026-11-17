@@ -292,10 +292,10 @@ private fun DimensionsEditor(
                 cornerBr = cornerBr,
                 mode = cornerMode,
                 onModeChange = { cornerMode = it },
-                onTlChange = { cornerTl = it },
-                onTrChange = { cornerTr = it },
-                onBlChange = { cornerBl = it },
-                onBrChange = { cornerBr = it },
+                onTlChange = { cornerTl = it; commit() },
+                onTrChange = { cornerTr = it; commit() },
+                onBlChange = { cornerBl = it; commit() },
+                onBrChange = { cornerBr = it; commit() },
                 onCommit = { commit() },
             )
         }
