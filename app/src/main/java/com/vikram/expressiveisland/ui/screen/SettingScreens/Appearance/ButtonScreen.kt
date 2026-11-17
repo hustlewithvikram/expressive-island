@@ -69,7 +69,6 @@ internal fun ButtonScreen(
     contentPadding: PaddingValues,
 ) {
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
-    val lifecycleOwner = LocalLifecycleOwner.current
 
 
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
@@ -78,8 +77,6 @@ internal fun ButtonScreen(
     var buttonHeight by remember(appearance.actionButtonHeightDp) {
         mutableStateOf(appearance.actionButtonHeightDp.toFloat())
     }
-
-    // The preview reflects the in-flight height before it is persisted.
 
     IslandLivePreviewEffect(
         category = IslandPreviewCategory.ACTION_BUTTONS,
