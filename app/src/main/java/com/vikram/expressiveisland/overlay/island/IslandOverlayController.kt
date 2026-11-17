@@ -661,7 +661,7 @@ class IslandOverlayController(private val context: Context) {
             expanded = false
             forcedExpanded.value = null
             currentEvent.value = previousEvent.copy(initiallyExpanded = false)
-            scheduleDismiss()
+            scheduleDismiss(previousDeadline)
         }
 
         if (satelliteEvent.value == null && previousSatellite != null &&
@@ -2909,7 +2909,7 @@ class IslandOverlayController(private val context: Context) {
         }.onFailure { Log.w(TAG, "Failed to send pending intent", it) }
     }
 
-    private fun scheduleDismiss() {
+    private fun scheduleDismiss(preserveDeadlineMs: Long? = null) {
         dismissJob?.cancel()
         currentDeadlineMs = null
         // A settings preview is intentionally persistent; transient event timeout paths must
@@ -2937,7 +2937,7 @@ class IslandOverlayController(private val context: Context) {
                 ?: behaviourState.value.normalDurationSeconds
             else -> behaviourState.value.normalDurationSeconds
         }
-        val deadlineMs = System.currentTimeMillis() + seconds * 1_000L
+        val deadlineMs = preserveDeadlineMs ?: (System.currentTimeMillis() + seconds * 1_000L)
         currentDeadlineMs = deadlineMs
         dismissJob = scope.launch {
             delay((deadlineMs - System.currentTimeMillis()).coerceAtLeast(0L))
