@@ -81,6 +81,7 @@ internal fun EventDetailScreen(
         label = "System event",
         detail = "Preview the selected system event appearance",
         expanded = true,
+        systemEventType = type,
     )
 
     val context = LocalContext.current
