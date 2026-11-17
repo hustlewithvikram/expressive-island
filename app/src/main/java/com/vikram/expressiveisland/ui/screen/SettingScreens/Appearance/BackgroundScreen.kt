@@ -1,16 +1,8 @@
 package com.vikram.expressiveisland.ui.screen
 
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.vikram.expressiveisland.core.IslandPreviewBus
-import com.vikram.expressiveisland.permissions.Permissions
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,12 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -54,17 +42,12 @@ import com.vikram.expressiveisland.data.ColorSpec
 import com.vikram.expressiveisland.data.CutoutFill
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.GradientDirection
-import com.vikram.expressiveisland.overlay.island.IslandEvent
-import com.vikram.expressiveisland.overlay.island.IslandIcon
-import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.overlay.resolveBrush
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 import kotlin.math.roundToInt
 
 /** Accent used by the preview event, matching the sibling settings screens. */
-private val PreviewAccent = Color(0xFF60A5FA)
-
 /** Neutral swatches offered first in every picker, with their content descriptions. */
 private val NeutralColors = listOf(
     0xFF0A0A0AL to R.string.cd_color_black,
@@ -92,54 +75,24 @@ internal fun BackgroundScreen(
     contentPadding: PaddingValues,
 ) {
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Keep the real cutout preview pinned while this nested appearance editor is visible.
-    DisposableEffect(lifecycleOwner) {
-        fun refresh() {
-            IslandPreviewBus.setActive(Permissions.isAccessibilityGranted(context))
-            IslandPreviewBus.setExpandedPreview(false)
-        }
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> refresh()
-                Lifecycle.Event.ON_PAUSE -> IslandPreviewBus.setActive(false)
-                else -> Unit
-            }
-        }
-        refresh()
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            IslandPreviewBus.setActive(false)
-        }
-    }
+    // The system overlay itself is the preview; its renderer reads the same appearance preferences.
 
-    val layout by viewModel.layout.collectAsStateWithLifecycle()
-    val systemInDark = isSystemInDarkTheme()
-    var previewDark by remember { mutableStateOf(systemInDark) }
     // 0 = normal (collapsed), 1 = expanded.
     var tabIndex by rememberSaveable { mutableIntStateOf(0) }
     val expandedTab = tabIndex == 1
 
-    val previewLabel = stringResource(R.string.preview_label)
-    val previewDetail = stringResource(R.string.preview_detail)
-    val previewEvent = remember(previewLabel, previewDetail) {
-        IslandEvent(
-            id = 0L,
-            icon = IslandIcon.Vector(Icons.Rounded.Notifications),
-            label = previewLabel,
-            detail = previewDetail,
-            accent = PreviewAccent,
-        )
-    }
-    val cutout = rememberTopCutout()
-    val dims = if (expandedTab) layout.expanded else layout.collapsed
     val currentFill =
         if (expandedTab) appearance.backgroundExpanded else appearance.backgroundNormal
     val onSelect: (CutoutFill) -> Unit =
         if (expandedTab) viewModel::setBackgroundExpanded else viewModel::setBackgroundNormal
+
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.BACKGROUND,
+        label = if (expandedTab) "Expanded background" else "Normal background",
+        detail = if (expandedTab) "Previewing expanded fill" else "Previewing collapsed fill",
+        expanded = expandedTab,
+    )
 
     Column(
         modifier = Modifier
@@ -148,40 +101,6 @@ internal fun BackgroundScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CardSectionHeader(
-                text = "Preview",
-                padding = PaddingValues(start = 2.dp, bottom = 0.dp)
-            )
-
-            FilledTonalIconButton(onClick = { previewDark = !previewDark }) {
-                Icon(
-                    imageVector = if (previewDark) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
-                    contentDescription = stringResource(R.string.cd_toggle_preview_theme),
-                )
-            }
-        }
-
-        IslandPreviewPanel(
-            background = if (previewDark) Color(0xFF0B0B0C) else Color(0xFFEDEFF3),
-            cutout = cutout,
-            widthPercent = dims.widthPercent,
-            heightDp = dims.heightDp,
-            cornerTopLeftDp = dims.cornerTopLeftDp,
-            cornerTopRightDp = dims.cornerTopRightDp,
-            cornerBottomLeftDp = dims.cornerBottomLeftDp,
-            cornerBottomRightDp = dims.cornerBottomRightDp,
-            offsetXDp = dims.offsetXDp,
-            offsetYDp = dims.offsetYDp,
-            expanded = expandedTab,
-            event = previewEvent,
-            appearance = appearance,
-        )
-
         // Which state is being edited.
         ExpressiveSegmentedRow(
             options = listOf(
