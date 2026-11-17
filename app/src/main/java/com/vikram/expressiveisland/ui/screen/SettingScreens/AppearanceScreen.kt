@@ -139,7 +139,6 @@ internal fun AppearanceScreen(
             .padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        IslandPreviewSpacer()
         CardSectionHeader(
             text = "Appearance",
             padding = PaddingValues(start = 4.dp, bottom = 2.dp)
