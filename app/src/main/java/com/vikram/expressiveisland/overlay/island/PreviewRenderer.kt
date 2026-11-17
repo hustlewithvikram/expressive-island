@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SmartToy
@@ -138,7 +139,7 @@ internal object PreviewRenderer {
         IslandPreviewCategory.CAMERA_HOLE -> Icons.Rounded.CameraAlt
         IslandPreviewCategory.DYNAMIC_TILES -> Icons.Rounded.Widgets
         IslandPreviewCategory.MUSIC_TILE -> Icons.Rounded.MusicNote
-        IslandPreviewCategory.PHONE_TILE -> Icons.Rounded.Call
+        IslandPreviewCategory.PHONE_TILE -> Icons.Rounded.Person
         IslandPreviewCategory.TIMER_TILE -> Icons.Rounded.Timer
         IslandPreviewCategory.EVENT_DETAIL -> Icons.Rounded.Info
         IslandPreviewCategory.EVENT_ICONS -> Icons.Rounded.AutoAwesome
