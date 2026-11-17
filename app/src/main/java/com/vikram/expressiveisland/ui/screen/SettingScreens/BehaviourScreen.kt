@@ -94,6 +94,7 @@ internal fun BehaviourScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        IslandPreviewSpacer()
         var selectedTab by remember { mutableStateOf(0) }
 
         ExpressiveSegmentedRow(
