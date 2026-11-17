@@ -108,14 +108,7 @@ Column(
 
 @Composable
 internal fun IntegrationDetailScreen(contentPadding: PaddingValues, title: String, description: String) {
-    IslandLivePreviewEffect(
-        category = IslandPreviewCategory.INTEGRATION,
-        label = "Integration details",
-        detail = "Preview the island while configuring this integration",
-        expanded = true,
-    )
-
-    Column(
+Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
