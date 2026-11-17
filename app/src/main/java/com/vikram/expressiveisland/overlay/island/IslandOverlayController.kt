@@ -1885,6 +1885,10 @@ class IslandOverlayController(private val context: Context) {
         }.collect { snapshot ->
                 val pinned = snapshot.pinned
                 val expandedTab = snapshot.expanded
+                if (previewCategory != snapshot.category) {
+                    notificationTextExpanded.value = false
+                    notificationTextExtraHeightDp.value = 0
+                }
                 previewCategory = snapshot.category
                 previewContent = snapshot.content
                 previewSystemEventType = snapshot.systemEventType
@@ -2302,6 +2306,10 @@ class IslandOverlayController(private val context: Context) {
 
     /** Pause auto-dismiss while expanded; on collapse either hide or return to the normal cutout. */
     private fun onExpandedChanged(isExpanded: Boolean) {
+        if (!isExpanded && notificationTextExpanded.value) {
+            notificationTextExpanded.value = false
+            notificationTextExtraHeightDp.value = 0
+        }
         val isNoExpandLandscape = currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
                 (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
                         behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
