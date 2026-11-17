@@ -91,6 +91,13 @@ internal fun IntegrationsScreen(
     onOpenAutomation: () -> Unit,
     onOpenDevice: () -> Unit,
 ) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.INTEGRATION,
+        label = "Integrations",
+        detail = "Preview connected assistant and system services",
+        expanded = true,
+    )
+
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -108,6 +115,13 @@ internal fun IntegrationsScreen(
 
 @Composable
 internal fun IntegrationDetailScreen(contentPadding: PaddingValues, title: String, description: String) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.INTEGRATION,
+        label = "Integration details",
+        detail = "Preview the island while configuring this integration",
+        expanded = true,
+    )
+
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -128,6 +142,13 @@ internal fun IntegrationDetailScreen(contentPadding: PaddingValues, title: Strin
 
 @Composable
 internal fun AssistantIntegrationScreen(contentPadding: PaddingValues) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.INTEGRATION,
+        label = "Assistant integration",
+        detail = "Preview assistant responses and activity",
+        expanded = true,
+    )
+
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
