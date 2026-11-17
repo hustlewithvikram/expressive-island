@@ -50,12 +50,10 @@ internal fun SizePositionScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
 ) {
-    val context = LocalContext.current
     val layout by viewModel.layout.collectAsStateWithLifecycle()
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
 
-    val lifecycleOwner = LocalLifecycleOwner.current
 
     /*
      * The real overlay is pinned while this screen is visible so changes can be
