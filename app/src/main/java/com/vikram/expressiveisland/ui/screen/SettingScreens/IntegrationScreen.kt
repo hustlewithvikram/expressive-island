@@ -127,14 +127,7 @@ Column(
 
 @Composable
 internal fun AssistantIntegrationScreen(contentPadding: PaddingValues) {
-    IslandLivePreviewEffect(
-        category = IslandPreviewCategory.INTEGRATION,
-        label = "Assistant integration",
-        detail = "Preview assistant responses and activity",
-        expanded = true,
-    )
-
-    Column(
+Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
