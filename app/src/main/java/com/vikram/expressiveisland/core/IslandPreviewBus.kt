@@ -37,6 +37,10 @@ data class IslandPreviewContent(
 object IslandPreviewBus {
     private val mutableActive = MutableStateFlow(false)
     val active: StateFlow<Boolean> = mutableActive
+    private var activeOwner: Any? = null
+
+    private val mutablePreviewHeightDp = MutableStateFlow(0)
+    val previewHeightDp: StateFlow<Int> = mutablePreviewHeightDp
 
     private val mutableExpandedPreview = MutableStateFlow(false)
     val expandedPreview: StateFlow<Boolean> = mutableExpandedPreview
@@ -52,8 +56,26 @@ object IslandPreviewBus {
     )
     val content: StateFlow<IslandPreviewContent> = mutableContent
 
-    fun setActive(value: Boolean) {
-        mutableActive.value = value
+    /** A screen claims the preview; stale screens cannot deactivate a newer screen's preview. */
+    @Synchronized
+    fun activate(owner: Any, enabled: Boolean) {
+        activeOwner = owner
+        mutableActive.value = enabled
+    }
+
+    @Synchronized
+    fun release(owner: Any) {
+        if (activeOwner === owner) {
+            activeOwner = null
+            mutableActive.value = false
+            mutableExpandedPreview.value = false
+            mutablePreviewHeightDp.value = 0
+            mutableSystemEventType.value = null
+        }
+    }
+
+    fun setPreviewHeightDp(value: Int) {
+        mutablePreviewHeightDp.value = value.coerceAtLeast(0)
     }
 
     fun setExpandedPreview(value: Boolean) {
