@@ -1,6 +1,7 @@
 package com.vikram.expressiveisland.overlay.island
 
 import android.app.PendingIntent
+import android.app.RemoteInput
 import android.content.Context
 import android.content.Intent
 import androidx.compose.material.icons.Icons
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.ui.graphics.Color
 import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.core.IslandPreviewContent
+import com.vikram.expressiveisland.overlay.island.IslandReply
 import com.vikram.expressiveisland.data.MusicTileSettings
 import com.vikram.expressiveisland.data.PhoneTileSettings
 import com.vikram.expressiveisland.data.TimerTileSettings
@@ -54,7 +56,15 @@ internal object PreviewRenderer {
         val actions = when (category) {
             IslandPreviewCategory.ACTION_BUTTONS -> {
             listOf(
-                IslandAction(label = "Reply", intent = previewIntent(0)),
+                IslandAction(
+                    label = "Reply",
+                    intent = previewIntent(0),
+                    reply = IslandReply(
+                        resultKey = "preview_reply",
+                        remoteInputs = listOf(RemoteInput.Builder("preview_reply").setLabel("Reply to message").build()),
+                        hint = "Reply to message",
+                    ),
+                ),
                 IslandAction(label = "Archive", intent = previewIntent(1)),
             )
             }
@@ -115,6 +125,8 @@ internal object PreviewRenderer {
     }
 
     private fun iconFor(category: IslandPreviewCategory) = when (category) {
+        IslandPreviewCategory.NOTIFICATION_CONTENT -> Icons.Rounded.NotificationsActive
+        IslandPreviewCategory.CAMERA_RING -> Icons.Rounded.CameraAlt
         IslandPreviewCategory.SIZE_POSITION -> Icons.Rounded.Straighten
         IslandPreviewCategory.BACKGROUND -> Icons.Rounded.FormatColorFill
         IslandPreviewCategory.ACTION_BUTTONS -> Icons.Rounded.TouchApp
