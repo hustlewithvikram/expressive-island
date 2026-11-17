@@ -103,6 +103,7 @@ internal fun BackgroundScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        IslandPreviewSpacer()
         // Which state is being edited.
         ExpressiveSegmentedRow(
             options = listOf(
