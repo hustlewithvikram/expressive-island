@@ -81,6 +81,11 @@ internal object PreviewRenderer {
                 else -> Color(0xFF60A5FA)
             },
             actions = actions,
+            iconContainerColor = when (category) {
+                IslandPreviewCategory.PHONE_TILE -> phoneSettings.iconContainerColor
+                IslandPreviewCategory.TIMER_TILE -> timerSettings.iconContainerColor
+                else -> null
+            },
             media = if (category == IslandPreviewCategory.MUSIC_TILE) MediaTileOptions(
                 showAlbumArt = musicSettings.showAlbumArt,
                 rotateAlbumArt = musicSettings.rotateAlbumArt,
