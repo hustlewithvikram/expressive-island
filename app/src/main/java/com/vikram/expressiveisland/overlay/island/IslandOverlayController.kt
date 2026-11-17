@@ -463,6 +463,8 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private val collapseRequest = MutableStateFlow(0)
+    private val notificationTextExpanded = MutableStateFlow(false)
+    private val notificationTextExtraHeightDp = MutableStateFlow(0)
 
     private var permissionDotsEnabled = false
     private var permissionDotPosition = PermissionDotPosition.RIGHT
@@ -732,12 +734,12 @@ class IslandOverlayController(private val context: Context) {
                     }
 
                     MotionEvent.ACTION_OUTSIDE -> {
-                        // Settings previews must stay expanded while the user scrolls or edits
-                        // controls in the app behind this non-modal overlay. ACTION_OUTSIDE does
-                        // not distinguish a tap from the start of a scroll, so collapsing here
-                        // makes ordinary page scrolling dismiss the preview. A deliberate upward
-                        // swipe that starts on the island is still handled by ACTION_MOVE above.
-                        if (previewPinned) {
+                        if (expanded && notificationTextExpanded.value) {
+                            notificationTextExpanded.value = false
+                            notificationTextExtraHeightDp.value = 0
+                            syncWindowSize()
+                            true
+                        } else if (previewPinned) {
                             false
                         } else if (expanded) {
                             collapseRequest.value++
@@ -763,6 +765,8 @@ class IslandOverlayController(private val context: Context) {
                 val widthDp by displayWidthDp.collectAsStateWithLifecycle()
                 val orientation by orientationState.collectAsStateWithLifecycle()
                 val collapseRequestValue by collapseRequest.collectAsStateWithLifecycle()
+                val notificationTextExpandedValue by notificationTextExpanded.collectAsStateWithLifecycle()
+                val notificationTextExtraHeightValue by notificationTextExtraHeightDp.collectAsStateWithLifecycle()
                 val cameraHoleQuickActionsValue by cameraHoleQuickActions.collectAsStateWithLifecycle()
                 val isNoExpandLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE &&
                         (behaviour.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
@@ -870,6 +874,13 @@ class IslandOverlayController(private val context: Context) {
                         onEmptyClick = ::onEmptyClick,
                         onCenterShortcut = ::onCenterShortcut,
                         collapseRequest = collapseRequestValue,
+                        notificationTextExpanded = notificationTextExpandedValue,
+                        notificationTextExtraHeightDp = notificationTextExtraHeightValue,
+                        onNotificationTextExpandedChange = { isExpanded, extraHeightDp ->
+                            notificationTextExpanded.value = isExpanded
+                            notificationTextExtraHeightDp.value = if (isExpanded) extraHeightDp.coerceAtLeast(0) else 0
+                            syncWindowSize()
+                        },
                         onExpandedChange = ::onExpandedChanged,
                         onAssistantContentHeightChanged = { eventId, heightDp ->
                             val isNewEvent = assistantContentHeightEventId != eventId
@@ -1859,11 +1870,10 @@ class IslandOverlayController(private val context: Context) {
         val hasCallActions = event?.call?.showActions == true && event.actions.isNotEmpty()
         val hasTimerActions = event?.timer?.showActions == true && event.actions.isNotEmpty()
         val hasAssistantActions = behaviourState.value.showActionButtons && event?.assistant != null
-        return if (hasActions || hasMediaControls || hasCallActions || hasTimerActions || hasAssistantActions) {
+        val actionHeight = if (hasActions || hasMediaControls || hasCallActions || hasTimerActions || hasAssistantActions) {
             expandedActionsExtraDp(appearanceState.value.actionButtonHeightDp)
-        } else {
-            0
-        }
+        } else 0
+        return actionHeight + if (expanded && notificationTextExpanded.value) notificationTextExtraHeightDp.value else 0
     }
 
     /** While pinned (settings open), keep a persistent preview matching the tab being edited. */
