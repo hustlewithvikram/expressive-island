@@ -31,6 +31,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +40,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.vikram.expressiveisland.core.IslandPreviewBus
+import com.vikram.expressiveisland.core.IslandPreviewCategory
+import com.vikram.expressiveisland.permissions.Permissions
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,6 +58,44 @@ import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.IslandLayout
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.island.IslandPreview
+
+/**
+ * Pins the actual system island while a settings screen is visible. The preview is rendered by
+ * DynamicIsland itself, so appearance, dimensions, animations and tile content stay faithful.
+ */
+@Composable
+internal fun IslandLivePreviewEffect(
+    category: IslandPreviewCategory,
+    label: String,
+    detail: String,
+    expanded: Boolean = false,
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner, category, label, detail, expanded) {
+        fun refresh() {
+            IslandPreviewBus.setCategory(category)
+            IslandPreviewBus.setContent(label, detail)
+            IslandPreviewBus.setExpandedPreview(expanded)
+            IslandPreviewBus.setActive(Permissions.isAccessibilityGranted(context))
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> refresh()
+                Lifecycle.Event.ON_PAUSE -> IslandPreviewBus.setActive(false)
+                else -> Unit
+            }
+        }
+        refresh()
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            IslandPreviewBus.setActive(false)
+            IslandPreviewBus.setExpandedPreview(false)
+        }
+    }
+}
 
 // Shared building blocks used by more than one settings sub-screen. Kept `internal` so each
 // screen file (same package, split across the SettingScreens/ folder) can reach them.
