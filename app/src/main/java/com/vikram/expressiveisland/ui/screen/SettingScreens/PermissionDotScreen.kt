@@ -72,6 +72,9 @@ internal fun PermissionDotScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         fun pin(active: Boolean) {
+            IslandPreviewBus.setCategory(IslandPreviewCategory.PERMISSION_DOTS)
+            IslandPreviewBus.setContent("Permission indicators", "Camera, microphone and location activity")
+            IslandPreviewBus.setExpandedPreview(false)
             IslandPreviewBus.setActive(active && Permissions.isAccessibilityGranted(context))
             PermissionDotPreviewBus.setActive(active)
         }
