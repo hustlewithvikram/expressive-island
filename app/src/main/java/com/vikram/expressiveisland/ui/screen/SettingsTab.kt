@@ -25,7 +25,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -56,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -119,8 +123,16 @@ fun SettingsTab(
     onOpenIntegrationDevice: () -> Unit,
     onOpenPermissionDot: () -> Unit,
 ) {
+    val routeStateHolder = rememberSaveableStateHolder()
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var searchExpanded by rememberSaveable { mutableStateOf(false) }
+    // Back/collapse must restore the untouched Settings home, not leave a hidden query behind.
+    val updateSearchExpanded: (Boolean) -> Unit = { expanded ->
+        searchExpanded = expanded
+        if (!expanded) {
+            searchQuery = ""
+        }
+    }
 
     // Routing (and back navigation, via the bottom bar) is owned by MainScreen.
     // Deeper routes slide in from the right; stepping back slides in from the left, so the
@@ -138,6 +150,7 @@ fun SettingsTab(
         },
         label = "settingsRoute",
     ) { current ->
+        routeStateHolder.SaveableStateProvider(current) {
         when (current) {
             SettingsRoute.List -> {
                 val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
@@ -149,7 +162,7 @@ fun SettingsTab(
                     searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },
                     searchExpanded = searchExpanded,
-                    onSearchExpandedChange = { searchExpanded = it },
+                    onSearchExpandedChange = updateSearchExpanded,
                     onOpenSizePosition = onOpenSizePosition,
                     onOpenEventIcons = onOpenEventIcons,
                     onOpenDynamicTiles = onOpenDynamicTiles,
@@ -198,6 +211,7 @@ fun SettingsTab(
             SettingsRoute.IntegrationAutomation -> IntegrationDetailScreen(contentPadding, "Automation & webhooks", "Connect external workflows and trigger actions from supported island events.")
             SettingsRoute.IntegrationDevice -> IntegrationDetailScreen(contentPadding, "Device services", "Connect Android system capabilities and companion services.")
             SettingsRoute.PermissionDot -> PermissionDotScreen(viewModel, contentPadding)
+        }
         }
     }
 }
@@ -335,7 +349,14 @@ private fun SettingsList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 8.dp,
+                        // This inset belongs to the scroll content: the final result can scroll
+                        // fully above the floating navigation bar without reducing the viewport.
+                        bottom = 104.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+                    ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
             if (searchQuery.isBlank()) {
@@ -743,15 +764,27 @@ private fun CutoutEnableCard(
     onEnabledChange: (Boolean) -> Unit,
     onOpenAccessibility: () -> Unit,
 ) {
+    val containerColor = if (enabled) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    val contentColor = if (enabled) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        // Keep all four corners consistently rounded in both enabled and disabled states.
+        shape = CircleShape,
+        colors = CardDefaults.cardColors(containerColor = containerColor),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
@@ -759,16 +792,17 @@ private fun CutoutEnableCard(
                     .weight(1f)
                     .clip(RoundedCornerShape(12.dp))
                     .clickable(onClick = onOpenAccessibility)
-                    .padding(vertical = 4.dp),
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
                 Text(
                     text = stringResource(R.string.cutout_enable_title),
                     style = MaterialTheme.typography.titleMedium,
+                    color = contentColor,
                 )
                 Text(
                     text = stringResource(R.string.cutout_enable_desc),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = contentColor.copy(alpha = 0.82f),
                 )
             }
             Spacer(Modifier.width(12.dp))
@@ -776,7 +810,7 @@ private fun CutoutEnableCard(
                 modifier = Modifier
                     .width(1.dp)
                     .height(36.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant),
+                    .background(contentColor.copy(alpha = 0.18f)),
             )
             Spacer(Modifier.width(12.dp))
             Switch(checked = enabled, onCheckedChange = onEnabledChange)

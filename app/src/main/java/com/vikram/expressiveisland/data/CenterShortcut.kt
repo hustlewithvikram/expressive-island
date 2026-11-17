@@ -119,6 +119,8 @@ enum class GlobalAction(
     NOTIFICATIONS(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS, 16, R.string.center_action_notifications),
     QUICK_SETTINGS(AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS, 17, R.string.center_action_quick_settings),
     RECENTS(AccessibilityService.GLOBAL_ACTION_RECENTS, 16, R.string.center_action_recents),
+    HOME(AccessibilityService.GLOBAL_ACTION_HOME, 16, R.string.center_action_home),
+    BACK(AccessibilityService.GLOBAL_ACTION_BACK, 16, R.string.center_action_back),
 }
 
 /** System settings slide-up panels opened with a plain intent (all available from our minSdk 29). */

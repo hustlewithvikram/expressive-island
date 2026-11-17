@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Close
@@ -38,6 +39,8 @@ import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -150,11 +153,13 @@ internal fun ShowsWhenEmptyScreen(
         PillWidgetSlotCard(
             title = "Left side",
             selected = behaviour.persistentPillLeftWidget,
+            shape = persistentPillGroupShape(isFirst = true, isLast = false),
             onSelect = { viewModel.setPersistentPillWidget(true, it) },
         )
         PillWidgetSlotCard(
             title = "Right side",
             selected = behaviour.persistentPillRightWidget,
+            shape = persistentPillGroupShape(isFirst = false, isLast = true),
             onSelect = { viewModel.setPersistentPillWidget(false, it) },
         )
         Text(
@@ -804,37 +809,74 @@ private fun EmptyIconThumbnail(
 private fun PillWidgetSlotCard(
     title: String,
     selected: PillWidgetType,
+    shape: androidx.compose.ui.graphics.Shape,
     onSelect: (PillWidgetType) -> Unit,
 ) {
+    var showDialog by remember { mutableStateOf(false) }
+    var pending by remember(selected) { mutableStateOf(selected) }
+    val label = when (selected) {
+        PillWidgetType.NONE -> "Nothing"
+        PillWidgetType.ICON -> "Icon"
+        PillWidgetType.ANIMATED_ICON -> "Animated icon"
+        PillWidgetType.NETWORK_SPEED -> "Internet speed"
+        PillWidgetType.BATTERY -> "Battery percentage"
+        PillWidgetType.CLOCK -> "Clock"
+        PillWidgetType.WIFI_SIGNAL -> "Wi-Fi signal"
+    }
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = persistentPillGroupShape(isFirst = false, isLast = true),
+        modifier = Modifier.fillMaxWidth().clickable { pending = selected; showDialog = true },
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            PillWidgetType.entries.forEach { type ->
-                val label = when (type) {
-                    PillWidgetType.NONE -> "Nothing"
-                    PillWidgetType.ICON -> "Icon"
-                    PillWidgetType.ANIMATED_ICON -> "Animated icon"
-                    PillWidgetType.NETWORK_SPEED -> "Internet speed"
-                    PillWidgetType.BATTERY -> "Battery percentage"
-                    PillWidgetType.CLOCK -> "Clock"
-                    PillWidgetType.WIFI_SIGNAL -> "Wi-Fi signal"
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                        .clickable { onSelect(type) }.padding(vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(selected = selected == type, onClick = { onSelect(type) })
-                    Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
-                }
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Change", tint = MaterialTheme.colorScheme.primary)
         }
+    }
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text(title) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    PillWidgetType.entries.forEach { type ->
+                        val optionLabel = when (type) {
+                            PillWidgetType.NONE -> "Nothing"
+                            PillWidgetType.ICON -> "Icon"
+                            PillWidgetType.ANIMATED_ICON -> "Animated icon"
+                            PillWidgetType.NETWORK_SPEED -> "Internet speed"
+                            PillWidgetType.BATTERY -> "Battery percentage"
+                            PillWidgetType.CLOCK -> "Clock"
+                            PillWidgetType.WIFI_SIGNAL -> "Wi-Fi signal"
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .clickable { pending = type }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(optionLabel, style = MaterialTheme.typography.bodyLarge)
+                            }
+                            RadioButton(selected = pending == type, onClick = { pending = type })
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { onSelect(pending); showDialog = false }) { Text("Confirm") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) { Text("Cancel") }
+            },
+            shape = RoundedCornerShape(24.dp),
+        )
     }
 }

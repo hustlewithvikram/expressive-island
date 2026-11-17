@@ -11,6 +11,7 @@ import android.app.PendingIntent
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,11 +33,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,10 +50,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
@@ -66,6 +73,7 @@ import com.vikram.expressiveisland.overlay.island.IslandAction
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.island.IslandIcon
 import com.vikram.expressiveisland.overlay.expandedActionsExtraDp
+import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
 import kotlin.math.roundToInt
 
@@ -112,6 +120,8 @@ internal fun ButtonScreen(
     val layout by viewModel.layout.collectAsStateWithLifecycle()
     val systemInDark = isSystemInDarkTheme()
     var previewDark by remember { mutableStateOf(systemInDark) }
+    var activeChoiceDialog by rememberSaveable { mutableStateOf<String?>(null) }
+    var previewPage by rememberSaveable { mutableStateOf(0) }
     // Local height so the sliders/preview react immediately; committed to prefs on release.
     var buttonHeight by remember(appearance.actionButtonHeightDp) {
         mutableStateOf(appearance.actionButtonHeightDp.toFloat())
@@ -174,226 +184,195 @@ internal fun ButtonScreen(
             }
         }
 
-        IslandPreviewPanel(
-            background = if (previewDark) Color(0xFF0B0B0C) else Color(0xFFEDEFF3),
-            cutout = cutout,
-            widthPercent = expanded.widthPercent,
-            heightDp = previewHeightDp,
-            cornerTopLeftDp = expanded.cornerTopLeftDp,
-            cornerTopRightDp = expanded.cornerTopRightDp,
-            cornerBottomLeftDp = expanded.cornerBottomLeftDp,
-            cornerBottomRightDp = expanded.cornerBottomRightDp,
-            offsetXDp = expanded.offsetXDp,
-            offsetYDp = expanded.offsetYDp,
-            expanded = true,
-            event = previewEvent,
-            appearance = previewAppearance,
-            showActions = behaviour.showActionButtons,
-        )
-
-        // Whether the chips appear at all lives with the other behaviour toggles, but it is the
-        // natural on/off switch for this screen, so it leads here too.
-        SettingsToggleCard(
-            shape = RoundedCornerShape(24.dp),
-            title = stringResource(R.string.action_buttons_enable_title),
-            description = stringResource(R.string.action_buttons_enable_desc),
-            checked = behaviour.showActionButtons,
-            onCheckedChange = viewModel::setShowActionButtons,
-        )
-
-        // Whether tapping an action button confirms with a toast.
-        SettingsToggleCard(
-            shape = RoundedCornerShape(24.dp),
-            title = stringResource(R.string.action_buttons_toast_title),
-            description = stringResource(R.string.action_buttons_toast_desc),
-            checked = behaviour.toastOnAction,
-            onCheckedChange = viewModel::setToastOnAction,
-        )
-
-        // --- Chip style ---
-        OptionGroupCard(title = stringResource(R.string.action_buttons_style_title)) {
-            ButtonStyleOption(
-                title = stringResource(R.string.style_expressive_tonal_title),
-                description = stringResource(R.string.style_expressive_tonal_desc),
-                style = ActionButtonStyle.EXPRESSIVE_TONAL,
-                selected = appearance.actionButtonStyle,
-                onSelect = viewModel::setActionButtonStyle,
-            )
-            ButtonStyleOption(
-                title = stringResource(R.string.style_expressive_filled_title),
-                description = stringResource(R.string.style_expressive_filled_desc),
-                style = ActionButtonStyle.EXPRESSIVE_FILLED,
-                selected = appearance.actionButtonStyle,
-                onSelect = viewModel::setActionButtonStyle,
-            )
-            ButtonStyleOption(
-                title = stringResource(R.string.style_material_you_title),
-                description = stringResource(R.string.style_material_you_desc),
-                style = ActionButtonStyle.MATERIAL_YOU,
-                selected = appearance.actionButtonStyle,
-                onSelect = viewModel::setActionButtonStyle,
-            )
-            ButtonStyleOption(
-                title = stringResource(R.string.style_outlined_title),
-                description = stringResource(R.string.style_outlined_desc),
-                style = ActionButtonStyle.OUTLINED,
-                selected = appearance.actionButtonStyle,
-                onSelect = viewModel::setActionButtonStyle,
-            )
-        }
-
-        // --- Chip colour (dynamic roles, custom, presets) ---
-        // A null selection follows the notification's own accent (the historical default).
-        ColorPickerCard(
-            label = stringResource(R.string.action_buttons_color_title),
-            selected = appearance.actionButtonColor,
-            onSelect = viewModel::setActionButtonColor,
-            defaultLabel = stringResource(R.string.cd_color_default_accent),
-            defaultColor = PreviewAccent,
-        )
-
-        // --- Chip height ---
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        ) {
-            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                AdjustableSlider(
-                    label = stringResource(R.string.action_buttons_height_title),
-                    valueText = "${buttonHeight.roundToInt()} dp",
-                    value = buttonHeight,
-                    valueRange = AppearanceSettings.MIN_ACTION_BUTTON_HEIGHT_DP.toFloat()..
-                            AppearanceSettings.MAX_ACTION_BUTTON_HEIGHT_DP.toFloat(),
-                    step = 2f,
-                    onValueChange = { buttonHeight = it },
-                    onCommit = { viewModel.setActionButtonHeight(buttonHeight.roundToInt()) },
+        Column(
+            modifier = Modifier.pointerInput(previewPage) {
+                var dragDistance = 0f
+                detectHorizontalDragGestures(
+                    onHorizontalDrag = { _, amount -> dragDistance += amount },
+                    onDragEnd = {
+                        if (dragDistance < -40f) previewPage = 1
+                        else if (dragDistance > 40f) previewPage = 0
+                    },
                 )
+            },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (previewPage == 0) {
+                IslandPreviewPanel(
+                    background = if (previewDark) Color(0xFF0B0B0C) else Color(0xFFEDEFF3),
+                    cutout = cutout,
+                    widthPercent = expanded.widthPercent,
+                    heightDp = previewHeightDp,
+                    cornerTopLeftDp = expanded.cornerTopLeftDp,
+                    cornerTopRightDp = expanded.cornerTopRightDp,
+                    cornerBottomLeftDp = expanded.cornerBottomLeftDp,
+                    cornerBottomRightDp = expanded.cornerBottomRightDp,
+                    offsetXDp = expanded.offsetXDp,
+                    offsetYDp = expanded.offsetYDp,
+                    expanded = true,
+                    event = previewEvent,
+                    appearance = previewAppearance,
+                    showActions = behaviour.showActionButtons,
+                )
+            } else {
+                Card(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 190.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (previewDark) Color(0xFF0B0B0C) else Color(0xFFEDEFF3),
+                    ),
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Text(
+                            text = "Reply preview",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (previewDark) Color.White.copy(alpha = 0.7f) else Color(0xFF475569),
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(if (previewDark) Color(0xFF26364F) else Color(0xFFDCE8FF))
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                            ) {
+                                Text(
+                                    text = "I'll be there in a few minutes.",
+                                    color = if (previewDark) Color.White else Color(0xFF172B4D),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+                        ReplyInputPreview(
+                            inputStyle = appearance.replyInputStyle,
+                            cancelOnLeft = appearance.cancelButtonOnLeft,
+                            heightDp = buttonHeight.roundToInt(),
+                            sendColor = appearance.sendButtonColor?.resolve() ?: PreviewAccent,
+                            cancelColor = appearance.cancelButtonColor?.resolve() ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                repeat(2) { index ->
+                    Box(
+                        modifier = Modifier
+                            .size(if (previewPage == index) 8.dp else 6.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (previewPage == index) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                            )
+                            .clickable { previewPage = index },
+                    )
+                }
             }
         }
 
-        // --- Chip alignment ---
-        OptionGroupCard(title = stringResource(R.string.action_buttons_alignment_title)) {
-            AlignmentOption(
-                title = stringResource(R.string.action_buttons_align_left_title),
-                description = stringResource(R.string.action_buttons_align_left_desc),
-                alignment = ActionButtonAlignment.LEFT,
-                selected = appearance.actionButtonAlignment,
-                onSelect = viewModel::setActionButtonAlignment,
-            )
-            AlignmentOption(
-                title = stringResource(R.string.action_buttons_align_center_title),
-                description = stringResource(R.string.action_buttons_align_center_desc),
-                alignment = ActionButtonAlignment.CENTER,
-                selected = appearance.actionButtonAlignment,
-                onSelect = viewModel::setActionButtonAlignment,
-            )
-            AlignmentOption(
-                title = stringResource(R.string.action_buttons_align_right_title),
-                description = stringResource(R.string.action_buttons_align_right_desc),
-                alignment = ActionButtonAlignment.RIGHT,
-                selected = appearance.actionButtonAlignment,
-                onSelect = viewModel::setActionButtonAlignment,
-            )
-            AlignmentOption(
-                title = stringResource(R.string.action_buttons_align_full_title),
-                description = stringResource(R.string.action_buttons_align_full_desc),
-                alignment = ActionButtonAlignment.FULL,
-                selected = appearance.actionButtonAlignment,
-                onSelect = viewModel::setActionButtonAlignment,
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            SettingsToggleCard(shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp), title = stringResource(R.string.action_buttons_enable_title), description = stringResource(R.string.action_buttons_enable_desc), checked = behaviour.showActionButtons, onCheckedChange = viewModel::setShowActionButtons)
+            SettingsToggleCard(shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp), title = stringResource(R.string.action_buttons_toast_title), description = stringResource(R.string.action_buttons_toast_desc), checked = behaviour.toastOnAction, onCheckedChange = viewModel::setToastOnAction)
         }
 
-        // --- Reply field style ---
-        OptionGroupCard(title = stringResource(R.string.action_buttons_input_style_title)) {
-            ReplyInputPreview(
-                inputStyle = appearance.replyInputStyle,
-                cancelOnLeft = appearance.cancelButtonOnLeft,
-                heightDp = buttonHeight.roundToInt(),
-            )
-            Spacer(Modifier.height(4.dp))
-            ReplyStyleOption(
-                title = stringResource(R.string.input_expressive_title),
-                description = stringResource(R.string.input_expressive_desc),
-                style = ReplyInputStyle.EXPRESSIVE,
-                selected = appearance.replyInputStyle,
-                onSelect = viewModel::setReplyInputStyle,
-            )
-            ReplyStyleOption(
-                title = stringResource(R.string.input_material_you_title),
-                description = stringResource(R.string.input_material_you_desc),
-                style = ReplyInputStyle.MATERIAL_YOU,
-                selected = appearance.replyInputStyle,
-                onSelect = viewModel::setReplyInputStyle,
-            )
-            ReplyStyleOption(
-                title = stringResource(R.string.input_material_2_title),
-                description = stringResource(R.string.input_material_2_desc),
-                style = ReplyInputStyle.MATERIAL_2,
-                selected = appearance.replyInputStyle,
-                onSelect = viewModel::setReplyInputStyle,
-            )
-            ReplyStyleOption(
-                title = stringResource(R.string.input_segmented_title),
-                description = stringResource(R.string.input_segmented_desc),
-                style = ReplyInputStyle.SEGMENTED,
-                selected = appearance.replyInputStyle,
-                onSelect = viewModel::setReplyInputStyle,
-            )
+        // Button appearance settings.
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            SelectionSettingCard(title = stringResource(R.string.action_buttons_style_title), value = buttonStyleLabel(appearance.actionButtonStyle), shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp), onClick = { activeChoiceDialog = "style" })
+            ColorPickerCard(label = stringResource(R.string.action_buttons_color_title), selected = appearance.actionButtonColor, onSelect = viewModel::setActionButtonColor, defaultLabel = stringResource(R.string.cd_color_default_accent), defaultColor = PreviewAccent, shape = RoundedCornerShape(4.dp))
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(4.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                    AdjustableSlider(label = stringResource(R.string.action_buttons_height_title), valueText = "${buttonHeight.roundToInt()} dp", value = buttonHeight, valueRange = AppearanceSettings.MIN_ACTION_BUTTON_HEIGHT_DP.toFloat()..AppearanceSettings.MAX_ACTION_BUTTON_HEIGHT_DP.toFloat(), step = 2f, onValueChange = { buttonHeight = it }, onCommit = { viewModel.setActionButtonHeight(buttonHeight.roundToInt()) })
+                }
+            }
+            SelectionSettingCard(title = stringResource(R.string.action_buttons_alignment_title), value = alignmentLabel(appearance.actionButtonAlignment), shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp), onClick = { activeChoiceDialog = "alignment" })
         }
 
-        // --- Cancel button placement ---
-        SettingsToggleCard(
-            shape = RoundedCornerShape(24.dp),
-            title = stringResource(R.string.action_buttons_cancel_left_title),
-            description = stringResource(R.string.action_buttons_cancel_left_desc),
-            checked = appearance.cancelButtonOnLeft,
-            onCheckedChange = viewModel::setCancelButtonOnLeft,
-        )
-
-        // --- "Sent" confirmation placement ---
-        OptionGroupCard(title = stringResource(R.string.action_buttons_sent_alignment_title)) {
-            SentAlignmentOption(
-                title = stringResource(R.string.action_buttons_align_left_title),
-                description = stringResource(R.string.action_buttons_sent_left_desc),
-                alignment = SentAlignment.LEFT,
-                selected = appearance.sentAlignment,
-                onSelect = viewModel::setSentAlignment,
-            )
-            SentAlignmentOption(
-                title = stringResource(R.string.action_buttons_align_center_title),
-                description = stringResource(R.string.action_buttons_sent_center_desc),
-                alignment = SentAlignment.CENTER,
-                selected = appearance.sentAlignment,
-                onSelect = viewModel::setSentAlignment,
-            )
-            SentAlignmentOption(
-                title = stringResource(R.string.action_buttons_align_right_title),
-                description = stringResource(R.string.action_buttons_sent_right_desc),
-                alignment = SentAlignment.RIGHT,
-                selected = appearance.sentAlignment,
-                onSelect = viewModel::setSentAlignment,
-            )
+        // Reply field and its related controls.
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            SelectionSettingCard(title = stringResource(R.string.action_buttons_input_style_title), value = replyStyleLabel(appearance.replyInputStyle), shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp), onClick = { activeChoiceDialog = "reply" })
+            SettingsToggleCard(shape = RoundedCornerShape(4.dp), title = stringResource(R.string.action_buttons_cancel_left_title), description = stringResource(R.string.action_buttons_cancel_left_desc), checked = appearance.cancelButtonOnLeft, onCheckedChange = viewModel::setCancelButtonOnLeft)
+            ColorPickerCard(label = stringResource(R.string.appearance_send_color), selected = appearance.sendButtonColor, onSelect = viewModel::setSendButtonColor, defaultLabel = stringResource(R.string.cd_color_default_accent), defaultColor = PreviewAccent, shape = RoundedCornerShape(4.dp))
+            ColorPickerCard(label = stringResource(R.string.appearance_cancel_color), selected = appearance.cancelButtonColor, onSelect = viewModel::setCancelButtonColor, defaultLabel = stringResource(R.string.cd_color_default_neutral), defaultColor = MaterialTheme.colorScheme.onSurfaceVariant, shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
         }
 
-        // --- Send / cancel reply-button colours ---
-        // Their colours default to the notification's accent (send) and a neutral tint (cancel);
-        // the leading "default" swatch restores that behaviour.
-        ColorPickerCard(
-            label = stringResource(R.string.appearance_send_color),
-            selected = appearance.sendButtonColor,
-            onSelect = viewModel::setSendButtonColor,
-            defaultLabel = stringResource(R.string.cd_color_default_accent),
-            defaultColor = PreviewAccent,
-        )
-        ColorPickerCard(
-            label = stringResource(R.string.appearance_cancel_color),
-            selected = appearance.cancelButtonColor,
-            onSelect = viewModel::setCancelButtonColor,
-            defaultLabel = stringResource(R.string.cd_color_default_neutral),
-            defaultColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        SelectionSettingCard(title = stringResource(R.string.action_buttons_sent_alignment_title), value = sentAlignmentLabel(appearance.sentAlignment), onClick = { activeChoiceDialog = "sent" })
+
+        when (activeChoiceDialog) {
+            "style" -> SelectionChoiceDialog(stringResource(R.string.action_buttons_style_title), appearance.actionButtonStyle, listOf(ChoiceOption(ActionButtonStyle.EXPRESSIVE_TONAL, stringResource(R.string.style_expressive_tonal_title), stringResource(R.string.style_expressive_tonal_desc)), ChoiceOption(ActionButtonStyle.EXPRESSIVE_FILLED, stringResource(R.string.style_expressive_filled_title), stringResource(R.string.style_expressive_filled_desc)), ChoiceOption(ActionButtonStyle.MATERIAL_YOU, stringResource(R.string.style_material_you_title), stringResource(R.string.style_material_you_desc)), ChoiceOption(ActionButtonStyle.OUTLINED, stringResource(R.string.style_outlined_title), stringResource(R.string.style_outlined_desc))), { activeChoiceDialog = null }, { viewModel.setActionButtonStyle(it); activeChoiceDialog = null })
+            "alignment" -> SelectionChoiceDialog(stringResource(R.string.action_buttons_alignment_title), appearance.actionButtonAlignment, listOf(ChoiceOption(ActionButtonAlignment.LEFT, stringResource(R.string.action_buttons_align_left_title), stringResource(R.string.action_buttons_align_left_desc)), ChoiceOption(ActionButtonAlignment.CENTER, stringResource(R.string.action_buttons_align_center_title), stringResource(R.string.action_buttons_align_center_desc)), ChoiceOption(ActionButtonAlignment.RIGHT, stringResource(R.string.action_buttons_align_right_title), stringResource(R.string.action_buttons_align_right_desc)), ChoiceOption(ActionButtonAlignment.FULL, stringResource(R.string.action_buttons_align_full_title), stringResource(R.string.action_buttons_align_full_desc))), { activeChoiceDialog = null }, { viewModel.setActionButtonAlignment(it); activeChoiceDialog = null })
+            "reply" -> SelectionChoiceDialog(stringResource(R.string.action_buttons_input_style_title), appearance.replyInputStyle, listOf(ChoiceOption(ReplyInputStyle.EXPRESSIVE, stringResource(R.string.input_expressive_title), stringResource(R.string.input_expressive_desc)), ChoiceOption(ReplyInputStyle.MATERIAL_YOU, stringResource(R.string.input_material_you_title), stringResource(R.string.input_material_you_desc)), ChoiceOption(ReplyInputStyle.MATERIAL_2, stringResource(R.string.input_material_2_title), stringResource(R.string.input_material_2_desc)), ChoiceOption(ReplyInputStyle.SEGMENTED, stringResource(R.string.input_segmented_title), stringResource(R.string.input_segmented_desc))), { activeChoiceDialog = null }, { viewModel.setReplyInputStyle(it); activeChoiceDialog = null })
+            "sent" -> SelectionChoiceDialog(stringResource(R.string.action_buttons_sent_alignment_title), appearance.sentAlignment, listOf(ChoiceOption(SentAlignment.LEFT, stringResource(R.string.action_buttons_align_left_title), stringResource(R.string.action_buttons_sent_left_desc)), ChoiceOption(SentAlignment.CENTER, stringResource(R.string.action_buttons_align_center_title), stringResource(R.string.action_buttons_sent_center_desc)), ChoiceOption(SentAlignment.RIGHT, stringResource(R.string.action_buttons_align_right_title), stringResource(R.string.action_buttons_sent_right_desc))), { activeChoiceDialog = null }, { viewModel.setSentAlignment(it); activeChoiceDialog = null })
+        }
     }
+}
+
+
+@Composable
+private fun SelectionSettingCard(title: String, value: String, shape: Shape = RoundedCornerShape(24.dp), onClick: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = shape, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Change", tint = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+private data class ChoiceOption<T>(val value: T, val title: String, val description: String)
+
+@Composable
+private fun <T> SelectionChoiceDialog(title: String, selected: T, options: List<ChoiceOption<T>>, onDismiss: () -> Unit, onConfirm: (T) -> Unit) {
+    var pending by remember(selected) { mutableStateOf(selected) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            options.forEach { option ->
+                OptionRow(option.title, option.description, pending == option.value) { pending = option.value }
+            }
+        } },
+        confirmButton = { TextButton(onClick = { onConfirm(pending) }) { Text("Confirm") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
+private fun buttonStyleLabel(value: ActionButtonStyle) = when (value) {
+    ActionButtonStyle.EXPRESSIVE_TONAL -> stringResource(R.string.style_expressive_tonal_title)
+    ActionButtonStyle.EXPRESSIVE_FILLED -> stringResource(R.string.style_expressive_filled_title)
+    ActionButtonStyle.MATERIAL_YOU -> stringResource(R.string.style_material_you_title)
+    ActionButtonStyle.OUTLINED -> stringResource(R.string.style_outlined_title)
+}
+@Composable
+private fun alignmentLabel(value: ActionButtonAlignment) = when (value) {
+    ActionButtonAlignment.LEFT -> stringResource(R.string.action_buttons_align_left_title)
+    ActionButtonAlignment.CENTER -> stringResource(R.string.action_buttons_align_center_title)
+    ActionButtonAlignment.RIGHT -> stringResource(R.string.action_buttons_align_right_title)
+    ActionButtonAlignment.FULL -> stringResource(R.string.action_buttons_align_full_title)
+}
+@Composable
+private fun replyStyleLabel(value: ReplyInputStyle) = when (value) {
+    ReplyInputStyle.EXPRESSIVE -> stringResource(R.string.input_expressive_title)
+    ReplyInputStyle.MATERIAL_YOU -> stringResource(R.string.input_material_you_title)
+    ReplyInputStyle.MATERIAL_2 -> stringResource(R.string.input_material_2_title)
+    ReplyInputStyle.SEGMENTED -> stringResource(R.string.input_segmented_title)
+}
+@Composable
+private fun sentAlignmentLabel(value: SentAlignment) = when (value) {
+    SentAlignment.LEFT -> stringResource(R.string.action_buttons_align_left_title)
+    SentAlignment.CENTER -> stringResource(R.string.action_buttons_align_center_title)
+    SentAlignment.RIGHT -> stringResource(R.string.action_buttons_align_right_title)
 }
 
 /** A titled surface card that stacks a set of selectable option rows. */
@@ -513,6 +492,8 @@ private fun ReplyInputPreview(
     inputStyle: ReplyInputStyle,
     cancelOnLeft: Boolean,
     heightDp: Int,
+    sendColor: Color = MaterialTheme.colorScheme.primary,
+    cancelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     val segmented = inputStyle == ReplyInputStyle.SEGMENTED
     val cap = (heightDp / 2).dp
@@ -538,13 +519,13 @@ private fun ReplyInputPreview(
                         inner
                     ) else CircleShape
                 )
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                .background(cancelColor.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Rounded.Close,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = cancelColor,
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -574,7 +555,7 @@ private fun ReplyInputPreview(
             )
         }
         if (!cancelOnLeft) cancel()
-        val send = MaterialTheme.colorScheme.primary
+        val send = sendColor
         Box(
             modifier = Modifier
                 .size(heightDp.dp)

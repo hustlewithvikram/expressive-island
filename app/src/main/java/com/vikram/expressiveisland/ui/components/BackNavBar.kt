@@ -1,6 +1,7 @@
 package com.vikram.expressiveisland.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,16 +39,24 @@ fun BackNavBar(
     modifier: Modifier = Modifier,
 ) {
     val haptics = LocalHapticFeedback.current
+    val barShape = RoundedCornerShape(32.dp)
     Surface(
-        // The whole pill is the back target.
-        modifier = modifier.clickable {
+        // Match the translucent glass dock used on the top-level pages.
+        modifier = modifier
+            .border(
+                width = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f),
+                shape = barShape,
+            )
+            .clickable {
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
             onBack()
         },
-        shape = RoundedCornerShape(32.dp),
-        color = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
-        shadowElevation = 6.dp,
+        shape = barShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.70f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier.padding(all = 8.dp),
@@ -58,13 +67,13 @@ fun BackNavBar(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = stringResource(R.string.back),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
             Text(

@@ -69,6 +69,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -129,6 +130,7 @@ fun ProfileTab(
     onExportSettings: () -> Unit,
     onImportSettings: () -> Unit,
 ) {
+    val routeStateHolder = rememberSaveableStateHolder()
     AnimatedContent(
         targetState = route,
         transitionSpec = {
@@ -141,7 +143,7 @@ fun ProfileTab(
         },
         label = "profileRoute",
     ) { current ->
-
+        routeStateHolder.SaveableStateProvider(current) {
         when (current) {
             ProfileRoute.List -> {
                 ProfileList(
@@ -187,6 +189,7 @@ fun ProfileTab(
             ProfileRoute.PermissionDetails -> {
                 PermissionDetailsScreen(contentPadding)
             }
+        }
         }
     }
 }

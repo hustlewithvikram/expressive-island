@@ -3,10 +3,10 @@ package com.vikram.expressiveisland.overlay
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -28,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -75,14 +76,17 @@ import com.vikram.expressiveisland.overlay.satellite.SatelliteBubble
 import com.vikram.expressiveisland.overlay.contents.callCutoutWidthPercent
 import com.vikram.expressiveisland.overlay.island.IslandAction
 import com.vikram.expressiveisland.overlay.island.IslandEvent
-import com.vikram.expressiveisland.overlay.island.IslandMotion
+import com.vikram.expressiveisland.overlay.island.AnimationEngine
+import com.vikram.expressiveisland.overlay.island.satelliteMergeAlpha
+import com.vikram.expressiveisland.overlay.island.satelliteMergeStretch
+import com.vikram.expressiveisland.overlay.island.satelliteMergeSwell
 import com.vikram.expressiveisland.overlay.island.SATELLITE_GAP_DP
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.system.PermissionUsage
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.abs
-import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.ui.unit.lerp as lerpDp
 
@@ -95,11 +99,6 @@ private const val SWIPE_DISMISS_THRESHOLD_DP = 90
 
 // How long the "reply sent" confirmation stays on screen before the reply is dispatched.
 private const val REPLY_SENT_FEEDBACK_MS = 900L
-
-// The tuned baseline for the island's primary expand/collapse transition. Every tween-based
-// animation is expressed relative to this, so the user's single "animation duration" knob scales
-// them all in proportion (see `animScale` in DynamicIsland). Its default equals this value.
-private const val BASE_TRANSITION_MS = IslandMotion.BASE_TRANSITION_MS
 
 /**
  * Extra height added to the expanded island when it shows action buttons, so the added row grows
@@ -265,11 +264,8 @@ internal fun DynamicIsland(
     val dismissOffsetX = remember(shownEvent?.id) { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
-    val animScale = animationDurationMs / BASE_TRANSITION_MS.toFloat()
-    fun scaled(baseMs: Int) = (baseMs * animScale).roundToInt()
-
     val motion = remember(animationStyle, animationSpeed, animationBounce, animationDurationMs) {
-        IslandMotion(animationStyle, animationSpeed, animationBounce, animationDurationMs)
+        AnimationEngine(animationStyle, animationSpeed, animationBounce, animationDurationMs)
     }
 
     LaunchedEffect(replying) { onReplyActiveChange(replying) }
@@ -383,11 +379,47 @@ internal fun DynamicIsland(
 
     val present = event != null || showsWhenEmpty || cameraHoleQuickActions
     val reveal = remember { Animatable(0f) }
+    val arrivalIconAlpha = remember { Animatable(1f) }
+    val arrivalScaleX = remember { Animatable(1f) }
+
+    // Start the horizontal overshoot at the same time as the shell reveal. The pill reaches
+    // 110% around the end of its medium-speed expansion, then eases gently back to 100%.
+    LaunchedEffect(event?.id, event?.notificationKey, isExpanded) {
+        arrivalIconAlpha.snapTo(if (event?.notificationKey == null || isExpanded) 1f else 0f)
+        arrivalScaleX.snapTo(1f)
+        if (event?.notificationKey != null && !isExpanded) {
+            launch {
+                arrivalScaleX.animateTo(
+                    targetValue = 1.10f,
+                    animationSpec = tween(
+                        durationMillis = 260,
+                        easing = CubicBezierEasing(0.2f, 0f, 0f, 1f),
+                    ),
+                )
+                arrivalScaleX.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(
+                        durationMillis = 468,
+                        easing = CubicBezierEasing(0f, 0f, 0.2f, 1f),
+                    ),
+                )
+            }
+            // Keep the icon hidden until the pill itself has completed its centre-out reveal.
+            snapshotFlow { reveal.value }.first { it >= 0.98f }
+            arrivalIconAlpha.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 240,
+                    easing = CubicBezierEasing(0.2f, 0f, 0f, 1f),
+                ),
+            )
+        }
+    }
 
     LaunchedEffect(present) {
         reveal.animateTo(
             targetValue = if (present) 1f else 0f,
-            animationSpec = motion.float(baseMs = if (present) 320 else 200),
+            animationSpec = motion.reveal(present),
         )
     }
 
@@ -397,14 +429,16 @@ internal fun DynamicIsland(
             if (dismissOffsetX.value != 0f) {
                 reveal.snapTo(0f)
                 dismissOffsetX.snapTo(0f)
-                reveal.animateTo(1f, animationSpec = motion.float(baseMs = 320))
+                reveal.animateTo(1f, animationSpec = motion.reveal(entering = true))
             }
         }
     }
 
     val spec: AnimationSpec<Dp> = if (reveal.value == 0f) snap() else motion.dp()
     val isAssistantAnswer = isExpanded && shownEvent?.assistant?.displayAnswerInCutout == true
-    val heightSpec: AnimationSpec<Dp> = spec
+    // Assistant responses can grow repeatedly while streaming. Use a critically damped height
+    // spring so each incremental measurement is followed smoothly without a visible bob.
+    val heightSpec: AnimationSpec<Dp> = if (isAssistantAnswer) motion.dpSmooth() else spec
 
     // The bubble shares the normal cutout's total width instead of making the island wider.
     val satelliteCandidate = satellite != null && !isExpanded && !isCall && !isStickToCamera
@@ -473,25 +507,49 @@ internal fun DynamicIsland(
         animationSpec = motion.fade(),
         label = "islandBackgroundFade",
     )
+    // Empty-pill center expansion has no event arrival/removal to drive the reveal animation.
+    // Give it the same centre-out shell morph used by notification expansion.
+    val centerMorph by animateFloatAsState(
+        targetValue = if (emptyPill && isExpanded) 1f else 0f,
+        animationSpec = motion.float(),
+        label = "persistentPillCenterMorph",
+    )
 
     val dotDp = collapsed.heightDp.dp
-    val revealWidth = lerpDp(dotDp, width, reveal.value)
-    val revealHeight = lerpDp(dotDp, height, reveal.value)
+    val shellMorph = if (emptyPill && isExpanded) centerMorph else 1f
+    val revealWidth = lerpDp(dotDp, width, shellMorph)
+    val revealHeight = lerpDp(dotDp, height, shellMorph)
     val dotCorner = dotDp / 2
-    val revealTopLeft = lerpDp(dotCorner, topLeft, reveal.value)
-    val revealTopRight = lerpDp(dotCorner, topRight, reveal.value)
-    val revealBottomLeft = lerpDp(dotCorner, bottomLeft, reveal.value)
-    val revealBottomRight = lerpDp(dotCorner, bottomRight, reveal.value)
+    val revealTopLeft = lerpDp(dotCorner, topLeft, shellMorph)
+    val revealTopRight = lerpDp(dotCorner, topRight, shellMorph)
+    val revealBottomLeft = lerpDp(dotCorner, bottomLeft, shellMorph)
+    val revealBottomRight = lerpDp(dotCorner, bottomRight, shellMorph)
 
     var lastSatellite by remember { mutableStateOf<IslandEvent?>(null) }
     if (satellite != null) lastSatellite = satellite
     val satelliteShown = satellite != null && present && !isCall && !isStickToCamera
     val satelliteReveal = remember { Animatable(0f) }
-    LaunchedEffect(satelliteShown) {
-        satelliteReveal.animateTo(
-            targetValue = if (satelliteShown) 1f else 0f,
-            animationSpec = motion.float(baseMs = if (satelliteShown) 320 else 200),
-        )
+    val satelliteMerge = remember { Animatable(0f) }
+    LaunchedEffect(satelliteShown, satellite?.id, isExpanded, isCall, isStickToCamera, event?.id) {
+        if (satelliteShown) {
+            satelliteMerge.snapTo(0f)
+            satelliteReveal.animateTo(1f, animationSpec = motion.reveal(entering = true))
+        } else {
+            // When the secondary activity is promoted into the main pill, pull it into the pill
+            // before fading it. Hiding it immediately makes the transition look like a pop-out.
+            val canMerge = satellite == null && event != null && present &&
+                !isExpanded && !isCall && !isStickToCamera && lastSatellite != null
+            if (canMerge) {
+                satelliteMerge.animateTo(1f, animationSpec = motion.merge())
+                satelliteReveal.animateTo(0f, animationSpec = motion.reveal(entering = false))
+                satelliteMerge.snapTo(0f)
+                lastSatellite = null
+            } else {
+                satelliteMerge.snapTo(0f)
+                satelliteReveal.animateTo(0f, animationSpec = motion.reveal(entering = false))
+                lastSatellite = null
+            }
+        }
     }
 
     val haptic = LocalHapticFeedback.current
@@ -575,13 +633,21 @@ internal fun DynamicIsland(
                                 val extraPx = PressExpandDp.toPx() * 2f * pressExpand.value
                                 val widen =
                                     if (size.width > 0f) (size.width + extraPx) / size.width else 1f
-                                scaleX = boopScale.value * widen
-                                scaleY = boopScale.value
-                                translationX = dismissOffsetX.value
+                                val mergeSwell = satelliteMergeSwell(satelliteMerge.value)
                                 val travel =
-                                    abs(dismissOffsetX.value) / size.width.coerceAtLeast(1f)
+                                    (abs(dismissOffsetX.value) / size.width.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                                // Keep the shell physically connected to the finger: a slight tilt and
+                                // cross-axis squash communicate drag force, then the shared spring settle
+                                // carries the pill back without snapping its rotation or proportions.
+                                scaleX = boopScale.value * widen * arrivalScaleX.value *
+                                    (1f + 0.055f * mergeSwell - 0.045f * travel)
+                                scaleY = boopScale.value *
+                                    (1f + 0.035f * mergeSwell + 0.075f * travel)
+                                rotationZ = (dismissOffsetX.value / size.width.coerceAtLeast(1f) * 7f)
+                                    .coerceIn(-7f, 7f)
+                                translationX = dismissOffsetX.value
                                 val revealAlpha = (reveal.value / 0.2f).coerceIn(0f, 1f)
-                                alpha = (1f - travel).coerceIn(0.25f, 1f) * revealAlpha
+                                alpha = (1f - travel * 0.75f).coerceIn(0.25f, 1f) * revealAlpha
                             }
                             .pointerInput(
                                 forcedExpanded,
@@ -601,7 +667,7 @@ internal fun DynamicIsland(
                                             return@detectTapGestures
                                         }
 
-                                        if (!isExpanded) {
+                                        if (!isExpanded && !emptyPill) {
                                             scope.launch {
                                                 if (pressWidens) {
                                                     pressExpand.animateTo(1f, motion.boop())
@@ -614,7 +680,7 @@ internal fun DynamicIsland(
 
                                         tryAwaitRelease()
 
-                                        if (!isExpanded) {
+                                        if (!isExpanded && !emptyPill) {
                                             scope.launch {
                                                 if (pressWidens) {
                                                     pressExpand.animateTo(0f, motion.boop())
@@ -648,12 +714,8 @@ internal fun DynamicIsland(
                                             // Use long press as a fallback expansion gesture.
                                             tapExpanded = true
 
-                                            scope.launch {
-                                                motion.pop(
-                                                    boopScale,
-                                                    peak = 1.03f,
-                                                )
-                                            }
+                                            // The empty-pill center expands through the shared
+                                            // island size and corner animations, without a separate pop.
                                         }
                                     },
                                     onTap = {
@@ -677,14 +739,9 @@ internal fun DynamicIsland(
                                                     if (wasExpanded && cameraHoleQuickActions) {
                                                         onCameraHoleQuickActionsDismiss()
                                                     }
-                                                    if (tapExpanded) {
-                                                        scope.launch {
-                                                            motion.pop(
-                                                                boopScale,
-                                                                peak = 1.03f
-                                                            )
-                                                        }
-                                                    }
+                                                    // The empty-pill center uses the same width/height
+                                                    // transition as notification expansion; avoid an
+                                                    // extra scale pop that makes the surface feel detached.
                                                 }
                                             } else {
                                                 onEmptyClick()
@@ -777,10 +834,7 @@ internal fun DynamicIsland(
                                             scope.launch {
                                                 dismissOffsetX.animateTo(
                                                     targetValue = 0f,
-                                                    animationSpec = spring(
-                                                        dampingRatio = 0.6f,
-                                                        stiffness = Spring.StiffnessMediumLow
-                                                    ),
+                                                    animationSpec = motion.gestureSettle(),
                                                 )
                                             }
                                         }
@@ -811,7 +865,7 @@ internal fun DynamicIsland(
                     ) {
                         Crossfade(
                             targetState = isExpanded,
-                            animationSpec = tween(scaled(150)),
+                            animationSpec = motion.contentTransition(),
                             label = "islandContent"
                         ) { showExpanded ->
                             if (emptyPill) {
@@ -891,13 +945,21 @@ internal fun DynamicIsland(
                                             onMediaInteraction = { mediaInteraction++ },
                                         )
                                     } else {
-                                        CollapsedContent(
-                                            event = e,
-                                            heightDp = collapsed.heightDp,
-                                            isStickToCamera = isStickToCamera,
-                                            trailingInsetDp = collapsedTrailingInsetDp,
-                                            satelliteSharing = satelliteShown && satelliteSharing,
-                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .graphicsLayer {
+                                                    alpha = if (e.notificationKey != null) arrivalIconAlpha.value else 1f
+                                                },
+                                        ) {
+                                            CollapsedContent(
+                                                event = e,
+                                                heightDp = collapsed.heightDp,
+                                                isStickToCamera = isStickToCamera,
+                                                trailingInsetDp = collapsedTrailingInsetDp,
+                                                satelliteSharing = satelliteShown && satelliteSharing,
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -955,8 +1017,9 @@ internal fun DynamicIsland(
             lastSatellite?.takeIf { satelliteReveal.value > 0.01f }?.let { bubble ->
                 val diameterDp = collapsed.heightDp
                 val step = revealWidth / 2 + SATELLITE_GAP_DP.dp + (diameterDp / 2f).dp
-                val satelliteOffsetX =
-                    if (satellitePosition == SatellitePosition.LEFT) offsetX - step else offsetX + step
+                val mergeProgress = satelliteMerge.value.coerceIn(0f, 1f)
+                val mergeDirection = if (satellitePosition == SatellitePosition.LEFT) -1f else 1f
+                val satelliteOffsetX = offsetX + (step * mergeDirection * (1f - mergeProgress))
 
                 Box(
                     modifier = Modifier
@@ -972,9 +1035,13 @@ internal fun DynamicIsland(
                         appearance = appearance,
                         onClick = onSatelliteClick,
                         modifier = Modifier.graphicsLayer {
-                            scaleX = satelliteReveal.value
-                            scaleY = satelliteReveal.value
-                            alpha = satelliteReveal.value
+                            val merge = satelliteMerge.value.coerceIn(0f, 1f)
+                            // Stretch along the travel axis as the bubble is pulled into the pill,
+                            // then contract and fade only after it has visually joined the surface.
+                            val stretch = 1f + 0.38f * satelliteMergeStretch(merge)
+                            scaleX = satelliteReveal.value * if (satellitePosition == SatellitePosition.LEFT) stretch else stretch
+                            scaleY = satelliteReveal.value * (1f - 0.12f * merge)
+                            alpha = satelliteReveal.value * satelliteMergeAlpha(merge)
                         },
                     )
                 }
