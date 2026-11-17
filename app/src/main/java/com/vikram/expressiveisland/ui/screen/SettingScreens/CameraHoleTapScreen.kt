@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen
 
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,13 @@ internal fun CameraHoleTapScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
 ) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.CAMERA_HOLE,
+        label = "Camera hole actions",
+        detail = "Preview tap actions and shortcut behaviour",
+        expanded = false,
+    )
+
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
     val assistant by viewModel.assistantTile.collectAsStateWithLifecycle()
     var showTouchActionDialog by remember { mutableStateOf(false) }
