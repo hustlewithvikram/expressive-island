@@ -173,7 +173,6 @@ internal fun AppsScreen(
             bottom = contentPadding.calculateBottomPadding(),
         ),
     ) {
-        item(key = "island_preview_spacer") { IslandPreviewSpacer() }
         item(key = "header") {
             Column(
                 modifier = Modifier
