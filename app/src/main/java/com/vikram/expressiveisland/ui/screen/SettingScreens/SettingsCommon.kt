@@ -1,6 +1,7 @@
 package com.vikram.expressiveisland.ui.screen
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,6 +32,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -64,6 +66,24 @@ import com.vikram.expressiveisland.overlay.island.IslandPreview
  * DynamicIsland itself, so appearance, dimensions, animations and tile content stay faithful.
  */
 @Composable
+/**
+ * Reserves room for the expanded system overlay so it never covers the first controls on the
+ * settings page. It collapses with the same state as the real island (including swipe-up collapse).
+ */
+@Composable
+internal fun IslandPreviewSpacer() {
+    val expanded = IslandPreviewBus.expandedPreview.collectAsState().value
+    val spacerHeight by animateDpAsState(
+        targetValue = if (expanded) 184.dp else 0.dp,
+        label = "islandPreviewSpacer",
+    )
+    Spacer(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(spacerHeight),
+    )
+}
+
 internal fun IslandLivePreviewEffect(
     category: IslandPreviewCategory,
     label: String,
