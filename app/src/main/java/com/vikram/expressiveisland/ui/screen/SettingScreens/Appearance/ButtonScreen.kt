@@ -96,6 +96,7 @@ internal fun ButtonScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        IslandPreviewSpacer()
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             SettingsToggleCard(shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp), title = stringResource(R.string.action_buttons_enable_title), description = stringResource(R.string.action_buttons_enable_desc), checked = behaviour.showActionButtons, onCheckedChange = viewModel::setShowActionButtons)
             SettingsToggleCard(shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp), title = stringResource(R.string.action_buttons_toast_title), description = stringResource(R.string.action_buttons_toast_desc), checked = behaviour.toastOnAction, onCheckedChange = viewModel::setToastOnAction)
