@@ -120,16 +120,31 @@ internal fun AppearanceScreen(
     var pendingNotificationIconShape by remember(behaviour.notificationIconShape) { mutableStateOf(behaviour.notificationIconShape) }
     val context = LocalContext.current
 
-    // Pin the real overlay to the device cutout while Appearance is visible. The overlay
-    // controller supplies its built-in demo event and observes appearance preferences live.
-    IslandLivePreviewEffect(
-        category = IslandPreviewCategory.APPEARANCE,
-        label = "Appearance",
-        detail = "Live island appearance",
-    )
-
-    var strokeWidth by remember(appearance.strokeWidthDp) { mutableStateOf(appearance.strokeWidthDp.toFloat()) }
     var selectedTab by remember { mutableStateOf(0) }
+    var strokeWidth by remember(appearance.strokeWidthDp) { mutableStateOf(appearance.strokeWidthDp.toFloat()) }
+
+    // Each Appearance tab gets a preview event shaped for the controls being edited.
+    IslandLivePreviewEffect(
+        category = when (selectedTab) {
+            1 -> IslandPreviewCategory.NOTIFICATION_CONTENT
+            2 -> IslandPreviewCategory.ACTION_BUTTONS
+            3 -> IslandPreviewCategory.CAMERA_RING
+            else -> IslandPreviewCategory.APPEARANCE
+        },
+        label = when (selectedTab) {
+            1 -> "Your package is ready"
+            2 -> "New message from Alex"
+            3 -> "Downloading update"
+            else -> "Appearance"
+        },
+        detail = when (selectedTab) {
+            1 -> "Your order has been packed and is ready for collection. Open the app to view the full delivery details, pickup location, and the latest updates from the store."
+            2 -> "Hey! I have shared the latest design files with you. Let me know what you think and whether you want any changes before we send the final version."
+            3 -> "Downloading system update • 64% complete"
+            else -> "Live island appearance"
+        },
+        expanded = selectedTab == 1 || selectedTab == 2,
+    )
 
     Column(
         modifier = Modifier
