@@ -296,6 +296,18 @@ class IslandOverlayController(private val context: Context) {
         label = previewContent.label,
         detail = previewContent.detail,
         accent = Color(0xFF60A5FA),
+        actions = if (previewCategory == IslandPreviewCategory.ACTION_BUTTONS) {
+            val noOp = PendingIntent.getActivity(
+                context,
+                0,
+                Intent(),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            listOf(
+                IslandAction(label = "Reply", intent = noOp),
+                IslandAction(label = "Archive", intent = noOp),
+            )
+        } else emptyList(),
     )
 
     private var composeView: ComposeView? = null
