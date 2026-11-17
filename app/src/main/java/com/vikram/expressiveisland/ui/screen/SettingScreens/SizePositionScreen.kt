@@ -77,6 +77,7 @@ internal fun SizePositionScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        IslandPreviewSpacer()
         CardSectionHeader(
             text = "Size & Position",
             padding = PaddingValues(
