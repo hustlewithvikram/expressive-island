@@ -85,6 +85,7 @@ internal fun IslandPreviewSpacer() {
     )
 }
 
+@Composable
 internal fun IslandLivePreviewEffect(
     category: IslandPreviewCategory,
     label: String,
