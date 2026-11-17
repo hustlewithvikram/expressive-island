@@ -96,6 +96,7 @@ import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.core.IslandPreviewBus
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.permissions.Permissions
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
@@ -142,6 +143,7 @@ internal fun AppearanceScreen(
         }
 
         refresh()
+        IslandPreviewBus.setCategory(IslandPreviewCategory.APPEARANCE)
         IslandPreviewBus.setExpandedPreview(false)
         lifecycleOwner.lifecycle.addObserver(observer)
 
