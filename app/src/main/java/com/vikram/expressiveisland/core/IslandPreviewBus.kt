@@ -4,14 +4,34 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Signals that the settings screen wants the real overlay pinned open so size/position/radius
- * changes can be seen live on the actual cutout. [expandedPreview] mirrors which tab the user
- * is editing, so the pinned island shows the matching (collapsed or expanded) state.
+ * Coordinates the settings preview shown by the real system overlay.
+ * A settings page selects its content and expanded state; the overlay remains the renderer.
  */
-enum class IslandPreviewCategory { APPEARANCE, SIZE_POSITION }
+enum class IslandPreviewCategory {
+    APPEARANCE,
+    SIZE_POSITION,
+    BACKGROUND,
+    ACTION_BUTTONS,
+    ANIMATION,
+    BEHAVIOUR,
+    APPS,
+    ASSISTANT,
+    CAMERA_HOLE,
+    DYNAMIC_TILES,
+    EVENT_DETAIL,
+    EVENT_ICONS,
+    INTEGRATION,
+    PERMISSION_DOTS,
+    EMPTY_STATE,
+    SHIZUKU,
+}
+
+data class IslandPreviewContent(
+    val label: String,
+    val detail: String,
+)
 
 object IslandPreviewBus {
-
     private val mutableActive = MutableStateFlow(false)
     val active: StateFlow<Boolean> = mutableActive
 
@@ -20,6 +40,11 @@ object IslandPreviewBus {
 
     private val mutableCategory = MutableStateFlow(IslandPreviewCategory.APPEARANCE)
     val category: StateFlow<IslandPreviewCategory> = mutableCategory
+
+    private val mutableContent = MutableStateFlow(
+        IslandPreviewContent("Preview", "Settings preview")
+    )
+    val content: StateFlow<IslandPreviewContent> = mutableContent
 
     fun setActive(value: Boolean) {
         mutableActive.value = value
@@ -31,5 +56,9 @@ object IslandPreviewBus {
 
     fun setCategory(value: IslandPreviewCategory) {
         mutableCategory.value = value
+    }
+
+    fun setContent(label: String, detail: String) {
+        mutableContent.value = IslandPreviewContent(label, detail)
     }
 }
