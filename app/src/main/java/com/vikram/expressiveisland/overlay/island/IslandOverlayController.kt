@@ -585,8 +585,7 @@ class IslandOverlayController(private val context: Context) {
                         val elapsed = SystemClock.uptimeMillis() - touchDownTime
                         when {
                             previewPinned && previewExpanded &&
-                                    -dy >= PREVIEW_COLLAPSE_SWIPE_DISTANCE_DP * density &&
-                                    elapsed <= SHADE_SWIPE_MAX_TIME_MS -> {
+                                    -dy >= PREVIEW_COLLAPSE_SWIPE_DISTANCE_DP * density -> {
                                 if (!previewCollapseSwipeTriggered) {
                                     previewCollapseSwipeTriggered = true
                                     previewExpanded = false
