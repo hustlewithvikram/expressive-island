@@ -732,13 +732,13 @@ class IslandOverlayController(private val context: Context) {
                     }
 
                     MotionEvent.ACTION_OUTSIDE -> {
-                        if (expanded && previewPinned) {
-                            previewExpanded = false
-                            expanded = false
-                            forcedExpanded.value = false
-                            IslandPreviewBus.setExpandedPreview(false)
-                            syncWindowSize()
-                            true
+                        // Settings previews must stay expanded while the user scrolls or edits
+                        // controls in the app behind this non-modal overlay. ACTION_OUTSIDE does
+                        // not distinguish a tap from the start of a scroll, so collapsing here
+                        // makes ordinary page scrolling dismiss the preview. A deliberate upward
+                        // swipe that starts on the island is still handled by ACTION_MOVE above.
+                        if (previewPinned) {
+                            false
                         } else if (expanded) {
                             collapseRequest.value++
                             true
