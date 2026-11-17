@@ -293,6 +293,13 @@ class IslandOverlayController(private val context: Context) {
             timerSettings = timerSettings,
         )
 
+    /** Rebuilds the pinned sample whenever the tile settings backing it change. */
+    private fun refreshPinnedPreview() {
+        if (!previewPinned) return
+        currentEvent.value = previewEventOrNull()
+        syncWindowSize()
+    }
+
     private var composeView: ComposeView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
     private var dismissJob: Job? = null
@@ -835,17 +842,24 @@ class IslandOverlayController(private val context: Context) {
     private fun observeMusicSettings() = scope.launch {
         musicTilePreferences.settings.collect {
             musicSettings = it
+            refreshPinnedPreview()
             // Toggling "Visible in player app" should take effect immediately, even mid-playback.
             applyPlayerAppVisibility()
         }
     }
 
     private fun observePhoneSettings() = scope.launch {
-        phoneTilePreferences.settings.collect { phoneSettings = it }
+        phoneTilePreferences.settings.collect {
+            phoneSettings = it
+            refreshPinnedPreview()
+        }
     }
 
     private fun observeTimerSettings() = scope.launch {
-        timerTilePreferences.settings.collect { timerSettings = it }
+        timerTilePreferences.settings.collect {
+            timerSettings = it
+            refreshPinnedPreview()
+        }
     }
 
     private fun observeAssistantSettings() = scope.launch {
