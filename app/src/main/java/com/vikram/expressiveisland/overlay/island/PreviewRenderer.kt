@@ -119,6 +119,7 @@ internal object PreviewRenderer {
                 showActions = timerSettings.showActions,
                 resetColor = timerSettings.resetColor,
                 addButtonColor = timerSettings.addButtonColor,
+                previewRemainingSeconds = if (category == IslandPreviewCategory.TIMER_TILE) 15 * 60 else null,
             ) else null,
             normalOnly = category == IslandPreviewCategory.PHONE_TILE,
         )
