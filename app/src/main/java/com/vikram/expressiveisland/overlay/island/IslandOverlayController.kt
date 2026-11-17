@@ -1707,7 +1707,7 @@ class IslandOverlayController(private val context: Context) {
                     dismissJob?.cancel()
                     forcedExpanded.value = targetExpanded
                     expanded = targetExpanded
-                    currentEvent.value = previewEvent()
+                    currentEvent.value = previewEventOrNull()
                 } else {
                     forcedExpanded.value = if (isNoExpandLandscape) false else null
                     expanded = false
@@ -2692,7 +2692,7 @@ class IslandOverlayController(private val context: Context) {
                 previewPinned -> {
                     expanded = previewExpanded
                     forcedExpanded.value = previewExpanded
-                    currentEvent.value = previewEvent()
+                    currentEvent.value = previewEventOrNull()
                 }
                 // A live tile outlived an interrupting event — fall back to its pill, collapsed.
                 livePill != null -> {
