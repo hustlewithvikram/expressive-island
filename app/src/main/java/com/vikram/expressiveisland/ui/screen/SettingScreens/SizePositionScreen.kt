@@ -59,9 +59,9 @@ internal fun SizePositionScreen(
      * The real overlay is pinned while this screen is visible so changes can be
      * previewed directly on the device cutout.
      *
-     * The overlay is made non-touchable while pinned by IslandOverlayController.
-     * This means a large expanded preview can never steal interaction from this
-     * editor.
+     * The overlay remains touchable so the expanded preview can be swiped upward
+     * to collapse. IslandPreviewSpacer reserves room for it, keeping the controls
+     * below the live island accessible.
      */
     IslandLivePreviewEffect(
         category = IslandPreviewCategory.SIZE_POSITION,
