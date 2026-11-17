@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen
 
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,13 @@ internal fun AssistantScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
 ) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.ASSISTANT,
+        label = "Assistant tile",
+        detail = "Preview assistant activity and controls",
+        expanded = false,
+    )
+
     val settings by viewModel.assistantTile.collectAsStateWithLifecycle()
     val selectedTab = if (settings.activationMode == AssistantActivationMode.AUTO) 0 else 1
 
