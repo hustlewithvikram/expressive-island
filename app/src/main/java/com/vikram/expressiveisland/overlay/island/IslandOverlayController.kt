@@ -922,6 +922,9 @@ class IslandOverlayController(private val context: Context) {
             }
             previousShowsWhenEmpty = it.showsWhenEmpty
             behaviourState.value = it
+            refreshPinnedPreview()
+            refreshPreviewSatellite()
+            replayAnimationPreview()
             // Toggling "hide on lockscreen" (or first load while already locked) must take effect now.
             applyLockVisibility()
         }
@@ -930,6 +933,8 @@ class IslandOverlayController(private val context: Context) {
     private fun observeAppearance() = scope.launch {
         appearancePreferences.settings.collect {
             appearanceState.value = it
+            refreshPinnedPreview()
+            replayAnimationPreview()
             // The action-button height feeds the expanded window's extra room; keep them in step.
             syncWindowSize()
         }
