@@ -311,25 +311,51 @@ class SystemEventMonitor(private val context: Context) {
         }
     }
 
-    private val wifiNetworkCallback =
-        object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                if (wifiNetworks.add(network)) emit(SystemEventType.WIFI_CONNECTED)
-                updateWifiState(network, connectivityManager?.getNetworkCapabilities(network))
-            }
+    private val wifiNetworkCallback: ConnectivityManager.NetworkCallback =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            object : ConnectivityManager.NetworkCallback(
+                ConnectivityManager.NetworkCallback.FLAG_INCLUDE_LOCATION_INFO,
+            ) {
+                override fun onAvailable(network: Network) {
+                    if (wifiNetworks.add(network)) emit(SystemEventType.WIFI_CONNECTED)
+                    updateWifiState(network, connectivityManager?.getNetworkCapabilities(network))
+                }
 
-            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
-                updateWifiState(network, capabilities)
-            }
+                override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                    updateWifiState(network, capabilities)
+                }
 
-            override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
-                updateWifiState(network, connectivityManager?.getNetworkCapabilities(network))
-            }
+                override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
+                    updateWifiState(network, connectivityManager?.getNetworkCapabilities(network))
+                }
 
-            override fun onLost(network: Network) {
-                if (wifiNetworks.remove(network) && wifiNetworks.isEmpty()) {
-                    WifiBus.update(null)
-                    emit(SystemEventType.WIFI_DISCONNECTED)
+                override fun onLost(network: Network) {
+                    if (wifiNetworks.remove(network) && wifiNetworks.isEmpty()) {
+                        WifiBus.update(null)
+                        emit(SystemEventType.WIFI_DISCONNECTED)
+                    }
+                }
+            }
+        } else {
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    if (wifiNetworks.add(network)) emit(SystemEventType.WIFI_CONNECTED)
+                    updateWifiState(network, connectivityManager?.getNetworkCapabilities(network))
+                }
+
+                override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                    updateWifiState(network, capabilities)
+                }
+
+                override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
+                    updateWifiState(network, connectivityManager?.getNetworkCapabilities(network))
+                }
+
+                override fun onLost(network: Network) {
+                    if (wifiNetworks.remove(network) && wifiNetworks.isEmpty()) {
+                        WifiBus.update(null)
+                        emit(SystemEventType.WIFI_DISCONNECTED)
+                    }
                 }
             }
         }
@@ -411,25 +437,40 @@ class SystemEventMonitor(private val context: Context) {
             ) return
 
             val wifiInfo = capabilities.transportInfo as? WifiInfo ?: return
-            val linkProperties = connectivity.getLinkProperties(network)
+            val linkProperties = runCatching {
+                connectivity.getLinkProperties(network)
+            }.getOrNull()
             val ipAddress = linkProperties
                 ?.linkAddresses
                 ?.firstOrNull { it.address.hostAddress?.contains(":") == false }
                 ?.address
                 ?.hostAddress
 
-            val ssid = wifiInfo.ssid
-                ?.removePrefix("\"")
-                ?.removeSuffix("\"")
-                ?.takeUnless { it.isBlank() || it == "<unknown ssid>" }
+            // FLAG_INCLUDE_LOCATION_INFO above allows Android 12+ callbacks to expose
+            // location-sensitive Wi-Fi details when the user has granted permission.
+            // Some devices still redact the SSID, so try WifiManager as a fallback.
+            val ssid = resolveWifiSsid(wifiInfo)
+
+            val rssi = runCatching { wifiInfo.rssi }
+                .getOrNull()
+                ?.takeIf { it != -127 }
+            val signalLevel = rssi?.let {
+                WifiManager.calculateSignalLevel(it, 5)
+            }
+            val linkSpeed = runCatching { wifiInfo.linkSpeed }
+                .getOrNull()
+                ?.takeIf { it > 0 }
+            val frequency = runCatching { wifiInfo.frequency }
+                .getOrNull()
+                ?.takeIf { it > 0 }
 
             WifiBus.update(
                 WifiState(
                     ssid = ssid,
-                    signalLevel = WifiManager.calculateSignalLevel(wifiInfo.rssi, 5),
-                    rssi = wifiInfo.rssi.takeIf { it != -127 },
-                    linkSpeedMbps = wifiInfo.linkSpeed.takeIf { it > 0 },
-                    frequencyMhz = wifiInfo.frequency.takeIf { it > 0 },
+                    signalLevel = signalLevel,
+                    rssi = rssi,
+                    linkSpeedMbps = linkSpeed,
+                    frequencyMhz = frequency,
                     ipAddress = ipAddress,
                     isMetered = !capabilities.hasCapability(
                         NetworkCapabilities.NET_CAPABILITY_NOT_METERED
@@ -437,12 +478,49 @@ class SystemEventMonitor(private val context: Context) {
                 )
             )
         } catch (e: SecurityException) {
-            Log.w("SystemEventMonitor", "Unable to read Wi-Fi state: permission unavailable", e)
-            WifiBus.update(null)
+            Log.w("SystemEventMonitor", "Wi-Fi details are restricted; keeping connection visible", e)
+            // Keep a connected state even when Android blocks access to detailed Wi-Fi info.
+            WifiBus.update(
+                WifiState(
+                    ssid = null,
+                    signalLevel = null,
+                    rssi = null,
+                    linkSpeedMbps = null,
+                    frequencyMhz = null,
+                    ipAddress = null,
+                    isMetered = null,
+                )
+            )
         } catch (e: Exception) {
             Log.w("SystemEventMonitor", "Unable to read Wi-Fi state", e)
-            WifiBus.update(null)
         }
+    }
+
+    private fun resolveWifiSsid(wifiInfo: WifiInfo): String? {
+        fun normalize(value: String?): String? {
+            return value
+                ?.removePrefix("\"")
+                ?.removeSuffix("\"")
+                ?.takeUnless {
+                    it.isBlank() ||
+                        it.equals("<unknown ssid>", ignoreCase = true) ||
+                        it.equals("unknown ssid", ignoreCase = true)
+                }
+        }
+
+        normalize(runCatching { wifiInfo.ssid }.getOrNull())?.let { return it }
+
+        val hasLocationPermission =
+            ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        if (!hasLocationPermission || !isLocationEnabled()) return null
+
+        return normalize(
+            runCatching { wifiManager?.connectionInfo?.ssid }.getOrNull()
+        )
     }
 
     private fun isAdbConnection(intent: Intent): Boolean {
