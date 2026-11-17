@@ -12,6 +12,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -55,12 +56,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -353,6 +356,20 @@ fun IconBadge(
         NotificationIconShape.SUNNY -> MaterialShapes.Sunny.toShape()
     }
     val badgeShape = if (event.notificationKey != null) notificationShape else CircleShape
+    // Reveal each newly displayed event's glyph once. Keep the badge itself crisp; only the
+    // artwork starts softly defocused and fades into focus, matching the island's arrival motion.
+    var iconRevealed by remember(event.id) { mutableStateOf(false) }
+    LaunchedEffect(event.id) { iconRevealed = true }
+    val iconAlpha by animateFloatAsState(
+        targetValue = if (iconRevealed) 1f else 0f,
+        animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
+        label = "islandIconFadeIn",
+    )
+    val iconBlur by animateDpAsState(
+        targetValue = if (iconRevealed) 0.dp else 8.dp,
+        animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
+        label = "islandIconUnblur",
+    )
     Box(
         modifier = modifier
             .size(badgeSize)
@@ -361,6 +378,12 @@ fun IconBadge(
             .then(if (event.notificationKey != null && event.notificationIconStrokeEnabled) Modifier.border(1.5.dp, event.notificationIconStrokeColor?.resolve() ?: event.accent, badgeShape) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
+        Box(
+            modifier = Modifier
+                .graphicsLayer { alpha = iconAlpha }
+                .blur(iconBlur),
+            contentAlignment = Alignment.Center,
+        ) {
         when (val icon = event.icon) {
             is IslandIcon.Vector -> Icon(
                 imageVector = icon.image,
@@ -421,6 +444,7 @@ fun IconBadge(
                     )
                 }
             }
+        }
         }
     }
 }
