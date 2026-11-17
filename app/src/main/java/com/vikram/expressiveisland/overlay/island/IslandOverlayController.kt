@@ -747,6 +747,9 @@ class IslandOverlayController(private val context: Context) {
             setContent {
                 val event by currentEvent.collectAsStateWithLifecycle()
                 val satellite by satelliteEvent.collectAsStateWithLifecycle()
+                val previewSatellite by previewSatelliteEvent.collectAsStateWithLifecycle()
+                val previewActive by IslandPreviewBus.active.collectAsStateWithLifecycle()
+                val displayedSatellite = if (previewActive) previewSatellite else satellite
                 val layout by layoutState.collectAsStateWithLifecycle()
                 val forced by forcedExpanded.collectAsStateWithLifecycle()
                 val behaviour by behaviourState.collectAsStateWithLifecycle()
@@ -852,9 +855,11 @@ class IslandOverlayController(private val context: Context) {
                         permissionDotColors = permissionDotColors,
                         permissionDotsVertical = permissionDotVertical,
 
-                        satellite = satellite,
+                        satellite = displayedSatellite,
                         satellitePosition = behaviour.satellitePosition,
-                        onSatelliteClick = ::onSatellitePromote,
+                        onSatelliteClick = {
+                            if (!previewActive) onSatellitePromote()
+                        },
 
                         onEmptyClick = ::onEmptyClick,
                         onCenterShortcut = ::onCenterShortcut,
