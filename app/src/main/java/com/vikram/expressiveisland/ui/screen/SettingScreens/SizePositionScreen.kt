@@ -73,37 +73,12 @@ internal fun SizePositionScreen(
      * This means a large expanded preview can never steal interaction from this
      * editor.
      */
-    DisposableEffect(lifecycleOwner) {
-        fun refresh() {
-            IslandPreviewBus.setActive(
-                Permissions.isAccessibilityGranted(context)
-            )
-        }
-
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> refresh()
-                Lifecycle.Event.ON_PAUSE -> {
-                    IslandPreviewBus.setActive(false)
-                }
-
-                else -> Unit
-            }
-        }
-
-        refresh()
-        lifecycleOwner.lifecycle.addObserver(observer)
-
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            IslandPreviewBus.setActive(false)
-            IslandPreviewBus.setExpandedPreview(false)
-        }
-    }
-
-    LaunchedEffect(tab) {
-        IslandPreviewBus.setExpandedPreview(tab == 1)
-    }
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.SIZE_POSITION,
+        label = if (tab == 0) "Normal size" else "Expanded size",
+        detail = if (tab == 0) "Adjust width, height and position" else "Adjust expanded island geometry",
+        expanded = tab == 1,
+    )
 
     Column(
         modifier = Modifier
