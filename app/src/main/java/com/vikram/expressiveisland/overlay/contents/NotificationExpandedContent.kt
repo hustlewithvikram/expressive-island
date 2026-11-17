@@ -157,7 +157,7 @@ fun NotificationExpandedContent(
 
                     event.detail?.let { detail ->
                         var detailOverflows by remember(event.id, detail) { mutableStateOf(false) }
-                        val estimatedFullHeightDp = (((detail.length / 28f).toInt() + 1) * 16)
+                        val estimatedFullHeightDp = ((((detail.length / 28f).toInt() + 1) * 16) - 36).coerceIn(48, 400)
                         Row(verticalAlignment = Alignment.Top) {
                             Text(
                                 text = detail,
@@ -172,7 +172,7 @@ fun NotificationExpandedContent(
                                     detailOverflows = result.didOverflowHeight || result.hasVisualOverflow
                                 },
                             )
-                            if (appearance.showFullNotificationText && detailOverflows) {
+                            if (appearance.showFullNotificationText && (detailOverflows || notificationTextExpanded)) {
                                 IconButton(
                                     onClick = {
                                         onNotificationTextExpandedChange(
