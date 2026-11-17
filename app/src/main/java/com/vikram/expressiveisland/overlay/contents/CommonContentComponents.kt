@@ -540,7 +540,21 @@ fun TileTitle(
  * Returns the formatted remaining time for the active timer, if one exists.
  */
 @Composable
-fun timerRemainingText(): String? {
+fun timerRemainingText(previewRemainingSeconds: Int? = null): String? {
+    if (previewRemainingSeconds != null) {
+        var nowElapsed by remember(previewRemainingSeconds) {
+            mutableLongStateOf(SystemClock.elapsedRealtime())
+        }
+        LaunchedEffect(previewRemainingSeconds) {
+            while (true) {
+                nowElapsed = SystemClock.elapsedRealtime()
+                delay(250L.milliseconds)
+            }
+        }
+        val startedAt = remember(previewRemainingSeconds) { SystemClock.elapsedRealtime() }
+        val remaining = (previewRemainingSeconds * 1_000L - (nowElapsed - startedAt)).coerceAtLeast(0L)
+        return formatCallDuration((remaining + 999L) / 1_000L)
+    }
     val timer by RunningTimerBus.state.collectAsStateWithLifecycle()
     val t = timer ?: return null
     val end = t.endElapsedRealtimeMs
