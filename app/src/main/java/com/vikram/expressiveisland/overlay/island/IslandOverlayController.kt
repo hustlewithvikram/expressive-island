@@ -2493,6 +2493,8 @@ class IslandOverlayController(private val context: Context) {
 
     /** Fire one of the notification's action buttons, then dismiss the island. */
     private fun onAction(action: IslandAction) {
+        // Settings previews are illustrative only; never dispatch or dismiss on their demo actions.
+        if (previewPinned && currentEvent.value?.id == -1L) return
         // Timer actions act on the clock's own countdown notification. A destructive one (Reset / Stop)
         // ends the timer, so dismiss the pill right away for instant feedback — like a call's hang-up —
         // rather than letting it linger until the removed notification trips the auto-dismiss timer.
