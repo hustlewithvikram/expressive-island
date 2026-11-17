@@ -138,6 +138,7 @@ internal fun EventDetailScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        IslandPreviewSpacer()
         // Hero: the current icon at a glance, plus the two primary actions (change icon / test).
         Card(
             modifier = Modifier.fillMaxWidth(),
