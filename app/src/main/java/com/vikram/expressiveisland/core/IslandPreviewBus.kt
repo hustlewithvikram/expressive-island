@@ -44,6 +44,9 @@ object IslandPreviewBus {
     private val mutableCategory = MutableStateFlow(IslandPreviewCategory.APPEARANCE)
     val category: StateFlow<IslandPreviewCategory> = mutableCategory
 
+    private val mutableSystemEventType = MutableStateFlow<SystemEventType?>(null)
+    val systemEventType: StateFlow<SystemEventType?> = mutableSystemEventType
+
     private val mutableContent = MutableStateFlow(
         IslandPreviewContent("Preview", "Settings preview")
     )
@@ -59,6 +62,10 @@ object IslandPreviewBus {
 
     fun setCategory(value: IslandPreviewCategory) {
         mutableCategory.value = value
+    }
+
+    fun setSystemEventType(value: SystemEventType?) {
+        mutableSystemEventType.value = value
     }
 
     fun setContent(label: String, detail: String) {
