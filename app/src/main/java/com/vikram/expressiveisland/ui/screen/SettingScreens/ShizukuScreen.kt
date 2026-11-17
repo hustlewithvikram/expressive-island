@@ -112,6 +112,7 @@ internal fun ShizukuScreen(
             .padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        IslandPreviewSpacer()
         // Shizuku status
         AnimatedVisibility(
             visible = !ready,
