@@ -129,30 +129,12 @@ internal fun AppearanceScreen(
 
     // Pin the real overlay to the device cutout while Appearance is visible. The overlay
     // controller supplies its built-in demo event and observes appearance preferences live.
-    DisposableEffect(lifecycleOwner) {
-        fun refresh() {
-            IslandPreviewBus.setActive(Permissions.isAccessibilityGranted(context))
-        }
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.APPEARANCE,
+        label = "Appearance",
+        detail = "Live island appearance",
+    )
 
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> refresh()
-                Lifecycle.Event.ON_PAUSE -> IslandPreviewBus.setActive(false)
-                else -> Unit
-            }
-        }
-
-        refresh()
-        IslandPreviewBus.setCategory(IslandPreviewCategory.APPEARANCE)
-        IslandPreviewBus.setExpandedPreview(false)
-        lifecycleOwner.lifecycle.addObserver(observer)
-
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            IslandPreviewBus.setActive(false)
-            IslandPreviewBus.setExpandedPreview(false)
-        }
-    }
     var strokeWidth by remember(appearance.strokeWidthDp) { mutableStateOf(appearance.strokeWidthDp.toFloat()) }
     var selectedTab by remember { mutableStateOf(0) }
 
