@@ -146,7 +146,7 @@ fun CollapsedContent(
 
         // The timer tile shows the remaining time on the trailing edge, opposite its icon.
         if (event.timer != null && !isStickToCamera) {
-            timerRemainingText()?.let { remaining ->
+            timerRemainingText(event.timer?.previewRemainingSeconds)?.let { remaining ->
                 Text(
                     text = remaining,
                     color = LocalContentColor.current,
