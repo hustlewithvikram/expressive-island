@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen
 
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -75,6 +76,13 @@ internal fun EventDetailScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
 ) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.EVENT_DETAIL,
+        label = "System event",
+        detail = "Preview the selected system event appearance",
+        expanded = true,
+    )
+
     val context = LocalContext.current
     val customIcons by viewModel.customIcons.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.eventDynamicColor.collectAsStateWithLifecycle()
