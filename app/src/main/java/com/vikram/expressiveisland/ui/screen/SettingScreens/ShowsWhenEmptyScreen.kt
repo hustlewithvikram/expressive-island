@@ -152,6 +152,7 @@ internal fun ShowsWhenEmptyScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        IslandPreviewSpacer()
         Text(
             text = stringResource(R.string.persistent_pill_appearance),
             style = MaterialTheme.typography.titleSmall,
