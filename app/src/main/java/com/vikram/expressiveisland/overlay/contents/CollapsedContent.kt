@@ -103,7 +103,7 @@ fun CollapsedContent(
 
         if (
             event.media != null &&
-            nowPlaying?.isPlaying == true &&
+            (nowPlaying?.isPlaying == true || event.media?.previewPlaying == true) &&
             musicSettings.showVisualizer &&
             !isStickToCamera &&
             !hideSatelliteIndicators
