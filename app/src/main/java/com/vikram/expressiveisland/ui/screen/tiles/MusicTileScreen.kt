@@ -608,7 +608,7 @@ internal fun MusicTileScreen(
                             modifier = Modifier.fillMaxWidth().clickable { viewModel.setMusicVisualizerStyle(style) },
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (settings.visualizerStyle == style) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                                containerColor = if (settings.visualizerStyle == style) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerLow,
                             ),
                         ) {
                             Column(
@@ -617,7 +617,7 @@ internal fun MusicTileScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(style.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-                                    if (settings.visualizerStyle == style) Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.music_selected), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    if (settings.visualizerStyle == style) Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.music_selected), tint = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                         }
