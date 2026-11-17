@@ -28,6 +28,7 @@ import android.view.ViewTreeObserver
 import android.view.WindowManager
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
@@ -45,6 +46,7 @@ import com.vikram.expressiveisland.core.DynamicTile
 import com.vikram.expressiveisland.core.ForegroundAppBus
 import com.vikram.expressiveisland.core.IslandEventBus
 import com.vikram.expressiveisland.core.IslandPreviewBus
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.core.NowPlayingBus
 import com.vikram.expressiveisland.core.OnCallBus
 import com.vikram.expressiveisland.core.RunningTimerBus
@@ -244,6 +246,7 @@ class IslandOverlayController(private val context: Context) {
     private var assistantSettings: AssistantTileSettings = AssistantTileSettings()
     private var previewPinned = false
     private var previewExpanded = false
+    private var previewCategory = IslandPreviewCategory.APPEARANCE
     private var expanded = false
 
     // True while a media session is actively playing; keeps the music cutout pinned up (no
@@ -279,15 +282,18 @@ class IslandOverlayController(private val context: Context) {
     private var lastAssistantEvent: IslandEvent? = null
 
     // A neutral sample shown while the settings screen pins the island open.
-    private val previewEvent by lazy {
-        IslandEvent(
-            id = -1L,
-            icon = IslandIcon.Vector(Icons.Rounded.Palette),
-            label = context.getString(R.string.preview_label),
-            detail = context.getString(R.string.preview_detail),
-            accent = Color(0xFF60A5FA),
-        )
-    }
+    private fun previewEvent() = IslandEvent(
+        id = -1L,
+        icon = IslandIcon.Vector(
+            when (previewCategory) {
+                IslandPreviewCategory.APPEARANCE -> Icons.Rounded.Palette
+                IslandPreviewCategory.SIZE_POSITION -> Icons.Rounded.Straighten
+            }
+        ),
+        label = context.getString(R.string.preview_label),
+        detail = context.getString(R.string.preview_detail),
+        accent = Color(0xFF60A5FA),
+    )
 
     private var composeView: ComposeView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
@@ -456,7 +462,7 @@ class IslandOverlayController(private val context: Context) {
                 dismissJob?.cancel()
                 forcedExpanded.value = null
                 expanded = false
-                currentEvent.value = previewEvent
+                currentEvent.value = previewEvent()
             }
 
             callActive && lastCallEvent != null -> {
@@ -1664,8 +1670,9 @@ class IslandOverlayController(private val context: Context) {
 
     /** While pinned (settings open), keep a persistent preview matching the tab being edited. */
     private fun observePreviewPin() = scope.launch {
-        combine(IslandPreviewBus.active, IslandPreviewBus.expandedPreview, ::Pair)
-            .collect { (pinned, expandedTab) ->
+        combine(IslandPreviewBus.active, IslandPreviewBus.expandedPreview, IslandPreviewBus.category, ::Triple)
+            .collect { (pinned, expandedTab, category) ->
+                previewCategory = category
                 previewPinned = pinned
                 previewExpanded = expandedTab
                 val isNoExpandLandscape =
