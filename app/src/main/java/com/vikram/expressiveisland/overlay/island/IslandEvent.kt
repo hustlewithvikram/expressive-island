@@ -182,6 +182,8 @@ data class TimerTileOptions(
     val resetColor: CutoutColor,
     /** Fill of the "Add 1 min" button. */
     val addButtonColor: CutoutColor,
+    /** A deterministic countdown used only by the settings preview when no real timer is running. */
+    val previewRemainingSeconds: Int? = null,
 )
 
 /** Which parts of the phone tile to render (and how the call buttons look), per its settings. */
