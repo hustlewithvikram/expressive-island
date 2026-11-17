@@ -1869,6 +1869,7 @@ class IslandOverlayController(private val context: Context) {
                 previewSystemEventType = snapshot.systemEventType
                 previewPinned = pinned
                 previewExpanded = expandedTab
+                refreshPreviewSatellite()
                 val isNoExpandLandscape =
                     currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
                             (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
@@ -1880,9 +1881,12 @@ class IslandOverlayController(private val context: Context) {
                     expanded = targetExpanded
                     currentEvent.value = previewEventOrNull()
                 } else {
+                    previewAnimationJob?.cancel()
                     forcedExpanded.value = if (isNoExpandLandscape) false else null
                     expanded = false
                     currentEvent.value = null
+                    previewSatelliteEvent.value = null
+                    IslandPreviewBus.setPreviewHeightDp(0)
                 }
                 syncWindowSize()
             }
