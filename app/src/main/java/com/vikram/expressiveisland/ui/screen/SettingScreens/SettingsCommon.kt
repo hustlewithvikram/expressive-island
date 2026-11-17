@@ -76,7 +76,7 @@ internal fun IslandPreviewSpacer() {
     val active = IslandPreviewBus.active.collectAsState().value
     val islandHeightDp = IslandPreviewBus.previewHeightDp.collectAsState().value
     val reservedHeight by animateDpAsState(
-        targetValue = if (active && expanded) (islandHeightDp * 1.2f).dp else 0.dp,
+        targetValue = if (active && expanded) (islandHeightDp * 1.1f).dp else 0.dp,
         label = "islandPreviewSpacer",
     )
     Spacer(
