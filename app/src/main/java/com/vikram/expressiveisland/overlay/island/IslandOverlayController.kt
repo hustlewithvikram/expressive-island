@@ -247,6 +247,12 @@ class IslandOverlayController(private val context: Context) {
     private var timerSettings: TimerTileSettings = TimerTileSettings()
     private var assistantSettings: AssistantTileSettings = AssistantTileSettings()
     private var previewPinned = false
+    // Preserve the real overlay slots while a settings preview temporarily owns the island.
+    private var eventBeforePreview: IslandEvent? = null
+    private var satelliteBeforePreview: IslandEvent? = null
+    private var systemEventTypeBeforePreview: SystemEventType? = null
+    private var deadlineBeforePreviewMs: Long? = null
+    private var satelliteDeadlineBeforePreviewMs: Long? = null
     private var previewExpanded = false
     private var previewCategory = IslandPreviewCategory.APPEARANCE
     private var previewContent = IslandPreviewContent("Preview", "Settings preview")
@@ -631,6 +637,49 @@ class IslandOverlayController(private val context: Context) {
                 scheduleDismiss()
             }
         }
+    }
+
+    /**
+     * Settings previews temporarily replace the visible event, but must never consume it.
+     * Restore still-running live tiles first, then the previous notification/system event if its
+     * original timeout has not elapsed. A preview-only event is never eligible for restoration.
+     */
+    private fun restorePreviewState() {
+        val previousEvent = eventBeforePreview
+        val previousSatellite = satelliteBeforePreview
+        val previousDeadline = deadlineBeforePreviewMs
+        val previousSatelliteDeadline = satelliteDeadlineBeforePreviewMs
+        val previousSystemType = systemEventTypeBeforePreview
+
+        currentDeadlineMs = null
+        restoreActiveState()
+
+        if (currentEvent.value == null && previousEvent != null &&
+            (previousDeadline == null || previousDeadline > System.currentTimeMillis())
+        ) {
+            currentSystemEventType = previousSystemType
+            expanded = false
+            forcedExpanded.value = null
+            currentEvent.value = previousEvent.copy(initiallyExpanded = false)
+            scheduleDismiss()
+        }
+
+        if (satelliteEvent.value == null && previousSatellite != null &&
+            (previousSatelliteDeadline == null || previousSatelliteDeadline > System.currentTimeMillis())
+        ) {
+            satelliteEvent.value = previousSatellite.copy(initiallyExpanded = false)
+            satelliteDeadlineMs = previousSatelliteDeadline
+            if (previousSatelliteDeadline != null) {
+                armSatelliteDeadline(satelliteEvent.value!!, previousSatelliteDeadline)
+            }
+        }
+
+        eventBeforePreview = null
+        satelliteBeforePreview = null
+        systemEventTypeBeforePreview = null
+        deadlineBeforePreviewMs = null
+        satelliteDeadlineBeforePreviewMs = null
+        syncWindowSize()
     }
 
     /** The current window width in px, following the device's live orientation. */
@@ -1889,6 +1938,14 @@ class IslandOverlayController(private val context: Context) {
                     notificationTextExpanded.value = false
                     notificationTextExtraHeightDp.value = 0
                 }
+                if (!previewPinned && pinned) {
+                    // Keep the real event slots intact while the preview owns the visible surface.
+                    eventBeforePreview = currentEvent.value?.takeIf { it.id != -1L }
+                    satelliteBeforePreview = satelliteEvent.value?.takeIf { it.id != -2L }
+                    systemEventTypeBeforePreview = currentSystemEventType
+                    deadlineBeforePreviewMs = currentDeadlineMs
+                    satelliteDeadlineBeforePreviewMs = satelliteDeadlineMs
+                }
                 previewCategory = snapshot.category
                 previewContent = snapshot.content
                 previewSystemEventType = snapshot.systemEventType
@@ -1912,6 +1969,7 @@ class IslandOverlayController(private val context: Context) {
                     currentEvent.value = null
                     previewSatelliteEvent.value = null
                     IslandPreviewBus.setPreviewHeightDp(0)
+                    restorePreviewState()
                 }
                 syncWindowSize()
             }
