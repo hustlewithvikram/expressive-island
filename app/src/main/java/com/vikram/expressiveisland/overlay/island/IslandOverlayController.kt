@@ -2971,6 +2971,7 @@ class IslandOverlayController(private val context: Context) {
 
         // A normal top-edge shade pull is much larger than this; this threshold prevents ordinary
         // pill taps from being interpreted as a shade gesture.
+        const val PREVIEW_COLLAPSE_SWIPE_DISTANCE_DP = 40f
         const val SHADE_SWIPE_DISTANCE_DP = 48f
         const val SHADE_SWIPE_MAX_TIME_MS = 900L
 
