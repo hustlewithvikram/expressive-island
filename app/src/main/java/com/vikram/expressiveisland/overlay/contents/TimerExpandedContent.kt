@@ -58,7 +58,7 @@ fun TimerExpandedContent(
                 IconBadge(event = event, badgeSize = 44.dp, iconSize = 26.dp)
                 // The remaining time is the headline; the timer name sits beneath.
                 TileTitle(
-                    title = timerRemainingText() ?: event.label,
+                    title = timerRemainingText(timer.previewRemainingSeconds) ?: event.label,
                     subtitle = event.detail ?: event.label,
                     modifier = Modifier.weight(1f),
                 )
