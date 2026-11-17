@@ -247,6 +247,7 @@ class IslandOverlayController(private val context: Context) {
     private var previewExpanded = false
     private var previewCategory = IslandPreviewCategory.APPEARANCE
     private var previewContent = IslandPreviewContent("Preview", "Settings preview")
+    private var previewSystemEventType: SystemEventType? = null
     private var expanded = false
 
     // True while a media session is actively playing; keeps the music cutout pinned up (no
@@ -284,7 +285,25 @@ class IslandOverlayController(private val context: Context) {
     // Settings preview presentation is centralised in PreviewRenderer.
     private fun previewEventOrNull(): IslandEvent? =
         if (previewCategory == IslandPreviewCategory.EMPTY_STATE) null
-        else PreviewRenderer.createEvent(
+        else if (previewCategory == IslandPreviewCategory.EVENT_DETAIL && previewSystemEventType != null) {
+            resolver.resolve(
+                CutoutSignal.System(previewSystemEventType!!),
+                customIcons,
+                musicSettings,
+                phoneSettings,
+                timerSettings,
+                assistantSettings,
+                eventDynamicColor,
+                eventDynamicColorRole,
+                eventDynamicColorOpacity,
+                eventAnimatedIcons,
+                eventAnimatedIconLoops,
+                eventColors,
+                appearanceState.value.preferDynamicIconColor,
+                behaviourState.value.notificationIconMode,
+                behaviourState.value.notificationIconShape,
+            )
+        } else PreviewRenderer.createEvent(
             context = context,
             category = previewCategory,
             content = previewContent,
@@ -774,7 +793,10 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeIconPreferences() = scope.launch {
-        iconPreferences.customIcons.collect { customIcons = it }
+        iconPreferences.customIcons.collect {
+            customIcons = it
+            refreshPinnedPreview()
+        }
     }
 
     private fun observeBehaviour() = scope.launch {
@@ -1712,6 +1734,7 @@ class IslandOverlayController(private val context: Context) {
                 val expandedTab = snapshot.expanded
                 previewCategory = snapshot.category
                 previewContent = snapshot.content
+                previewSystemEventType = IslandPreviewBus.systemEventType.value
                 previewPinned = pinned
                 previewExpanded = expandedTab
                 val isNoExpandLandscape =
