@@ -43,6 +43,7 @@ import com.vikram.expressiveisland.data.ColorSpec
 import com.vikram.expressiveisland.data.CutoutFill
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.GradientDirection
+import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.overlay.resolveBrush
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
