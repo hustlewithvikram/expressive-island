@@ -110,7 +110,11 @@ internal fun IslandLivePreviewEffect(
             )
         }
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) refresh()
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> refresh()
+                Lifecycle.Event.ON_STOP -> IslandPreviewBus.release(previewOwner)
+                else -> Unit
+            }
         }
         refresh()
         lifecycleOwner.lifecycle.addObserver(observer)
