@@ -1,6 +1,5 @@
 package com.vikram.expressiveisland.ui.screen
 
-import com.vikram.expressiveisland.core.IslandPreviewCategory
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -67,7 +66,7 @@ import kotlin.math.roundToInt
 
 /**
  * A single event's edit screen, reached by tapping its row on the Events list. Lets the user change
- * the event's icon (custom image / app icon / built-in default), fire a live preview of the cutout,
+ * the event's icon (custom image / app icon / built-in default), trigger the event for testing,
  * and tune how long that event lingers before it auto-dismisses.
  */
 @Composable
@@ -76,14 +75,6 @@ internal fun EventDetailScreen(
     viewModel: AppViewModel,
     contentPadding: PaddingValues,
 ) {
-    IslandLivePreviewEffect(
-        category = IslandPreviewCategory.EVENT_DETAIL,
-        label = "System event",
-        detail = "Preview the selected system event appearance",
-        expanded = true,
-        systemEventType = type,
-    )
-
     val context = LocalContext.current
     val customIcons by viewModel.customIcons.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.eventDynamicColor.collectAsStateWithLifecycle()
@@ -139,8 +130,7 @@ internal fun EventDetailScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        IslandPreviewSpacer()
-        // Hero: the current icon at a glance, plus the two primary actions (change icon / test).
+        // Hero: the current icon at a glance, plus the two primary actions (change icon / trigger test).
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(32.dp),
