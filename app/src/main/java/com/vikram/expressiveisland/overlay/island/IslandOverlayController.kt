@@ -1165,7 +1165,8 @@ class IslandOverlayController(private val context: Context) {
         // overlay window's margins or a hard-coded estimate. The settings screen adds exactly 20%.
         val previewHeight = if (previewPinned && expanded && currentEvent.value?.id == -1L) {
             val dimensions = effectiveDims(layout, expanded)
-            (dimensions.heightDp + currentHeightBonusDp(expanded)).coerceAtLeast(0)
+            (dimensions.heightDp + currentHeightBonusDp(expanded) +
+                    if (currentEvent.value?.media != null) 20 else 0).coerceAtLeast(0)
         } else {
             0
         }
