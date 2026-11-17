@@ -2699,6 +2699,9 @@ class IslandOverlayController(private val context: Context) {
     private fun scheduleDismiss() {
         dismissJob?.cancel()
         currentDeadlineMs = null
+        // A settings preview is intentionally persistent; transient event timeout paths must
+        // never collapse or clear it while the settings owner still holds the preview lease.
+        if (previewPinned) return
         // Keep active media/calls/timers pinned. A manually opened Assistant panel is the
         // exception when its explicit auto-hide option is enabled.
         val autoHideManualAssistant =
