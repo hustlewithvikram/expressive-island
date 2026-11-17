@@ -732,9 +732,15 @@ class IslandOverlayController(private val context: Context) {
                     }
 
                     MotionEvent.ACTION_OUTSIDE -> {
-                        if (expanded && !previewPinned) {
+                        if (expanded && previewPinned) {
+                            previewExpanded = false
+                            expanded = false
+                            forcedExpanded.value = false
+                            IslandPreviewBus.setExpandedPreview(false)
+                            syncWindowSize()
+                            true
+                        } else if (expanded) {
                             collapseRequest.value++
-//                            onExpandedChanged(false)
                             true
                         } else {
                             false
