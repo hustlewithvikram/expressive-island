@@ -6,13 +6,18 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -58,16 +63,19 @@ fun WifiConnectedExpandedContent(
         ?.takeUnless { it.isBlank() || it.equals("<unknown ssid>", ignoreCase = true) }
         ?: "Wi-Fi network"
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 16.dp, end = 16.dp, bottom = 20.dp),
+            .padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
     ) {
+        val compact = maxHeight < 250.dp
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .align(Alignment.BottomStart),
-            verticalArrangement = Arrangement.spacedBy(9.dp),
+                .fillMaxHeight()
+                .align(Alignment.BottomStart)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 8.dp, Alignment.Bottom),
         ) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -78,13 +86,13 @@ fun WifiConnectedExpandedContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 15.dp, vertical = 14.dp),
+                        .padding(horizontal = if (compact) 11.dp else 13.dp, vertical = if (compact) 9.dp else 11.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(13.dp),
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(52.dp)
+                            .size(if (compact) 40.dp else 46.dp)
                             .clip(CircleShape)
                             .background(colors.primaryContainer),
                         contentAlignment = Alignment.Center,
@@ -92,7 +100,7 @@ fun WifiConnectedExpandedContent(
                         Icon(
                             imageVector = Icons.Rounded.Wifi,
                             contentDescription = "Wi-Fi connected",
-                            modifier = Modifier.size(29.dp),
+                            modifier = Modifier.size(if (compact) 23.dp else 26.dp),
                             tint = colors.onPrimaryContainer,
                         )
                     }
@@ -104,13 +112,13 @@ fun WifiConnectedExpandedContent(
                         Text(
                             text = "Wi-Fi connected",
                             color = colors.onSurfaceVariant,
-                            fontSize = 11.sp,
+                            fontSize = if (compact) 10.sp else 11.sp,
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
                             text = networkName,
                             color = colors.onSurface,
-                            fontSize = 16.sp,
+                            fontSize = if (compact) 14.sp else 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -124,7 +132,7 @@ fun WifiConnectedExpandedContent(
                                 }
                             },
                             color = colors.onSurfaceVariant,
-                            fontSize = 11.sp,
+                            fontSize = if (compact) 10.sp else 11.sp,
                             maxLines = 1,
                         )
                     }
@@ -138,12 +146,13 @@ fun WifiConnectedExpandedContent(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(9.dp),
+                horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 8.dp),
             ) {
                 WifiMetricCard(
                     label = "Frequency band",
                     value = wifi.band ?: "Unavailable",
                     modifier = Modifier.weight(1f),
+                    compact = compact,
                 )
                 WifiMetricCard(
                     label = "Link speed",
@@ -179,14 +188,14 @@ fun WifiConnectedExpandedContent(
                 color = colors.surfaceContainer,
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = if (compact) 7.dp else 9.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
                         text = "Data usage",
                         color = colors.onSurfaceVariant,
-                        fontSize = 12.sp,
+                        fontSize = if (compact) 10.sp else 11.sp,
                         fontWeight = FontWeight.Medium,
                     )
                     Text(
@@ -210,6 +219,7 @@ private fun WifiMetricCard(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -221,13 +231,13 @@ private fun WifiMetricCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 13.dp, vertical = 11.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp),
+                .padding(horizontal = 10.dp, vertical = if (compact) 7.dp else 9.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 4.dp),
         ) {
             Text(
                 text = label,
                 color = colors.onSurfaceVariant,
-                fontSize = 10.sp,
+                fontSize = if (compact) 9.sp else 10.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -235,7 +245,7 @@ private fun WifiMetricCard(
             Text(
                 text = value,
                 color = colors.onSurface,
-                fontSize = 13.sp,
+                fontSize = if (compact) 11.sp else 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
