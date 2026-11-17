@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen
 
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -96,6 +97,13 @@ internal fun EventIconsScreen(
     contentPadding: PaddingValues,
     onOpenEvent: (SystemEventType) -> Unit,
 ) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.EVENT_ICONS,
+        label = "Event icons",
+        detail = "Preview event icon and colour changes",
+        expanded = false,
+    )
+
     val customIcons by viewModel.customIcons.collectAsStateWithLifecycle()
     val eventEnabled by viewModel.eventEnabled.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.eventDynamicColor.collectAsStateWithLifecycle()
