@@ -102,6 +102,7 @@ internal fun IntegrationsScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        IslandPreviewSpacer()
         Column(modifier = Modifier.padding(top = 4.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Integrations", style = MaterialTheme.typography.headlineSmall)
             Text("Connect the services that make your island more capable.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -126,6 +127,7 @@ internal fun IntegrationDetailScreen(contentPadding: PaddingValues, title: Strin
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        IslandPreviewSpacer()
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
@@ -153,6 +155,7 @@ internal fun AssistantIntegrationScreen(contentPadding: PaddingValues) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding).padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        IslandPreviewSpacer()
         Column(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("AI Assistant", style = MaterialTheme.typography.headlineSmall)
             Text("Configure the provider and response behaviour.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
