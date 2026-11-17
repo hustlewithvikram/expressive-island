@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.StateFlow
  */
 enum class IslandPreviewCategory {
     APPEARANCE,
+    NOTIFICATION_CONTENT,
+    CAMERA_RING,
     SIZE_POSITION,
     BACKGROUND,
     ACTION_BUTTONS,
