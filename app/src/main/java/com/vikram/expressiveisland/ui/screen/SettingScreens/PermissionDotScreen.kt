@@ -100,7 +100,6 @@ internal fun PermissionDotScreen(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        IslandPreviewSpacer()
         PermissionDotPositionCard(
             selected = position,
             onSelect = viewModel::setPermissionDotPosition,
