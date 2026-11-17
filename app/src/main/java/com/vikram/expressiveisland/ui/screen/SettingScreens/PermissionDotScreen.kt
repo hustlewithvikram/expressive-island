@@ -22,6 +22,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,18 +71,25 @@ internal fun PermissionDotScreen(
     // resource as in use, so the dots show on the actual cutout while this screen is up. Both are
     // dropped on pause so a backgrounded app isn't left claiming the camera is in use.
     val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
+    val previewOwner = remember { Any() }
+    DisposableEffect(lifecycleOwner, previewOwner) {
         fun pin(active: Boolean) {
             IslandPreviewBus.setCategory(IslandPreviewCategory.PERMISSION_DOTS)
             IslandPreviewBus.setContent("Permission indicators", "Camera, microphone and location activity")
             IslandPreviewBus.setExpandedPreview(false)
-            IslandPreviewBus.setActive(active && Permissions.isAccessibilityGranted(context))
+            if (active) {
+                IslandPreviewBus.activate(
+                    previewOwner,
+                    Permissions.isAccessibilityGranted(context),
+                )
+            }
             PermissionDotPreviewBus.setActive(active)
         }
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> pin(true)
                 Lifecycle.Event.ON_PAUSE -> pin(false)
+                Lifecycle.Event.ON_STOP -> IslandPreviewBus.release(previewOwner)
                 else -> Unit
             }
         }
@@ -89,7 +97,8 @@ internal fun PermissionDotScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            pin(false)
+            PermissionDotPreviewBus.setActive(false)
+            IslandPreviewBus.release(previewOwner)
         }
     }
 
