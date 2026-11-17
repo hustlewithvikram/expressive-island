@@ -1724,17 +1724,17 @@ class IslandOverlayController(private val context: Context) {
     }
 
     /** While pinned (settings open), keep a persistent preview matching the tab being edited. */
-    private data class PreviewSnapshot(val pinned: Boolean, val expanded: Boolean, val category: IslandPreviewCategory, val content: IslandPreviewContent)
+    private data class PreviewSnapshot(val pinned: Boolean, val expanded: Boolean, val category: IslandPreviewCategory, val content: IslandPreviewContent, val systemEventType: SystemEventType?)
 
     private fun observePreviewPin() = scope.launch {
-        combine(IslandPreviewBus.active, IslandPreviewBus.expandedPreview, IslandPreviewBus.category, IslandPreviewBus.content) { pinned, expandedTab, category, content ->
-            PreviewSnapshot(pinned, expandedTab, category, content)
+        combine(IslandPreviewBus.active, IslandPreviewBus.expandedPreview, IslandPreviewBus.category, IslandPreviewBus.content, IslandPreviewBus.systemEventType) { pinned, expandedTab, category, content, systemEventType ->
+            PreviewSnapshot(pinned, expandedTab, category, content, systemEventType)
         }.collect { snapshot ->
                 val pinned = snapshot.pinned
                 val expandedTab = snapshot.expanded
                 previewCategory = snapshot.category
                 previewContent = snapshot.content
-                previewSystemEventType = IslandPreviewBus.systemEventType.value
+                previewSystemEventType = snapshot.systemEventType
                 previewPinned = pinned
                 previewExpanded = expandedTab
                 val isNoExpandLandscape =
