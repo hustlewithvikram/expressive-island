@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Replay5
 import androidx.compose.material.icons.rounded.Forward5
