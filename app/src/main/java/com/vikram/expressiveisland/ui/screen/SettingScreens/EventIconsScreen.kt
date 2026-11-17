@@ -119,6 +119,7 @@ internal fun EventIconsScreen(
             modifier = Modifier.clip(shape = RoundedCornerShape(24.dp)),
             contentPadding = contentPadding,
         ) {
+        item(key = "island_preview_spacer") { IslandPreviewSpacer() }
             // Global event appearance
             item(key = "event_appearance_header") {
                 CardSectionHeader(
