@@ -261,7 +261,7 @@ private fun DimensionsEditor(
                     IslandDimensions.MIN_WIDTH_PERCENT.toFloat()..
                             IslandDimensions.MAX_WIDTH_PERCENT.toFloat(),
                 step = 1f,
-                onValueChange = { width = it },
+                onValueChange = { width = it; commit() },
                 onCommit = { commit() },
             )
 
@@ -273,7 +273,7 @@ private fun DimensionsEditor(
                     IslandDimensions.MIN_HEIGHT_DP.toFloat()..
                             IslandDimensions.MAX_HEIGHT_DP.toFloat(),
                 step = 2f,
-                onValueChange = { height = it },
+                onValueChange = { height = it; commit() },
                 onCommit = { commit() },
             )
         }
@@ -315,7 +315,7 @@ private fun DimensionsEditor(
                     IslandDimensions.MIN_OFFSET_Y_DP.toFloat()..
                             IslandDimensions.MAX_OFFSET_Y_DP.toFloat(),
                 step = 2f,
-                onValueChange = { offsetY = it },
+                onValueChange = { offsetY = it; commit() },
                 onCommit = { commit() },
             )
 
@@ -327,7 +327,7 @@ private fun DimensionsEditor(
                     IslandDimensions.MIN_OFFSET_X_DP.toFloat()..
                             IslandDimensions.MAX_OFFSET_X_DP.toFloat(),
                 step = 2f,
-                onValueChange = { offsetX = it },
+                onValueChange = { offsetX = it; commit() },
                 onCommit = { commit() },
             )
         }
