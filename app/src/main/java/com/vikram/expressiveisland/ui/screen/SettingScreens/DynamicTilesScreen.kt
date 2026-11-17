@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen
 
+import com.vikram.expressiveisland.core.IslandPreviewCategory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +53,13 @@ internal fun DynamicTilesScreen(
     contentPadding: PaddingValues,
     onOpenTile: (DynamicTile) -> Unit,
 ) {
+    IslandLivePreviewEffect(
+        category = IslandPreviewCategory.DYNAMIC_TILES,
+        label = "Persistent tiles",
+        detail = "Preview ongoing music, timer and call activity",
+        expanded = false,
+    )
+
     val tileEnabled by viewModel.tileEnabled.collectAsStateWithLifecycle()
     // The icon-container colour each tile lets the user pick, mirrored onto its list badge below.
     val phone by viewModel.phoneTile.collectAsStateWithLifecycle()
