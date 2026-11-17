@@ -734,7 +734,7 @@ class IslandOverlayController(private val context: Context) {
                     }
 
                     MotionEvent.ACTION_OUTSIDE -> {
-                        if (expanded && notificationTextExpanded.value) {
+                        if (expanded && !previewPinned && notificationTextExpanded.value) {
                             notificationTextExpanded.value = false
                             notificationTextExtraHeightDp.value = 0
                             syncWindowSize()
