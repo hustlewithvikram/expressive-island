@@ -309,6 +309,9 @@ class IslandOverlayController(private val context: Context) {
         } else emptyList(),
     )
 
+    private fun previewEventOrNull(): IslandEvent? =
+        if (previewCategory == IslandPreviewCategory.EMPTY_STATE) null else previewEvent()
+
     private var composeView: ComposeView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
     private var dismissJob: Job? = null
@@ -476,7 +479,7 @@ class IslandOverlayController(private val context: Context) {
                 dismissJob?.cancel()
                 forcedExpanded.value = previewExpanded
                 expanded = previewExpanded
-                currentEvent.value = previewEvent()
+                currentEvent.value = previewEventOrNull()
             }
 
             callActive && lastCallEvent != null -> {
