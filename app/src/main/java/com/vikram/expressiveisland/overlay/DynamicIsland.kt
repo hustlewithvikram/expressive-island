@@ -357,6 +357,11 @@ internal fun DynamicIsland(
 
         emptyPill -> 0
 
+        isCall && shownEvent?.call?.incomingExpandedLayout == true &&
+                (liveCall?.ongoing == false || shownEvent.id == -1L) &&
+                shownEvent.call.showActions && shownEvent.actions.isNotEmpty() ->
+            com.vikram.expressiveisland.overlay.contents.callIncomingExtraDp()
+
         isExpanded && (
                 systemEventType == SystemEventType.CHARGING_STARTED ||
                         systemEventType == SystemEventType.BATTERY_LOW ||
