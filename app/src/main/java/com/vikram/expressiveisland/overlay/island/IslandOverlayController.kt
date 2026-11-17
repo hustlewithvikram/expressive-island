@@ -821,7 +821,7 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeEventPreferences() = scope.launch {
-        eventPreferences.enabled.collect { eventEnabled = it }
+        eventPreferences.enabled.collect { eventEnabled = it; refreshPinnedPreview() }
     }
 
     private fun observeEventDurations() = scope.launch {
@@ -829,24 +829,24 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeEventAnimatedIcons() {
-        scope.launch { eventPreferences.animatedIcons.collect { eventAnimatedIcons = it } }
-        scope.launch { eventPreferences.animatedIconLoops.collect { eventAnimatedIconLoops = it } }
+        scope.launch { eventPreferences.animatedIcons.collect { eventAnimatedIcons = it; refreshPinnedPreview() } }
+        scope.launch { eventPreferences.animatedIconLoops.collect { eventAnimatedIconLoops = it; refreshPinnedPreview() } }
     }
 
     private fun observeEventColors() = scope.launch {
-        eventPreferences.colors.collect { eventColors = it }
+        eventPreferences.colors.collect { eventColors = it; refreshPinnedPreview() }
     }
 
     private fun observeEventDynamicColor() = scope.launch {
-        eventPreferences.dynamicColor.collect { eventDynamicColor = it }
+        eventPreferences.dynamicColor.collect { eventDynamicColor = it; refreshPinnedPreview() }
     }
 
     private fun observeEventDynamicColorRole() = scope.launch {
-        eventPreferences.dynamicColorRole.collect { eventDynamicColorRole = it }
+        eventPreferences.dynamicColorRole.collect { eventDynamicColorRole = it; refreshPinnedPreview() }
     }
 
     private fun observeEventDynamicColorOpacity() = scope.launch {
-        eventPreferences.dynamicColorOpacity.collect { eventDynamicColorOpacity = it }
+        eventPreferences.dynamicColorOpacity.collect { eventDynamicColorOpacity = it; refreshPinnedPreview() }
     }
 
     private fun observeTilePreferences() = scope.launch {
