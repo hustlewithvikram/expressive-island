@@ -213,6 +213,8 @@ data class MediaTileOptions(
     val skipStyle: MusicButtonStyle = MusicButtonStyle.DEFAULT,
     /** Look of the central play / pause button. */
     val playPauseStyle: MusicButtonStyle = MusicButtonStyle.DEFAULT,
+    /** Forces a representative visualizer in settings previews without faking a media session. */
+    val previewPlaying: Boolean = false,
 )
 
 /**
