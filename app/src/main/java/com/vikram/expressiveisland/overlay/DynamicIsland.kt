@@ -365,13 +365,6 @@ internal fun DynamicIsland(
                 shownEvent.call.showActions && shownEvent.actions.isNotEmpty() ->
             com.vikram.expressiveisland.overlay.contents.callIncomingExtraDp()
 
-        isExpanded && systemEventType == SystemEventType.WIFI_CONNECTED -> {
-            // Reserve a screen-aware content area for the Wi-Fi details card. The content itself
-            // switches to a denser, scroll-safe layout when the available height is constrained.
-            val targetHeightDp = (screenHeightDp * 0.38f).toInt().coerceIn(230, 280)
-            (targetHeightDp - dims.heightDp).coerceAtLeast(0)
-        }
-
         isExpanded && (
                 systemEventType == SystemEventType.CHARGING_STARTED ||
                         systemEventType == SystemEventType.BATTERY_LOW

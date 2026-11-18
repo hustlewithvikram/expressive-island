@@ -104,6 +104,12 @@ fun ExpandedContent(
         return
     }
 
+    // All remaining device-level events receive a purpose-built, theme-aware detail card.
+    if (systemEventType != null) {
+        SystemEventExpandedContent(type = systemEventType)
+        return
+    }
+
     // The assistant tile: icon + text response with vertical scrolling.
     if (event.assistant != null) {
         AssistantExpandedContent(
