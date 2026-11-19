@@ -241,12 +241,32 @@ private fun ProfileList(
             description = stringResource(R.string.profile_appearance_description),
         )
 
-        ThemeCard(
-            selected = theme,
-            onSelect = viewModel::setTheme,
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp)),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            ThemeCard(
+                selected = theme,
+                onSelect = viewModel::setTheme,
+                shape = RoundedCornerShape(
+                    topStart = 24.dp,
+                    topEnd = 24.dp,
+                    bottomStart = 4.dp,
+                    bottomEnd = 4.dp,
+                ),
+            )
 
-        LanguageCard()
+            LanguageCard(
+                shape = RoundedCornerShape(
+                    topStart = 4.dp,
+                    topEnd = 4.dp,
+                    bottomStart = 24.dp,
+                    bottomEnd = 24.dp,
+                ),
+            )
+        }
 
         // =====================================================================
         // BACKUP & RESTORE
@@ -271,33 +291,44 @@ private fun ProfileList(
             description = stringResource(R.string.profile_manage_description),
         )
 
-        ProfileDestinationCard(
-            icon = Icons.Rounded.Shield,
-            title = stringResource(R.string.profile_access_title),
-            description = stringResource(R.string.profile_access_description),
-            onClick = onOpenAccess,
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp)),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            ProfileDestinationCard(
+                icon = Icons.Rounded.Shield,
+                title = stringResource(R.string.profile_access_title),
+                description = stringResource(R.string.profile_access_description),
+                onClick = onOpenAccess,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+            )
 
-        ProfileDestinationCard(
-            icon = Icons.Rounded.Layers,
-            title = stringResource(R.string.profile_testing_title),
-            description = stringResource(R.string.profile_testing_description),
-            onClick = onOpenTestingTriggers,
-        )
+            ProfileDestinationCard(
+                icon = Icons.Rounded.Layers,
+                title = stringResource(R.string.profile_testing_title),
+                description = stringResource(R.string.profile_testing_description),
+                onClick = onOpenTestingTriggers,
+                shape = RoundedCornerShape(4.dp),
+            )
 
-        ProfileDestinationCard(
-            icon = Icons.Rounded.Info,
-            title = stringResource(R.string.profile_about_title),
-            description = stringResource(R.string.profile_about_description),
-            onClick = onOpenAbout,
-        )
+            ProfileDestinationCard(
+                icon = Icons.Rounded.Info,
+                title = stringResource(R.string.profile_about_title),
+                description = stringResource(R.string.profile_about_description),
+                onClick = onOpenAbout,
+                shape = RoundedCornerShape(4.dp),
+            )
 
-        ProfileDestinationCard(
-            icon = Icons.Rounded.SystemUpdate,
-            title = stringResource(R.string.profile_updater_title),
-            description = stringResource(R.string.profile_updater_description),
-            onClick = onOpenUpdates,
-        )
+            ProfileDestinationCard(
+                icon = Icons.Rounded.SystemUpdate,
+                title = stringResource(R.string.profile_updater_title),
+                description = stringResource(R.string.profile_updater_description),
+                onClick = onOpenUpdates,
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp, topStart = 4.dp, topEnd = 4.dp),
+            )
+        }
 
         Spacer(
             modifier = Modifier.height(8.dp),
@@ -307,7 +338,7 @@ private fun ProfileList(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LanguageCard() {
+private fun LanguageCard(shape: RoundedCornerShape) {
     var sheetVisible by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     val appLocales = AppCompatDelegate.getApplicationLocales().toLanguageTags()
@@ -339,7 +370,7 @@ private fun LanguageCard() {
             searchQuery = ""
             sheetVisible = true
         },
-        shape = RoundedCornerShape(22.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
@@ -499,11 +530,12 @@ private fun ProfileDestinationCard(
     title: String,
     description: String,
     onClick: () -> Unit,
+    shape: RoundedCornerShape,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
-        shape = RoundedCornerShape(22.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
@@ -1405,10 +1437,11 @@ private fun AppHeader() {
 private fun ThemeCard(
     selected: AppTheme,
     onSelect: (AppTheme) -> Unit,
+    shape: RoundedCornerShape,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(
             containerColor =
                 MaterialTheme.colorScheme.surface,
