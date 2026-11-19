@@ -707,6 +707,18 @@ class SystemEventMonitor(private val context: Context) {
             status == BatteryManager.BATTERY_STATUS_CHARGING ||
                     status == BatteryManager.BATTERY_STATUS_FULL
 
+        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100)
+        val percentage = if (level >= 0 && scale > 0) {
+            ((level * 100f) / scale).roundToInt().coerceIn(0, 100)
+        } else {
+            batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                ?.takeIf { it in 0..100 }
+        }
+        if (percentage != null) {
+            BatteryBus.update(BatteryState(percentage = percentage, isCharging = isCharging))
+        }
+
         if (!isCharging) {
             wasBatteryFull = false
             ChargingBus.update(null)
@@ -718,31 +730,6 @@ class SystemEventMonitor(private val context: Context) {
             emit(SystemEventType.CHARGING_COMPLETE)
         } else if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
             wasBatteryFull = false
-        }
-
-        val level = intent.getIntExtra(
-            BatteryManager.EXTRA_LEVEL,
-            -1,
-        )
-
-        val scale = intent.getIntExtra(
-            BatteryManager.EXTRA_SCALE,
-            100,
-        )
-
-        val percentage = if (level >= 0 && scale > 0) {
-            ((level * 100f) / scale).roundToInt()
-        } else {
-            -1
-        }
-
-        if (percentage >= 0) {
-            BatteryBus.update(
-                BatteryState(
-                    percentage = percentage.coerceIn(0, 100),
-                    isCharging = isCharging,
-                )
-            )
         }
 
         val batteryPercent =
