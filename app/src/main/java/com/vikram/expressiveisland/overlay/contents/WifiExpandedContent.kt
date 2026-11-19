@@ -17,6 +17,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,10 +32,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.Icon
 import com.vikram.expressiveisland.core.WifiState
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -50,9 +55,11 @@ fun WifiConnectedExpandedContent(
     notchBottomInsetDp: Int,
 ) {
     val colors = MaterialTheme.colorScheme
+    val foreground = Color.White
+    val secondaryForeground = Color.White.copy(alpha = 0.76f)
     val networkName = wifi.ssid
         ?.takeUnless { it.isBlank() || it.equals("<unknown ssid>", true) || it == "0x" }
-        ?: "Wi-Fi network"
+        ?: "NekoNet_5G"
     val band = wifi.band
     val security = wifi.security
 
@@ -78,6 +85,7 @@ fun WifiConnectedExpandedContent(
         val contentHeight = (maxHeight - notchBottomInsetDp.coerceAtLeast(0).dp).coerceAtLeast(0.dp)
         val compact = contentHeight < 76.dp
         val veryCompact = contentHeight < 52.dp
+        val speedSurface = colors.primary
 
         Column(modifier = Modifier.fillMaxSize()) {
             Spacer(Modifier.height(notchBottomInsetDp.coerceAtLeast(0).dp))
@@ -93,21 +101,22 @@ fun WifiConnectedExpandedContent(
                 ) {
                     Text(
                         text = "Connected to",
-                        color = colors.onSurfaceVariant,
+                        color = secondaryForeground,
                         fontSize = if (veryCompact) 9.sp else 10.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
                     )
                     Text(
                         text = networkName,
-                        color = colors.onSurface,
+                        color = foreground,
                         fontSize = if (veryCompact) 13.sp else if (compact) 15.sp else 17.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+
                     val hasMetadata = band != null || security != null || wifi.signalLevel != null
-                    if (hasMetadata) {
+                    if (hasMetadata && !veryCompact) {
                         Row(
                             modifier = Modifier.padding(top = if (compact) 4.dp else 7.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -115,38 +124,59 @@ fun WifiConnectedExpandedContent(
                         ) {
                             var hasPrevious = false
                             if (band != null) {
-                                Text(band, color = colors.onSurfaceVariant, fontSize = if (compact) 9.sp else 10.sp, maxLines = 1)
+                                MetadataText(band, compact)
                                 hasPrevious = true
                             }
                             if (security != null) {
-                                if (hasPrevious) MetaDot()
-                                Text(security, color = colors.onSurfaceVariant, fontSize = if (compact) 9.sp else 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                if (hasPrevious) MetadataDot()
+                                MetadataText(security, compact)
                                 hasPrevious = true
                             }
                             if (wifi.signalLevel != null) {
-                                if (hasPrevious) MetaDot()
-                                WifiSignalBars(level = wifi.signalLevel, modifier = Modifier.size(width = 24.dp, height = 15.dp))
+                                if (hasPrevious) MetadataDot()
+                                WifiSignalBars(
+                                    level = wifi.signalLevel,
+                                    modifier = Modifier.size(width = 24.dp, height = 15.dp),
+                                    activeColor = foreground,
+                                    inactiveColor = foreground.copy(alpha = 0.28f),
+                                )
                             }
                         }
+                    } else if (band != null && veryCompact) {
+                        Text(band, color = secondaryForeground, fontSize = 9.sp, maxLines = 1)
                     }
                 }
 
+                // A vertically grouped pair of Material 3-style tonal action segments.
                 Surface(
-                    modifier = Modifier.width(if (compact) 88.dp else 100.dp).fillMaxHeight(if (compact) 0.82f else 0.78f),
+                    modifier = Modifier.width(if (compact) 104.dp else 116.dp)
+                        .fillMaxHeight(if (compact) 0.88f else 0.84f),
                     shape = RoundedCornerShape(22.dp),
-                    color = colors.surfaceContainerHigh,
-                    tonalElevation = 1.dp,
+                    color = speedSurface,
+                    tonalElevation = 2.dp,
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 9.dp, vertical = if (compact) 5.dp else 8.dp),
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = if (compact) 5.dp else 8.dp),
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        SpeedValue(value = formatRate(traffic.txRateBytesPerSecond), arrow = "↑", label = "UP", compact = compact, tint = colors.primary)
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = if (compact) 3.dp else 5.dp)
-                                .height(1.dp).background(colors.outlineVariant.copy(alpha = 0.65f)),
+                        SpeedGroupItem(
+                            value = formatRate(traffic.txRateBytesPerSecond),
+                            label = "UPLOAD",
+                            icon = Icons.Filled.Upload,
+                            compact = compact,
+                            foreground = Color.White,
                         )
-                        SpeedValue(value = formatRate(traffic.rxRateBytesPerSecond), arrow = "↓", label = "DOWN", compact = compact, tint = colors.onSurface)
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = if (compact) 4.dp else 6.dp)
+                                .height(1.dp).background(Color.White.copy(alpha = 0.28f)),
+                        )
+                        SpeedGroupItem(
+                            value = formatRate(traffic.rxRateBytesPerSecond),
+                            label = "DOWNLOAD",
+                            icon = Icons.Filled.Download,
+                            compact = compact,
+                            foreground = Color.White,
+                        )
                     }
                 }
             }
@@ -155,41 +185,82 @@ fun WifiConnectedExpandedContent(
 }
 
 @Composable
-private fun SpeedValue(
+private fun MetadataText(value: String, compact: Boolean) {
+    Text(
+        text = value,
+        color = Color.White.copy(alpha = 0.82f),
+        fontSize = if (compact) 9.sp else 10.sp,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+@Composable
+private fun SpeedGroupItem(
     value: String,
-    arrow: String,
     label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     compact: Boolean,
-    tint: androidx.compose.ui.graphics.Color,
+    foreground: Color,
 ) {
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(text = value, color = tint, fontSize = if (compact) 11.sp else 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-            Text(text = arrow, color = tint, fontSize = if (compact) 13.sp else 15.sp, fontWeight = FontWeight.Bold)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = foreground,
+            modifier = Modifier.size(if (compact) 17.dp else 19.dp),
+        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(
+                text = value,
+                color = foreground,
+                fontSize = if (compact) 11.sp else 13.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false,
+            )
+            Text(
+                text = label,
+                color = foreground.copy(alpha = 0.76f),
+                fontSize = 7.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.8.sp,
+                maxLines = 1,
+            )
         }
-        Text(text = label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 7.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp)
     }
 }
 
 @Composable
-private fun MetaDot() {
-    Box(modifier = Modifier.size(3.dp).clip(CircleShape).background(MaterialTheme.colorScheme.outline))
+private fun MetadataDot() {
+    Box(
+        modifier = Modifier.size(3.dp).clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.72f)),
+    )
 }
 
 @Composable
-private fun WifiSignalBars(level: Int?, modifier: Modifier = Modifier) {
-    val colors = MaterialTheme.colorScheme
+private fun WifiSignalBars(
+    level: Int?,
+    modifier: Modifier = Modifier,
+    activeColor: Color,
+    inactiveColor: Color,
+) {
     val active = (level ?: 0).coerceIn(0, 4)
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
         repeat(4) { index ->
             Box(
                 modifier = Modifier.weight(1f).height((4 + index * 3).dp)
                     .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
-                    .background(if (index < active) colors.primary else colors.outlineVariant.copy(alpha = 0.65f)),
+                    .background(if (index < active) activeColor else inactiveColor),
             )
         }
     }
