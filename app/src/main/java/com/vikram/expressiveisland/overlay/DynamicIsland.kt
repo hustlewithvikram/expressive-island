@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -391,6 +392,15 @@ internal fun DynamicIsland(
     }
 
     val present = event != null || showsWhenEmpty || cameraHoleQuickActions
+    // Keep the shell mounted while it travels from its expanded geometry back into the
+    // camera-notch footprint. This is separate from reveal: reveal controls visibility,
+    // while shellProgress controls the actual size/position/corner morph.
+    val shellProgress by animateFloatAsState(
+        targetValue = if (present) 1f else 0f,
+        animationSpec = motion.shrink(),
+        label = "islandExitShrink",
+    )
+    val exitProgress = 1f - shellProgress
     val reveal = remember { Animatable(0f) }
     val arrivalIconAlpha = remember { Animatable(1f) }
     val arrivalScaleX = remember { Animatable(1f) }
@@ -529,9 +539,20 @@ internal fun DynamicIsland(
     )
 
     val dotDp = collapsed.heightDp.dp
-    val shellMorph = if (emptyPill && isExpanded) centerMorph else 1f
+    val shellMorph = when {
+        isStickToCamera -> 1f
+        emptyPill && isExpanded -> centerMorph
+        else -> shellProgress
+    }
     val revealWidth = lerpDp(dotDp, width, shellMorph)
     val revealHeight = lerpDp(dotDp, height, shellMorph)
+    // During exit, the expanded shell returns to the configured collapsed anchor as well as
+    // shrinking. Without this interpolation it can shrink in place, away from the camera notch.
+    val shellOffsetX = if (isStickToCamera) 0.dp
+        else lerpDp(collapsed.offsetXDp.dp, offsetX, shellMorph)
+    val shellOffsetY = if (isStickToCamera) 0.dp
+        else lerpDp(collapsed.offsetYDp.dp, offsetY, shellMorph)
+    val exitBlur = (exitProgress.coerceIn(0f, 1f) * 2f).dp
     val dotCorner = dotDp / 2
     val revealTopLeft = lerpDp(dotCorner, topLeft, shellMorph)
     val revealTopRight = lerpDp(dotCorner, topRight, shellMorph)
@@ -633,8 +654,8 @@ internal fun DynamicIsland(
                     .align(if (isStickToCamera) stickAlignment else Alignment.TopCenter)
                     .padding(start = stickPaddingStart, end = stickPaddingEnd)
                     .offset(
-                        x = if (isStickToCamera) 0.dp else offsetX,
-                        y = if (isStickToCamera) 0.dp else offsetY
+                        x = shellOffsetX,
+                        y = shellOffsetY
                     ),
             ) {
                 if (present || reveal.value > 0f || assistantTapEnabled) {
@@ -642,6 +663,7 @@ internal fun DynamicIsland(
                         modifier = Modifier
                             .width(revealWidth)
                             .height(revealHeight)
+                            .blur(exitBlur)
                             .graphicsLayer {
                                 val extraPx = PressExpandDp.toPx() * 2f * pressExpand.value
                                 val widen =
@@ -660,7 +682,12 @@ internal fun DynamicIsland(
                                     .coerceIn(-7f, 7f)
                                 translationX = dismissOffsetX.value
                                 val revealAlpha = (reveal.value / 0.2f).coerceIn(0f, 1f)
-                                alpha = (1f - travel * 0.75f).coerceIn(0.25f, 1f) * revealAlpha
+                                // A small 5% opacity remnant at the end of the geometric
+                                // collapse softens the disappearance; revealAlpha then removes
+                                // the retained surface after the shrink animation completes.
+                                val collapseAlpha = 1f - exitProgress.coerceIn(0f, 1f) * 0.95f
+                                alpha = (1f - travel * 0.75f).coerceIn(0.25f, 1f) *
+                                    collapseAlpha * revealAlpha
                             }
                             .pointerInput(
                                 forcedExpanded,
