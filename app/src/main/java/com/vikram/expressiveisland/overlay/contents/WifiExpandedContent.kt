@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Icon
+import com.vikram.expressiveisland.BuildConfig
 import com.vikram.expressiveisland.core.WifiState
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -61,7 +62,7 @@ fun WifiConnectedExpandedContent(
     val secondaryForeground = Color.White.copy(alpha = 0.76f)
     val networkName = wifi.ssid
         ?.takeUnless { it.isBlank() || it.equals("<unknown ssid>", true) || it == "0x" }
-        ?: "Wi-Fi connected"
+        ?: if (BuildConfig.DEBUG) "NekoNet_5G" else "Wi-Fi connected"
     val band = wifi.band
     val security = wifi.security
     val signalLevel = wifi.signalLevel ?: wifi.rssi?.takeIf { it != -127 }?.let { WifiManager.calculateSignalLevel(it, 5) }
