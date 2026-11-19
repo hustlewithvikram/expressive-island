@@ -118,7 +118,6 @@ class SystemEventMonitor(private val context: Context) {
     private val wifiNetworks = mutableSetOf<Network>()
     private val bluetoothDevices = mutableSetOf<String>()
     private val headphoneDevices = mutableSetOf<Int>()
-    private var audioOutputSnapshot: Set<String>? = null
     @Volatile
     private var isLowBatteryState = false
 
@@ -300,7 +299,6 @@ class SystemEventMonitor(private val context: Context) {
                         // Bluetooth connection events are handled by BLUETOOTH_CONNECTED; avoid a duplicate headphone event.
                     }
                 }
-            updateAudioOutputDevices()
         }
 
         override fun onAudioDevicesRemoved(
@@ -313,7 +311,6 @@ class SystemEventMonitor(private val context: Context) {
                 HeadphonesBus.update(null)
                 // The Bluetooth disconnect event is the single source of truth for this accessory.
             }
-            updateAudioOutputDevices()
         }
     }
 
@@ -622,7 +619,6 @@ class SystemEventMonitor(private val context: Context) {
             ContextCompat.RECEIVER_EXPORTED,
         )
 
-        audioOutputSnapshot = currentAudioOutputSnapshot()
         audioManager?.registerAudioDeviceCallback(
             audioDeviceCallback,
             mainHandler,
@@ -672,7 +668,6 @@ class SystemEventMonitor(private val context: Context) {
         audioManager?.unregisterAudioDeviceCallback(
             audioDeviceCallback
         )
-        audioOutputSnapshot = null
         context.contentResolver.unregisterContentObserver(locationObserver)
         context.contentResolver.unregisterContentObserver(autoRotateObserver)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -689,7 +684,6 @@ class SystemEventMonitor(private val context: Context) {
         lastPublishedVpnState = false
         wifiNetworks.clear()
         bluetoothDevices.clear()
-        headphoneDevices.clear()
         wasHotspotEnabled = false
 
         ChargingBus.update(null)
@@ -858,20 +852,6 @@ class SystemEventMonitor(private val context: Context) {
         val previous = thermalWarningActive
         thermalWarningActive = warning
         if (previous != null && previous != warning) emit(if (warning) SystemEventType.THERMAL_WARNING else SystemEventType.THERMAL_NORMAL)
-    }
-
-    private fun currentAudioOutputSnapshot(): Set<String>? = runCatching {
-        audioManager?.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
-            ?.filter { it.isSink }
-            ?.map { "${it.id}:${it.type}" }
-            ?.toSet()
-    }.getOrNull()
-
-    private fun updateAudioOutputDevices() {
-        val current = currentAudioOutputSnapshot() ?: return
-        val previous = audioOutputSnapshot
-        audioOutputSnapshot = current
-        if (previous != null && previous != current) emit(SystemEventType.AUDIO_OUTPUT_CHANGED)
     }
 
     private fun updateFlashlightState(enabled: Boolean) {
