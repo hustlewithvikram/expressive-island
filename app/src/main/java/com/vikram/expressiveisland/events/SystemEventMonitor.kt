@@ -29,6 +29,8 @@ import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
+import com.vikram.expressiveisland.BuildConfig
+import com.vikram.expressiveisland.permissions.Permissions
 import com.vikram.expressiveisland.core.ChargingBus
 import com.vikram.expressiveisland.core.ChargingState
 import com.vikram.expressiveisland.core.CutoutSignal
@@ -217,6 +219,10 @@ class SystemEventMonitor(private val context: Context) {
                         }
                     }
                 }
+
+                WIFI_DETAILS_REFRESH_ACTION,
+                WifiManager.NETWORK_STATE_CHANGED_ACTION,
+                WifiManager.WIFI_STATE_CHANGED_ACTION -> refreshCurrentWifiState()
 
                 Intent.ACTION_AIRPLANE_MODE_CHANGED -> updateAirplaneModeState()
                 NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED -> updateDndState()
@@ -537,6 +543,15 @@ class SystemEventMonitor(private val context: Context) {
     }
 
     private fun resolveWifiSsid(wifiInfo: WifiInfo): String? {
+        if (!Permissions.isWifiSsidAccessGranted(context)) {
+            Log.i("SystemEventMonitor", "Wi-Fi SSID permission not granted")
+            return null
+        }
+        if (!Permissions.isLocationEnabledForWifi(context)) {
+            Log.i("SystemEventMonitor", "Location services are disabled; Android may redact Wi-Fi SSID")
+            return null
+        }
+
         fun normalize(value: String?): String? {
             return value
                 ?.removePrefix("\"")
@@ -552,7 +567,22 @@ class SystemEventMonitor(private val context: Context) {
 
         // Prefer WifiManager's active connection as a second source. Android itself
         // redacts this value when the required runtime permissions are missing.
-        return normalize(runCatching { wifiManager?.connectionInfo?.ssid }.getOrNull())
+        normalize(runCatching { wifiManager?.connectionInfo?.ssid }.getOrNull())?.let { return it }
+
+        // Last compatibility fallback for older releases/OEM implementations.
+        return normalize(runCatching {
+            @Suppress("DEPRECATION")
+            wifiManager?.connectionInfo?.ssid
+        }.getOrNull())
+    }
+
+    private fun refreshCurrentWifiState() {
+        val connectivity = connectivityManager ?: return
+        val network = connectivity.activeNetwork ?: return
+        val capabilities = runCatching { connectivity.getNetworkCapabilities(network) }.getOrNull()
+        if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) {
+            updateWifiState(network, capabilities)
+        }
     }
 
     private fun isAdbConnection(intent: Intent): Boolean {
@@ -893,6 +923,9 @@ class SystemEventMonitor(private val context: Context) {
             addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
 
             addAction("android.net.wifi.WIFI_AP_STATE_CHANGED")
+            addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
+            addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
+            addAction(WIFI_DETAILS_REFRESH_ACTION)
 
             addAction(AudioManager.RINGER_MODE_CHANGED_ACTION)
             addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)
@@ -918,6 +951,8 @@ class SystemEventMonitor(private val context: Context) {
         get() = type in HEADPHONE_TYPES
 
     private companion object {
+        const val WIFI_DETAILS_REFRESH_ACTION =
+            "com.vikram.expressiveisland.action.REFRESH_WIFI_DETAILS"
 
         val HEADPHONE_TYPES = setOf(
             AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
