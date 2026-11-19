@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -67,8 +68,9 @@ fun ChargingExpandedContent(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.Bottom,
             ) {
+                Box(modifier = Modifier.fillMaxWidth().heightIn(min = viewportHeight)) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
                     shape = RoundedCornerShape(if (compact) 20.dp else 24.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                     tonalElevation = 1.dp,
@@ -137,6 +139,7 @@ fun ChargingExpandedContent(
                         }
                     }
                 }
+                }
             }
         }
     }
@@ -168,8 +171,9 @@ fun BatteryLowExpandedContent(
                 modifier = Modifier.fillMaxWidth().height(viewportHeight).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.Bottom,
             ) {
+                Box(modifier = Modifier.fillMaxWidth().heightIn(min = viewportHeight)) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
                     shape = RoundedCornerShape(22.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                     tonalElevation = 1.dp,
@@ -193,6 +197,7 @@ fun BatteryLowExpandedContent(
                             trackColor = contentColor.copy(alpha = 0.12f),
                         )
                     }
+                }
                 }
             }
         }
