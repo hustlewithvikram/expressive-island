@@ -70,10 +70,7 @@ fun WifiConnectedExpandedContent(
     // totals without polling from the system-event monitor or introducing another global bus.
     var traffic by remember(wifi.ssid) {
         mutableStateOf(
-            WifiTrafficSnapshot(
-                rxBytes = TrafficStats.getTotalRxBytes().takeIf { it >= 0L } ?: 0L,
-                txBytes = TrafficStats.getTotalTxBytes().takeIf { it >= 0L } ?: 0L,
-            )
+            WifiTrafficSnapshot(rxBytes = 0L, txBytes = 0L)
         )
     }
     LaunchedEffect(wifi.ssid) {
