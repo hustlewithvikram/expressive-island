@@ -116,27 +116,31 @@ fun WifiConnectedExpandedContent(
                         overflow = TextOverflow.Ellipsis,
                     )
 
-                    Row(
-                        modifier = Modifier.padding(top = if (compact) 3.dp else 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                    ) {
-                        if (band != null) MetadataText(band, compact)
-                        if (band != null && security != null) MetadataDot()
-                        if (security != null) MetadataText(security, compact)
-                        if (band != null || security != null) MetadataDot()
-                        Icon(
-                            imageVector = Icons.Filled.Wifi,
-                            contentDescription = "Wi-Fi signal strength",
-                            tint = foreground,
-                            modifier = Modifier.size(if (compact) 13.dp else 15.dp),
-                        )
-                        Text(
-                            text = "${(wifi.signalLevel ?: 0).coerceIn(0, 4)}/4",
-                            color = secondaryForeground,
-                            fontSize = if (compact) 8.sp else 9.sp,
-                            maxLines = 1,
-                        )
+                    if (band != null || security != null || wifi.signalLevel != null) {
+                        Row(
+                            modifier = Modifier.padding(top = if (compact) 3.dp else 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            if (band != null) MetadataText(band, compact)
+                            if (band != null && security != null) MetadataDot()
+                            if (security != null) MetadataText(security, compact)
+                            if ((band != null || security != null) && wifi.signalLevel != null) MetadataDot()
+                            if (wifi.signalLevel != null) {
+                                Icon(
+                                    imageVector = Icons.Filled.Wifi,
+                                    contentDescription = "Wi-Fi signal strength",
+                                    tint = foreground,
+                                    modifier = Modifier.size(if (compact) 13.dp else 15.dp),
+                                )
+                                Text(
+                                    text = "${wifi.signalLevel.coerceIn(0, 4)}/4",
+                                    color = secondaryForeground,
+                                    fontSize = if (compact) 8.sp else 9.sp,
+                                    maxLines = 1,
+                                )
+                            }
+                        }
                     }
                 }
 
