@@ -472,6 +472,7 @@ class SystemEventMonitor(private val context: Context) {
                     linkSpeedMbps = linkSpeed,
                     frequencyMhz = frequency,
                     ipAddress = ipAddress,
+                    security = resolveWifiSecurity(wifiInfo),
                     isMetered = !capabilities.hasCapability(
                         NetworkCapabilities.NET_CAPABILITY_NOT_METERED
                     ),
@@ -493,6 +494,24 @@ class SystemEventMonitor(private val context: Context) {
             )
         } catch (e: Exception) {
             Log.w("SystemEventMonitor", "Unable to read Wi-Fi state", e)
+        }
+    }
+
+    /**
+     * WifiInfo exposes the negotiated security type on Android 12+. Older releases do not
+     * expose it through the same public API, so the UI does not guess a security label.
+     */
+    private fun resolveWifiSecurity(wifiInfo: WifiInfo): String? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
+        val type = runCatching { wifiInfo.currentSecurityType }.getOrNull() ?: return null
+        return when (type) {
+            0 -> "Open"
+            1 -> "WEP"
+            2, 3 -> "WPA/WPA2"
+            4, 5, 9 -> "WPA3"
+            6 -> "OWE"
+            7, 8 -> "WAPI"
+            else -> null
         }
     }
 
