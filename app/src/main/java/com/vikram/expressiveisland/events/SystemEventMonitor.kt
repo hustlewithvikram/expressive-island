@@ -437,7 +437,9 @@ class SystemEventMonitor(private val context: Context) {
                 !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
             ) return
 
-            val wifiInfo = capabilities.transportInfo as? WifiInfo ?: return
+            val wifiInfo = capabilities.transportInfo as? WifiInfo
+                ?: runCatching { wifiManager?.connectionInfo }.getOrNull()
+                ?: return
             val linkProperties = runCatching {
                 connectivity.getLinkProperties(network)
             }.getOrNull()
@@ -548,17 +550,9 @@ class SystemEventMonitor(private val context: Context) {
 
         normalize(runCatching { wifiInfo.ssid }.getOrNull())?.let { return it }
 
-        val hasLocationPermission =
-            ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.ACCESS_FINE_LOCATION,
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-        if (!hasLocationPermission || !isLocationEnabled()) return null
-
-        return normalize(
-            runCatching { wifiManager?.connectionInfo?.ssid }.getOrNull()
-        )
+        // Prefer WifiManager's active connection as a second source. Android itself
+        // redacts this value when the required runtime permissions are missing.
+        return normalize(runCatching { wifiManager?.connectionInfo?.ssid }.getOrNull())
     }
 
     private fun isAdbConnection(intent: Intent): Boolean {
