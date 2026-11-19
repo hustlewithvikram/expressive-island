@@ -1,6 +1,7 @@
 package com.vikram.expressiveisland.overlay.contents
 
 import android.net.TrafficStats
+import android.net.wifi.WifiManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,6 +64,7 @@ fun WifiConnectedExpandedContent(
         ?: "NekoNet_5G"
     val band = wifi.band
     val security = wifi.security
+    val signalLevel = wifi.signalLevel ?: wifi.rssi?.takeIf { it != -127 }?.let { WifiManager.calculateSignalLevel(it, 5) }
 
     var traffic by remember(wifi.ssid) { mutableStateOf(WifiTrafficSnapshot()) }
     LaunchedEffect(wifi.ssid) {
@@ -93,12 +95,12 @@ fun WifiConnectedExpandedContent(
             Row(
                 modifier = Modifier.fillMaxWidth().weight(1f)
                     .padding(top = if (compact) 1.dp else 5.dp, bottom = 7.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Column(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
-                    verticalArrangement = Arrangement.Center,
+                    verticalArrangement = Arrangement.Top,
                 ) {
                     Text(
                         text = "Connected to",
@@ -116,7 +118,7 @@ fun WifiConnectedExpandedContent(
                         overflow = TextOverflow.Ellipsis,
                     )
 
-                    if (band != null || security != null || wifi.signalLevel != null) {
+                    if (true) {
                         Row(
                             modifier = Modifier.padding(top = if (compact) 3.dp else 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -125,8 +127,8 @@ fun WifiConnectedExpandedContent(
                             if (band != null) MetadataText(band, compact)
                             if (band != null && security != null) MetadataDot()
                             if (security != null) MetadataText(security, compact)
-                            if ((band != null || security != null) && wifi.signalLevel != null) MetadataDot()
-                            if (wifi.signalLevel != null) {
+                            if ((band != null || security != null) && signalLevel != null) MetadataDot()
+                            if (signalLevel != null) {
                                 Icon(
                                     imageVector = Icons.Filled.Wifi,
                                     contentDescription = "Wi-Fi signal strength",
@@ -134,7 +136,7 @@ fun WifiConnectedExpandedContent(
                                     modifier = Modifier.size(if (compact) 13.dp else 15.dp),
                                 )
                                 Text(
-                                    text = "${wifi.signalLevel.coerceIn(0, 4)}/4",
+                                    text = "${signalLevel.coerceIn(0, 4)}/4",
                                     color = secondaryForeground,
                                     fontSize = if (compact) 8.sp else 9.sp,
                                     maxLines = 1,
@@ -159,9 +161,7 @@ fun WifiConnectedExpandedContent(
                         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                             SpeedGroupItem(
                                 value = formatRate(traffic.txRateBytesPerSecond),
-                                label = "UPLOAD",
                                 icon = Icons.Filled.Upload,
-                                compact = true,
                                 foreground = Color.White,
                             )
                         }
@@ -172,9 +172,7 @@ fun WifiConnectedExpandedContent(
                         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                             SpeedGroupItem(
                                 value = formatRate(traffic.rxRateBytesPerSecond),
-                                label = "DOWNLOAD",
                                 icon = Icons.Filled.Download,
-                                compact = true,
                                 foreground = Color.White,
                             )
                         }
@@ -199,9 +197,7 @@ private fun MetadataText(value: String, compact: Boolean) {
 @Composable
 private fun SpeedGroupItem(
     value: String,
-    label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    compact: Boolean,
     foreground: Color,
 ) {
     Row(
@@ -209,30 +205,8 @@ private fun SpeedGroupItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = foreground,
-            modifier = Modifier.size(if (compact) 17.dp else 19.dp),
-        )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Text(
-                text = value,
-                color = foreground,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                softWrap = false,
-            )
-            Text(
-                text = label,
-                color = foreground.copy(alpha = 0.76f),
-                fontSize = 6.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.8.sp,
-                maxLines = 1,
-            )
-        }
+        Icon(imageVector = icon, contentDescription = null, tint = foreground, modifier = Modifier.size(18.dp))
+        Text(text = value, color = foreground, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
     }
 }
 
