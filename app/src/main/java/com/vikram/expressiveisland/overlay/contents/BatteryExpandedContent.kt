@@ -41,6 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.core.ChargingState
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.overlay.formatChargingTime
