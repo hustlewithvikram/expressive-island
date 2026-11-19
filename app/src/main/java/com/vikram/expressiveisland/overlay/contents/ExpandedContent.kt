@@ -74,6 +74,7 @@ fun ExpandedContent(
         ChargingExpandedContent(
             charging = chargingState,
             appearance = appearance,
+            notchBottomInsetDp = notchBottomInsetDp,
         )
         return
     }
