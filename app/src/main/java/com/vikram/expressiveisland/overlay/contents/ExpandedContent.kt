@@ -112,6 +112,9 @@ fun ExpandedContent(
             deviceName = currentHeadphonesState?.name,
             deviceType = currentHeadphonesState?.type,
             notchBottomInsetDp = notchBottomInsetDp,
+            leftBattery = currentHeadphonesState?.leftBattery,
+            rightBattery = currentHeadphonesState?.rightBattery,
+            caseBattery = currentHeadphonesState?.caseBattery,
         )
         return
     }
