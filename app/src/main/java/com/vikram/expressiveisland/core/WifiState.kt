@@ -12,6 +12,7 @@ data class WifiState(
     val frequencyMhz: Int?,
     val ipAddress: String?,
     val isMetered: Boolean?,
+    val security: String? = null,
 ) {
     val band: String?
         get() = when {
