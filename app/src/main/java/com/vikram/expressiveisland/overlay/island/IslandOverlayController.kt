@@ -120,7 +120,6 @@ val DEFAULT_SATELLITE_POSITION = SatellitePosition.RIGHT
 /** Inactive system states that only need a brief pill, never an expanded detail surface. */
 private val PILL_ONLY_SYSTEM_EVENTS = setOf(
     SystemEventType.WIFI_DISCONNECTED,
-    SystemEventType.HEADPHONES_DISCONNECTED,
     SystemEventType.USB_UNMOUNTED,
     SystemEventType.VPN_DISCONNECTED,
     SystemEventType.ADB_DISCONNECTED,
@@ -3132,12 +3131,6 @@ class IslandOverlayController(private val context: Context) {
                 incomingType == SystemEventType.WIFI_CONNECTED ||
                         incomingType == SystemEventType.WIFI_DISCONNECTED
 
-            SystemEventType.HEADPHONES_CONNECTED,
-            SystemEventType.HEADPHONES_DISCONNECTED,
-                ->
-                incomingType == SystemEventType.HEADPHONES_CONNECTED ||
-                        incomingType == SystemEventType.HEADPHONES_DISCONNECTED
-
             SystemEventType.USB_MOUNTED,
             SystemEventType.USB_UNMOUNTED,
                 ->
@@ -3227,7 +3220,6 @@ class IslandOverlayController(private val context: Context) {
             SystemEventType.THERMAL_WARNING,
             SystemEventType.THERMAL_NORMAL,
                 -> incomingType == SystemEventType.THERMAL_WARNING || incomingType == SystemEventType.THERMAL_NORMAL
-            SystemEventType.AUDIO_OUTPUT_CHANGED -> incomingType == SystemEventType.AUDIO_OUTPUT_CHANGED
 
             SystemEventType.RINGER_NORMAL,
             SystemEventType.RINGER_VIBRATE,
@@ -3253,9 +3245,6 @@ class IslandOverlayController(private val context: Context) {
 
             SystemEventType.BLUETOOTH_CONNECTED,
             SystemEventType.BLUETOOTH_DISCONNECTED,
-
-            SystemEventType.HEADPHONES_CONNECTED,
-            SystemEventType.HEADPHONES_DISCONNECTED,
 
             SystemEventType.USB_MOUNTED,
             SystemEventType.USB_UNMOUNTED,
@@ -3285,7 +3274,6 @@ class IslandOverlayController(private val context: Context) {
             SystemEventType.AUTO_ROTATE_DISABLED,
             SystemEventType.THERMAL_WARNING,
             SystemEventType.THERMAL_NORMAL,
-            SystemEventType.AUDIO_OUTPUT_CHANGED,
                 -> false
 
             else -> true
