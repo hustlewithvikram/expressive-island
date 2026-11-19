@@ -2825,11 +2825,12 @@ class IslandOverlayController(private val context: Context) {
             }
         }
         if (promoteSatelliteCollapsed()) return
-        if (currentSystemEventType == SystemEventType.CHARGING_STARTED) {
-            ChargingBus.clearPreview()
-        }
+        val dismissedChargingEvent = event?.systemEventType == SystemEventType.CHARGING_STARTED
         val returnToLive = livePillToReturnTo() != null
         currentEvent.value = null
+        if (dismissedChargingEvent && event != null) {
+            clearChargingPreviewAfterCollapse(event.id)
+        }
         syncWindowSize()
         if (returnToLive) {
             dismissJob = scope.launch {
@@ -2956,11 +2957,7 @@ class IslandOverlayController(private val context: Context) {
                 return@launch
             }
             if (promoteSatelliteCollapsed()) return@launch
-            // Keep demo battery data alive through the complete shrink animation. Clearing it
-            // earlier makes ExpandedContent fall back to the generic legacy battery card.
-            if (currentSystemEventType == SystemEventType.CHARGING_STARTED) {
-                ChargingBus.clearPreview()
-            }
+            val dismissedChargingEvent = currentSystemEventType == SystemEventType.CHARGING_STARTED
             if (currentEvent.value?.assistant?.interactivePanel == true &&
                 assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
                 assistantSettings.manualAutoHideEnabled
@@ -2991,7 +2988,27 @@ class IslandOverlayController(private val context: Context) {
             }
             currentDeadlineMs = null
             currentSystemEventType = null
+            if (dismissedChargingEvent) {
+                clearChargingPreviewAfterCollapse(scheduledEventId)
+            }
             syncWindowSize()
+        }
+    }
+
+    /**
+     * Keep the demo state available while Compose animates the expanded island back to its pill.
+     * Clearing it sooner makes the still-mounted expanded content fall back to the generic card.
+     */
+    private fun clearChargingPreviewAfterCollapse(dismissedEventId: Long) {
+        scope.launch {
+            delay(WINDOW_SHRINK_DELAY_MS)
+            val activeEvent = currentEvent.value
+            if (
+                activeEvent?.id != dismissedEventId &&
+                activeEvent?.systemEventType != SystemEventType.CHARGING_STARTED
+            ) {
+                ChargingBus.clearPreview()
+            }
         }
     }
 
