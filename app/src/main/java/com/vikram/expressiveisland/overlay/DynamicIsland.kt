@@ -219,6 +219,8 @@ internal fun DynamicIsland(
 
     val shownEvent = lastEvent
     val chargingState by ChargingBus.state.collectAsStateWithLifecycle()
+    val chargingPreviewState by ChargingBus.previewState.collectAsStateWithLifecycle()
+    val displayedChargingState = chargingPreviewState ?: chargingState
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
     val mediaActive = shownEvent?.media != null
     val emptyPill = event == null && (showsWhenEmpty || cameraHoleQuickActions)
@@ -913,7 +915,7 @@ internal fun DynamicIsland(
                                         ExpandedContent(
                                             event = e,
                                             systemEventType = systemEventType,
-                                            chargingState = chargingState,
+                                            chargingState = displayedChargingState,
                                             showActions = showActions,
                                             appearance = appearance,
                                             collapsedHeightDp = collapsed.heightDp,
