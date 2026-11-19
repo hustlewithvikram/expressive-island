@@ -29,7 +29,6 @@ import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
-import com.vikram.expressiveisland.BuildConfig
 import com.vikram.expressiveisland.permissions.Permissions
 import com.vikram.expressiveisland.core.ChargingBus
 import com.vikram.expressiveisland.core.ChargingState
