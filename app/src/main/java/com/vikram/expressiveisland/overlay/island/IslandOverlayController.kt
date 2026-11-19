@@ -38,6 +38,7 @@ import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.core.CenterShortcutExecutor
+import com.vikram.expressiveisland.core.ChargingBus
 import com.vikram.expressiveisland.core.CutoutSignal
 import com.vikram.expressiveisland.core.AssistantInteractionMode
 import com.vikram.expressiveisland.core.DynamicTile
@@ -2263,6 +2264,12 @@ class IslandOverlayController(private val context: Context) {
             }
 
             currentDeadlineMs = null
+            if (
+                currentSystemEventType == SystemEventType.CHARGING_STARTED &&
+                incomingSystemEventType != SystemEventType.CHARGING_STARTED
+            ) {
+                ChargingBus.clearPreview()
+            }
             currentSystemEventType = incomingSystemEventType
 
             forcedExpanded.value =
@@ -2818,6 +2825,9 @@ class IslandOverlayController(private val context: Context) {
             }
         }
         if (promoteSatelliteCollapsed()) return
+        if (currentSystemEventType == SystemEventType.CHARGING_STARTED) {
+            ChargingBus.clearPreview()
+        }
         val returnToLive = livePillToReturnTo() != null
         currentEvent.value = null
         syncWindowSize()
@@ -2946,6 +2956,11 @@ class IslandOverlayController(private val context: Context) {
                 return@launch
             }
             if (promoteSatelliteCollapsed()) return@launch
+            // Keep demo battery data alive through the complete shrink animation. Clearing it
+            // earlier makes ExpandedContent fall back to the generic legacy battery card.
+            if (currentSystemEventType == SystemEventType.CHARGING_STARTED) {
+                ChargingBus.clearPreview()
+            }
             if (currentEvent.value?.assistant?.interactivePanel == true &&
                 assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
                 assistantSettings.manualAutoHideEnabled
