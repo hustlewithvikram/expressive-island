@@ -40,7 +40,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,8 +66,6 @@ import com.vikram.expressiveisland.ui.screen.AdjustableSlider
 import com.vikram.expressiveisland.ui.screen.EventIconThumbnail
 import com.vikram.expressiveisland.ui.screen.MaterialIconPickerSheet
 import com.vikram.expressiveisland.ui.screen.SettingsToggleCard
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /**
@@ -83,7 +80,6 @@ internal fun EventDetailScreen(
     contentPadding: PaddingValues,
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val customIcons by viewModel.customIcons.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.eventDynamicColor.collectAsStateWithLifecycle()
     val dynamicColorRole by viewModel.eventDynamicColorRole.collectAsStateWithLifecycle()
@@ -210,10 +206,6 @@ internal fun EventDetailScreen(
                                             timeToFullMs = demoEtaMs,
                                         )
                                     )
-                                    scope.launch {
-                                        delay((durationSeconds * 1_000L).toLong() + 5_000L)
-                                        ChargingBus.clearPreview()
-                                    }
                                 }
                             }
                             IslandEventBus.emit(CutoutSignal.System(type))
