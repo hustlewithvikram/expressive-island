@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -115,35 +116,27 @@ fun WifiConnectedExpandedContent(
                         overflow = TextOverflow.Ellipsis,
                     )
 
-                    val hasMetadata = band != null || security != null || wifi.signalLevel != null
-                    if (hasMetadata && !veryCompact) {
-                        Row(
-                            modifier = Modifier.padding(top = if (compact) 4.dp else 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
-                        ) {
-                            var hasPrevious = false
-                            if (band != null) {
-                                MetadataText(band, compact)
-                                hasPrevious = true
-                            }
-                            if (security != null) {
-                                if (hasPrevious) MetadataDot()
-                                MetadataText(security, compact)
-                                hasPrevious = true
-                            }
-                            if (wifi.signalLevel != null) {
-                                if (hasPrevious) MetadataDot()
-                                WifiSignalBars(
-                                    level = wifi.signalLevel,
-                                    modifier = Modifier.size(width = 24.dp, height = 15.dp),
-                                    activeColor = foreground,
-                                    inactiveColor = foreground.copy(alpha = 0.28f),
-                                )
-                            }
-                        }
-                    } else if (band != null && veryCompact) {
-                        Text(band, color = secondaryForeground, fontSize = 9.sp, maxLines = 1)
+                    Row(
+                        modifier = Modifier.padding(top = if (compact) 3.dp else 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        if (band != null) MetadataText(band, compact)
+                        if (band != null && security != null) MetadataDot()
+                        if (security != null) MetadataText(security, compact)
+                        if (band != null || security != null) MetadataDot()
+                        Icon(
+                            imageVector = Icons.Filled.Wifi,
+                            contentDescription = "Wi-Fi signal strength",
+                            tint = foreground,
+                            modifier = Modifier.size(if (compact) 13.dp else 15.dp),
+                        )
+                        Text(
+                            text = "${(wifi.signalLevel ?: 0).coerceIn(0, 4)}/4",
+                            color = secondaryForeground,
+                            fontSize = if (compact) 8.sp else 9.sp,
+                            maxLines = 1,
+                        )
                     }
                 }
 
@@ -156,27 +149,31 @@ fun WifiConnectedExpandedContent(
                     tonalElevation = 2.dp,
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = if (compact) 5.dp else 8.dp),
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 9.dp, vertical = 4.dp),
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        SpeedGroupItem(
-                            value = formatRate(traffic.txRateBytesPerSecond),
-                            label = "UPLOAD",
-                            icon = Icons.Filled.Upload,
-                            compact = compact,
-                            foreground = Color.White,
-                        )
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            SpeedGroupItem(
+                                value = formatRate(traffic.txRateBytesPerSecond),
+                                label = "UPLOAD",
+                                icon = Icons.Filled.Upload,
+                                compact = true,
+                                foreground = Color.White,
+                            )
+                        }
                         Box(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = if (compact) 4.dp else 6.dp)
-                                .height(1.dp).background(Color.White.copy(alpha = 0.28f)),
+                            modifier = Modifier.fillMaxWidth().height(1.dp)
+                                .background(Color.White.copy(alpha = 0.28f)),
                         )
-                        SpeedGroupItem(
-                            value = formatRate(traffic.rxRateBytesPerSecond),
-                            label = "DOWNLOAD",
-                            icon = Icons.Filled.Download,
-                            compact = compact,
-                            foreground = Color.White,
-                        )
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            SpeedGroupItem(
+                                value = formatRate(traffic.rxRateBytesPerSecond),
+                                label = "DOWNLOAD",
+                                icon = Icons.Filled.Download,
+                                compact = true,
+                                foreground = Color.White,
+                            )
+                        }
                     }
                 }
             }
@@ -218,7 +215,7 @@ private fun SpeedGroupItem(
             Text(
                 text = value,
                 color = foreground,
-                fontSize = if (compact) 11.sp else 13.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 softWrap = false,
@@ -226,7 +223,7 @@ private fun SpeedGroupItem(
             Text(
                 text = label,
                 color = foreground.copy(alpha = 0.76f),
-                fontSize = 7.sp,
+                fontSize = 6.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 0.8.sp,
                 maxLines = 1,
