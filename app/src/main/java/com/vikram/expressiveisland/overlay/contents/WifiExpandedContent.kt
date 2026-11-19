@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -52,8 +53,8 @@ fun WifiConnectedExpandedContent(
     val networkName = wifi.ssid
         ?.takeUnless { it.isBlank() || it.equals("<unknown ssid>", true) || it == "0x" }
         ?: "Wi-Fi network"
-    val band = wifi.band ?: "Frequency unavailable"
-    val security = wifi.security ?: "Security unavailable"
+    val band = wifi.band
+    val security = wifi.security
 
     var traffic by remember(wifi.ssid) { mutableStateOf(WifiTrafficSnapshot()) }
     LaunchedEffect(wifi.ssid) {
@@ -105,20 +106,28 @@ fun WifiConnectedExpandedContent(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    if (!veryCompact) {
+                    val hasMetadata = band != null || security != null || wifi.signalLevel != null
+                    if (hasMetadata) {
                         Row(
                             modifier = Modifier.padding(top = if (compact) 4.dp else 7.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(5.dp),
                         ) {
-                            Text(band, color = colors.onSurfaceVariant, fontSize = if (compact) 9.sp else 10.sp, maxLines = 1)
-                            MetaDot()
-                            Text(security, color = colors.onSurfaceVariant, fontSize = if (compact) 9.sp else 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            MetaDot()
-                            WifiSignalBars(level = wifi.signalLevel, modifier = Modifier.size(width = 24.dp, height = 15.dp))
+                            var hasPrevious = false
+                            if (band != null) {
+                                Text(band, color = colors.onSurfaceVariant, fontSize = if (compact) 9.sp else 10.sp, maxLines = 1)
+                                hasPrevious = true
+                            }
+                            if (security != null) {
+                                if (hasPrevious) MetaDot()
+                                Text(security, color = colors.onSurfaceVariant, fontSize = if (compact) 9.sp else 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                hasPrevious = true
+                            }
+                            if (wifi.signalLevel != null) {
+                                if (hasPrevious) MetaDot()
+                                WifiSignalBars(level = wifi.signalLevel, modifier = Modifier.size(width = 24.dp, height = 15.dp))
+                            }
                         }
-                    } else {
-                        Text(band, color = colors.onSurfaceVariant, fontSize = 9.sp, maxLines = 1)
                     }
                 }
 
