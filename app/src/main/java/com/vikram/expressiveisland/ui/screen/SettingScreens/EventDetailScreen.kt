@@ -1,6 +1,8 @@
 package com.vikram.expressiveisland.ui.screen
 
+import android.content.Context
 import android.content.Intent
+import android.os.BatteryManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -38,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +51,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
+import com.vikram.expressiveisland.core.ChargingBus
+import com.vikram.expressiveisland.core.ChargingState
 import com.vikram.expressiveisland.core.CutoutSignal
 import com.vikram.expressiveisland.core.IslandEventBus
 import com.vikram.expressiveisland.core.SystemEventType
@@ -62,6 +67,8 @@ import com.vikram.expressiveisland.ui.screen.AdjustableSlider
 import com.vikram.expressiveisland.ui.screen.EventIconThumbnail
 import com.vikram.expressiveisland.ui.screen.MaterialIconPickerSheet
 import com.vikram.expressiveisland.ui.screen.SettingsToggleCard
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /**
@@ -76,6 +83,7 @@ internal fun EventDetailScreen(
     contentPadding: PaddingValues,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val customIcons by viewModel.customIcons.collectAsStateWithLifecycle()
     val dynamicColor by viewModel.eventDynamicColor.collectAsStateWithLifecycle()
     val dynamicColorRole by viewModel.eventDynamicColorRole.collectAsStateWithLifecycle()
@@ -174,7 +182,42 @@ internal fun EventDetailScreen(
                         )
                     }
                     FilledTonalButton(
-                        onClick = { IslandEventBus.emit(CutoutSignal.System(type)) },
+                        onClick = {
+                            if (type == SystemEventType.CHARGING_STARTED) {
+                                val liveCharging = ChargingBus.state.value
+                                if (liveCharging?.isCharging == true) {
+                                    ChargingBus.clearPreview()
+                                } else {
+                                    // A settings test must preview the redesigned charging tile even
+                                    // when the phone is unplugged. Use the real battery percentage and
+                                    // a clearly demo-only charge-time estimate.
+                                    val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+                                    val currentPercent = batteryManager
+                                        .getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                                        .coerceIn(0, 100)
+                                    val demoEtaMs = (100 - currentPercent)
+                                        .coerceAtLeast(1)
+                                        .toLong() * 60_000L
+                                    ChargingBus.showPreview(
+                                        ChargingState(
+                                            batteryPercent = currentPercent,
+                                            isCharging = true,
+                                            pluggedType = 0,
+                                            voltageMv = null,
+                                            currentUa = null,
+                                            powerWatts = null,
+                                            temperatureTenthsC = null,
+                                            timeToFullMs = demoEtaMs,
+                                        )
+                                    )
+                                    scope.launch {
+                                        delay((durationSeconds * 1_000L).toLong() + 5_000L)
+                                        ChargingBus.clearPreview()
+                                    }
+                                }
+                            }
+                            IslandEventBus.emit(CutoutSignal.System(type))
+                        },
                     ) {
                         Icon(imageVector = Icons.Rounded.PlayArrow, contentDescription = null)
                         Text(
