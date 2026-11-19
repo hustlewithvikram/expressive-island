@@ -2057,11 +2057,31 @@ class IslandOverlayController(private val context: Context) {
             // "Normal only": this app's pill has no expanded state at all. Suppressing auto-expand
             // here keeps the window from ever being sized for it; the flag carried on the event is
             // what stops a tap toggling it open (and opens the app instead) — see [IslandEvent.normalOnly].
-            // Wi-Fi disconnect is a pill-only system event. Use IslandEvent.normalOnly,
-            // the same path as Apps > Normal only, so DynamicIsland never creates an expanded
-            // surface or accepts a tap-to-expand gesture for this event.
-            val normalOnly = signal.sourcePackage() in normalOnlyApps ||
-                    (signal as? CutoutSignal.System)?.type == SystemEventType.WIFI_DISCONNECTED
+            // Inactive / disconnected system states are pill-only: they are useful as a
+            // brief transition, but have no extra details worth opening in the expanded island.
+            // Reuse IslandEvent.normalOnly so DynamicIsland suppresses both its expanded surface
+            // and tap-to-expand handling, exactly like Apps > Normal only.
+            val pillOnlySystemEvents = setOf(
+                SystemEventType.WIFI_DISCONNECTED,
+                SystemEventType.HEADPHONES_DISCONNECTED,
+                SystemEventType.USB_UNMOUNTED,
+                SystemEventType.VPN_DISCONNECTED,
+                SystemEventType.ADB_DISCONNECTED,
+                SystemEventType.WIRELESS_DEBUGGING_DISCONNECTED,
+                SystemEventType.BLUETOOTH_DISCONNECTED,
+                SystemEventType.HOTSPOT_DISABLED,
+                SystemEventType.AIRPLANE_MODE_DISABLED,
+                SystemEventType.DND_DISABLED,
+                SystemEventType.BATTERY_SAVER_DISABLED,
+                SystemEventType.NFC_DISABLED,
+                SystemEventType.LOCATION_DISABLED,
+                SystemEventType.FLASHLIGHT_DISABLED,
+                SystemEventType.DATA_SAVER_DISABLED,
+                SystemEventType.AUTO_ROTATE_DISABLED,
+            )
+            val isPillOnlySystemEvent =
+                (signal as? CutoutSignal.System)?.type in pillOnlySystemEvents
+            val normalOnly = signal.sourcePackage() in normalOnlyApps || isPillOnlySystemEvent
             val autoExpand = if (isNoExpandLandscape || normalOnly) false else rawAutoExpand
 
             val resolvedEvent = resolver.resolve(
