@@ -2081,6 +2081,7 @@ class IslandOverlayController(private val context: Context) {
                 notificationIconStrokeColor = behaviourState.value.notificationIconStrokeColor,
                 initiallyExpanded = autoExpand,
                 normalOnly = normalOnly,
+                systemEventType = (signal as? CutoutSignal.System)?.type,
             )
 
             if (overlayHidden) {
