@@ -16,9 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Wifi
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,11 +36,10 @@ import kotlinx.coroutines.delay
 import kotlin.math.max
 
 private const val TRAFFIC_SAMPLE_INTERVAL_MS = 1_000L
-private val WIFI_NOTCH_GAP = 8.dp
 
 private data class WifiTrafficSnapshot(
-    val rxBytes: Long,
-    val txBytes: Long,
+    val rxBytes: Long = 0L,
+    val txBytes: Long = 0L,
     val rxRateBytesPerSecond: Long = 0L,
     val txRateBytesPerSecond: Long = 0L,
 )
@@ -51,28 +47,23 @@ private data class WifiTrafficSnapshot(
 @Composable
 fun WifiConnectedExpandedContent(
     wifi: WifiState,
-    collapsedHeightDp: Int,
+    notchBottomInsetDp: Int,
 ) {
     val colors = MaterialTheme.colorScheme
     val networkName = wifi.ssid
         ?.takeUnless { it.isBlank() || it.equals("<unknown ssid>", true) || it == "0x" }
         ?: "Wi-Fi network"
     val signalText = when (wifi.signalLevel?.coerceIn(0, 4)) {
-        4 -> "Excellent signal"
-        3 -> "Good signal"
-        2 -> "Fair signal"
-        1 -> "Weak signal"
-        0 -> "Very weak signal"
+        4 -> "Excellent"
+        3 -> "Good"
+        2 -> "Fair"
+        1 -> "Weak"
+        0 -> "Very weak"
         else -> "Connected"
     }
 
-    // TrafficStats is sampled once per second. Deltas provide live throughput and session
-    // totals without polling from the system-event monitor or introducing another global bus.
-    var traffic by remember(wifi.ssid) {
-        mutableStateOf(
-            WifiTrafficSnapshot(rxBytes = 0L, txBytes = 0L)
-        )
-    }
+    // Sample total device traffic once per second and show session deltas while this tile is open.
+    var traffic by remember(wifi.ssid) { mutableStateOf(WifiTrafficSnapshot()) }
     LaunchedEffect(wifi.ssid) {
         var previousRx = TrafficStats.getTotalRxBytes()
         var previousTx = TrafficStats.getTotalTxBytes()
@@ -82,80 +73,71 @@ fun WifiConnectedExpandedContent(
             delay(TRAFFIC_SAMPLE_INTERVAL_MS)
             val currentRx = TrafficStats.getTotalRxBytes()
             val currentTx = TrafficStats.getTotalTxBytes()
-            if (previousRx >= 0L && currentRx >= previousRx) {
-                val delta = currentRx - previousRx
-                sessionRx += delta
-                traffic = traffic.copy(
-                    rxBytes = sessionRx,
-                    rxRateBytesPerSecond = delta,
-                )
-            }
-            if (previousTx >= 0L && currentTx >= previousTx) {
-                val delta = currentTx - previousTx
-                sessionTx += delta
-                traffic = traffic.copy(
-                    txBytes = sessionTx,
-                    txRateBytesPerSecond = delta,
-                )
-            }
+            val rxDelta = if (previousRx >= 0L && currentRx >= previousRx) currentRx - previousRx else 0L
+            val txDelta = if (previousTx >= 0L && currentTx >= previousTx) currentTx - previousTx else 0L
+            sessionRx += rxDelta
+            sessionTx += txDelta
+            traffic = WifiTrafficSnapshot(sessionRx, sessionTx, rxDelta, txDelta)
             previousRx = currentRx
             previousTx = currentTx
         }
     }
 
+    val maxTotal = max(traffic.rxBytes, traffic.txBytes).coerceAtLeast(1L)
     val rxProgress by animateFloatAsState(
-        targetValue = traffic.rxBytes.toFloat() / max(traffic.rxBytes, traffic.txBytes).coerceAtLeast(1L),
-        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        targetValue = traffic.rxBytes.toFloat() / maxTotal,
+        animationSpec = tween(450, easing = FastOutSlowInEasing),
         label = "wifiDownloadProgress",
     )
     val txProgress by animateFloatAsState(
-        targetValue = traffic.txBytes.toFloat() / max(traffic.rxBytes, traffic.txBytes).coerceAtLeast(1L),
-        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        targetValue = traffic.txBytes.toFloat() / maxTotal,
+        animationSpec = tween(450, easing = FastOutSlowInEasing),
         label = "wifiUploadProgress",
     )
 
-    BoxWithConstraints(
+    // IMPORTANT: constraints are measured from the actual expanded surface. Reserve the
+    // notch's bottom edge using both pill and expanded offsets, then give the rest to content.
+    // A weighted viewport guarantees the content can never claim more height than remains.
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp),
     ) {
-        // The pill occupies the top part of the expanded island. Use its actual configured
-        // height, then leave a small optical gap before placing any Wi-Fi content.
-        val reservedTop = collapsedHeightDp.dp + WIFI_NOTCH_GAP
-        val contentHeight = (maxHeight - reservedTop).coerceAtLeast(0.dp)
-        val compact = contentHeight < 100.dp
-        val tiny = contentHeight < 58.dp
+        Spacer(Modifier.height(notchBottomInsetDp.coerceAtLeast(0).dp))
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(bottom = 6.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            val availableHeight = maxHeight
+            val ultraCompact = availableHeight < 48.dp
+            val compact = availableHeight < 82.dp
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            Spacer(Modifier.height(reservedTop))
-            if (contentHeight > 0.dp) {
+            if (ultraCompact) {
+                // At extremely small custom heights keep only the two live readings.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TrafficSpeed(formatRate(traffic.rxRateBytesPerSecond), "IN", true)
+                    TrafficSpeed(formatRate(traffic.txRateBytesPerSecond), "OUT", true, true)
+                }
+            } else {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(contentHeight),
-                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 7.dp),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = if (compact) 4.dp else 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        TrafficSpeed(
-                            value = formatRate(traffic.rxRateBytesPerSecond),
-                            label = "MB/S IN",
-                            compact = compact,
-                        )
-                        TrafficSpeed(
-                            value = formatRate(traffic.txRateBytesPerSecond),
-                            label = "MB/S OUT",
-                            compact = compact,
-                            alignEnd = true,
-                        )
+                        TrafficSpeed(formatRate(traffic.rxRateBytesPerSecond), "MB/S IN", compact)
+                        TrafficSpeed(formatRate(traffic.txRateBytesPerSecond), "MB/S OUT", compact, true)
                     }
-
-                    Spacer(Modifier.height(if (tiny) 4.dp else 7.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -165,44 +147,32 @@ fun WifiConnectedExpandedContent(
                             title = "DOWNLOADED",
                             value = formatBytes(traffic.rxBytes),
                             progress = rxProgress,
-                            modifier = Modifier.weight(1f),
                             compact = compact,
+                            modifier = Modifier.weight(1f),
                         )
                         TrafficTotal(
                             title = "UPLOADED",
                             value = formatBytes(traffic.txBytes),
                             progress = txProgress,
-                            modifier = Modifier.weight(1f),
                             compact = compact,
+                            modifier = Modifier.weight(1f),
                         )
                     }
 
-                    if (!compact) {
-                        Spacer(Modifier.height(5.dp))
+                    if (!compact && availableHeight >= 104.dp) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Wifi,
-                                    contentDescription = null,
-                                    tint = colors.primary,
-                                    modifier = Modifier.height(12.dp),
-                                )
-                                Text(
-                                    text = networkName,
-                                    color = colors.onSurfaceVariant,
-                                    fontSize = 9.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f, fill = false),
-                                )
-                            }
+                            Text(
+                                text = networkName,
+                                color = colors.onSurfaceVariant,
+                                fontSize = 9.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
                             Text(
                                 text = signalText,
                                 color = colors.onSurfaceVariant,
@@ -232,17 +202,18 @@ private fun TrafficSpeed(
         Text(
             text = value,
             color = colors.primary,
-            fontSize = if (compact) 20.sp else 25.sp,
-            lineHeight = if (compact) 22.sp else 27.sp,
+            fontSize = if (compact) 17.sp else 25.sp,
+            lineHeight = if (compact) 19.sp else 27.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
         )
         Text(
             text = label,
             color = colors.onSurfaceVariant,
-            fontSize = 8.sp,
+            fontSize = if (compact) 7.sp else 8.sp,
             fontWeight = FontWeight.Medium,
-            letterSpacing = 0.5.sp,
+            letterSpacing = 0.4.sp,
+            maxLines = 1,
         )
     }
 }
@@ -252,32 +223,32 @@ private fun TrafficTotal(
     title: String,
     value: String,
     progress: Float,
-    modifier: Modifier,
     compact: Boolean,
+    modifier: Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(if (compact) 3.dp else 5.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 4.dp),
     ) {
         Text(
             text = title,
             color = colors.onSurfaceVariant,
-            fontSize = 8.sp,
+            fontSize = if (compact) 7.sp else 8.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
         )
         Text(
             text = value,
             color = colors.onSurface,
-            fontSize = if (compact) 12.sp else 14.sp,
+            fontSize = if (compact) 11.sp else 14.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
         )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(if (compact) 3.dp else 4.dp)
+                .height(if (compact) 2.dp else 4.dp)
                 .clip(RoundedCornerShape(50))
                 .background(colors.surfaceContainerHighest),
         ) {
@@ -292,10 +263,8 @@ private fun TrafficTotal(
     }
 }
 
-private fun formatRate(bytesPerSecond: Long): String {
-    if (bytesPerSecond <= 0L) return "0.00"
-    return String.format(java.util.Locale.US, "%.2f", bytesPerSecond / 1_000_000.0)
-}
+private fun formatRate(bytesPerSecond: Long): String =
+    String.format(java.util.Locale.US, "%.2f", bytesPerSecond.coerceAtLeast(0L) / 1_000_000.0)
 
 private fun formatBytes(bytes: Long): String = when {
     bytes >= 1_000_000_000L -> String.format(java.util.Locale.US, "%.2f GB", bytes / 1_000_000_000.0)
