@@ -2,6 +2,9 @@ package com.vikram.expressiveisland.overlay.contents
 
 import android.content.Context
 import android.os.BatteryManager
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
