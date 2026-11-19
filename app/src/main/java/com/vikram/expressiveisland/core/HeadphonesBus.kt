@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.asStateFlow
 data class HeadphonesState(
     val name: String?,
     val type: Int,
+    val leftBattery: Int? = null,
+    val rightBattery: Int? = null,
+    val caseBattery: Int? = null,
 )
 
 object HeadphonesBus {
