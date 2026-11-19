@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.BluetoothConnected
+import androidx.compose.material.icons.rounded.ChargingCase
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.Icon
@@ -37,62 +39,61 @@ fun BluetoothConnectedExpandedContent(
     deviceName: String?,
     deviceType: Int?,
     notchBottomInsetDp: Int,
+    leftBattery: Int? = null,
+    rightBattery: Int? = null,
+    caseBattery: Int? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val name = deviceName?.takeIf { it.isNotBlank() } ?: "Bluetooth device"
     val isAudioRoute = deviceType == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
         deviceType == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
 
-    BoxWithConstraints(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
-    ) {
+    BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 14.dp)) {
         val contentHeight = (maxHeight - notchBottomInsetDp.coerceAtLeast(0).dp).coerceAtLeast(0.dp)
-        val compact = contentHeight < 100.dp
-        val veryCompact = contentHeight < 72.dp
+        val compact = contentHeight < 112.dp
+        val veryCompact = contentHeight < 78.dp
 
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
             Spacer(Modifier.height(notchBottomInsetDp.coerceAtLeast(0).dp))
             Column(
-                modifier = Modifier.fillMaxWidth().weight(1f),
+                modifier = Modifier.fillMaxWidth().weight(1f).padding(bottom = 7.dp),
                 verticalArrangement = Arrangement.Bottom,
             ) {
+                // Transparent outer surface lets the expanded island itself provide the backdrop.
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(if (compact) 20.dp else 24.dp),
-                    color = colors.surfaceContainerLow,
-                    tonalElevation = 1.dp,
+                    color = androidx.compose.ui.graphics.Color.Transparent,
+                    tonalElevation = 0.dp,
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(
+                        Modifier.fillMaxWidth().padding(
                             horizontal = if (compact) 10.dp else 13.dp,
-                            vertical = if (veryCompact) 8.dp else if (compact) 10.dp else 13.dp,
+                            vertical = if (veryCompact) 6.dp else if (compact) 8.dp else 11.dp,
                         ),
-                        verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 11.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 9.dp),
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(9.dp),
                         ) {
                             Surface(
-                                modifier = Modifier.size(if (compact) 34.dp else 42.dp),
+                                Modifier.size(if (compact) 34.dp else 42.dp),
                                 shape = CircleShape,
                                 color = colors.primaryContainer,
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
-                                        imageVector = Icons.Rounded.BluetoothConnected,
+                                        Icons.Rounded.BluetoothConnected,
                                         contentDescription = "Bluetooth connected",
                                         tint = colors.onPrimaryContainer,
                                         modifier = Modifier.size(if (compact) 19.dp else 23.dp),
                                     )
                                 }
                             }
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                            ) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(
-                                    text = "Bluetooth connected",
+                                    "Bluetooth connected",
                                     color = colors.onSurface,
                                     fontSize = if (compact) 13.sp else 15.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -100,69 +101,46 @@ fun BluetoothConnectedExpandedContent(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                                 Text(
-                                    text = name,
+                                    name,
                                     color = colors.onSurfaceVariant,
                                     fontSize = if (compact) 10.sp else 11.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = colors.secondaryContainer,
-                            ) {
+                            Surface(shape = RoundedCornerShape(50), color = colors.secondaryContainer) {
                                 Text(
-                                    text = "CONNECTED",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                    "CONNECTED",
+                                    Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                                     color = colors.onSecondaryContainer,
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
                                 )
                             }
                         }
 
-                        if (!veryCompact) {
+                        if (!veryCompact && isAudioRoute) {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                BluetoothInfoBlock(
-                                    modifier = Modifier.weight(1f),
-                                    label = "DEVICE",
-                                    value = if (isAudioRoute) "Earbuds" else "Accessory",
-                                    icon = Icons.Rounded.Headphones,
-                                    compact = compact,
-                                )
-                                BluetoothInfoBlock(
-                                    modifier = Modifier.weight(1f),
-                                    label = "LINK",
-                                    value = "Connected",
-                                    icon = Icons.Rounded.BluetoothConnected,
-                                    compact = compact,
-                                )
-                                BluetoothInfoBlock(
-                                    modifier = Modifier.weight(1f),
-                                    label = "AUDIO",
-                                    value = if (isAudioRoute) "Ready" else "Available",
-                                    icon = Icons.Rounded.MusicNote,
-                                    compact = compact,
-                                )
+                                BatteryItem("L", leftBattery, Icons.Rounded.Headphones, Modifier.weight(1f), compact)
+                                BatteryItem("R", rightBattery, Icons.Rounded.Headphones, Modifier.weight(1f), compact)
+                                BatteryItem("CASE", caseBattery, Icons.Rounded.BatteryFull, Modifier.weight(1f), compact)
+                            }
+                        } else if (!veryCompact) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                BluetoothInfoBlock("DEVICE", "Accessory", Icons.Rounded.Headphones, Modifier.weight(1f), compact)
+                                BluetoothInfoBlock("LINK", "Connected", Icons.Rounded.BluetoothConnected, Modifier.weight(1f), compact)
+                                BluetoothInfoBlock("AUDIO", "Available", Icons.Rounded.MusicNote, Modifier.weight(1f), compact)
                             }
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                modifier = Modifier.size(4.dp).clip(CircleShape)
-                                    .background(colors.primary),
-                            )
+                        if (isAudioRoute) {
                             Text(
-                                text = "A2DP • AAC",
-                                modifier = Modifier.padding(start = 6.dp),
+                                "A2DP • AAC",
+                                Modifier.align(Alignment.CenterHorizontally),
                                 color = colors.onSurfaceVariant,
                                 fontSize = if (compact) 9.sp else 10.sp,
                                 fontWeight = FontWeight.Medium,
@@ -178,44 +156,56 @@ fun BluetoothConnectedExpandedContent(
 }
 
 @Composable
-private fun BluetoothInfoBlock(
-    modifier: Modifier,
+private fun BatteryItem(
     label: String,
-    value: String,
+    percentage: Int?,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier,
     compact: Boolean,
 ) {
     val colors = MaterialTheme.colorScheme
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(15.dp),
-        color = colors.secondaryContainer.copy(alpha = 0.58f),
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.surfaceContainerHigh.copy(alpha = 0.72f))
+            .padding(horizontal = 8.dp, vertical = if (compact) 7.dp else 9.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = if (compact) 7.dp else 9.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = colors.onSecondaryContainer,
-                modifier = Modifier.size(if (compact) 15.dp else 18.dp),
-            )
+        Icon(icon, contentDescription = null, tint = colors.onSurfaceVariant, modifier = Modifier.size(15.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(label, color = colors.onSurfaceVariant, fontSize = 8.sp, fontWeight = FontWeight.Medium, maxLines = 1)
             Text(
-                text = label,
-                color = colors.onSecondaryContainer.copy(alpha = 0.72f),
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-            )
-            Text(
-                text = value,
-                color = colors.onSecondaryContainer,
-                fontSize = if (compact) 9.sp else 10.sp,
+                percentage?.takeIf { it in 0..100 }?.let { "$it%" } ?: "—",
+                color = colors.onSurface,
+                fontSize = if (compact) 10.sp else 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
+        }
+    }
+}
+
+@Composable
+private fun BluetoothInfoBlock(
+    label: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier,
+    compact: Boolean,
+) {
+    val colors = MaterialTheme.colorScheme
+    Surface(modifier, shape = RoundedCornerShape(15.dp), color = colors.secondaryContainer.copy(alpha = 0.58f)) {
+        Row(
+            Modifier.padding(horizontal = 8.dp, vertical = if (compact) 7.dp else 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(icon, null, tint = colors.onSecondaryContainer, modifier = Modifier.size(15.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(label, color = colors.onSecondaryContainer.copy(alpha = 0.72f), fontSize = 8.sp, maxLines = 1)
+                Text(value, color = colors.onSecondaryContainer, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
     }
 }
