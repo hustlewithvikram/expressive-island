@@ -2379,7 +2379,10 @@ class IslandOverlayController(private val context: Context) {
         val isNoExpandLandscape = currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
                 (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
                         behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
-        val targetExpanded = if (isNoExpandLandscape) false else isExpanded
+        val targetExpanded = if (
+            isNoExpandLandscape ||
+            currentSystemEventType == SystemEventType.WIFI_DISCONNECTED
+        ) false else isExpanded
         // The resting empty pill's "center" has no event to dismiss — just keep the window and
         // touchable region sized to whatever it's showing (collapsed pill vs. expanded grid).
         if (currentEvent.value == null) {
