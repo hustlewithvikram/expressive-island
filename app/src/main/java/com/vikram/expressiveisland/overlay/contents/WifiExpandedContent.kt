@@ -123,7 +123,7 @@ fun WifiConnectedExpandedContent(
         // height, then leave a small optical gap before placing any Wi-Fi content.
         val reservedTop = collapsedHeightDp.dp + WIFI_NOTCH_GAP
         val contentHeight = (maxHeight - reservedTop).coerceAtLeast(0.dp)
-        val compact = contentHeight < 78.dp
+        val compact = contentHeight < 100.dp
         val tiny = contentHeight < 58.dp
 
         Column(modifier = Modifier.fillMaxSize()) {
@@ -177,7 +177,7 @@ fun WifiConnectedExpandedContent(
                         )
                     }
 
-                    if (!tiny) {
+                    if (!compact) {
                         Spacer(Modifier.height(5.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
