@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -117,16 +118,18 @@ fun WifiConnectedExpandedContent(
                         .fillMaxWidth()
                         .padding(horizontal = 5.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     TrafficSpeed(
                         value = formatRate(traffic.rxRateBytesPerSecond),
                         compact = compact,
+                        modifier = Modifier.weight(1f),
                     )
                     TrafficSpeed(
                         value = formatRate(traffic.txRateBytesPerSecond),
                         compact = compact,
                         alignEnd = true,
+                        modifier = Modifier.weight(1f),
                     )
                 }
 
@@ -195,18 +198,31 @@ private fun TrafficSpeed(
     value: String,
     compact: Boolean,
     alignEnd: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
-    Column(
-        horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(1.dp),
+    // Each speed gets exactly half of the available row width. Without a weighted
+    // constraint, long values can measure wider than the island and get clipped.
+    BoxWithConstraints(
+        modifier = modifier,
+        contentAlignment = if (alignEnd) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
+        val fittedFontSize = when {
+            maxWidth < 92.dp -> 15.sp
+            maxWidth < 116.dp -> 17.sp
+            compact -> 18.sp
+            else -> 22.sp
+        }
         Text(
             text = value,
+            modifier = Modifier.fillMaxWidth(),
             color = WifiTextPrimary,
-            fontSize = if (compact) 19.sp else 25.sp,
-            lineHeight = if (compact) 21.sp else 27.sp,
+            fontSize = fittedFontSize,
+            lineHeight = fittedFontSize * 1.12f,
             fontWeight = FontWeight.Bold,
+            textAlign = if (alignEnd) TextAlign.End else TextAlign.Start,
             maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Clip,
         )
     }
 }
@@ -255,8 +271,15 @@ private fun TrafficTotal(
     }
 }
 
-private fun formatRate(bytesPerSecond: Long): String =
-    String.format(java.util.Locale.US, "%.2f", bytesPerSecond.coerceAtLeast(0L) / 1_000_000.0)
+private fun formatRate(bytesPerSecond: Long): String {
+    val mbPerSecond = bytesPerSecond.coerceAtLeast(0L) / 1_000_000.0
+    val decimals = when {
+        mbPerSecond >= 100.0 -> 0
+        mbPerSecond >= 10.0 -> 1
+        else -> 2
+    }
+    return String.format(java.util.Locale.US, "%." + decimals + "f", mbPerSecond)
+}
 
 private fun formatBytes(bytes: Long): String = when {
     bytes >= 1_000_000_000L -> String.format(java.util.Locale.US, "%.2f GB", bytes / 1_000_000_000.0)
