@@ -165,7 +165,7 @@ fun BatteryLowExpandedContent(
         Column(modifier = Modifier.fillMaxSize()) {
             Spacer(Modifier.height(BatteryNotchSafeSpace))
             Column(
-                modifier = Modifier.fillMaxWidth().height(viewportHeight),
+                modifier = Modifier.fillMaxWidth().height(viewportHeight).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.Bottom,
             ) {
                 Surface(
