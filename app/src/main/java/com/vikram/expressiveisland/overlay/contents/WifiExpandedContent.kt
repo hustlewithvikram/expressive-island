@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -85,7 +86,11 @@ fun WifiConnectedExpandedContent(wifi: WifiState) {
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.Bottom,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(if (veryCompact) 5.dp else 7.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = viewportHeight),
+                    verticalArrangement = Arrangement.Bottom,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(if (veryCompact) 5.dp else 7.dp)) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(if (compact) 19.dp else 23.dp),
@@ -185,6 +190,7 @@ fun WifiConnectedExpandedContent(wifi: WifiState) {
                                 }
                             }
                         }
+                    }
                     }
                 }
             }
