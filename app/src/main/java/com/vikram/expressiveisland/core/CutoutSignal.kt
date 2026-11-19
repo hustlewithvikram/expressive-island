@@ -193,12 +193,6 @@ enum class SystemEventType(
     BATTERY_LOW(Icons.Rounded.BatteryAlert, R.string.event_battery_low, 0xFFF87171),
     WIFI_CONNECTED(Icons.Rounded.Wifi, R.string.event_wifi_connected, 0xFF60A5FA),
     WIFI_DISCONNECTED(Icons.Rounded.WifiOff, R.string.event_wifi_disconnected, 0xFF94A3B8),
-    HEADPHONES_CONNECTED(Icons.Rounded.Headphones, R.string.event_headphones_connected, 0xFFA78BFA),
-    HEADPHONES_DISCONNECTED(
-        Icons.Rounded.HeadsetOff,
-        R.string.event_headphones_disconnected,
-        0xFF94A3B8
-    ),
     USB_MOUNTED(Icons.Rounded.Usb, R.string.event_usb_mounted, 0xFF38BDF8),
     USB_UNMOUNTED(Icons.Rounded.Usb, R.string.event_usb_unmounted, 0xFF94A3B8),
     DEVICE_LOCKED(Icons.Rounded.Lock, R.string.event_device_locked, 0xFFFACC15),
@@ -265,5 +259,4 @@ enum class SystemEventType(
     AUTO_ROTATE_DISABLED(Icons.Rounded.ScreenLockRotation, R.string.event_auto_rotate_disabled, 0xFF94A3B8),
     THERMAL_WARNING(Icons.Rounded.DeviceThermostat, R.string.event_thermal_warning, 0xFFF87171),
     THERMAL_NORMAL(Icons.Rounded.DeviceThermostat, R.string.event_thermal_normal, 0xFF4ADE80),
-    AUDIO_OUTPUT_CHANGED(Icons.Rounded.Speaker, R.string.event_audio_output_changed, 0xFFA78BFA),
 }
