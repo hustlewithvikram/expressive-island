@@ -798,6 +798,9 @@ private fun rememberPermissionStatus(): ProfilePermissionStatus {
             LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
                     status = read()
+                    context.sendBroadcast(
+                        Intent("com.vikram.expressiveisland.action.REFRESH_WIFI_DETAILS"),
+                    )
                 }
             }
 
@@ -879,7 +882,7 @@ private fun AccessSection(
         )
 
         PermissionGroupCard(
-            position = GroupPosition.Last,
+            position = GroupPosition.Middle,
             icon = Icons.Rounded.BatterySaver,
             title = stringResource(
                 R.string.perm_battery_title,
