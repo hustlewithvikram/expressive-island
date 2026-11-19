@@ -218,6 +218,9 @@ internal fun DynamicIsland(
     }
 
     val shownEvent = lastEvent
+    // Keep the system-event renderer selected for the entire exit transition, even after
+    // the controller clears its active event type as part of dismissing the pill.
+    val displayedSystemEventType = systemEventType ?: shownEvent?.systemEventType
     val chargingState by ChargingBus.state.collectAsStateWithLifecycle()
     val chargingPreviewState by ChargingBus.previewState.collectAsStateWithLifecycle()
     val displayedChargingState = chargingPreviewState ?: chargingState
@@ -353,7 +356,7 @@ internal fun DynamicIsland(
 
     // System events always use the exact expanded height configured in Size & Position.
     // Their content must adapt inside that fixed shell instead of growing it per event type.
-    val heightBonus = if (systemEventType != null) {
+    val heightBonus = if (displayedSystemEventType != null) {
         0
     } else {
         when {
@@ -914,7 +917,7 @@ internal fun DynamicIsland(
                                     } else if (showExpanded) {
                                         ExpandedContent(
                                             event = e,
-                                            systemEventType = systemEventType,
+                                            systemEventType = displayedSystemEventType,
                                             chargingState = displayedChargingState,
                                             showActions = showActions,
                                             appearance = appearance,
