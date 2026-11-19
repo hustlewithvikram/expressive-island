@@ -32,6 +32,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -663,8 +664,11 @@ internal fun DynamicIsland(
                         modifier = Modifier
                             .width(revealWidth)
                             .height(revealHeight)
-                            .blur(exitBlur)
+                            .blur(exitBlur, edgeTreatment = BlurredEdgeTreatment.Unbounded)
                             .graphicsLayer {
+                                // The spring overshoot intentionally extends beyond the pill's resting
+                                // bounds. Do not clip that transformed layer to its rectangular layout.
+                                clip = false
                                 val extraPx = PressExpandDp.toPx() * 2f * pressExpand.value
                                 val widen =
                                     if (size.width > 0f) (size.width + extraPx) / size.width else 1f
