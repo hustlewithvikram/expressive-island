@@ -37,11 +37,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
-import com.airbnb.lottie.compose.rememberLottieComposition
-import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.core.ChargingState
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.overlay.formatChargingTime
@@ -54,7 +49,6 @@ fun ChargingExpandedContent(
     appearance: AppearanceSettings,
     notchBottomInsetDp: Int,
 ) {
-    val composition = rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.charging)).value
     val percent = charging.batteryPercent.coerceIn(0, 100)
     val progress by animateFloatAsState(
         targetValue = percent / 100f,
@@ -93,20 +87,12 @@ fun ChargingExpandedContent(
                             modifier = Modifier.size(if (compact) 27.dp else 34.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            if (composition != null) {
-                                LottieAnimation(
-                                    composition = composition,
-                                    iterations = LottieConstants.IterateForever,
-                                    modifier = Modifier.size(if (compact) 27.dp else 34.dp),
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Rounded.GraphicEq,
-                                    contentDescription = "Listening",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(if (compact) 23.dp else 29.dp),
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Rounded.GraphicEq,
+                                contentDescription = "Listening",
+                                tint = Color.White,
+                                modifier = Modifier.size(if (compact) 23.dp else 29.dp),
+                            )
                         }
                         Spacer(Modifier.size(9.dp))
                         Text(
