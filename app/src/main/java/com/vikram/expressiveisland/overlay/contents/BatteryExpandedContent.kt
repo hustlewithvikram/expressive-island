@@ -23,7 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatteryAlert
-import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
@@ -61,113 +60,122 @@ fun ChargingExpandedContent(
         animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing),
         label = "chargingBatteryProgress",
     )
-    val eta = charging.timeToFullMinutes?.let(::formatChargingTime) ?: "Calculating"
+    // Keep the duration only: the expanded island does not need the redundant "to full / left" copy.
+    val eta = charging.timeToFullMinutes
+        ?.let(::formatChargingTime)
+        ?.replace(Regex("\\s*to full", RegexOption.IGNORE_CASE), "")
+        ?: "Calculating"
     val inset = notchBottomInsetDp.coerceAtLeast(0).dp
 
-    // The configured expanded shell is the viewport. Reserve the camera cutout area,
-    // then fit the complete charging composition in the remaining height without a card.
+    // The camera/notch band is excluded first. All three content rows then share only the
+    // remaining configured expanded height, so the progress bar can never be pushed outside it.
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val contentHeight = (maxHeight - inset).coerceAtLeast(0.dp)
-        val compact = contentHeight < 76.dp
-        val veryCompact = contentHeight < 52.dp
+        val ultraCompact = contentHeight < 48.dp
+        val compact = contentHeight < 68.dp
+
+        val headerHeight = when {
+            ultraCompact -> 14.dp
+            compact -> 17.dp
+            else -> 30.dp
+        }
+        val metricHeight = when {
+            ultraCompact -> 22.dp
+            compact -> 25.dp
+            else -> 38.dp
+        }
+        val barHeight = when {
+            ultraCompact -> 6.dp
+            compact -> 8.dp
+            else -> 30.dp
+        }
+        val iconSize = when {
+            ultraCompact -> 14.dp
+            compact -> 17.dp
+            else -> 28.dp
+        }
+        val percentSize = when {
+            ultraCompact -> 20.sp
+            compact -> 23.sp
+            else -> 34.sp
+        }
+        val etaSize = when {
+            ultraCompact -> 16.sp
+            compact -> 19.sp
+            else -> 29.sp
+        }
 
         Column(modifier = Modifier.fillMaxSize()) {
             Spacer(Modifier.height(inset))
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(contentHeight),
-                contentAlignment = Alignment.Center,
+                    .height(contentHeight)
+                    .padding(horizontal = if (compact) 12.dp else 14.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 9.dp),
+                        .height(headerHeight),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier.size(if (compact) 27.dp else 34.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.GraphicEq,
-                                contentDescription = "Listening",
-                                tint = Color.White,
-                                modifier = Modifier.size(if (compact) 23.dp else 29.dp),
-                            )
-                        }
-                        Spacer(Modifier.size(9.dp))
-                        Text(
-                            text = "Charging...",
-                            color = Color.White.copy(alpha = 0.76f),
-                            fontSize = if (compact) 10.sp else 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1,
-                        )
-                        if (veryCompact) {
-                            Text(
-                                text = "$percent%",
-                                color = Color.White.copy(alpha = 0.92f),
-                                fontSize = if (compact) 15.sp else 18.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
+                    Icon(
+                        imageVector = Icons.Rounded.Bolt,
+                        contentDescription = "Charging",
+                        tint = Color.White,
+                        modifier = Modifier.size(iconSize),
+                    )
+                    Spacer(Modifier.size(if (compact) 7.dp else 9.dp))
+                    Text(
+                        text = "Charging...",
+                        color = Color.White.copy(alpha = 0.78f),
+                        fontSize = if (compact) 10.sp else 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                    )
+                }
 
-                    if (!veryCompact) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Bottom,
-                        ) {
-                            Text(
-                                text = "$percent%",
-                                color = Color.White,
-                                fontSize = if (compact) 27.sp else 34.sp,
-                                lineHeight = if (compact) 29.sp else 37.sp,
-                                fontWeight = FontWeight.Light,
-                            )
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Text(
-                                    text = eta,
-                                    color = Color.White,
-                                    fontSize = if (compact) 22.sp else 30.sp,
-                                    lineHeight = if (compact) 25.sp else 33.sp,
-                                    fontWeight = FontWeight.Light,
-                                    maxLines = 1,
-                                )
-                                Spacer(Modifier.size(4.dp))
-                                Text(
-                                    text = "left",
-                                    color = Color.White.copy(alpha = 0.68f),
-                                    fontSize = if (compact) 10.sp else 12.sp,
-                                    modifier = Modifier.padding(bottom = 3.dp),
-                                )
-                            }
-                        }
-                    }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(metricHeight),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "$percent%",
+                        color = Color.White,
+                        fontSize = percentSize,
+                        lineHeight = percentSize,
+                        fontWeight = FontWeight.Light,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = eta,
+                        color = Color.White,
+                        fontSize = etaSize,
+                        lineHeight = etaSize,
+                        fontWeight = FontWeight.Light,
+                        maxLines = 1,
+                    )
+                }
 
-                    // Wide, edge-to-edge battery progress bar; intentionally no enclosing card.
+                // The progress track is always laid out as the final row inside the fixed viewport.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(barHeight)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.White.copy(alpha = 0.15f)),
+                ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(if (compact) 15.dp else 32.dp)
+                            .fillMaxWidth(progress.coerceIn(0f, 1f))
+                            .fillMaxSize()
                             .clip(RoundedCornerShape(50))
-                            .background(Color.White.copy(alpha = 0.13f)),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(progress.coerceIn(0f, 1f))
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(50))
-                                .background(Color(0xFF43D9E8)),
-                        )
-                    }
+                            .background(Color(0xFF43D9E8)),
+                    )
                 }
             }
         }
