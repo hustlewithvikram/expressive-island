@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,6 +36,10 @@ import kotlinx.coroutines.delay
 import kotlin.math.max
 
 private const val TRAFFIC_SAMPLE_INTERVAL_MS = 1_000L
+private val WifiTextPrimary = Color(0xFFF5F5F5)
+private val WifiTextSecondary = Color(0xFFBDBDBD)
+private val WifiTrack = Color(0xFF353535)
+private val WifiProgress = Color(0xFFE8E8E8)
 
 private data class WifiTrafficSnapshot(
     val rxBytes: Long = 0L,
@@ -49,20 +53,10 @@ fun WifiConnectedExpandedContent(
     wifi: WifiState,
     notchBottomInsetDp: Int,
 ) {
-    val colors = MaterialTheme.colorScheme
     val networkName = wifi.ssid
         ?.takeUnless { it.isBlank() || it.equals("<unknown ssid>", true) || it == "0x" }
-        ?: "Wi-Fi network"
-    val signalText = when (wifi.signalLevel?.coerceIn(0, 4)) {
-        4 -> "Excellent"
-        3 -> "Good"
-        2 -> "Fair"
-        1 -> "Weak"
-        0 -> "Very weak"
-        else -> "Connected"
-    }
+        ?: "Wi-Fi connected"
 
-    // Sample total device traffic once per second and show session deltas while this tile is open.
     var traffic by remember(wifi.ssid) { mutableStateOf(WifiTrafficSnapshot()) }
     LaunchedEffect(wifi.ssid) {
         var previousRx = TrafficStats.getTotalRxBytes()
@@ -95,50 +89,82 @@ fun WifiConnectedExpandedContent(
         label = "wifiUploadProgress",
     )
 
-    // IMPORTANT: constraints are measured from the actual expanded surface. Reserve the
-    // notch's bottom edge using both pill and expanded offsets, then give the rest to content.
-    // A weighted viewport guarantees the content can never claim more height than remains.
+    // Keep the top camera/notch exclusion outside the measured content viewport.
+    // The weighted viewport below is strictly bounded by the configured expanded height.
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 14.dp),
     ) {
         Spacer(Modifier.height(notchBottomInsetDp.coerceAtLeast(0).dp))
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(bottom = 6.dp),
+                .padding(top = 2.dp, bottom = 7.dp),
             contentAlignment = Alignment.Center,
         ) {
             val availableHeight = maxHeight
-            val ultraCompact = availableHeight < 48.dp
             val compact = availableHeight < 82.dp
+            val tiny = availableHeight < 48.dp
 
-            if (ultraCompact) {
-                // At extremely small custom heights keep only the two live readings.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 7.dp),
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    TrafficSpeed(
+                        value = formatRate(traffic.rxRateBytesPerSecond),
+                        compact = compact,
+                    )
+                    TrafficSpeed(
+                        value = formatRate(traffic.txRateBytesPerSecond),
+                        compact = compact,
+                        alignEnd = true,
+                    )
+                }
+
+                // Network name takes the old "MB/S IN" position. Move the IN unit
+                // to the trailing edge of that same line; OUT remains right aligned.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 5.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TrafficSpeed(formatRate(traffic.rxRateBytesPerSecond), "IN", true)
-                    TrafficSpeed(formatRate(traffic.txRateBytesPerSecond), "OUT", true, true)
+                    Text(
+                        text = networkName,
+                        color = WifiTextSecondary,
+                        fontSize = if (tiny) 8.sp else 9.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = "MB/S IN",
+                        color = WifiTextSecondary,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.4.sp,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = "MB/S OUT",
+                        color = WifiTextSecondary,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.4.sp,
+                    )
                 }
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 7.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        TrafficSpeed(formatRate(traffic.rxRateBytesPerSecond), "MB/S IN", compact)
-                        TrafficSpeed(formatRate(traffic.txRateBytesPerSecond), "MB/S OUT", compact, true)
-                    }
 
+                if (!tiny) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -158,29 +184,6 @@ fun WifiConnectedExpandedContent(
                             modifier = Modifier.weight(1f),
                         )
                     }
-
-                    if (!compact && availableHeight >= 104.dp) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(
-                                text = networkName,
-                                color = colors.onSurfaceVariant,
-                                fontSize = 9.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                            Text(
-                                text = signalText,
-                                color = colors.onSurfaceVariant,
-                                fontSize = 8.sp,
-                                maxLines = 1,
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -190,29 +193,19 @@ fun WifiConnectedExpandedContent(
 @Composable
 private fun TrafficSpeed(
     value: String,
-    label: String,
     compact: Boolean,
     alignEnd: Boolean = false,
 ) {
-    val colors = MaterialTheme.colorScheme
     Column(
         horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(1.dp),
     ) {
         Text(
             text = value,
-            color = colors.primary,
-            fontSize = if (compact) 17.sp else 25.sp,
-            lineHeight = if (compact) 19.sp else 27.sp,
+            color = WifiTextPrimary,
+            fontSize = if (compact) 19.sp else 25.sp,
+            lineHeight = if (compact) 21.sp else 27.sp,
             fontWeight = FontWeight.Bold,
-            maxLines = 1,
-        )
-        Text(
-            text = label,
-            color = colors.onSurfaceVariant,
-            fontSize = if (compact) 7.sp else 8.sp,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 0.4.sp,
             maxLines = 1,
         )
     }
@@ -226,21 +219,20 @@ private fun TrafficTotal(
     compact: Boolean,
     modifier: Modifier,
 ) {
-    val colors = MaterialTheme.colorScheme
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 4.dp),
     ) {
         Text(
             text = title,
-            color = colors.onSurfaceVariant,
+            color = WifiTextSecondary,
             fontSize = if (compact) 7.sp else 8.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
         )
         Text(
             text = value,
-            color = colors.onSurface,
+            color = WifiTextPrimary,
             fontSize = if (compact) 11.sp else 14.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
@@ -250,14 +242,14 @@ private fun TrafficTotal(
                 .fillMaxWidth()
                 .height(if (compact) 2.dp else 4.dp)
                 .clip(RoundedCornerShape(50))
-                .background(colors.surfaceContainerHighest),
+                .background(WifiTrack),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(progress.coerceIn(0f, 1f))
                     .fillMaxSize()
                     .clip(RoundedCornerShape(50))
-                    .background(colors.primary),
+                    .background(WifiProgress),
             )
         }
     }
