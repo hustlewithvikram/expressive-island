@@ -40,10 +40,25 @@ object Permissions {
     }
 
     fun isLocationEnabledForWifi(context: Context): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return true
-        val manager = context.getSystemService<android.location.LocationManager>() ?: return false
+        // Nearby Wi-Fi permission is intentionally independent of device location on Android 13+.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.NEARBY_WIFI_DEVICES,
+            ) == PackageManager.PERMISSION_GRANTED
+        ) return true
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val manager = context.getSystemService<android.location.LocationManager>() ?: return false
+            return runCatching { manager.isLocationEnabled }.getOrDefault(false)
+        }
+
+        // Android 6.0–8.1: location mode is required by the legacy Wi-Fi SSID APIs.
         return runCatching {
-            manager.isLocationEnabled
+            Settings.Secure.getInt(
+                context.contentResolver,
+                Settings.Secure.LOCATION_MODE,
+                Settings.Secure.LOCATION_MODE_OFF,
+            ) != Settings.Secure.LOCATION_MODE_OFF
         }.getOrDefault(false)
     }
 
