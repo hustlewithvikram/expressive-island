@@ -5,6 +5,7 @@ import android.os.BatteryManager
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -120,12 +122,20 @@ fun ChargingExpandedContent(
                         .height(headerHeight),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Bolt,
-                        contentDescription = "Charging",
-                        tint = Color.White,
-                        modifier = Modifier.size(iconSize),
-                    )
+                    Canvas(modifier = Modifier.size(iconSize)) {
+                        val w = size.width
+                        val h = size.height
+                        val bolt = Path().apply {
+                            moveTo(w * 0.58f, h * 0.02f)
+                            lineTo(w * 0.18f, h * 0.56f)
+                            lineTo(w * 0.44f, h * 0.56f)
+                            lineTo(w * 0.34f, h * 0.98f)
+                            lineTo(w * 0.84f, h * 0.38f)
+                            lineTo(w * 0.57f, h * 0.38f)
+                            close()
+                        }
+                        drawPath(path = bolt, color = Color.White)
+                    }
                     Spacer(Modifier.size(if (compact) 7.dp else 9.dp))
                     Text(
                         text = "Charging...",
