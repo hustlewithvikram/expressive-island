@@ -61,7 +61,7 @@ fun WifiConnectedExpandedContent(
     val secondaryForeground = Color.White.copy(alpha = 0.76f)
     val networkName = wifi.ssid
         ?.takeUnless { it.isBlank() || it.equals("<unknown ssid>", true) || it == "0x" }
-        ?: "NekoNet_5G"
+        ?: "Wi-Fi connected"
     val band = wifi.band
     val security = wifi.security
     val signalLevel = wifi.signalLevel ?: wifi.rssi?.takeIf { it != -127 }?.let { WifiManager.calculateSignalLevel(it, 5) }
@@ -83,7 +83,7 @@ fun WifiConnectedExpandedContent(
     }
 
     BoxWithConstraints(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
     ) {
         val contentHeight = (maxHeight - notchBottomInsetDp.coerceAtLeast(0).dp).coerceAtLeast(0.dp)
         val compact = contentHeight < 76.dp
@@ -133,12 +133,7 @@ fun WifiConnectedExpandedContent(
                             tint = foreground,
                             modifier = Modifier.size(if (compact) 13.dp else 15.dp),
                         )
-                        WifiSignalBars(
-                            level = signalLevel,
-                            modifier = Modifier.size(width = 20.dp, height = 13.dp),
-                            activeColor = foreground,
-                            inactiveColor = foreground.copy(alpha = 0.35f),
-                        )
+
                     }
                 }
 
@@ -214,28 +209,6 @@ private fun MetadataDot() {
     )
 }
 
-@Composable
-private fun WifiSignalBars(
-    level: Int?,
-    modifier: Modifier = Modifier,
-    activeColor: Color,
-    inactiveColor: Color,
-) {
-    val active = (level ?: 0).coerceIn(0, 4)
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        repeat(4) { index ->
-            Box(
-                modifier = Modifier.weight(1f).height((4 + index * 3).dp)
-                    .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
-                    .background(if (index < active) activeColor else inactiveColor),
-            )
-        }
-    }
-}
 
 private fun formatRate(bytesPerSecond: Long): String {
     // Convert bytes/s to megabits/s, the unit shown in the speed capsule.
