@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -29,60 +31,143 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.vikram.expressiveisland.core.SystemEventType
 
+private val SystemEventNotchSafeSpace = 36.dp
+
 @Composable
 fun SystemEventExpandedContent(type: SystemEventType) {
     val colors = MaterialTheme.colorScheme
     val title = stringResource(type.labelRes)
     val (status, description, detailLabel, detailValue) = systemEventPresentation(type)
+
     BoxWithConstraints(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
-        val compact = maxHeight < 155.dp
-        Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 9.dp),
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(if (compact) 20.dp else 24.dp),
-                color = colors.surfaceContainerLow,
-                tonalElevation = 1.dp,
+        val viewportHeight = (maxHeight - SystemEventNotchSafeSpace).coerceAtLeast(0.dp)
+        val compact = viewportHeight < 92.dp
+        val veryCompact = viewportHeight < 68.dp
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            // The expanded island spans behind the camera cutout. Keep this exclusion zone
+            // independent of the event content so no card or text can drift into the notch.
+            Spacer(Modifier.height(SystemEventNotchSafeSpace))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(viewportHeight)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.Bottom,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 13.dp, vertical = if (compact) 8.dp else 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(11.dp),
-                ) {
-                    Box(
-                        modifier = Modifier.size(if (compact) 38.dp else 46.dp)
-                            .clip(CircleShape).background(colors.primaryContainer),
-                        contentAlignment = Alignment.Center,
+                Column(verticalArrangement = Arrangement.spacedBy(if (veryCompact) 5.dp else 7.dp)) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(if (compact) 19.dp else 23.dp),
+                        color = colors.surfaceContainerLow,
+                        tonalElevation = 1.dp,
                     ) {
-                        Icon(type.defaultIcon, contentDescription = null, tint = colors.onPrimaryContainer, modifier = Modifier.size(if (compact) 21.dp else 25.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(
+                                horizontal = if (compact) 11.dp else 14.dp,
+                                vertical = if (veryCompact) 7.dp else if (compact) 9.dp else 12.dp,
+                            ),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(11.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(if (veryCompact) 32.dp else if (compact) 38.dp else 44.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.primaryContainer),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    type.defaultIcon,
+                                    contentDescription = null,
+                                    tint = colors.onPrimaryContainer,
+                                    modifier = Modifier.size(if (veryCompact) 18.dp else 22.dp),
+                                )
+                            }
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Text(
+                                    title,
+                                    color = colors.onSurface,
+                                    fontSize = if (veryCompact) 12.sp else if (compact) 14.sp else 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Box(
+                                        Modifier.size(6.dp).clip(CircleShape).background(colors.primary),
+                                    )
+                                    Text(
+                                        status,
+                                        color = colors.primary,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                    )
+                                }
+                                if (!compact) {
+                                    Text(
+                                        description,
+                                        color = colors.onSurfaceVariant,
+                                        fontSize = 10.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        }
                     }
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(title, color = colors.onSurface, fontSize = if (compact) 14.sp else 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(status, color = colors.primary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                        if (!compact) Text(description, color = colors.onSurfaceVariant, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+
+                    if (!veryCompact) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = colors.secondaryContainer.copy(alpha = 0.58f),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(
+                                    horizontal = 12.dp,
+                                    vertical = if (compact) 8.dp else 10.dp,
+                                ),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    detailLabel,
+                                    color = colors.onSecondaryContainer,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                )
+                                Text(
+                                    detailValue,
+                                    color = colors.onSecondaryContainer,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    } else {
+                        Text(
+                            description,
+                            color = colors.onSurfaceVariant,
+                            fontSize = 10.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 3.dp),
+                        )
                     }
                 }
-            }
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(17.dp),
-                color = colors.secondaryContainer.copy(alpha = 0.58f),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = if (compact) 8.dp else 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(detailLabel, color = colors.onSecondaryContainer, fontSize = 10.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-                    Text(detailValue, color = colors.onSecondaryContainer, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
-            if (compact) {
-                Text(description, color = colors.onSurfaceVariant, fontSize = 10.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 3.dp))
             }
         }
     }
