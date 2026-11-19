@@ -1,6 +1,8 @@
 package com.vikram.expressiveisland.overlay.contents
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -51,8 +53,9 @@ fun HeadphonesConnectedExpandedContent(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.Bottom,
             ) {
+                Box(modifier = Modifier.fillMaxWidth().heightIn(min = viewportHeight)) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
                     shape = RoundedCornerShape(if (compact) 20.dp else 24.dp),
                     color = colors.surfaceContainerLow,
                     tonalElevation = 1.dp,
@@ -84,6 +87,7 @@ fun HeadphonesConnectedExpandedContent(
                             if (!compact) Text("Ready to play", color = colors.primary, fontSize = 10.sp, fontWeight = FontWeight.Medium)
                         }
                     }
+                }
                 }
             }
         }
