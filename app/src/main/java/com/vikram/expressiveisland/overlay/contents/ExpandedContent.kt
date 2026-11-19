@@ -20,6 +20,7 @@ fun ExpandedContent(
     showActions: Boolean,
     appearance: AppearanceSettings,
     collapsedHeightDp: Int,
+    notchBottomInsetDp: Int = collapsedHeightDp,
     replyingTo: IslandAction?,
     replySent: Boolean,
     progressData: ProgressData? = null,
@@ -90,7 +91,7 @@ fun ExpandedContent(
     ) {
         WifiConnectedExpandedContent(
             wifi = currentWifiState,
-            collapsedHeightDp = collapsedHeightDp,
+            notchBottomInsetDp = notchBottomInsetDp,
         )
         return
     }
