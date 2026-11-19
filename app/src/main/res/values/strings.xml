@@ -49,8 +49,6 @@
     <string name="event_wifi_connected">Wi‑Fi connected</string>
     <string name="event_wifi_disconnected">Wi‑Fi lost</string>
     
-    <string name="event_headphones_connected">Headphones</string>
-    <string name="event_headphones_disconnected">Headphones out</string>
 
     <string name="event_usb_mounted">USB connected</string>
     <string name="event_usb_unmounted">USB removed</string>
@@ -96,7 +94,6 @@
     <string name="event_auto_rotate_disabled">Auto-rotate off</string>
     <string name="event_thermal_warning">Device temperature high</string>
     <string name="event_thermal_normal">Device temperature normal</string>
-    <string name="event_audio_output_changed">Audio output changed</string>
     <string name="event_group_airplane">Airplane mode</string>
     <string name="event_group_airplane_desc">Show when airplane mode changes.</string>
     <string name="event_group_dnd">Do Not Disturb</string>
@@ -115,13 +112,10 @@
     <string name="event_group_auto_rotate_desc">Show when automatic screen rotation is enabled or disabled.</string>
     <string name="event_group_thermal">Thermal state</string>
     <string name="event_group_thermal_desc">Show when the device enters or leaves a moderate-or-higher thermal state.</string>
-    <string name="event_group_audio_output">Audio output</string>
-    <string name="event_group_audio_output_desc">Show when connected audio output devices change.</string>
 
     <!-- Event groups strings shown inside the System Events -->
     <string name="event_group_charging">Charging and battery</string>
     <string name="event_group_wifi">Wi-Fi</string>
-    <string name="event_group_headphones">Headphones</string>
     <string name="event_group_usb">USB</string>
     <string name="event_group_lock">Lock</string>
     <string name="event_group_vpn">VPN</string>
@@ -132,7 +126,6 @@
     <string name="event_group_ringer">Ringer mode</string>
     <string name="event_group_charging_desc">Show charging and battery changes on the island.</string>
     <string name="event_group_wifi_desc">Show when your Wi-Fi connection changes.</string>
-    <string name="event_group_headphones_desc">Show when headphones are connected or disconnected.</string>
     <string name="event_group_usb_desc">Show when a USB device is connected or disconnected.</string>
     <string name="event_group_lock_desc">Show when your device is locked or unlocked.</string>
     <string name="event_group_vpn_desc">Show when a VPN connects or disconnects.</string>
