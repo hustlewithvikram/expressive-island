@@ -2057,7 +2057,11 @@ class IslandOverlayController(private val context: Context) {
             // "Normal only": this app's pill has no expanded state at all. Suppressing auto-expand
             // here keeps the window from ever being sized for it; the flag carried on the event is
             // what stops a tap toggling it open (and opens the app instead) — see [IslandEvent.normalOnly].
-            val normalOnly = signal.sourcePackage() in normalOnlyApps
+            // Wi-Fi disconnect is a pill-only system event. Use IslandEvent.normalOnly,
+            // the same path as Apps > Normal only, so DynamicIsland never creates an expanded
+            // surface or accepts a tap-to-expand gesture for this event.
+            val normalOnly = signal.sourcePackage() in normalOnlyApps ||
+                    (signal as? CutoutSignal.System)?.type == SystemEventType.WIFI_DISCONNECTED
             val autoExpand = if (isNoExpandLandscape || normalOnly) false else rawAutoExpand
 
             val resolvedEvent = resolver.resolve(
@@ -2379,10 +2383,7 @@ class IslandOverlayController(private val context: Context) {
         val isNoExpandLandscape = currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
                 (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
                         behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.STICK_TO_CAMERA)
-        val targetExpanded = if (
-            isNoExpandLandscape ||
-            currentSystemEventType == SystemEventType.WIFI_DISCONNECTED
-        ) false else isExpanded
+        val targetExpanded = if (isNoExpandLandscape) false else isExpanded
         // The resting empty pill's "center" has no event to dismiss — just keep the window and
         // touchable region sized to whatever it's showing (collapsed pill vs. expanded grid).
         if (currentEvent.value == null) {
