@@ -297,7 +297,7 @@ class SystemEventMonitor(private val context: Context) {
                                 type = device.type,
                             )
                         )
-                        emit(SystemEventType.HEADPHONES_CONNECTED)
+                        // Bluetooth connection events are handled by BLUETOOTH_CONNECTED; avoid a duplicate headphone event.
                     }
                 }
             updateAudioOutputDevices()
@@ -311,7 +311,7 @@ class SystemEventMonitor(private val context: Context) {
                 .forEach { device -> headphoneDevices.remove(device.id) }
             if (headphoneDevices.isEmpty() && removedDevices.any { it.isHeadphone }) {
                 HeadphonesBus.update(null)
-                emit(SystemEventType.HEADPHONES_DISCONNECTED)
+                // The Bluetooth disconnect event is the single source of truth for this accessory.
             }
             updateAudioOutputDevices()
         }
