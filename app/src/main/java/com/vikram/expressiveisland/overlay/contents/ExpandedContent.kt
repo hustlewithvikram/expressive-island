@@ -90,6 +90,7 @@ fun ExpandedContent(
     ) {
         WifiConnectedExpandedContent(
             wifi = currentWifiState,
+            collapsedHeightDp = collapsedHeightDp,
         )
         return
     }
