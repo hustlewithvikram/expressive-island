@@ -86,23 +86,26 @@ fun ExpandedContent(
         return
     }
 
-    if (
-        systemEventType == SystemEventType.WIFI_CONNECTED &&
-        currentWifiState != null
-    ) {
+    if (systemEventType == SystemEventType.WIFI_CONNECTED) {
         WifiConnectedExpandedContent(
-            wifi = currentWifiState,
+            wifi = currentWifiState ?: com.vikram.expressiveisland.core.WifiState(
+                ssid = null,
+                signalLevel = null,
+                rssi = null,
+                linkSpeedMbps = null,
+                frequencyMhz = null,
+                ipAddress = null,
+                isMetered = null,
+            ),
             notchBottomInsetDp = notchBottomInsetDp,
         )
         return
     }
 
-    if (
-        systemEventType == SystemEventType.HEADPHONES_CONNECTED &&
-        currentHeadphonesState != null
-    ) {
+    if (systemEventType == SystemEventType.HEADPHONES_CONNECTED) {
         HeadphonesConnectedExpandedContent(
-            headphones = currentHeadphonesState,
+            headphones = currentHeadphonesState
+                ?: com.vikram.expressiveisland.core.HeadphonesState(name = null, type = 0),
         )
         return
     }
