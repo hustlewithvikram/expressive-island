@@ -19,6 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.BatteryAlert
+import androidx.compose.material.icons.rounded.BatteryFull
+import androidx.compose.material.icons.rounded.PowerOff
 import androidx.compose.material.icons.rounded.Downloading
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsNone
@@ -40,6 +43,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.vikram.expressiveisland.core.CutoutSignal
+import com.vikram.expressiveisland.core.IslandEventBus
+import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.notifications.TestCaller
 import com.vikram.expressiveisland.notifications.TestNotifier
 import com.vikram.expressiveisland.R;
@@ -103,6 +109,30 @@ fun TestingScreen(contentPadding: PaddingValues) {
                 icon = Icons.Rounded.Downloading,
                 title = stringResource(R.string.action_send_test_progress),
                 onClick = { postWithPermission { TestNotifier.sendProgress(context) } },
+            )
+
+            TestCard(
+                icon = Icons.Rounded.PowerOff,
+                title = "Test battery unplugged",
+                onClick = {
+                    IslandEventBus.emit(CutoutSignal.System(SystemEventType.CHARGING_STOPPED))
+                },
+            )
+
+            TestCard(
+                icon = Icons.Rounded.BatteryFull,
+                title = "Test battery fully charged",
+                onClick = {
+                    IslandEventBus.emit(CutoutSignal.System(SystemEventType.CHARGING_COMPLETE))
+                },
+            )
+
+            TestCard(
+                icon = Icons.Rounded.BatteryAlert,
+                title = "Test low battery",
+                onClick = {
+                    IslandEventBus.emit(CutoutSignal.System(SystemEventType.BATTERY_LOW))
+                },
             )
 
             TestCard(
