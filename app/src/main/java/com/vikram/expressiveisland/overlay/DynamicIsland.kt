@@ -658,7 +658,7 @@ internal fun DynamicIsland(
                         y = shellOffsetY
                     ),
             ) {
-                if (present || reveal.value > 0f || assistantTapEnabled) {
+                if (present || shellProgress > 0f || assistantTapEnabled) {
                     IslandSurface(
                         modifier = Modifier
                             .width(revealWidth)
@@ -681,7 +681,14 @@ internal fun DynamicIsland(
                                 rotationZ = (dismissOffsetX.value / size.width.coerceAtLeast(1f) * 7f)
                                     .coerceIn(-7f, 7f)
                                 translationX = dismissOffsetX.value
-                                val revealAlpha = (reveal.value / 0.2f).coerceIn(0f, 1f)
+                                // Reveal alpha is for arrival only. On exit, keep the shell
+                                // visible until its geometry reaches the notch instead of letting
+                                // the reveal fade hide the unfinished shrink.
+                                val revealAlpha = if (present) {
+                                    (reveal.value / 0.2f).coerceIn(0f, 1f)
+                                } else {
+                                    1f
+                                }
                                 // A small 5% opacity remnant at the end of the geometric
                                 // collapse softens the disappearance; revealAlpha then removes
                                 // the retained surface after the shrink animation completes.
