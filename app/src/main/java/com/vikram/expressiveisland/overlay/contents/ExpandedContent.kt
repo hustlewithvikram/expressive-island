@@ -107,6 +107,15 @@ fun ExpandedContent(
         return
     }
 
+    if (systemEventType == SystemEventType.BLUETOOTH_CONNECTED) {
+        BluetoothConnectedExpandedContent(
+            deviceName = currentHeadphonesState?.name,
+            deviceType = currentHeadphonesState?.type,
+            notchBottomInsetDp = notchBottomInsetDp,
+        )
+        return
+    }
+
     if (systemEventType == SystemEventType.HEADPHONES_CONNECTED) {
         HeadphonesConnectedExpandedContent(
             headphones = currentHeadphonesState
