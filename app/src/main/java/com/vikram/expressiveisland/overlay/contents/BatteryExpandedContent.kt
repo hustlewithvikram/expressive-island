@@ -106,7 +106,7 @@ fun ChargingExpandedContent(
                             modifier = Modifier.weight(1f),
                             maxLines = 1,
                         )
-                        if (!veryCompact) {
+                        if (veryCompact) {
                             Text(
                                 text = "$percent%",
                                 color = Color.White.copy(alpha = 0.92f),
