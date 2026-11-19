@@ -916,6 +916,9 @@ internal fun DynamicIsland(
                                             showActions = showActions,
                                             appearance = appearance,
                                             collapsedHeightDp = collapsed.heightDp,
+                                            notchBottomInsetDp = (
+                                                collapsed.offsetYDp + collapsed.heightDp - expanded.offsetYDp + 4
+                                            ).coerceAtLeast(0),
                                             replyingTo = replyingTo,
                                             replySent = confirmingSent,
                                             progressData = e.progressData,
