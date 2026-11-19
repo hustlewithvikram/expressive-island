@@ -349,40 +349,41 @@ internal fun DynamicIsland(
     var centerContentHeightDp by remember { mutableIntStateOf(0) }
     val screenHeightDp = LocalConfiguration.current.screenHeightDp
 
-    val heightBonus = when {
-        emptyPill && isExpanded -> {
-            if (centerContentHeightDp > 0) {
-                collapsed.heightDp + CENTER_TOP_GAP_DP + centerContentHeightDp - dims.heightDp
-            } else {
-                CENTER_SHORTCUTS_EXTRA_DP
+    // System events always use the exact expanded height configured in Size & Position.
+    // Their content must adapt inside that fixed shell instead of growing it per event type.
+    val heightBonus = if (systemEventType != null) {
+        0
+    } else {
+        when {
+            emptyPill && isExpanded -> {
+                if (centerContentHeightDp > 0) {
+                    collapsed.heightDp + CENTER_TOP_GAP_DP + centerContentHeightDp - dims.heightDp
+                } else {
+                    CENTER_SHORTCUTS_EXTRA_DP
+                }
             }
-        }
 
-        emptyPill -> 0
+            emptyPill -> 0
 
-        isCall && shownEvent?.call?.incomingExpandedLayout == true &&
-                (liveCall?.ongoing == false || shownEvent.id == -1L) &&
-                shownEvent.call.showActions && shownEvent.actions.isNotEmpty() ->
-            com.vikram.expressiveisland.overlay.contents.callIncomingExtraDp()
+            isCall && shownEvent?.call?.incomingExpandedLayout == true &&
+                    (liveCall?.ongoing == false || shownEvent.id == -1L) &&
+                    shownEvent.call.showActions && shownEvent.actions.isNotEmpty() ->
+                com.vikram.expressiveisland.overlay.contents.callIncomingExtraDp()
 
-        isExpanded && (
-                systemEventType == SystemEventType.CHARGING_STARTED ||
-                        systemEventType == SystemEventType.BATTERY_LOW
-                ) -> 20
+            isExpanded && shownEvent?.assistant != null && shownEvent.assistant.displayAnswerInCutout -> {
+                val maxCutoutHeightDp =
+                    (screenHeightDp * shownEvent.assistant.maxCutoutHeightPercent / 100)
+                val fitHeightDp = if (assistantContentHeightDp > 0) assistantContentHeightDp else maxCutoutHeightDp
+                val targetHeightDp = fitHeightDp.coerceIn(110, maxCutoutHeightDp)
+                (targetHeightDp - dims.heightDp)
+            }
 
-        isExpanded && shownEvent?.assistant != null && shownEvent.assistant.displayAnswerInCutout -> {
-            val maxCutoutHeightDp =
-                (screenHeightDp * shownEvent.assistant.maxCutoutHeightPercent / 100)
-            val fitHeightDp = if (assistantContentHeightDp > 0) assistantContentHeightDp else maxCutoutHeightDp
-            val targetHeightDp = fitHeightDp.coerceIn(110, maxCutoutHeightDp)
-            (targetHeightDp - dims.heightDp)
-        }
+            isExpanded && (hasActions || hasMediaControls || hasCallActions || hasTimerActions) ->
+                expandedActionsExtraDp(appearance.actionButtonHeightDp)
 
-        isExpanded && (hasActions || hasMediaControls || hasCallActions || hasTimerActions) ->
-            expandedActionsExtraDp(appearance.actionButtonHeightDp)
-
-        else -> 0
-    } + if (isExpanded && notificationTextExpanded) notificationTextExtraHeightDp else 0
+            else -> 0
+        } + if (isExpanded && notificationTextExpanded) notificationTextExtraHeightDp else 0
+    }
 
     val present = event != null || showsWhenEmpty || cameraHoleQuickActions
     val reveal = remember { Animatable(0f) }
