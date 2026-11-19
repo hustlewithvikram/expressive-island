@@ -79,9 +79,14 @@ fun ExpandedContent(
         return
     }
 
-    if (systemEventType == SystemEventType.BATTERY_LOW) {
-        BatteryLowExpandedContent(
-            appearance = appearance,
+    if (
+        systemEventType == SystemEventType.CHARGING_STOPPED ||
+        systemEventType == SystemEventType.CHARGING_COMPLETE ||
+        systemEventType == SystemEventType.BATTERY_LOW
+    ) {
+        BatteryStatusExpandedContent(
+            type = systemEventType,
+            notchBottomInsetDp = notchBottomInsetDp,
         )
         return
     }
