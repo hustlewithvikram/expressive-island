@@ -119,13 +119,6 @@ fun ExpandedContent(
         return
     }
 
-    if (systemEventType == SystemEventType.HEADPHONES_CONNECTED) {
-        HeadphonesConnectedExpandedContent(
-            headphones = currentHeadphonesState
-                ?: com.vikram.expressiveisland.core.HeadphonesState(name = null, type = 0),
-        )
-        return
-    }
 
     // All remaining device-level events receive a purpose-built, theme-aware detail card.
     if (systemEventType != null) {
