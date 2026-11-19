@@ -72,7 +72,10 @@ fun ChargingExpandedContent(
     // The camera/notch band is excluded first. All three content rows then share only the
     // remaining configured expanded height, so the progress bar can never be pushed outside it.
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val contentHeight = (maxHeight - inset).coerceAtLeast(0.dp)
+        // Reserve a real transparent band below the progress track. This keeps the bar
+        // visually detached from the island's rounded lower edge at every configured height.
+        val bottomBreathingRoom = if (maxHeight >= 100.dp) 10.dp else 4.dp
+        val contentHeight = (maxHeight - inset - bottomBreathingRoom).coerceAtLeast(0.dp)
         val ultraCompact = contentHeight < 48.dp
         val compact = contentHeight < 68.dp
 
