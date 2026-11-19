@@ -40,6 +40,7 @@ import kotlin.math.abs
 import android.net.LinkProperties
 import android.net.NetworkCapabilities.TRANSPORT_VPN
 import android.net.wifi.WifiInfo
+import android.net.wifi.WifiConfiguration
 import android.provider.Settings
 import android.util.Log
 import com.vikram.expressiveisland.core.BatteryBus
@@ -451,9 +452,11 @@ class SystemEventMonitor(private val context: Context) {
             // Some devices still redact the SSID, so try WifiManager as a fallback.
             val ssid = resolveWifiSsid(wifiInfo)
 
+            val managerInfo = runCatching { wifiManager?.connectionInfo }.getOrNull()
             val rssi = runCatching { wifiInfo.rssi }
                 .getOrNull()
                 ?.takeIf { it != -127 }
+                ?: runCatching { managerInfo?.rssi }.getOrNull()?.takeIf { it != -127 }
             val signalLevel = rssi?.let {
                 WifiManager.calculateSignalLevel(it, 5)
             }
@@ -463,6 +466,7 @@ class SystemEventMonitor(private val context: Context) {
             val frequency = runCatching { wifiInfo.frequency }
                 .getOrNull()
                 ?.takeIf { it > 0 }
+                ?: runCatching { managerInfo?.frequency }.getOrNull()?.takeIf { it > 0 }
 
             WifiBus.update(
                 WifiState(
@@ -472,7 +476,7 @@ class SystemEventMonitor(private val context: Context) {
                     linkSpeedMbps = linkSpeed,
                     frequencyMhz = frequency,
                     ipAddress = ipAddress,
-                    security = resolveWifiSecurity(wifiInfo),
+                    security = resolveWifiSecurity(wifiInfo, ssid),
                     isMetered = !capabilities.hasCapability(
                         NetworkCapabilities.NET_CAPABILITY_NOT_METERED
                     ),
@@ -501,17 +505,32 @@ class SystemEventMonitor(private val context: Context) {
      * WifiInfo exposes the negotiated security type on Android 12+. Older releases do not
      * expose it through the same public API, so the UI does not guess a security label.
      */
-    private fun resolveWifiSecurity(wifiInfo: WifiInfo): String? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
-        val type = runCatching { wifiInfo.currentSecurityType }.getOrNull() ?: return null
-        return when (type) {
-            0 -> "Open"
-            1 -> "WEP"
-            2, 3 -> "WPA/WPA2"
-            4, 5, 9 -> "WPA3"
-            6 -> "OWE"
-            7, 8 -> "WAPI"
-            else -> null
+    private fun resolveWifiSecurity(wifiInfo: WifiInfo, ssid: String?): String? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val type = runCatching { wifiInfo.currentSecurityType }.getOrNull()
+            when (type) {
+                0 -> return "Open"
+                1 -> return "WEP"
+                2, 3 -> return "WPA/WPA2"
+                4, 5, 9 -> return "WPA3"
+                6 -> return "OWE"
+                7, 8 -> return "WAPI"
+            }
+        }
+
+        // Android 10/11 do not expose WifiInfo.currentSecurityType. When location
+        // permission allows configured-network access, infer the active profile's type.
+        val normalizedSsid = ssid?.trim('"') ?: return null
+        val configs = runCatching { wifiManager?.configuredNetworks }.getOrNull() ?: return null
+        val active = configs.firstOrNull { it.SSID?.trim('"') == normalizedSsid } ?: return null
+        val keys = active.allowedKeyManagement
+        return when {
+            keys.get(WifiConfiguration.KeyMgmt.SAE) -> "WPA3"
+            keys.get(WifiConfiguration.KeyMgmt.WPA_PSK) ||
+                keys.get(WifiConfiguration.KeyMgmt.WPA_EAP) ||
+                keys.get(WifiConfiguration.KeyMgmt.IEEE8021X) -> "WPA/WPA2"
+            active.wepKeys?.any { !it.isNullOrBlank() } == true -> "WEP"
+            else -> "Open"
         }
     }
 
