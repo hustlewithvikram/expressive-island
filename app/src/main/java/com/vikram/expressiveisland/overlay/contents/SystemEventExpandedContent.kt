@@ -188,8 +188,8 @@ private data class EventPresentation(
 
 private fun systemEventPresentation(type: SystemEventType): EventPresentation {
     val enabled = when (type) {
-        SystemEventType.WIFI_CONNECTED, SystemEventType.HEADPHONES_CONNECTED,
-        SystemEventType.USB_MOUNTED, SystemEventType.DEVICE_UNLOCKED,
+        SystemEventType.WIFI_CONNECTED,
+SystemEventType.USB_MOUNTED, SystemEventType.DEVICE_UNLOCKED,
         SystemEventType.VPN_CONNECTED, SystemEventType.ADB_CONNECTED,
         SystemEventType.WIRELESS_DEBUGGING_CONNECTED, SystemEventType.BLUETOOTH_CONNECTED,
         SystemEventType.HOTSPOT_ENABLED, SystemEventType.AIRPLANE_MODE_ENABLED,
@@ -201,7 +201,6 @@ private fun systemEventPresentation(type: SystemEventType): EventPresentation {
         else -> false
     }
     val status = when (type) {
-        SystemEventType.AUDIO_OUTPUT_CHANGED -> "Output changed"
         SystemEventType.THERMAL_WARNING -> "Temperature elevated"
         SystemEventType.THERMAL_NORMAL -> "Temperature normal"
         SystemEventType.BATTERY_LOW -> "Battery low"
@@ -237,7 +236,6 @@ private fun systemEventPresentation(type: SystemEventType): EventPresentation {
         SystemEventType.AUTO_ROTATE_DISABLED -> "The screen orientation is locked."
         SystemEventType.THERMAL_WARNING -> "The device reports elevated thermal status."
         SystemEventType.THERMAL_NORMAL -> "The device thermal status has returned to normal."
-        SystemEventType.AUDIO_OUTPUT_CHANGED -> "The active audio output route has changed."
         SystemEventType.RINGER_NORMAL -> "Incoming calls use the normal ringtone."
         SystemEventType.RINGER_VIBRATE -> "Incoming calls use vibration."
         SystemEventType.RINGER_SILENT -> "The ringer is muted."
@@ -247,8 +245,6 @@ private fun systemEventPresentation(type: SystemEventType): EventPresentation {
         SystemEventType.WIRELESS_DEBUGGING_DISCONNECTED -> "Wireless debugging is disconnected."
         SystemEventType.DEVICE_LOCKED -> "The device is locked."
         SystemEventType.DEVICE_UNLOCKED -> "The device is unlocked."
-        SystemEventType.HEADPHONES_CONNECTED -> "An audio accessory is connected and ready."
-        SystemEventType.HEADPHONES_DISCONNECTED -> "The audio accessory has been disconnected."
         SystemEventType.CHARGING_STARTED -> "The battery is receiving power."
         SystemEventType.CHARGING_STOPPED -> "The device is no longer charging."
         SystemEventType.CHARGING_COMPLETE -> "The battery has reached full charge."
@@ -257,9 +253,7 @@ private fun systemEventPresentation(type: SystemEventType): EventPresentation {
         SystemEventType.WIFI_DISCONNECTED -> "The Wi-Fi connection has ended."
     }
     val detailLabel = when (type) {
-        SystemEventType.BLUETOOTH_CONNECTED, SystemEventType.BLUETOOTH_DISCONNECTED,
-        SystemEventType.HEADPHONES_CONNECTED, SystemEventType.HEADPHONES_DISCONNECTED -> "Connection"
-        SystemEventType.AUDIO_OUTPUT_CHANGED -> "Audio route"
+        SystemEventType.BLUETOOTH_CONNECTED, SystemEventType.BLUETOOTH_DISCONNECTED -> "Connection"
         SystemEventType.THERMAL_WARNING, SystemEventType.THERMAL_NORMAL -> "Thermal state"
         SystemEventType.RINGER_NORMAL, SystemEventType.RINGER_VIBRATE, SystemEventType.RINGER_SILENT -> "Sound profile"
         else -> "Current state"
@@ -268,7 +262,6 @@ private fun systemEventPresentation(type: SystemEventType): EventPresentation {
         SystemEventType.RINGER_NORMAL -> "Ring"
         SystemEventType.RINGER_VIBRATE -> "Vibrate"
         SystemEventType.RINGER_SILENT -> "Silent"
-        SystemEventType.AUDIO_OUTPUT_CHANGED -> "Updated"
         SystemEventType.THERMAL_WARNING -> "Elevated"
         SystemEventType.THERMAL_NORMAL -> "Normal"
         else -> status
