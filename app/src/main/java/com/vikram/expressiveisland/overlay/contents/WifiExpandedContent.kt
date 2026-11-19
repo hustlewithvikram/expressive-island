@@ -62,7 +62,7 @@ fun WifiConnectedExpandedContent(
     val secondaryForeground = Color.White.copy(alpha = 0.76f)
     val networkName = wifi.ssid
         ?.takeUnless { it.isBlank() || it.equals("<unknown ssid>", true) || it == "0x" }
-        ?: if (BuildConfig.DEBUG) "NekoNet_5G" else "Wi-Fi connected"
+        ?: if (BuildConfig.DEBUG) "NekoNet_5G" else "Unknown Wifi"
     val band = wifi.band
     val security = wifi.security
     val signalLevel = wifi.signalLevel ?: wifi.rssi?.takeIf { it != -127 }?.let { WifiManager.calculateSignalLevel(it, 5) }
