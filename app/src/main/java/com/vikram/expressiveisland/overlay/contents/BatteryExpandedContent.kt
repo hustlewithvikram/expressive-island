@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.BatteryManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,13 +13,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -40,6 +42,8 @@ import com.vikram.expressiveisland.core.ChargingState
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.overlay.formatChargingTime
 
+private val BatteryNotchSafeSpace = 36.dp
+
 @Composable
 fun ChargingExpandedContent(
     charging: ChargingState,
@@ -47,139 +51,87 @@ fun ChargingExpandedContent(
 ) {
     val contentColor = LocalContentColor.current
     val secondaryColor = contentColor.copy(alpha = 0.68f)
+    val composition = rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.charging)).value
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                start = 18.dp,
-                end = 18.dp,
-                top = 18.dp,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 6.dp),
     ) {
-
-        // Charging icon
-        Box(
-            modifier = Modifier
-                .size(74.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            LottieAnimation(
-                composition = rememberLottieComposition(
-                    LottieCompositionSpec.RawRes(R.raw.charging)
-                ).value,
-                iterations = LottieConstants.IterateForever,
-                modifier = Modifier.size(70.dp),
-            )
-        }
-
-        Spacer(
-            modifier = Modifier.width(12.dp)
-        )
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+        val viewportHeight = (maxHeight - BatteryNotchSafeSpace).coerceAtLeast(0.dp)
+        val compact = viewportHeight < 92.dp
+        Column(modifier = Modifier.fillMaxSize()) {
+            Spacer(Modifier.height(BatteryNotchSafeSpace))
+            Column(
+                modifier = Modifier.fillMaxWidth().height(viewportHeight),
+                verticalArrangement = Arrangement.Bottom,
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(if (compact) 20.dp else 24.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    tonalElevation = 1.dp,
                 ) {
-                    Text(
-                        text = "Charging",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = contentColor,
-                    )
-
-                    Text(
-                        text = "${charging.batteryPercent}%",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor,
-                    )
-                }
-
-                val power = charging.powerWatts
-
-                if (power != null && power > 0f) {
                     Column(
-                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier.fillMaxWidth().padding(
+                            horizontal = if (compact) 12.dp else 15.dp,
+                            vertical = if (compact) 9.dp else 12.dp,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 9.dp),
                     ) {
-                        Text(
-                            text = "${"%.1f".format(power)} W",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = contentColor,
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(if (compact) 34.dp else 46.dp), contentAlignment = Alignment.Center) {
+                                LottieAnimation(
+                                    composition = composition,
+                                    iterations = LottieConstants.IterateForever,
+                                    modifier = Modifier.size(if (compact) 34.dp else 46.dp),
+                                )
+                            }
+                            Column(
+                                modifier = Modifier.weight(1f).padding(start = 9.dp),
+                                verticalArrangement = Arrangement.spacedBy(1.dp),
+                            ) {
+                                Text("Charging", color = secondaryColor, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                Text(
+                                    charging.batteryPercent.toString() + "%",
+                                    color = contentColor,
+                                    fontSize = if (compact) 21.sp else 26.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                            val power = charging.powerWatts
+                            if (power != null && power > 0f) {
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("%.1f W".format(power), color = contentColor, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("Charging power", color = secondaryColor, fontSize = 9.sp)
+                                }
+                            }
+                        }
+                        LinearProgressIndicator(
+                            progress = { (charging.batteryPercent / 100f).coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(50)),
                         )
-
-                        Text(
-                            text = "Charging power",
-                            fontSize = 10.sp,
-                            color = secondaryColor,
-                        )
-                    }
-                }
-            }
-
-            // Battery progress
-            LinearProgressIndicator(
-                progress = {
-                    (charging.batteryPercent / 100f)
-                        .coerceIn(0f, 1f)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(5.dp)
-                    .clip(RoundedCornerShape(50)),
-            )
-
-            // Bottom information
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-
-                val timeToFull = charging.timeToFullMinutes
-
-                if (timeToFull != null) {
-                    Text(
-                        text = formatChargingTime(timeToFull),
-                        fontSize = 11.sp,
-                        color = secondaryColor,
-                    )
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-
-                    val voltage = charging.voltageVolts
-
-                    if (voltage != null) {
-                        Text(
-                            text = "${"%.2f".format(voltage)} V",
-                            fontSize = 11.sp,
-                            color = secondaryColor,
-                        )
-                    }
-
-                    val temperature = charging.temperatureCelsius
-
-                    if (temperature != null) {
-                        Text(
-                            text = "${"%.1f".format(temperature)} °C",
-                            fontSize = 11.sp,
-                            color = secondaryColor,
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            val timeToFull = charging.timeToFullMinutes
+                            if (timeToFull != null) {
+                                Text(formatChargingTime(timeToFull), color = secondaryColor, fontSize = 10.sp)
+                            } else {
+                                Text("Battery charging", color = secondaryColor, fontSize = 10.sp)
+                            }
+                            if (!compact) {
+                                val temperature = charging.temperatureCelsius
+                                val voltage = charging.voltageVolts
+                                val telemetry = listOfNotNull(
+                                    voltage?.let { "%.2f V".format(it) },
+                                    temperature?.let { "%.1f °C".format(it) },
+                                ).joinToString("  ·  ")
+                                if (telemetry.isNotEmpty()) {
+                                    Text(telemetry, color = secondaryColor, fontSize = 9.sp)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -193,84 +145,53 @@ fun BatteryLowExpandedContent(
 ) {
     val contentColor = LocalContentColor.current
     val secondaryColor = contentColor.copy(alpha = 0.68f)
-
-    // Get the current battery percentage.
     val context = LocalContext.current
-    val batteryManager =
-        remember(context) {
-            context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-        }
-    val batteryPercent =
-        remember {
-            batteryManager.getIntProperty(
-                BatteryManager.BATTERY_PROPERTY_CAPACITY
-            )
-        }.coerceIn(0, 100)
+    val batteryManager = remember(context) {
+        context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+    }
+    val batteryPercent = remember {
+        batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+    }.coerceIn(0, 100)
+    val warningColor = Color(0xFFF87171)
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(
-                start = 16.dp,
-                end = 16.dp,
-                bottom = 24.dp,
-            ),
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 15.dp, vertical = 6.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomStart),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+        val viewportHeight = (maxHeight - BatteryNotchSafeSpace).coerceAtLeast(0.dp)
+        val compact = viewportHeight < 76.dp
+        Column(modifier = Modifier.fillMaxSize()) {
+            Spacer(Modifier.height(BatteryNotchSafeSpace))
+            Column(
+                modifier = Modifier.fillMaxWidth().height(viewportHeight),
+                verticalArrangement = Arrangement.Bottom,
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.BatteryAlert,
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                    tint = Color(0xFFF87171),
-                )
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    tonalElevation = 1.dp,
                 ) {
-                    Text(
-                        text = stringResource(R.string.event_battery_low),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = contentColor,
-                    )
-
-                    Text(
-                        text = "Your battery is running low",
-                        fontSize = 12.sp,
-                        color = secondaryColor,
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = if (compact) 9.dp else 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 9.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.BatteryAlert, contentDescription = null, modifier = Modifier.size(30.dp), tint = warningColor)
+                            Column(modifier = Modifier.weight(1f).padding(start = 10.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                Text(stringResource(R.string.event_battery_low), color = contentColor, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                if (!compact) Text("Consider connecting a charger", color = secondaryColor, fontSize = 10.sp)
+                            }
+                            Text(batteryPercent.toString() + "%", color = warningColor, fontSize = 23.sp, fontWeight = FontWeight.Bold)
+                        }
+                        LinearProgressIndicator(
+                            progress = { (batteryPercent / 100f).coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(50)),
+                            color = warningColor,
+                            trackColor = contentColor.copy(alpha = 0.12f),
+                        )
+                    }
                 }
-
-                Text(
-                    text = "$batteryPercent%",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFF87171),
-                )
             }
-
-            LinearProgressIndicator(
-                progress = {
-                    batteryPercent / 100f
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(5.dp)
-                    .clip(RoundedCornerShape(50)),
-                color = Color(0xFFF87171),
-                trackColor = contentColor.copy(alpha = 0.12f),
-            )
         }
     }
 }
