@@ -134,10 +134,10 @@ Expressive Island intentionally keeps its permissions to a minimum.
 | Permission                      | Purpose                                                       |
 | ------------------------------- | ------------------------------------------------------------- |
 | **Notification access**         | Reads notifications so they can be displayed and interacted with in the island |
-| **Accessibility service**       | Displays the island overlay and handles island gestures; it does not read screen contents |
+| **Accessibility service**       | Hosts the overlay and handles gestures; when automatic assistant detection is enabled, inspects visible text in supported assistant apps to identify activity and display relevant text |
 | **Ignore battery optimisation** | Optional; helps prevent the overlay service from being stopped in the background |
 | **Post notifications**          | Optional on Android 13+; posts test notifications only when you explicitly trigger a test |
-| **Microphone**                   | Runtime permission requested when you start Assistant voice input; used with Android's on-device speech recognizer on supported Android 12+ devices |
+| **Microphone (`RECORD_AUDIO`)** | Runtime permission requested when you start Assistant voice input; uses Android's on-device speech recognizer on supported Android 12+ devices |
 | **Internet**                    | Checks for and downloads app updates through the in-app updater |
 | **Request install packages**    | Lets the updater open Android's installer for a downloaded APK; installation still requires confirmation |
 | **Network state**               | Reads connection state for Wi-Fi/network events |
@@ -200,7 +200,7 @@ Expressive Island requires Android 10 (API 29) or newer.
 <details>
 <summary>Why does the app need Notification access?</summary>
 
-Notification access lets Expressive Island display notifications and provide supported notification actions inside the island.
+Notification access lets Expressive Island display notifications and provide supported notification actions inside the island. Notification content is handled locally.
 </details>
 
 <details>
