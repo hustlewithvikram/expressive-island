@@ -104,14 +104,15 @@ private data class EventCategorySection(
 private val eventCategorySections = listOf(
     EventCategorySection(
         key = "connectivity",
-        title = "Connectivity & devices",
-        description = "Networks, wireless connections and connected accessories",
+        title = "Connectivity & networks",
+        description = "Wi-Fi, mobile data, wireless links and connected accessories",
         families = listOf(
             SystemEventFamily.WIFI,
             SystemEventFamily.USB,
             SystemEventFamily.BLUETOOTH,
             SystemEventFamily.HOTSPOT,
             SystemEventFamily.VPN,
+            SystemEventFamily.DATA_SAVER,
             SystemEventFamily.AIRPLANE_MODE,
         ),
     ),
@@ -160,7 +161,6 @@ private val eventCategorySections = listOf(
         families = listOf(
             SystemEventFamily.FLASHLIGHT,
             SystemEventFamily.AUTO_ROTATE,
-            SystemEventFamily.DATA_SAVER,
         ),
     ),
 )
