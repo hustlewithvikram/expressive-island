@@ -108,8 +108,9 @@ object Permissions {
             .version(1)
 
         lateinit var connection: ServiceConnection
-        val binder = withTimeoutOrNull(15_000L) {
-            suspendCancellableCoroutine<IBinder> { continuation ->
+        val binder = runCatching {
+            withTimeoutOrNull(15_000L) {
+                suspendCancellableCoroutine<IBinder> { continuation ->
                 connection = object : ServiceConnection {
                     override fun onServiceConnected(name: ComponentName, service: IBinder) {
                         if (continuation.isActive) continuation.resume(service)
@@ -117,7 +118,9 @@ object Permissions {
 
                     override fun onServiceDisconnected(name: ComponentName) {
                         if (continuation.isActive) {
-                            continuation.cancel(IllegalStateException("Shizuku service disconnected"))
+                            continuation.resumeWith(
+                                Result.failure(IllegalStateException("Shizuku service disconnected")),
+                            )
                         }
                     }
                 }
@@ -126,9 +129,10 @@ object Permissions {
                 }
                 runCatching {
                     Shizuku.bindUserService(args, connection)
-                }.onFailure { continuation.cancel(it) }
+                }.onFailure { continuation.resumeWith(Result.failure(it)) }
+                }
             }
-        } ?: return false
+        }.getOrNull() ?: return false
 
         return try {
             withContext(Dispatchers.IO) {
