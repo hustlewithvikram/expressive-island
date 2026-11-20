@@ -29,6 +29,7 @@ import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
+import com.vikram.expressiveisland.permissions.Permissions
 import com.vikram.expressiveisland.core.ChargingBus
 import com.vikram.expressiveisland.core.ChargingState
 import com.vikram.expressiveisland.core.CutoutSignal
@@ -36,10 +37,13 @@ import com.vikram.expressiveisland.core.IslandEventBus
 import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.core.WifiBus
 import com.vikram.expressiveisland.core.WifiState
+import com.vikram.expressiveisland.core.UsbBus
+import com.vikram.expressiveisland.core.UsbState
 import kotlin.math.abs
 import android.net.LinkProperties
 import android.net.NetworkCapabilities.TRANSPORT_VPN
 import android.net.wifi.WifiInfo
+import android.net.wifi.WifiConfiguration
 import android.provider.Settings
 import android.util.Log
 import com.vikram.expressiveisland.core.BatteryBus
@@ -59,6 +63,8 @@ class SystemEventMonitor(private val context: Context) {
 
     private val wifiManager =
         context.applicationContext.getSystemService<WifiManager>()
+
+    private val usbManager = context.getSystemService<UsbManager>()
 
     private val audioManager =
         context.getSystemService<AudioManager>()
@@ -116,7 +122,6 @@ class SystemEventMonitor(private val context: Context) {
     private val wifiNetworks = mutableSetOf<Network>()
     private val bluetoothDevices = mutableSetOf<String>()
     private val headphoneDevices = mutableSetOf<Int>()
-    private var audioOutputSnapshot: Set<String>? = null
     @Volatile
     private var isLowBatteryState = false
 
@@ -178,6 +183,8 @@ class SystemEventMonitor(private val context: Context) {
                 }
 
                 UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+                    intent.getParcelableExtra<android.hardware.usb.UsbDevice>(UsbManager.EXTRA_DEVICE)
+                        ?.let(::updateUsbDevice)
                     emit(SystemEventType.USB_MOUNTED)
 
                     if (isAdbConnection(intent)) {
@@ -186,12 +193,15 @@ class SystemEventMonitor(private val context: Context) {
                 }
 
                 UsbManager.ACTION_USB_DEVICE_DETACHED -> {
+                    UsbBus.update(null)
                     emit(SystemEventType.USB_UNMOUNTED)
 
                     if (isAdbConnection(intent)) {
                         emit(SystemEventType.ADB_DISCONNECTED)
                     }
                 }
+
+                USB_STATE_ACTION -> handleUsbDeviceModeState(intent)
 
                 BluetoothDevice.ACTION_ACL_CONNECTED -> {
                     val device = intent.getParcelableExtra<BluetoothDevice>(
@@ -216,6 +226,10 @@ class SystemEventMonitor(private val context: Context) {
                         }
                     }
                 }
+
+                WIFI_DETAILS_REFRESH_ACTION,
+                WifiManager.NETWORK_STATE_CHANGED_ACTION,
+                WifiManager.WIFI_STATE_CHANGED_ACTION -> refreshCurrentWifiState()
 
                 Intent.ACTION_AIRPLANE_MODE_CHANGED -> updateAirplaneModeState()
                 NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED -> updateDndState()
@@ -291,10 +305,9 @@ class SystemEventMonitor(private val context: Context) {
                                 type = device.type,
                             )
                         )
-                        emit(SystemEventType.HEADPHONES_CONNECTED)
+                        // Bluetooth connection events are handled by BLUETOOTH_CONNECTED; avoid a duplicate headphone event.
                     }
                 }
-            updateAudioOutputDevices()
         }
 
         override fun onAudioDevicesRemoved(
@@ -305,31 +318,56 @@ class SystemEventMonitor(private val context: Context) {
                 .forEach { device -> headphoneDevices.remove(device.id) }
             if (headphoneDevices.isEmpty() && removedDevices.any { it.isHeadphone }) {
                 HeadphonesBus.update(null)
-                emit(SystemEventType.HEADPHONES_DISCONNECTED)
+                // The Bluetooth disconnect event is the single source of truth for this accessory.
             }
-            updateAudioOutputDevices()
         }
     }
 
-    private val wifiNetworkCallback =
-        object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                if (wifiNetworks.add(network)) emit(SystemEventType.WIFI_CONNECTED)
-                updateWifiState(network, connectivityManager?.getNetworkCapabilities(network))
-            }
+    private val wifiNetworkCallback: ConnectivityManager.NetworkCallback =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            object : ConnectivityManager.NetworkCallback(
+                ConnectivityManager.NetworkCallback.FLAG_INCLUDE_LOCATION_INFO,
+            ) {
+                override fun onAvailable(network: Network) {
+                    if (wifiNetworks.add(network)) emit(SystemEventType.WIFI_CONNECTED)
+                    updateWifiState(network, connectivityManager?.getNetworkCapabilities(network))
+                }
 
-            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
-                updateWifiState(network, capabilities)
-            }
+                override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                    updateWifiState(network, capabilities)
+                }
 
-            override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
-                updateWifiState(network, connectivityManager?.getNetworkCapabilities(network))
-            }
+                override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
+                    updateWifiState(network, connectivityManager?.getNetworkCapabilities(network))
+                }
 
-            override fun onLost(network: Network) {
-                if (wifiNetworks.remove(network) && wifiNetworks.isEmpty()) {
-                    WifiBus.update(null)
-                    emit(SystemEventType.WIFI_DISCONNECTED)
+                override fun onLost(network: Network) {
+                    if (wifiNetworks.remove(network) && wifiNetworks.isEmpty()) {
+                        WifiBus.update(null)
+                        emit(SystemEventType.WIFI_DISCONNECTED)
+                    }
+                }
+            }
+        } else {
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    if (wifiNetworks.add(network)) emit(SystemEventType.WIFI_CONNECTED)
+                    updateWifiState(network, connectivityManager?.getNetworkCapabilities(network))
+                }
+
+                override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                    updateWifiState(network, capabilities)
+                }
+
+                override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
+                    updateWifiState(network, connectivityManager?.getNetworkCapabilities(network))
+                }
+
+                override fun onLost(network: Network) {
+                    if (wifiNetworks.remove(network) && wifiNetworks.isEmpty()) {
+                        WifiBus.update(null)
+                        emit(SystemEventType.WIFI_DISCONNECTED)
+                    }
                 }
             }
         }
@@ -410,39 +448,214 @@ class SystemEventMonitor(private val context: Context) {
                 !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
             ) return
 
-            val wifiInfo = capabilities.transportInfo as? WifiInfo ?: return
-            val linkProperties = connectivity.getLinkProperties(network)
+            val wifiInfo = capabilities.transportInfo as? WifiInfo
+                ?: runCatching { wifiManager?.connectionInfo }.getOrNull()
+                ?: return
+            val linkProperties = runCatching {
+                connectivity.getLinkProperties(network)
+            }.getOrNull()
             val ipAddress = linkProperties
                 ?.linkAddresses
                 ?.firstOrNull { it.address.hostAddress?.contains(":") == false }
                 ?.address
                 ?.hostAddress
 
-            val ssid = wifiInfo.ssid
-                ?.removePrefix("\"")
-                ?.removeSuffix("\"")
-                ?.takeUnless { it.isBlank() || it == "<unknown ssid>" }
+            // FLAG_INCLUDE_LOCATION_INFO above allows Android 12+ callbacks to expose
+            // location-sensitive Wi-Fi details when the user has granted permission.
+            // Some devices still redact the SSID, so try WifiManager as a fallback.
+            val ssid = resolveWifiSsid(wifiInfo)
+
+            val managerInfo = runCatching { wifiManager?.connectionInfo }.getOrNull()
+            val rssi = runCatching { wifiInfo.rssi }
+                .getOrNull()
+                ?.takeIf { it != -127 }
+                ?: runCatching { managerInfo?.rssi }.getOrNull()?.takeIf { it != -127 }
+            val signalLevel = rssi?.let {
+                WifiManager.calculateSignalLevel(it, 5)
+            }
+            val linkSpeed = runCatching { wifiInfo.linkSpeed }
+                .getOrNull()
+                ?.takeIf { it > 0 }
+            val frequency = runCatching { wifiInfo.frequency }
+                .getOrNull()
+                ?.takeIf { it > 0 }
+                ?: runCatching { managerInfo?.frequency }.getOrNull()?.takeIf { it > 0 }
 
             WifiBus.update(
                 WifiState(
                     ssid = ssid,
-                    signalLevel = WifiManager.calculateSignalLevel(wifiInfo.rssi, 5),
-                    rssi = wifiInfo.rssi.takeIf { it != -127 },
-                    linkSpeedMbps = wifiInfo.linkSpeed.takeIf { it > 0 },
-                    frequencyMhz = wifiInfo.frequency.takeIf { it > 0 },
+                    signalLevel = signalLevel,
+                    rssi = rssi,
+                    linkSpeedMbps = linkSpeed,
+                    frequencyMhz = frequency,
                     ipAddress = ipAddress,
+                    security = resolveWifiSecurity(wifiInfo, ssid),
                     isMetered = !capabilities.hasCapability(
                         NetworkCapabilities.NET_CAPABILITY_NOT_METERED
                     ),
                 )
             )
         } catch (e: SecurityException) {
-            Log.w("SystemEventMonitor", "Unable to read Wi-Fi state: permission unavailable", e)
-            WifiBus.update(null)
+            Log.w("SystemEventMonitor", "Wi-Fi details are restricted; keeping connection visible", e)
+            // Keep a connected state even when Android blocks access to detailed Wi-Fi info.
+            WifiBus.update(
+                WifiState(
+                    ssid = null,
+                    signalLevel = null,
+                    rssi = null,
+                    linkSpeedMbps = null,
+                    frequencyMhz = null,
+                    ipAddress = null,
+                    isMetered = null,
+                )
+            )
         } catch (e: Exception) {
             Log.w("SystemEventMonitor", "Unable to read Wi-Fi state", e)
-            WifiBus.update(null)
         }
+    }
+
+    /**
+     * WifiInfo exposes the negotiated security type on Android 12+. Older releases do not
+     * expose it through the same public API, so the UI does not guess a security label.
+     */
+    private fun resolveWifiSecurity(wifiInfo: WifiInfo, ssid: String?): String? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val type = runCatching { wifiInfo.currentSecurityType }.getOrNull()
+            when (type) {
+                0 -> return "Open"
+                1 -> return "WEP"
+                2, 3 -> return "WPA/WPA2"
+                4, 5, 9 -> return "WPA3"
+                6 -> return "OWE"
+                7, 8 -> return "WAPI"
+            }
+        }
+
+        // Android 10/11 do not expose WifiInfo.currentSecurityType. When location
+        // permission allows configured-network access, infer the active profile's type.
+        val normalizedSsid = ssid?.trim('"') ?: return null
+        val configs = runCatching { wifiManager?.configuredNetworks }.getOrNull() ?: return null
+        val active = configs.firstOrNull { it.SSID?.trim('"') == normalizedSsid } ?: return null
+        val keys = active.allowedKeyManagement
+        return when {
+            keys.get(WifiConfiguration.KeyMgmt.SAE) -> "WPA3"
+            keys.get(WifiConfiguration.KeyMgmt.WPA_PSK) ||
+                keys.get(WifiConfiguration.KeyMgmt.WPA_EAP) ||
+                keys.get(WifiConfiguration.KeyMgmt.IEEE8021X) -> "WPA/WPA2"
+            active.wepKeys?.any { !it.isNullOrBlank() } == true -> "WEP"
+            else -> "Open"
+        }
+    }
+
+    private fun resolveWifiSsid(wifiInfo: WifiInfo): String? {
+        if (!Permissions.isWifiSsidAccessGranted(context)) {
+            Log.i("SystemEventMonitor", "Wi-Fi SSID permission not granted")
+            return null
+        }
+        if (!Permissions.isLocationEnabledForWifi(context)) {
+            Log.i("SystemEventMonitor", "Location services are disabled; Android may redact Wi-Fi SSID")
+            return null
+        }
+
+        fun normalize(value: String?): String? {
+            return value
+                ?.removePrefix("\"")
+                ?.removeSuffix("\"")
+                ?.takeUnless {
+                    it.isBlank() ||
+                        it.equals("<unknown ssid>", ignoreCase = true) ||
+                        it.equals("unknown ssid", ignoreCase = true)
+                }
+        }
+
+        normalize(runCatching { wifiInfo.ssid }.getOrNull())?.let { return it }
+
+        // Prefer WifiManager's active connection as a second source. Android itself
+        // redacts this value when the required runtime permissions are missing.
+        normalize(runCatching { wifiManager?.connectionInfo?.ssid }.getOrNull())?.let { return it }
+
+        // Last compatibility fallback for older releases/OEM implementations.
+        return normalize(runCatching {
+            @Suppress("DEPRECATION")
+            wifiManager?.connectionInfo?.ssid
+        }.getOrNull())
+    }
+
+    private fun refreshCurrentWifiState() {
+        val connectivity = connectivityManager ?: return
+        val network = connectivity.activeNetwork ?: return
+        val capabilities = runCatching { connectivity.getNetworkCapabilities(network) }.getOrNull()
+        if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) {
+            updateWifiState(network, capabilities)
+        }
+    }
+
+    private fun updateUsbDevice(device: android.hardware.usb.UsbDevice) {
+        val interfaceClasses = (0 until device.interfaceCount).mapNotNull { index ->
+            runCatching { device.getInterface(index).interfaceClass }.getOrNull()
+        }
+        val classes = interfaceClasses + device.deviceClass
+        val type = when {
+            android.hardware.usb.UsbConstants.USB_CLASS_MASS_STORAGE in classes -> "USB storage device"
+            android.hardware.usb.UsbConstants.USB_CLASS_HID in classes -> "USB input device"
+            android.hardware.usb.UsbConstants.USB_CLASS_HUB in classes -> "USB hub"
+            android.hardware.usb.UsbConstants.USB_CLASS_AUDIO in classes -> "USB audio device"
+            android.hardware.usb.UsbConstants.USB_CLASS_VIDEO in classes -> "USB video device"
+            android.hardware.usb.UsbConstants.USB_CLASS_COMM in classes -> "USB communication device"
+            else -> "USB peripheral"
+        }
+        val productName = runCatching { device.productName }.getOrNull()?.takeIf { it.isNotBlank() }
+        val manufacturer = runCatching { device.manufacturerName }.getOrNull()?.takeIf { it.isNotBlank() }
+        UsbBus.update(
+            UsbState(
+                name = productName ?: type,
+                deviceType = type,
+                manufacturer = manufacturer,
+                deviceId = device.deviceId,
+                vendorId = device.vendorId,
+                productId = device.productId,
+                connectionMode = "OTG",
+            ),
+        )
+    }
+
+    /**
+     * Android's USB device-mode state broadcast is not a stable public SDK API.
+     * Read it opportunistically for PC connections, and keep the UI generic when
+     * the OEM does not expose it. Host-mode UsbDevice broadcasts remain the
+     * reliable public path for OTG peripherals.
+     */
+    private fun handleUsbDeviceModeState(intent: Intent) {
+        val connected = intent.getBooleanExtra("connected", false)
+        val current = UsbBus.state.value
+        if (connected) {
+            if (current != null) return
+            val function = when {
+                intent.getBooleanExtra("mtp", false) -> "MTP / File transfer"
+                intent.getBooleanExtra("ptp", false) -> "PTP / Photo transfer"
+                intent.getBooleanExtra("rndis", false) -> "USB tethering"
+                intent.getBooleanExtra("midi", false) -> "MIDI"
+                intent.getBooleanExtra("mass_storage", false) -> "USB storage"
+                else -> "USB connection"
+            }
+            UsbBus.update(
+                UsbState(
+                    name = "Connected computer",
+                    deviceType = "Computer connection",
+                    connectionMode = function,
+                    isPcConnection = true,
+                ),
+            )
+            emit(SystemEventType.USB_MOUNTED)
+        } else if (current?.isPcConnection == true) {
+            UsbBus.update(null)
+            emit(SystemEventType.USB_UNMOUNTED)
+        }
+    }
+
+    private fun refreshUsbConnection() {
+        val device = runCatching { usbManager?.deviceList?.values?.firstOrNull() }.getOrNull()
+        if (device != null) updateUsbDevice(device)
     }
 
     private fun isAdbConnection(intent: Intent): Boolean {
@@ -470,6 +683,7 @@ class SystemEventMonitor(private val context: Context) {
         dataSaverEnabled = connectivityManager?.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
         autoRotateEnabled = Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 1) == 1
         thermalWarningActive = null
+        refreshUsbConnection()
         deviceWasLocked = keyguardManager?.isKeyguardLocked == true
         synchronized(activeTorchCameras) { activeTorchCameras.clear() }
 
@@ -483,7 +697,6 @@ class SystemEventMonitor(private val context: Context) {
             ContextCompat.RECEIVER_EXPORTED,
         )
 
-        audioOutputSnapshot = currentAudioOutputSnapshot()
         audioManager?.registerAudioDeviceCallback(
             audioDeviceCallback,
             mainHandler,
@@ -533,7 +746,6 @@ class SystemEventMonitor(private val context: Context) {
         audioManager?.unregisterAudioDeviceCallback(
             audioDeviceCallback
         )
-        audioOutputSnapshot = null
         context.contentResolver.unregisterContentObserver(locationObserver)
         context.contentResolver.unregisterContentObserver(autoRotateObserver)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -550,11 +762,11 @@ class SystemEventMonitor(private val context: Context) {
         lastPublishedVpnState = false
         wifiNetworks.clear()
         bluetoothDevices.clear()
-        headphoneDevices.clear()
         wasHotspotEnabled = false
 
         ChargingBus.update(null)
         WifiBus.update(null)
+        UsbBus.update(null)
     }
 
     private fun updateChargingState(intent: Intent) {
@@ -568,6 +780,18 @@ class SystemEventMonitor(private val context: Context) {
             status == BatteryManager.BATTERY_STATUS_CHARGING ||
                     status == BatteryManager.BATTERY_STATUS_FULL
 
+        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100)
+        val percentage = if (level >= 0 && scale > 0) {
+            ((level * 100f) / scale).roundToInt().coerceIn(0, 100)
+        } else {
+            batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                ?.takeIf { it in 0..100 }
+        }
+        if (percentage != null) {
+            BatteryBus.update(BatteryState(percentage = percentage, isCharging = isCharging))
+        }
+
         if (!isCharging) {
             wasBatteryFull = false
             ChargingBus.update(null)
@@ -579,31 +803,6 @@ class SystemEventMonitor(private val context: Context) {
             emit(SystemEventType.CHARGING_COMPLETE)
         } else if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
             wasBatteryFull = false
-        }
-
-        val level = intent.getIntExtra(
-            BatteryManager.EXTRA_LEVEL,
-            -1,
-        )
-
-        val scale = intent.getIntExtra(
-            BatteryManager.EXTRA_SCALE,
-            100,
-        )
-
-        val percentage = if (level >= 0 && scale > 0) {
-            ((level * 100f) / scale).roundToInt()
-        } else {
-            -1
-        }
-
-        if (percentage >= 0) {
-            BatteryBus.update(
-                BatteryState(
-                    percentage = percentage.coerceIn(0, 100),
-                    isCharging = isCharging,
-                )
-            )
         }
 
         val batteryPercent =
@@ -734,20 +933,6 @@ class SystemEventMonitor(private val context: Context) {
         if (previous != null && previous != warning) emit(if (warning) SystemEventType.THERMAL_WARNING else SystemEventType.THERMAL_NORMAL)
     }
 
-    private fun currentAudioOutputSnapshot(): Set<String>? = runCatching {
-        audioManager?.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
-            ?.filter { it.isSink }
-            ?.map { "${it.id}:${it.type}" }
-            ?.toSet()
-    }.getOrNull()
-
-    private fun updateAudioOutputDevices() {
-        val current = currentAudioOutputSnapshot() ?: return
-        val previous = audioOutputSnapshot
-        audioOutputSnapshot = current
-        if (previous != null && previous != current) emit(SystemEventType.AUDIO_OUTPUT_CHANGED)
-    }
-
     private fun updateFlashlightState(enabled: Boolean) {
         val previous = flashlightEnabled
         flashlightEnabled = enabled
@@ -778,11 +963,15 @@ class SystemEventMonitor(private val context: Context) {
 
             addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
             addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+            addAction(USB_STATE_ACTION)
 
             addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
             addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
 
             addAction("android.net.wifi.WIFI_AP_STATE_CHANGED")
+            addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
+            addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
+            addAction(WIFI_DETAILS_REFRESH_ACTION)
 
             addAction(AudioManager.RINGER_MODE_CHANGED_ACTION)
             addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)
@@ -808,6 +997,9 @@ class SystemEventMonitor(private val context: Context) {
         get() = type in HEADPHONE_TYPES
 
     private companion object {
+        const val USB_STATE_ACTION = "android.hardware.usb.action.USB_STATE"
+        const val WIFI_DETAILS_REFRESH_ACTION =
+            "com.vikram.expressiveisland.action.REFRESH_WIFI_DETAILS"
 
         val HEADPHONE_TYPES = setOf(
             AudioDeviceInfo.TYPE_WIRED_HEADPHONES,

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Vibration
@@ -97,16 +98,16 @@ private val PermissionDocs: List<PermissionDoc> = listOf(
         icon = Icons.Rounded.Layers,
         title = "Accessibility service",
         manifestName = "BIND_ACCESSIBILITY_SERVICE",
-        summary = "Android only lets an accessibility service draw a window that survives above " +
-            "other apps and the lockscreen. That window is the island — the service is used as a " +
-            "drawing surface. It reads no screen content: the one event it listens for tells it " +
-            "only the name of the app in front, never anything shown on screen.",
+        summary = "Android lets the accessibility service host the island overlay above other apps. " +
+            "It also receives accessibility events. When automatic assistant detection is enabled, " +
+            "it inspects visible text nodes only in supported assistant apps to identify voice or " +
+            "prompt activity and may display relevant text in the island.",
         uses = listOf(
             "Draw the island over the camera cutout, above whatever app is in the foreground",
             "Keep it there across app switches, and tear it down while the device is locked if you asked for that",
             "Receive your taps and swipes on the island itself",
-            "Read the name of the app in the foreground — its package name only, no screen content — " +
-                "so the music tile can hide itself while the app playing the music is open",
+            "Read the foreground app package name so the music tile can hide while the music app is open",
+            "When enabled, inspect limited visible text from supported assistant apps for assistant activity and island display",
         ),
     ),
     PermissionDoc(
@@ -131,6 +132,17 @@ private val PermissionDocs: List<PermissionDoc> = listOf(
             "not ask for.",
         uses = listOf(
             "Post the sample notification, call and reply used to preview the island without waiting for a real one",
+        ),
+        optional = true,
+    ),
+    PermissionDoc(
+        icon = Icons.Rounded.Mic,
+        title = "Microphone",
+        manifestName = "RECORD_AUDIO",
+        summary = "Requested only when you start voice input in the Assistant. On supported Android 12+ devices, audio is passed to Android's on-device speech recognizer. Availability depends on the device's installed on-device recognition service.",
+        uses = listOf(
+            "Capture speech while you actively use the Assistant microphone button",
+            "Convert speech to text on-device where supported; microphone audio is not sent to the app updater",
         ),
         optional = true,
     ),

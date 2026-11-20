@@ -7,6 +7,7 @@ import com.vikram.expressiveisland.core.ChargingState
 import com.vikram.expressiveisland.core.HeadphonesBus
 import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.core.WifiBus
+import com.vikram.expressiveisland.core.UsbBus
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.overlay.island.IslandAction
 import com.vikram.expressiveisland.overlay.island.IslandEvent
@@ -20,6 +21,7 @@ fun ExpandedContent(
     showActions: Boolean,
     appearance: AppearanceSettings,
     collapsedHeightDp: Int,
+    notchBottomInsetDp: Int = collapsedHeightDp,
     replyingTo: IslandAction?,
     replySent: Boolean,
     progressData: ProgressData? = null,
@@ -38,6 +40,7 @@ fun ExpandedContent(
     onSelectAssistantChat: (String) -> Unit = {},
 ) {
     val wifiState by WifiBus.state.collectAsStateWithLifecycle()
+    val usbState by UsbBus.state.collectAsStateWithLifecycle()
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
 
     val currentWifiState = wifiState
@@ -73,33 +76,53 @@ fun ExpandedContent(
         ChargingExpandedContent(
             charging = chargingState,
             appearance = appearance,
-        )
-        return
-    }
-
-    if (systemEventType == SystemEventType.BATTERY_LOW) {
-        BatteryLowExpandedContent(
-            appearance = appearance,
+            notchBottomInsetDp = notchBottomInsetDp,
         )
         return
     }
 
     if (
-        systemEventType == SystemEventType.WIFI_CONNECTED &&
-        currentWifiState != null
+        systemEventType == SystemEventType.CHARGING_STOPPED ||
+        systemEventType == SystemEventType.CHARGING_COMPLETE ||
+        systemEventType == SystemEventType.BATTERY_LOW
     ) {
+        BatteryStatusExpandedContent(
+            type = systemEventType,
+            notchBottomInsetDp = notchBottomInsetDp,
+        )
+        return
+    }
+
+    if (systemEventType == SystemEventType.WIFI_CONNECTED) {
         WifiConnectedExpandedContent(
-            wifi = currentWifiState,
+            wifi = currentWifiState ?: com.vikram.expressiveisland.core.WifiState(
+                ssid = null,
+                signalLevel = null,
+                rssi = null,
+                linkSpeedMbps = null,
+                frequencyMhz = null,
+                ipAddress = null,
+                isMetered = null,
+            ),
+            notchBottomInsetDp = notchBottomInsetDp,
         )
         return
     }
 
-    if (
-        systemEventType == SystemEventType.HEADPHONES_CONNECTED &&
-        currentHeadphonesState != null
-    ) {
-        HeadphonesConnectedExpandedContent(
-            headphones = currentHeadphonesState,
+    if (systemEventType == SystemEventType.USB_MOUNTED) {
+        UsbConnectedExpandedContent(
+            usb = usbState,
+            notchBottomInsetDp = notchBottomInsetDp,
+        )
+        return
+    }
+
+    // All remaining system events share the transparent, height-adaptive detail layout.
+    // Bluetooth may contribute a real accessory name when the platform exposes one.
+    if (systemEventType != null) {
+        SystemEventExpandedContent(
+            type = systemEventType,
+            deviceName = currentHeadphonesState?.name,
         )
         return
     }

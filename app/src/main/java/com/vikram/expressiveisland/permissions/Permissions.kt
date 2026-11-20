@@ -5,6 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.PowerManager
+import android.os.Build
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.getSystemService
@@ -17,6 +21,46 @@ import com.vikram.expressiveisland.system.ShizukuState
  * lets the UI stay declarative and re-check state on every resume.
  */
 object Permissions {
+
+
+    /**
+     * Wi-Fi SSID access is location-sensitive on legacy Android releases. Android 13+
+     * additionally exposes the Nearby Wi-Fi Devices runtime permission.
+     */
+    fun isWifiSsidAccessGranted(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+        val fineLocation = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        val nearbyWifi = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.NEARBY_WIFI_DEVICES,
+            ) == PackageManager.PERMISSION_GRANTED
+        return fineLocation || nearbyWifi
+    }
+
+    fun isLocationEnabledForWifi(context: Context): Boolean {
+        // Nearby Wi-Fi permission is intentionally independent of device location on Android 13+.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.NEARBY_WIFI_DEVICES,
+            ) == PackageManager.PERMISSION_GRANTED
+        ) return true
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val manager = context.getSystemService<android.location.LocationManager>() ?: return false
+            return runCatching { manager.isLocationEnabled }.getOrDefault(false)
+        }
+
+        // Android 6.0–8.1: location mode is required by the legacy Wi-Fi SSID APIs.
+        return runCatching {
+            Settings.Secure.getInt(
+                context.contentResolver,
+                Settings.Secure.LOCATION_MODE,
+                Settings.Secure.LOCATION_MODE_OFF,
+            ) != Settings.Secure.LOCATION_MODE_OFF
+        }.getOrDefault(false)
+    }
 
     fun isNotificationAccessGranted(context: Context): Boolean =
         NotificationManagerCompat.getEnabledListenerPackages(context)

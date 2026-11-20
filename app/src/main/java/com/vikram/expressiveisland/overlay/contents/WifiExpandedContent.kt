@@ -1,159 +1,219 @@
 package com.vikram.expressiveisland.overlay.contents
 
+import android.net.TrafficStats
+import android.net.wifi.WifiManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Wifi
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vikram.expressiveisland.R
+import androidx.compose.material3.Icon
+import com.vikram.expressiveisland.BuildConfig
 import com.vikram.expressiveisland.core.WifiState
+import kotlinx.coroutines.delay
+import java.util.Locale
+
+private const val TRAFFIC_SAMPLE_INTERVAL_MS = 1_000L
+
+private data class WifiTrafficSnapshot(
+    val rxRateBytesPerSecond: Long = 0L,
+    val txRateBytesPerSecond: Long = 0L,
+)
 
 @Composable
 fun WifiConnectedExpandedContent(
     wifi: WifiState,
+    notchBottomInsetDp: Int,
 ) {
-    val contentColor = LocalContentColor.current
-    val secondaryColor = contentColor.copy(alpha = 0.68f)
+    val colors = MaterialTheme.colorScheme
+    val foreground = Color.White
+    val secondaryForeground = Color.White.copy(alpha = 0.76f)
+    val networkName = wifi.ssid
+        ?.takeUnless { it.isBlank() || it.equals("<unknown ssid>", true) || it == "0x" }
+        ?: if (BuildConfig.DEBUG) "NekoNet_5G" else "Unknown Wifi"
+    val band = wifi.band
+    val security = wifi.security
+    val signalLevel = wifi.signalLevel ?: wifi.rssi?.takeIf { it != -127 }?.let { WifiManager.calculateSignalLevel(it, 5) }
 
-    val signalLevel = wifi.signalLevel?.coerceIn(0, 4)
-
-    val signalText = when (signalLevel) {
-        4 -> "Excellent signal"
-        3 -> "Good signal"
-        2 -> "Fair signal"
-        1 -> "Weak signal"
-        else -> "Signal unavailable"
+    var traffic by remember(wifi.ssid) { mutableStateOf(WifiTrafficSnapshot()) }
+    LaunchedEffect(wifi.ssid) {
+        var previousRx = TrafficStats.getTotalRxBytes()
+        var previousTx = TrafficStats.getTotalTxBytes()
+        while (true) {
+            delay(TRAFFIC_SAMPLE_INTERVAL_MS)
+            val currentRx = TrafficStats.getTotalRxBytes()
+            val currentTx = TrafficStats.getTotalTxBytes()
+            val rxDelta = if (previousRx >= 0L && currentRx >= previousRx) currentRx - previousRx else 0L
+            val txDelta = if (previousTx >= 0L && currentTx >= previousTx) currentTx - previousTx else 0L
+            traffic = WifiTrafficSnapshot(rxRateBytesPerSecond = rxDelta, txRateBytesPerSecond = txDelta)
+            previousRx = currentRx
+            previousTx = currentTx
+        }
     }
 
-    val networkName = wifi.ssid
-        ?.takeUnless { it.isBlank() || it == "<unknown ssid>" }
-        ?: "Unknown network"
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(
-                start = 16.dp,
-                end = 16.dp,
-                bottom = 24.dp,
-            ),
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomStart),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Wifi,
-                    contentDescription = null,
-                    modifier = Modifier.size(34.dp),
-                    tint = Color(0xFF60A5FA),
-                )
+        val contentHeight = (maxHeight - notchBottomInsetDp.coerceAtLeast(0).dp).coerceAtLeast(0.dp)
+        val compact = contentHeight < 76.dp
+        val veryCompact = contentHeight < 52.dp
+        val speedSurface = colors.primary
 
+        Column(modifier = Modifier.fillMaxSize()) {
+            Spacer(Modifier.height(notchBottomInsetDp.coerceAtLeast(0).dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().weight(1f)
+                    .padding(top = if (compact) 1.dp else 5.dp, bottom = 7.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    verticalArrangement = Arrangement.Top,
                 ) {
                     Text(
-                        text = stringResource(
-                            R.string.event_wifi_connected,
-                        ),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = contentColor,
-                    )
-
-                    Text(
-                        text = networkName,
-                        fontSize = 13.sp,
+                        text = "Connected to",
+                        color = secondaryForeground,
+                        fontSize = if (veryCompact) 9.sp else 10.sp,
                         fontWeight = FontWeight.Medium,
-                        color = contentColor,
                         maxLines = 1,
                     )
-
                     Text(
-                        text = buildString {
-                            append(signalText)
-
-                            wifi.band?.let {
-                                append(" • ")
-                                append(it)
-                            }
-                        },
-                        fontSize = 11.sp,
-                        color = secondaryColor,
+                        text = networkName,
+                        color = foreground,
+                        fontSize = if (veryCompact) 13.sp else if (compact) 15.sp else 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
+
+                    Row(
+                        modifier = Modifier.padding(top = if (compact) 3.dp else 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        if (band != null) MetadataText(band, compact)
+                        if (band != null && security != null) MetadataDot()
+                        if (security != null) MetadataText(security, compact)
+                        if (band != null || security != null) MetadataDot()
+                        Icon(
+                            imageVector = Icons.Filled.Wifi,
+                            contentDescription = "Wi-Fi signal strength",
+                            tint = foreground,
+                            modifier = Modifier.size(if (compact) 13.dp else 15.dp),
+                        )
+
+                    }
                 }
 
-                WifiSignalIndicator(
-                    level = signalLevel,
-                )
+                // A vertically grouped pair of Material 3-style tonal action segments.
+                Surface(
+                    modifier = Modifier.width(if (compact) 104.dp else 116.dp)
+                        .fillMaxHeight(if (compact) 0.88f else 0.84f),
+                    shape = RoundedCornerShape(22.dp),
+                    color = speedSurface,
+                    tonalElevation = 2.dp,
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 9.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            SpeedGroupItem(
+                                value = formatRate(traffic.txRateBytesPerSecond),
+                                icon = Icons.Filled.Upload,
+                                foreground = Color.White,
+                            )
+                        }
+                        Box(
+                            modifier = Modifier.fillMaxWidth().height(1.dp)
+                                .background(Color.White.copy(alpha = 0.28f)),
+                        )
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            SpeedGroupItem(
+                                value = formatRate(traffic.rxRateBytesPerSecond),
+                                icon = Icons.Filled.Download,
+                                foreground = Color.White,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun WifiSignalIndicator(
-    level: Int?,
-) {
-    val activeColor = Color(0xFF60A5FA)
-    val inactiveColor =
-        LocalContentColor.current.copy(alpha = 0.14f)
+private fun MetadataText(value: String, compact: Boolean) {
+    Text(
+        text = value,
+        color = Color.White.copy(alpha = 0.82f),
+        fontSize = if (compact) 9.sp else 10.sp,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
 
+@Composable
+private fun SpeedGroupItem(
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    foreground: Color,
+) {
     Row(
-        modifier = Modifier.height(24.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.Bottom,
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
-        repeat(4) { index ->
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .height((7 + index * 5).dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = 3.dp,
-                            topEnd = 3.dp,
-                            bottomStart = 3.dp,
-                            bottomEnd = 3.dp,
-                        ),
-                    )
-                    .background(
-                        if (level != null && index < level) {
-                            activeColor
-                        } else {
-                            inactiveColor
-                        },
-                    ),
-            )
-        }
+        Icon(imageVector = icon, contentDescription = null, tint = foreground, modifier = Modifier.size(18.dp))
+        Text(text = value, color = foreground, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
     }
+}
+
+@Composable
+private fun MetadataDot() {
+    Box(
+        modifier = Modifier.size(3.dp).clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.72f)),
+    )
+}
+
+
+private fun formatRate(bytesPerSecond: Long): String {
+    // Convert bytes/s to megabits/s, the unit shown in the speed capsule.
+    val mbps = bytesPerSecond.coerceAtLeast(0L) * 8.0 / 1_000_000.0
+    val decimals = when { mbps >= 100.0 -> 0; mbps >= 10.0 -> 1; else -> 2 }
+    return String.format(Locale.US, "%." + decimals + "f Mbps", mbps)
 }

@@ -1,5 +1,44 @@
 [
   {
+    "version": "0.1.7",
+    "description": "Expressive Island — redesigned system event experiences, more adaptive expanded islands, clearer permissions, and improved assistant and settings interfaces",
+    "features": [
+      "Added dedicated Microphone permission support for Assistant voice input, including permission status and request controls in the Permissions tab",
+      "Added detailed permission explanations for microphone access and updated accessibility-service guidance",
+      "Added categorized System Events settings to make event controls easier to discover: Connectivity & Networks, Power & Performance, Privacy & Security, Developer Tools, Sound & Interruptions, and Device Controls",
+      "Added redesigned expanded island content for supported system events, including Bluetooth, VPN, ADB, wireless debugging, hotspot, airplane mode, DND, battery saver, NFC, location, flashlight, data saver, auto-rotate, thermal, ringer, and device lock states",
+      "Improved expanded island information for Wi-Fi, USB/OTG, charging, and other supported system events",
+      "Added adaptive expanded-event layouts with height-aware content sizing and notch-safe spacing",
+      "Improved assistant chat navigation with a dedicated chat-history entry point and a contextual actions menu",
+      "Improved assistant chat presentation with a fixed header and input area, scrollable conversation content, and clearer message styling",
+      "Added or refined live previews for settings that affect island appearance and assistant controls",
+      "Added grouped event and settings controls for a more consistent settings experience"
+    ],
+    "bugfixes": [
+      "Fixed duplicate information in the Wi-Fi expanded island",
+      "Fixed Wi-Fi expanded content overflowing or being clipped at the bottom of the island",
+      "Fixed expanded system-event content not adapting correctly to different island heights",
+      "Fixed expanded event layouts overlapping or being positioned too close to the camera notch",
+      "Fixed system-event content backgrounds and nested containers causing inconsistent expanded-island presentation",
+      "Fixed permission information and status presentation so microphone access is represented in both the Permissions tab and permission details",
+      "Removed the obsolete Headphones system event and Audio Output implementation",
+      "Removed outdated headphone and audio-output references from the documented system-event feature list"
+    ],
+    "improvements": [
+      "Redesigned expanded system-event cards with clearer information hierarchy, more expressive layouts, and consistent visual treatment",
+      "Made expanded system-event layouts vertically responsive so content fits within the available island height",
+      "Added safe top spacing for the camera notch while keeping expanded content anchored and balanced",
+      "Grouped related System Events settings instead of presenting every event as one flat list",
+      "Improved the Profile and settings button groups with consistent connected corner radii",
+      "Improved assistant tab layout and interaction organization",
+      "Improved notification icon appearance with a brief blur-to-clear entrance transition",
+      "Updated README documentation with current system-event coverage, runtime permissions, microphone usage, accessibility-service behaviour, updater permissions, and privacy disclosures",
+      "Clarified that notification content is processed on-device, while Assistant messages and relevant conversation context are sent to the AI provider configured by the user when the Assistant is used",
+      "Clarified local API-key protection, voice-input behaviour, and the conditions under which accessibility text inspection is used",
+      "Updated app version metadata to version 0.1.7 with version code 6"
+    ]
+  },
+  {
     "version": "0.1.6",
     "description": "Expressive Island — refined island interactions, smarter assistant controls, and a more polished settings experience",
     "features": [

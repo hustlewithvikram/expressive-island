@@ -38,6 +38,7 @@ import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.core.CenterShortcutExecutor
+import com.vikram.expressiveisland.core.ChargingBus
 import com.vikram.expressiveisland.core.CutoutSignal
 import com.vikram.expressiveisland.core.AssistantInteractionMode
 import com.vikram.expressiveisland.core.DynamicTile
@@ -115,6 +116,25 @@ import kotlin.time.Duration.Companion.milliseconds
 /** Secondary bubble side. Kept internal for now; the visual feature is enabled by default. */
 const val SATELLITE_GAP_DP = 8
 val DEFAULT_SATELLITE_POSITION = SatellitePosition.RIGHT
+
+/** Inactive system states that only need a brief pill, never an expanded detail surface. */
+private val PILL_ONLY_SYSTEM_EVENTS = setOf(
+    SystemEventType.WIFI_DISCONNECTED,
+    SystemEventType.USB_UNMOUNTED,
+    SystemEventType.VPN_DISCONNECTED,
+    SystemEventType.ADB_DISCONNECTED,
+    SystemEventType.WIRELESS_DEBUGGING_DISCONNECTED,
+    SystemEventType.BLUETOOTH_DISCONNECTED,
+    SystemEventType.HOTSPOT_DISABLED,
+    SystemEventType.AIRPLANE_MODE_DISABLED,
+    SystemEventType.DND_DISABLED,
+    SystemEventType.BATTERY_SAVER_DISABLED,
+    SystemEventType.NFC_DISABLED,
+    SystemEventType.LOCATION_DISABLED,
+    SystemEventType.FLASHLIGHT_DISABLED,
+    SystemEventType.DATA_SAVER_DISABLED,
+    SystemEventType.AUTO_ROTATE_DISABLED,
+)
 
 /**
  * Owns the single overlay window and drives it from the [IslandEventBus]. Created and
@@ -2056,7 +2076,13 @@ class IslandOverlayController(private val context: Context) {
             // "Normal only": this app's pill has no expanded state at all. Suppressing auto-expand
             // here keeps the window from ever being sized for it; the flag carried on the event is
             // what stops a tap toggling it open (and opens the app instead) — see [IslandEvent.normalOnly].
-            val normalOnly = signal.sourcePackage() in normalOnlyApps
+            // Inactive / disconnected system states are pill-only: they are useful as a
+            // brief transition, but have no extra details worth opening in the expanded island.
+            // Reuse IslandEvent.normalOnly so DynamicIsland suppresses both its expanded surface
+            // and tap-to-expand handling, exactly like Apps > Normal only.
+            val isPillOnlySystemEvent =
+                (signal as? CutoutSignal.System)?.type in PILL_ONLY_SYSTEM_EVENTS
+            val normalOnly = signal.sourcePackage() in normalOnlyApps || isPillOnlySystemEvent
             val autoExpand = if (isNoExpandLandscape || normalOnly) false else rawAutoExpand
 
             val resolvedEvent = resolver.resolve(
@@ -2080,6 +2106,7 @@ class IslandOverlayController(private val context: Context) {
                 notificationIconStrokeColor = behaviourState.value.notificationIconStrokeColor,
                 initiallyExpanded = autoExpand,
                 normalOnly = normalOnly,
+                systemEventType = (signal as? CutoutSignal.System)?.type,
             )
 
             if (overlayHidden) {
@@ -2263,6 +2290,12 @@ class IslandOverlayController(private val context: Context) {
             }
 
             currentDeadlineMs = null
+            if (
+                currentSystemEventType == SystemEventType.CHARGING_STARTED &&
+                incomingSystemEventType != SystemEventType.CHARGING_STARTED
+            ) {
+                ChargingBus.clearPreview()
+            }
             currentSystemEventType = incomingSystemEventType
 
             forcedExpanded.value =
@@ -2818,8 +2851,12 @@ class IslandOverlayController(private val context: Context) {
             }
         }
         if (promoteSatelliteCollapsed()) return
+        val dismissedChargingEvent = event?.systemEventType == SystemEventType.CHARGING_STARTED
         val returnToLive = livePillToReturnTo() != null
         currentEvent.value = null
+        if (dismissedChargingEvent && event != null) {
+            clearChargingPreviewAfterCollapse(event.id)
+        }
         syncWindowSize()
         if (returnToLive) {
             dismissJob = scope.launch {
@@ -2946,6 +2983,7 @@ class IslandOverlayController(private val context: Context) {
                 return@launch
             }
             if (promoteSatelliteCollapsed()) return@launch
+            val dismissedChargingEvent = currentSystemEventType == SystemEventType.CHARGING_STARTED
             if (currentEvent.value?.assistant?.interactivePanel == true &&
                 assistantSettings.activationMode == com.vikram.expressiveisland.data.AssistantActivationMode.MANUAL &&
                 assistantSettings.manualAutoHideEnabled
@@ -2976,7 +3014,27 @@ class IslandOverlayController(private val context: Context) {
             }
             currentDeadlineMs = null
             currentSystemEventType = null
+            if (dismissedChargingEvent) {
+                clearChargingPreviewAfterCollapse(scheduledEventId)
+            }
             syncWindowSize()
+        }
+    }
+
+    /**
+     * Keep the demo state available while Compose animates the expanded island back to its pill.
+     * Clearing it sooner makes the still-mounted expanded content fall back to the generic card.
+     */
+    private fun clearChargingPreviewAfterCollapse(dismissedEventId: Long) {
+        scope.launch {
+            delay(WINDOW_SHRINK_DELAY_MS)
+            val activeEvent = currentEvent.value
+            if (
+                activeEvent?.id != dismissedEventId &&
+                activeEvent?.systemEventType != SystemEventType.CHARGING_STARTED
+            ) {
+                ChargingBus.clearPreview()
+            }
         }
     }
 
@@ -3073,12 +3131,6 @@ class IslandOverlayController(private val context: Context) {
                 incomingType == SystemEventType.WIFI_CONNECTED ||
                         incomingType == SystemEventType.WIFI_DISCONNECTED
 
-            SystemEventType.HEADPHONES_CONNECTED,
-            SystemEventType.HEADPHONES_DISCONNECTED,
-                ->
-                incomingType == SystemEventType.HEADPHONES_CONNECTED ||
-                        incomingType == SystemEventType.HEADPHONES_DISCONNECTED
-
             SystemEventType.USB_MOUNTED,
             SystemEventType.USB_UNMOUNTED,
                 ->
@@ -3168,7 +3220,6 @@ class IslandOverlayController(private val context: Context) {
             SystemEventType.THERMAL_WARNING,
             SystemEventType.THERMAL_NORMAL,
                 -> incomingType == SystemEventType.THERMAL_WARNING || incomingType == SystemEventType.THERMAL_NORMAL
-            SystemEventType.AUDIO_OUTPUT_CHANGED -> incomingType == SystemEventType.AUDIO_OUTPUT_CHANGED
 
             SystemEventType.RINGER_NORMAL,
             SystemEventType.RINGER_VIBRATE,
@@ -3194,9 +3245,6 @@ class IslandOverlayController(private val context: Context) {
 
             SystemEventType.BLUETOOTH_CONNECTED,
             SystemEventType.BLUETOOTH_DISCONNECTED,
-
-            SystemEventType.HEADPHONES_CONNECTED,
-            SystemEventType.HEADPHONES_DISCONNECTED,
 
             SystemEventType.USB_MOUNTED,
             SystemEventType.USB_UNMOUNTED,
@@ -3226,7 +3274,6 @@ class IslandOverlayController(private val context: Context) {
             SystemEventType.AUTO_ROTATE_DISABLED,
             SystemEventType.THERMAL_WARNING,
             SystemEventType.THERMAL_NORMAL,
-            SystemEventType.AUDIO_OUTPUT_CHANGED,
                 -> false
 
             else -> true

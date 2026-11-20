@@ -166,6 +166,15 @@ internal class AnimationEngine(
         float(baseMs = if (entering) 320 else 200)
 
     /**
+     * Exit-shell motion: critically damped so the island contracts into the camera notch
+     * without the bounce that can make a disappearing surface look like it is popping away.
+     * Tween-based styles use a slightly longer, smooth 260ms baseline for a readable collapse.
+     */
+    fun shrink(): AnimationSpec<Float> =
+        if (springMotion) effectsSpec(speed)
+        else tween(durationMillis = scaled(260), easing = SmoothEasing)
+
+    /**
      * Release motion for a finger-driven dismissal. Springs preserve the current Animatable
      * velocity on animateTo(), so the pill settles from the actual drag instead of restarting
      * from an artificial zero-velocity state.

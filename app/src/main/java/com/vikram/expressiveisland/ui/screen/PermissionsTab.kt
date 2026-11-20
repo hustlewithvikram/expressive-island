@@ -2,6 +2,7 @@ package com.vikram.expressiveisland.ui.screen
 
 import android.Manifest
 import android.os.Build
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Downloading
 import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.PhoneCallback
@@ -45,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -70,6 +73,9 @@ fun PermissionsTab(contentPadding: PaddingValues) {
     val postPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> if (granted) pendingPost?.invoke() }
+    val microphonePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { /* Permission state is refreshed when this screen resumes. */ }
 
     fun postWithPermission(send: () -> Unit) {
         if (TestNotifier.canPost(context)) {
@@ -114,6 +120,13 @@ fun PermissionsTab(contentPadding: PaddingValues) {
                 description = stringResource(R.string.perm_accessibility_desc),
                 granted = status.accessibility,
                 onClick = { Permissions.openAccessibilitySettings(context) },
+            )
+            PermissionCard(
+                icon = Icons.Rounded.Mic,
+                title = "Microphone (Assistant voice input)",
+                description = "Optional. Requested only when you start voice input; uses on-device speech recognition on supported devices.",
+                granted = status.microphone,
+                onClick = { microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
             )
             PermissionCard(
                 icon = Icons.Rounded.BatterySaver,
@@ -317,6 +330,7 @@ private data class PermissionStatus(
     val notifications: Boolean,
     val accessibility: Boolean,
     val batteryIgnored: Boolean,
+    val microphone: Boolean,
 ) {
     // Battery optimisation is a reliability nicety, not a hard requirement.
     val allEssentialGranted: Boolean get() = notifications && accessibility
@@ -332,6 +346,7 @@ private fun rememberPermissionStatus(): PermissionStatus {
         notifications = Permissions.isNotificationAccessGranted(context),
         accessibility = Permissions.isAccessibilityGranted(context),
         batteryIgnored = Permissions.isBatteryOptimizationIgnored(context),
+        microphone = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED,
     )
 
     var status by remember { mutableStateOf(read()) }

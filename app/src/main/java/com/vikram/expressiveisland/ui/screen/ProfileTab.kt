@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -47,6 +48,7 @@ import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsNone
@@ -239,12 +241,32 @@ private fun ProfileList(
             description = stringResource(R.string.profile_appearance_description),
         )
 
-        ThemeCard(
-            selected = theme,
-            onSelect = viewModel::setTheme,
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp)),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            ThemeCard(
+                selected = theme,
+                onSelect = viewModel::setTheme,
+                shape = RoundedCornerShape(
+                    topStart = 24.dp,
+                    topEnd = 24.dp,
+                    bottomStart = 4.dp,
+                    bottomEnd = 4.dp,
+                ),
+            )
 
-        LanguageCard()
+            LanguageCard(
+                shape = RoundedCornerShape(
+                    topStart = 4.dp,
+                    topEnd = 4.dp,
+                    bottomStart = 24.dp,
+                    bottomEnd = 24.dp,
+                ),
+            )
+        }
 
         // =====================================================================
         // BACKUP & RESTORE
@@ -269,33 +291,44 @@ private fun ProfileList(
             description = stringResource(R.string.profile_manage_description),
         )
 
-        ProfileDestinationCard(
-            icon = Icons.Rounded.Shield,
-            title = stringResource(R.string.profile_access_title),
-            description = stringResource(R.string.profile_access_description),
-            onClick = onOpenAccess,
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp)),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            ProfileDestinationCard(
+                icon = Icons.Rounded.Shield,
+                title = stringResource(R.string.profile_access_title),
+                description = stringResource(R.string.profile_access_description),
+                onClick = onOpenAccess,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+            )
 
-        ProfileDestinationCard(
-            icon = Icons.Rounded.Layers,
-            title = stringResource(R.string.profile_testing_title),
-            description = stringResource(R.string.profile_testing_description),
-            onClick = onOpenTestingTriggers,
-        )
+            ProfileDestinationCard(
+                icon = Icons.Rounded.Layers,
+                title = stringResource(R.string.profile_testing_title),
+                description = stringResource(R.string.profile_testing_description),
+                onClick = onOpenTestingTriggers,
+                shape = RoundedCornerShape(4.dp),
+            )
 
-        ProfileDestinationCard(
-            icon = Icons.Rounded.Info,
-            title = stringResource(R.string.profile_about_title),
-            description = stringResource(R.string.profile_about_description),
-            onClick = onOpenAbout,
-        )
+            ProfileDestinationCard(
+                icon = Icons.Rounded.Info,
+                title = stringResource(R.string.profile_about_title),
+                description = stringResource(R.string.profile_about_description),
+                onClick = onOpenAbout,
+                shape = RoundedCornerShape(4.dp),
+            )
 
-        ProfileDestinationCard(
-            icon = Icons.Rounded.SystemUpdate,
-            title = stringResource(R.string.profile_updater_title),
-            description = stringResource(R.string.profile_updater_description),
-            onClick = onOpenUpdates,
-        )
+            ProfileDestinationCard(
+                icon = Icons.Rounded.SystemUpdate,
+                title = stringResource(R.string.profile_updater_title),
+                description = stringResource(R.string.profile_updater_description),
+                onClick = onOpenUpdates,
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp, topStart = 4.dp, topEnd = 4.dp),
+            )
+        }
 
         Spacer(
             modifier = Modifier.height(8.dp),
@@ -305,7 +338,7 @@ private fun ProfileList(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LanguageCard() {
+private fun LanguageCard(shape: RoundedCornerShape) {
     var sheetVisible by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     val appLocales = AppCompatDelegate.getApplicationLocales().toLanguageTags()
@@ -337,7 +370,7 @@ private fun LanguageCard() {
             searchQuery = ""
             sheetVisible = true
         },
-        shape = RoundedCornerShape(22.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
@@ -497,11 +530,12 @@ private fun ProfileDestinationCard(
     title: String,
     description: String,
     onClick: () -> Unit,
+    shape: RoundedCornerShape,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
-        shape = RoundedCornerShape(22.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
@@ -542,6 +576,16 @@ private fun AccessSubpage(
     val context = LocalContext.current
     val status = rememberPermissionStatus()
     val haptics = LocalHapticFeedback.current
+    val wifiPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { }
+    val requestWifiPermissions = {
+        val permissions = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) add(Manifest.permission.ACCESS_FINE_LOCATION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.NEARBY_WIFI_DEVICES)
+        }
+        if (permissions.isNotEmpty()) wifiPermissionLauncher.launch(permissions.toTypedArray())
+    }
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -553,6 +597,7 @@ private fun AccessSubpage(
                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onOpenPermissionDetails()
             },
+            onRequestWifiPermissions = requestWifiPermissions,
         )
         Spacer(Modifier.height(8.dp))
     }
@@ -737,6 +782,7 @@ private data class ProfilePermissionStatus(
     val notifications: Boolean,
     val accessibility: Boolean,
     val batteryIgnored: Boolean,
+    val wifiSsidAccess: Boolean,
 ) {
     /*
      * Battery optimization is useful for reliability but isn't treated as
@@ -767,6 +813,7 @@ private fun rememberPermissionStatus(): ProfilePermissionStatus {
                 Permissions.isBatteryOptimizationIgnored(
                     context,
                 ),
+            wifiSsidAccess = Permissions.isWifiSsidAccessGranted(context),
         )
     }
 
@@ -783,6 +830,9 @@ private fun rememberPermissionStatus(): ProfilePermissionStatus {
             LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
                     status = read()
+                    context.sendBroadcast(
+                        Intent("com.vikram.expressiveisland.action.REFRESH_WIFI_DETAILS"),
+                    )
                 }
             }
 
@@ -809,6 +859,7 @@ private fun AccessSection(
     status: ProfilePermissionStatus,
     context: Context,
     onOpenPermissionDetails: () -> Unit,
+    onRequestWifiPermissions: () -> Unit,
 ) {
     SectionHeader(
         title = stringResource(R.string.profile_access_title),
@@ -863,7 +914,7 @@ private fun AccessSection(
         )
 
         PermissionGroupCard(
-            position = GroupPosition.Last,
+            position = GroupPosition.Middle,
             icon = Icons.Rounded.BatterySaver,
             title = stringResource(
                 R.string.perm_battery_title,
@@ -877,6 +928,15 @@ private fun AccessSection(
                     context,
                 )
             },
+        )
+
+        PermissionGroupCard(
+            position = GroupPosition.Last,
+            icon = Icons.Rounded.Wifi,
+            title = "Wi-Fi network name",
+            description = "Allow Wi-Fi access to read the connected network name and details. Enable Location services if Android requires it.",
+            granted = status.wifiSsidAccess,
+            onClick = onRequestWifiPermissions,
         )
     }
 
@@ -1377,10 +1437,11 @@ private fun AppHeader() {
 private fun ThemeCard(
     selected: AppTheme,
     onSelect: (AppTheme) -> Unit,
+    shape: RoundedCornerShape,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(
             containerColor =
                 MaterialTheme.colorScheme.surface,

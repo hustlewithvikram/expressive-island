@@ -31,6 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -218,7 +220,12 @@ internal fun DynamicIsland(
     }
 
     val shownEvent = lastEvent
+    // Keep the system-event renderer selected for the entire exit transition, even after
+    // the controller clears its active event type as part of dismissing the pill.
+    val displayedSystemEventType = systemEventType ?: shownEvent?.systemEventType
     val chargingState by ChargingBus.state.collectAsStateWithLifecycle()
+    val chargingPreviewState by ChargingBus.previewState.collectAsStateWithLifecycle()
+    val displayedChargingState = chargingPreviewState ?: chargingState
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
     val mediaActive = shownEvent?.media != null
     val emptyPill = event == null && (showsWhenEmpty || cameraHoleQuickActions)
@@ -349,43 +356,52 @@ internal fun DynamicIsland(
     var centerContentHeightDp by remember { mutableIntStateOf(0) }
     val screenHeightDp = LocalConfiguration.current.screenHeightDp
 
-    val heightBonus = when {
-        emptyPill && isExpanded -> {
-            if (centerContentHeightDp > 0) {
-                collapsed.heightDp + CENTER_TOP_GAP_DP + centerContentHeightDp - dims.heightDp
-            } else {
-                CENTER_SHORTCUTS_EXTRA_DP
+    // System events always use the exact expanded height configured in Size & Position.
+    // Their content must adapt inside that fixed shell instead of growing it per event type.
+    val heightBonus = if (displayedSystemEventType != null) {
+        0
+    } else {
+        when {
+            emptyPill && isExpanded -> {
+                if (centerContentHeightDp > 0) {
+                    collapsed.heightDp + CENTER_TOP_GAP_DP + centerContentHeightDp - dims.heightDp
+                } else {
+                    CENTER_SHORTCUTS_EXTRA_DP
+                }
             }
-        }
 
-        emptyPill -> 0
+            emptyPill -> 0
 
-        isCall && shownEvent?.call?.incomingExpandedLayout == true &&
-                (liveCall?.ongoing == false || shownEvent.id == -1L) &&
-                shownEvent.call.showActions && shownEvent.actions.isNotEmpty() ->
-            com.vikram.expressiveisland.overlay.contents.callIncomingExtraDp()
+            isCall && shownEvent?.call?.incomingExpandedLayout == true &&
+                    (liveCall?.ongoing == false || shownEvent.id == -1L) &&
+                    shownEvent.call.showActions && shownEvent.actions.isNotEmpty() ->
+                com.vikram.expressiveisland.overlay.contents.callIncomingExtraDp()
 
-        isExpanded && (
-                systemEventType == SystemEventType.CHARGING_STARTED ||
-                        systemEventType == SystemEventType.BATTERY_LOW ||
-                        systemEventType == SystemEventType.WIFI_CONNECTED
-                ) -> 20
+            isExpanded && shownEvent?.assistant != null && shownEvent.assistant.displayAnswerInCutout -> {
+                val maxCutoutHeightDp =
+                    (screenHeightDp * shownEvent.assistant.maxCutoutHeightPercent / 100)
+                val fitHeightDp = if (assistantContentHeightDp > 0) assistantContentHeightDp else maxCutoutHeightDp
+                val targetHeightDp = fitHeightDp.coerceIn(110, maxCutoutHeightDp)
+                (targetHeightDp - dims.heightDp)
+            }
 
-        isExpanded && shownEvent?.assistant != null && shownEvent.assistant.displayAnswerInCutout -> {
-            val maxCutoutHeightDp =
-                (screenHeightDp * shownEvent.assistant.maxCutoutHeightPercent / 100)
-            val fitHeightDp = if (assistantContentHeightDp > 0) assistantContentHeightDp else maxCutoutHeightDp
-            val targetHeightDp = fitHeightDp.coerceIn(110, maxCutoutHeightDp)
-            (targetHeightDp - dims.heightDp)
-        }
+            isExpanded && (hasActions || hasMediaControls || hasCallActions || hasTimerActions) ->
+                expandedActionsExtraDp(appearance.actionButtonHeightDp)
 
-        isExpanded && (hasActions || hasMediaControls || hasCallActions || hasTimerActions) ->
-            expandedActionsExtraDp(appearance.actionButtonHeightDp)
-
-        else -> 0
-    } + if (isExpanded && notificationTextExpanded) notificationTextExtraHeightDp else 0
+            else -> 0
+        } + if (isExpanded && notificationTextExpanded) notificationTextExtraHeightDp else 0
+    }
 
     val present = event != null || showsWhenEmpty || cameraHoleQuickActions
+    // Keep the shell mounted while it travels from its expanded geometry back into the
+    // camera-notch footprint. This is separate from reveal: reveal controls visibility,
+    // while shellProgress controls the actual size/position/corner morph.
+    val shellProgress by animateFloatAsState(
+        targetValue = if (present) 1f else 0f,
+        animationSpec = motion.shrink(),
+        label = "islandExitShrink",
+    )
+    val exitProgress = 1f - shellProgress
     val reveal = remember { Animatable(0f) }
     val arrivalIconAlpha = remember { Animatable(1f) }
     val arrivalScaleX = remember { Animatable(1f) }
@@ -524,9 +540,20 @@ internal fun DynamicIsland(
     )
 
     val dotDp = collapsed.heightDp.dp
-    val shellMorph = if (emptyPill && isExpanded) centerMorph else 1f
+    val shellMorph = when {
+        isStickToCamera -> 1f
+        emptyPill && isExpanded -> centerMorph
+        else -> shellProgress
+    }
     val revealWidth = lerpDp(dotDp, width, shellMorph)
     val revealHeight = lerpDp(dotDp, height, shellMorph)
+    // During exit, the expanded shell returns to the configured collapsed anchor as well as
+    // shrinking. Without this interpolation it can shrink in place, away from the camera notch.
+    val shellOffsetX = if (isStickToCamera) 0.dp
+        else lerpDp(collapsed.offsetXDp.dp, offsetX, shellMorph)
+    val shellOffsetY = if (isStickToCamera) 0.dp
+        else lerpDp(collapsed.offsetYDp.dp, offsetY, shellMorph)
+    val exitBlur = (exitProgress.coerceIn(0f, 1f) * 2f).dp
     val dotCorner = dotDp / 2
     val revealTopLeft = lerpDp(dotCorner, topLeft, shellMorph)
     val revealTopRight = lerpDp(dotCorner, topRight, shellMorph)
@@ -628,16 +655,20 @@ internal fun DynamicIsland(
                     .align(if (isStickToCamera) stickAlignment else Alignment.TopCenter)
                     .padding(start = stickPaddingStart, end = stickPaddingEnd)
                     .offset(
-                        x = if (isStickToCamera) 0.dp else offsetX,
-                        y = if (isStickToCamera) 0.dp else offsetY
+                        x = shellOffsetX,
+                        y = shellOffsetY
                     ),
             ) {
-                if (present || reveal.value > 0f || assistantTapEnabled) {
+                if (present || shellProgress > 0f || assistantTapEnabled) {
                     IslandSurface(
                         modifier = Modifier
                             .width(revealWidth)
                             .height(revealHeight)
+                            .blur(exitBlur, edgeTreatment = BlurredEdgeTreatment.Unbounded)
                             .graphicsLayer {
+                                // The spring overshoot intentionally extends beyond the pill's resting
+                                // bounds. Do not clip that transformed layer to its rectangular layout.
+                                clip = false
                                 val extraPx = PressExpandDp.toPx() * 2f * pressExpand.value
                                 val widen =
                                     if (size.width > 0f) (size.width + extraPx) / size.width else 1f
@@ -654,8 +685,20 @@ internal fun DynamicIsland(
                                 rotationZ = (dismissOffsetX.value / size.width.coerceAtLeast(1f) * 7f)
                                     .coerceIn(-7f, 7f)
                                 translationX = dismissOffsetX.value
-                                val revealAlpha = (reveal.value / 0.2f).coerceIn(0f, 1f)
-                                alpha = (1f - travel * 0.75f).coerceIn(0.25f, 1f) * revealAlpha
+                                // Reveal alpha is for arrival only. On exit, keep the shell
+                                // visible until its geometry reaches the notch instead of letting
+                                // the reveal fade hide the unfinished shrink.
+                                val revealAlpha = if (present) {
+                                    (reveal.value / 0.2f).coerceIn(0f, 1f)
+                                } else {
+                                    1f
+                                }
+                                // A small 5% opacity remnant at the end of the geometric
+                                // collapse softens the disappearance; revealAlpha then removes
+                                // the retained surface after the shrink animation completes.
+                                val collapseAlpha = 1f - exitProgress.coerceIn(0f, 1f) * 0.95f
+                                alpha = (1f - travel * 0.75f).coerceIn(0.25f, 1f) *
+                                    collapseAlpha * revealAlpha
                             }
                             .pointerInput(
                                 forcedExpanded,
@@ -912,11 +955,14 @@ internal fun DynamicIsland(
                                     } else if (showExpanded) {
                                         ExpandedContent(
                                             event = e,
-                                            systemEventType = systemEventType,
-                                            chargingState = chargingState,
+                                            systemEventType = displayedSystemEventType,
+                                            chargingState = displayedChargingState,
                                             showActions = showActions,
                                             appearance = appearance,
                                             collapsedHeightDp = collapsed.heightDp,
+                                            notchBottomInsetDp = (
+                                                collapsed.offsetYDp + collapsed.heightDp - expanded.offsetYDp + 4
+                                            ).coerceAtLeast(0),
                                             replyingTo = replyingTo,
                                             replySent = confirmingSent,
                                             progressData = e.progressData,
