@@ -63,8 +63,11 @@ class ShizukuCommandService : Binder() {
 
         val currentServices = runCommandOutput(
             "settings", "get", "secure", "enabled_accessibility_services",
-        )?.takeIf { it.isNotBlank() && it != "null" }.orEmpty()
-        val enabledServices = currentServices.split(':')
+        ) ?: return false
+        val enabledServices = currentServices
+            .takeUnless { it.isBlank() || it == "null" }
+            .orEmpty()
+            .split(':')
             .filter { it.isNotBlank() }
             .toMutableList()
         if (enabledServices.none { it.equals(accessibilityService, ignoreCase = true) }) {
