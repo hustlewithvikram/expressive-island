@@ -996,15 +996,17 @@ private fun PermissionGroupCard(
                     fontWeight = FontWeight.Medium,
                 )
 
-                Spacer(
-                    modifier = Modifier.height(2.dp),
-                )
+                if (description.isNotBlank()) {
+                    Spacer(
+                        modifier = Modifier.height(2.dp),
+                    )
 
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             Spacer(
@@ -2063,7 +2065,7 @@ fun RequiredPermissionsDialog() {
                     position = GroupPosition.First,
                     icon = Icons.Rounded.Notifications,
                     title = stringResource(R.string.perm_notifications_title),
-                    description = stringResource(R.string.perm_notifications_desc),
+                    description = "",
                     granted = status.notifications,
                     onClick = { Permissions.openNotificationAccessSettings(context) },
                 )
@@ -2072,7 +2074,7 @@ fun RequiredPermissionsDialog() {
                     position = GroupPosition.Last,
                     icon = Icons.Rounded.Shield,
                     title = stringResource(R.string.perm_accessibility_title),
-                    description = stringResource(R.string.perm_accessibility_desc),
+                    description = "",
                     granted = status.accessibility,
                     onClick = { Permissions.openAccessibilitySettings(context) },
                 )
@@ -2089,7 +2091,7 @@ fun RequiredPermissionsDialog() {
                     position = GroupPosition.First,
                     icon = Icons.Rounded.BatterySaver,
                     title = stringResource(R.string.perm_battery_title),
-                    description = stringResource(R.string.perm_battery_desc),
+                    description = "",
                     granted = status.batteryIgnored,
                     onClick = { Permissions.requestIgnoreBatteryOptimization(context) },
                 )
@@ -2098,7 +2100,7 @@ fun RequiredPermissionsDialog() {
                     position = GroupPosition.Last,
                     icon = Icons.Rounded.Wifi,
                     title = "Wi-Fi network name",
-                    description = "Allows the Wi-Fi event to show the connected network name. Android may also require Location services to be enabled.",
+                    description = "",
                     granted = status.wifiSsidAccess,
                     onClick = requestWifiPermissions,
                 )
