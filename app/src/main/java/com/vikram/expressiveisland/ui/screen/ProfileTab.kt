@@ -2030,6 +2030,14 @@ fun RequiredPermissionsDialog() {
     var permissionRefreshKey by remember { mutableIntStateOf(0) }
     val status = rememberPermissionStatus(permissionRefreshKey)
     val shizukuStatus by ShizukuState.status.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) ShizukuState.refresh()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     val scope = rememberCoroutineScope()
     var grantingWithShizuku by remember { mutableStateOf(false) }
     var shizukuMessage by remember { mutableStateOf<String?>(null) }
