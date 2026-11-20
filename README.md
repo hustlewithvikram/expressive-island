@@ -53,12 +53,12 @@ Everything is designed around Material Expressive shapes, motion, colours, and c
 
 | Category                | Features                                                                                                                                                                                 |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **AI Assistant**       | Interactive text and voice assistant · configurable AI provider and model · chat history · streaming responses · custom API support |
+| **AI Assistant**       | Interactive text and on-device voice input · configurable AI provider and model · chat history · streaming responses · custom API endpoint support |
 | **Notifications**       | Mirrors notifications in the island · notification icons · automatic expansion · title and text · compact icon-only mode · notification actions · inline replies · swipe-to-dismiss      |
 | **Music**               | Song title and artist · album artwork · optional spinning artwork · playback state · previous / play-pause / next controls                                                               |
 | **Phone calls**         | Caller name · contact photo · live call duration · hang-up action · incoming call interface · answer / decline actions · open in-call screen · optional two-row incoming-call layout     |
 | **Timers**              | Live countdown from the clock app · Android 16+ live-update timer support · real clock-app actions · Add 1 min · Reset · Pause / Resume state                                            |
-| **System events**       | Charging started / stopped · low battery · Wi-Fi connected / disconnected · headphones connected / disconnected · USB connected / removed · device unlocked                              |
+| **System events**       | Charging and battery state · Wi-Fi · USB/OTG · Bluetooth accessories · hotspot · VPN · airplane mode · data saver · thermal state · device lock · location · NFC · ADB and wireless debugging · ringer and DND · flashlight · auto-rotate |
 | **Event customisation** | Material icons · icon search · animated icons · animation looping · individual colours · event duration · Material You colours                                                           |
 | **Island sizing**       | Independent normal / expanded width · independent normal / expanded height · corner radius controls · per-corner radius · horizontal position · vertical position                        |
 | **Appearance**          | Solid backgrounds · gradients · gradient direction · opacity · shadows · outline stroke · custom stroke colour · Material You colours · preset colours · custom HEX colours              |
@@ -67,7 +67,7 @@ Everything is designed around Material Expressive shapes, motion, colours, and c
 | **Animations**          | Expressive spring · ease-in-out · slow / default / fast speeds · bounce size · configurable animation duration                                                                           |
 | **Gestures**            | Auto-collapse · persistent expanded state · swipe up to shrink · swipe sideways to dismiss · configurable dismiss direction · configurable size behaviour                                |
 | **Lockscreen**          | Optional complete island removal on the lockscreen to ensure the overlay is torn down when hidden                                                                                        |
-| **Privacy**             | On-device notification handling · updater network access only · no analytics · no tracking · no upload of notification content or usage data                                               |
+| **Privacy**             | Notification handling on-device · optional local assistant-app text detection · no analytics or usage tracking · AI prompts are sent to the provider you configure when you use the assistant |
 | **Testing**             | Test notifications · notification actions · inline replies · test ongoing calls · test incoming calls · system-event previews                                                            |
 
 ---
@@ -136,7 +136,8 @@ Expressive Island intentionally keeps its permissions to a minimum.
 | **Notification access**         | Reads notifications so they can be displayed and interacted with in the island |
 | **Accessibility service**       | Displays the island overlay and handles island gestures; it does not read screen contents |
 | **Ignore battery optimisation** | Optional; helps prevent the overlay service from being stopped in the background |
-| **Post notifications**          | Optional; posts test notifications when you explicitly trigger a test |
+| **Post notifications**          | Optional on Android 13+; posts test notifications only when you explicitly trigger a test |
+| **Microphone**                   | Runtime permission requested when you start Assistant voice input; used with Android's on-device speech recognizer on supported Android 12+ devices |
 | **Internet**                    | Checks for and downloads app updates through the in-app updater |
 | **Request install packages**    | Lets the updater open Android's installer for a downloaded APK; installation still requires confirmation |
 | **Network state**               | Reads connection state for Wi-Fi/network events |
@@ -149,9 +150,11 @@ Expressive Island intentionally keeps its permissions to a minimum.
 
 # Privacy
 
-Expressive Island requests `INTERNET` access only for its in-app updater, which checks for and downloads app releases. The app does not upload notification content or usage analytics. Notification content is handled locally for display and is not sent to the updater.
-
-The app also declares `REQUEST_INSTALL_PACKAGES` so the updater can hand a downloaded APK to Android's package installer. Android still requires you to confirm installation.
+- **Notifications:** Notification content is processed on-device for display and supported actions. Expressive Island does not send notification content to its updater or collect usage analytics.
+- **AI Assistant:** When you configure and use an online AI provider, the messages you submit (and relevant conversation context) are sent to that provider's API to generate a response. The provider's own privacy policy and retention practices apply. API keys are stored locally and protected with Android Keystore.
+- **Assistant-app detection:** If you enable automatic assistant detection, the accessibility service inspects text nodes only in supported assistant apps to identify voice/prompt activity and display relevant text in the island. This is not a general screen-reading feature, but it does access visible text in those supported apps.
+- **Voice input:** The microphone is requested only when you start voice input. Speech recognition uses Android's on-device recognizer on supported devices (Android 12+); availability depends on the device's installed on-device recognition service.
+- **Updater:** Internet access is also used to check for and download app releases. `REQUEST_INSTALL_PACKAGES` lets the updater hand a downloaded APK to Android's installer; Android still requires you to confirm installation.
 
 ---
 
@@ -221,7 +224,7 @@ Add your AI provider's API key under **Settings → Integrations → AI Assistan
 <details>
 <summary>Is my notification data uploaded?</summary>
 
-No. Notification content is handled locally on your device. Internet access is used by the in-app updater to check for and download releases.
+Notification content is handled locally and is not sent to the updater. If you use the AI Assistant, your submitted prompts and conversation context are sent to the AI provider you configured. Automatic assistant detection can inspect visible text in supported assistant apps locally when enabled.
 </details>
 
 <details>
