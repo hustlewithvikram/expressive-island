@@ -61,7 +61,7 @@ class ShizukuCommandService : Binder() {
             "cmd", "notification", "allow_listener", notificationListener,
         )
 
-        val currentServices = runCommand(
+        val currentServices = runCommandOutput(
             "settings", "get", "secure", "enabled_accessibility_services",
         )?.takeIf { it.isNotBlank() && it != "null" }.orEmpty()
         val enabledServices = currentServices.split(':')
@@ -85,13 +85,23 @@ class ShizukuCommandService : Binder() {
         return notificationGranted && accessibilityListUpdated && accessibilityEnabled
     }
 
-    private fun runCommand(vararg command: String): Boolean? = runCatching {
+    private fun runCommand(vararg command: String): Boolean = runCatching {
+        val process = Runtime.getRuntime().exec(command)
+        if (!process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            process.destroy()
+            return false
+        }
+        process.exitValue() == 0
+    }.getOrDefault(false)
+
+    private fun runCommandOutput(vararg command: String): String? = runCatching {
         val process = Runtime.getRuntime().exec(command)
         if (!process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
             process.destroy()
             return null
         }
-        process.exitValue() == 0
+        if (process.exitValue() != 0) return null
+        process.inputStream.bufferedReader().use { it.readText().trim() }
     }.getOrNull()
 
     private fun toggleRadio(radioId: Int): String {
