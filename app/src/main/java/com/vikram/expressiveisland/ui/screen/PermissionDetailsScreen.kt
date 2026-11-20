@@ -98,16 +98,16 @@ private val PermissionDocs: List<PermissionDoc> = listOf(
         icon = Icons.Rounded.Layers,
         title = "Accessibility service",
         manifestName = "BIND_ACCESSIBILITY_SERVICE",
-        summary = "Android only lets an accessibility service draw a window that survives above " +
-            "other apps and the lockscreen. That window is the island — the service is used as a " +
-            "drawing surface. It reads no screen content: the one event it listens for tells it " +
-            "only the name of the app in front, never anything shown on screen.",
+        summary = "Android lets the accessibility service host the island overlay above other apps. " +
+            "It also receives accessibility events. When automatic assistant detection is enabled, " +
+            "it inspects visible text nodes only in supported assistant apps to identify voice or " +
+            "prompt activity and may display relevant text in the island.",
         uses = listOf(
             "Draw the island over the camera cutout, above whatever app is in the foreground",
             "Keep it there across app switches, and tear it down while the device is locked if you asked for that",
             "Receive your taps and swipes on the island itself",
-            "Read the name of the app in the foreground — its package name only, no screen content — " +
-                "so the music tile can hide itself while the app playing the music is open",
+            "Read the foreground app package name so the music tile can hide while the music app is open",
+            "When enabled, inspect limited visible text from supported assistant apps for assistant activity and island display",
         ),
     ),
     PermissionDoc(
