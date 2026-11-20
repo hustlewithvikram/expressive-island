@@ -37,6 +37,8 @@ import com.vikram.expressiveisland.core.IslandEventBus
 import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.core.WifiBus
 import com.vikram.expressiveisland.core.WifiState
+import com.vikram.expressiveisland.core.UsbBus
+import com.vikram.expressiveisland.core.UsbState
 import kotlin.math.abs
 import android.net.LinkProperties
 import android.net.NetworkCapabilities.TRANSPORT_VPN
@@ -61,6 +63,8 @@ class SystemEventMonitor(private val context: Context) {
 
     private val wifiManager =
         context.applicationContext.getSystemService<WifiManager>()
+
+    private val usbManager = context.getSystemService<UsbManager>()
 
     private val audioManager =
         context.getSystemService<AudioManager>()
@@ -179,6 +183,8 @@ class SystemEventMonitor(private val context: Context) {
                 }
 
                 UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+                    intent.getParcelableExtra<android.hardware.usb.UsbDevice>(UsbManager.EXTRA_DEVICE)
+                        ?.let(::updateUsbDevice)
                     emit(SystemEventType.USB_MOUNTED)
 
                     if (isAdbConnection(intent)) {
@@ -187,12 +193,15 @@ class SystemEventMonitor(private val context: Context) {
                 }
 
                 UsbManager.ACTION_USB_DEVICE_DETACHED -> {
+                    UsbBus.update(null)
                     emit(SystemEventType.USB_UNMOUNTED)
 
                     if (isAdbConnection(intent)) {
                         emit(SystemEventType.ADB_DISCONNECTED)
                     }
                 }
+
+                USB_STATE_ACTION -> handleUsbDeviceModeState(intent)
 
                 BluetoothDevice.ACTION_ACL_CONNECTED -> {
                     val device = intent.getParcelableExtra<BluetoothDevice>(
@@ -581,6 +590,74 @@ class SystemEventMonitor(private val context: Context) {
         }
     }
 
+    private fun updateUsbDevice(device: android.hardware.usb.UsbDevice) {
+        val interfaceClasses = (0 until device.interfaceCount).mapNotNull { index ->
+            runCatching { device.getInterface(index).interfaceClass }.getOrNull()
+        }
+        val classes = interfaceClasses + device.deviceClass
+        val type = when {
+            android.hardware.usb.UsbConstants.USB_CLASS_MASS_STORAGE in classes -> "USB storage device"
+            android.hardware.usb.UsbConstants.USB_CLASS_HID in classes -> "USB input device"
+            android.hardware.usb.UsbConstants.USB_CLASS_HUB in classes -> "USB hub"
+            android.hardware.usb.UsbConstants.USB_CLASS_AUDIO in classes -> "USB audio device"
+            android.hardware.usb.UsbConstants.USB_CLASS_VIDEO in classes -> "USB video device"
+            android.hardware.usb.UsbConstants.USB_CLASS_COMM in classes -> "USB communication device"
+            else -> "USB peripheral"
+        }
+        val productName = runCatching { device.productName }.getOrNull()?.takeIf { it.isNotBlank() }
+        val manufacturer = runCatching { device.manufacturerName }.getOrNull()?.takeIf { it.isNotBlank() }
+        UsbBus.update(
+            UsbState(
+                name = productName ?: type,
+                deviceType = type,
+                manufacturer = manufacturer,
+                deviceId = device.deviceId,
+                vendorId = device.vendorId,
+                productId = device.productId,
+                connectionMode = "OTG",
+            ),
+        )
+    }
+
+    /**
+     * Android's USB device-mode state broadcast is not a stable public SDK API.
+     * Read it opportunistically for PC connections, and keep the UI generic when
+     * the OEM does not expose it. Host-mode UsbDevice broadcasts remain the
+     * reliable public path for OTG peripherals.
+     */
+    private fun handleUsbDeviceModeState(intent: Intent) {
+        val connected = intent.getBooleanExtra("connected", false)
+        val current = UsbBus.state.value
+        if (connected) {
+            if (current != null) return
+            val function = when {
+                intent.getBooleanExtra("mtp", false) -> "MTP / File transfer"
+                intent.getBooleanExtra("ptp", false) -> "PTP / Photo transfer"
+                intent.getBooleanExtra("rndis", false) -> "USB tethering"
+                intent.getBooleanExtra("midi", false) -> "MIDI"
+                intent.getBooleanExtra("mass_storage", false) -> "USB storage"
+                else -> "USB connection"
+            }
+            UsbBus.update(
+                UsbState(
+                    name = "Connected computer",
+                    deviceType = "Computer connection",
+                    connectionMode = function,
+                    isPcConnection = true,
+                ),
+            )
+            emit(SystemEventType.USB_MOUNTED)
+        } else if (current?.isPcConnection == true) {
+            UsbBus.update(null)
+            emit(SystemEventType.USB_UNMOUNTED)
+        }
+    }
+
+    private fun refreshUsbConnection() {
+        val device = runCatching { usbManager?.deviceList?.values?.firstOrNull() }.getOrNull()
+        if (device != null) updateUsbDevice(device)
+    }
+
     private fun isAdbConnection(intent: Intent): Boolean {
         val device =
             intent.getParcelableExtra<android.hardware.usb.UsbDevice>(
@@ -606,6 +683,7 @@ class SystemEventMonitor(private val context: Context) {
         dataSaverEnabled = connectivityManager?.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
         autoRotateEnabled = Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 1) == 1
         thermalWarningActive = null
+        refreshUsbConnection()
         deviceWasLocked = keyguardManager?.isKeyguardLocked == true
         synchronized(activeTorchCameras) { activeTorchCameras.clear() }
 
@@ -688,6 +766,7 @@ class SystemEventMonitor(private val context: Context) {
 
         ChargingBus.update(null)
         WifiBus.update(null)
+        UsbBus.update(null)
     }
 
     private fun updateChargingState(intent: Intent) {
@@ -884,6 +963,7 @@ class SystemEventMonitor(private val context: Context) {
 
             addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
             addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+            addAction(USB_STATE_ACTION)
 
             addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
             addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
@@ -917,6 +997,7 @@ class SystemEventMonitor(private val context: Context) {
         get() = type in HEADPHONE_TYPES
 
     private companion object {
+        const val USB_STATE_ACTION = "android.hardware.usb.action.USB_STATE"
         const val WIFI_DETAILS_REFRESH_ACTION =
             "com.vikram.expressiveisland.action.REFRESH_WIFI_DETAILS"
 
