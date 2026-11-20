@@ -8,7 +8,7 @@
 
 Expressive Island turns your phone's camera cutout into a live area for notifications, music, calls, timers, and system events. Built with Jetpack Compose, it is a community-developed fork of [Expressive Cutout](https://github.com/EvanKoe/expressive-cutout), focused on customisation, smooth animations, and an Android-native feel.
 
-Notification content is handled on-device. Internet access is used by the in-app updater to check for and download updates, not to upload notification content or usage analytics.
+Notification content is handled on-device. Internet access is used by the in-app updater and, when you use the AI Assistant, to communicate with the AI provider you configure. Assistant prompts and relevant conversation context are sent to that provider; notification content is not sent to the updater.
 
 [![Download](https://img.shields.io/badge/Download-latest%20release-005AC1?style=for-the-badge\&logo=github\&logoColor=white)](https://github.com/hustlewithvikram/expressive-island/releases)
 [![Stars](https://img.shields.io/github/stars/hustlewithvikram/expressive-island?style=for-the-badge)](https://github.com/hustlewithvikram/expressive-island/stargazers)
@@ -107,6 +107,8 @@ Expressive Island requires:
 * Notification access
 * Accessibility service
 * Optional battery optimisation exemption
+* Microphone access when you start Assistant voice input
+* Nearby Wi-Fi and Bluetooth runtime permissions where required by Android
 
 On first launch, Expressive Island guides you through the permissions required for the island to work.
 
@@ -206,7 +208,7 @@ Notification access lets Expressive Island display notifications and provide sup
 <details>
 <summary>Why does the app need Accessibility service access?</summary>
 
-The accessibility service is used to display the island overlay and handle its interactions. It does not read your screen contents.
+The accessibility service displays the island overlay and handles its interactions. When automatic assistant detection is enabled, it inspects limited visible text from supported assistant apps to identify voice/prompt activity and may show relevant text in the island.
 </details>
 
 <details>
