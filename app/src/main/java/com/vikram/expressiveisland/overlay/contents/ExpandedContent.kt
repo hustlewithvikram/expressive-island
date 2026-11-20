@@ -117,22 +117,13 @@ fun ExpandedContent(
         return
     }
 
-    if (systemEventType == SystemEventType.BLUETOOTH_CONNECTED) {
-        BluetoothConnectedExpandedContent(
-            deviceName = currentHeadphonesState?.name,
-            deviceType = currentHeadphonesState?.type,
-            notchBottomInsetDp = notchBottomInsetDp,
-            leftBattery = currentHeadphonesState?.leftBattery,
-            rightBattery = currentHeadphonesState?.rightBattery,
-            caseBattery = currentHeadphonesState?.caseBattery,
-        )
-        return
-    }
-
-
-    // All remaining device-level events receive a purpose-built, theme-aware detail card.
+    // All remaining system events share the transparent, height-adaptive detail layout.
+    // Bluetooth may contribute a real accessory name when the platform exposes one.
     if (systemEventType != null) {
-        SystemEventExpandedContent(type = systemEventType)
+        SystemEventExpandedContent(
+            type = systemEventType,
+            deviceName = currentHeadphonesState?.name,
+        )
         return
     }
 
