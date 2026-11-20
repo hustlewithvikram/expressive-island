@@ -90,6 +90,81 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
+private data class EventCategorySection(
+    val key: String,
+    val title: String,
+    val description: String,
+    val families: List<SystemEventFamily>,
+)
+
+/**
+ * High-level sections for the Events page. Each family still groups the on/off states
+ * for one feature; categories group related features into a smaller number of scannable areas.
+ */
+private val eventCategorySections = listOf(
+    EventCategorySection(
+        key = "connectivity",
+        title = "Connectivity & devices",
+        description = "Networks, wireless connections and connected accessories",
+        families = listOf(
+            SystemEventFamily.WIFI,
+            SystemEventFamily.USB,
+            SystemEventFamily.BLUETOOTH,
+            SystemEventFamily.HOTSPOT,
+            SystemEventFamily.VPN,
+            SystemEventFamily.AIRPLANE_MODE,
+        ),
+    ),
+    EventCategorySection(
+        key = "power",
+        title = "Power & performance",
+        description = "Battery behaviour, energy saving and device temperature",
+        families = listOf(
+            SystemEventFamily.CHARGING,
+            SystemEventFamily.BATTERY_SAVER,
+            SystemEventFamily.THERMAL,
+        ),
+    ),
+    EventCategorySection(
+        key = "privacy_security",
+        title = "Privacy & security",
+        description = "Device access, location and contactless features",
+        families = listOf(
+            SystemEventFamily.LOCK,
+            SystemEventFamily.LOCATION,
+            SystemEventFamily.NFC,
+        ),
+    ),
+    EventCategorySection(
+        key = "developer",
+        title = "Developer tools",
+        description = "USB and wireless debugging connections",
+        families = listOf(
+            SystemEventFamily.ADB,
+            SystemEventFamily.WIRELESS_DEBUGGING,
+        ),
+    ),
+    EventCategorySection(
+        key = "sound",
+        title = "Sound & interruptions",
+        description = "Ringer behaviour and notification filtering",
+        families = listOf(
+            SystemEventFamily.RINGER,
+            SystemEventFamily.DND,
+        ),
+    ),
+    EventCategorySection(
+        key = "device_controls",
+        title = "Device controls",
+        description = "Quick system controls that affect how you use your phone",
+        families = listOf(
+            SystemEventFamily.FLASHLIGHT,
+            SystemEventFamily.AUTO_ROTATE,
+            SystemEventFamily.DATA_SAVER,
+        ),
+    ),
+)
+
 @Composable
 internal fun EventIconsScreen(
     viewModel: AppViewModel,
@@ -166,49 +241,72 @@ internal fun EventIconsScreen(
                 }
             }
 
-            // System event families
+            // Events are grouped by the part of the phone they affect, rather than
+            // presenting every event family as one uninterrupted list.
             item(key = "event_families_header") {
                 CardSectionHeader(
                     text = "System events",
                     padding = PaddingValues(
                         start = 6.dp,
                         top = 8.dp,
-                        bottom = 4.dp,
+                        bottom = 2.dp,
                     ),
                 )
             }
 
-            itemsIndexed(
-                SystemEventFamily.entries,
-                key = { _, family -> family.name },
-            ) { index, family ->
-                val topRadius = if (index == 0) 32.dp else 4.dp
-                val bottomRadius =
-                    if (index == SystemEventFamily.entries.lastIndex) 32.dp else 4.dp
+            eventCategorySections.forEach { category ->
+                item(key = "event_category_${category.key}") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 8.dp, end = 8.dp, top = 18.dp, bottom = 7.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = category.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = category.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
 
-                EventFamilyCard(
-                    family = family,
-                    shape = RoundedCornerShape(
-                        topStart = topRadius,
-                        topEnd = topRadius,
-                        bottomStart = bottomRadius,
-                        bottomEnd = bottomRadius,
-                    ),
-                    source = customIcons[family.members.first()],
-                    dynamicColor = dynamicColor,
-                    dynamicColorRole = dynamicColorRole,
-                    dynamicColorOpacity = dynamicColorOpacity,
-                    animate = animatedIcons[family.members.first()] ?: true,
-                    loop = animatedIconLoops[family.members.first()]
-                        ?: family.members.first().animationLoopsByDefault(),
-                    eventEnabled = eventEnabled,
-                    onEnabledChange = {
-                        viewModel.setEventEnabled(family.members.first(), it)
-                    },
-                    onClick = {
-                        selectedFamily = family
-                    },
-                )
+                itemsIndexed(
+                    category.families,
+                    key = { _, family -> "${category.key}_${family.name}" },
+                ) { index, family ->
+                    val topRadius = if (index == 0) 28.dp else 5.dp
+                    val bottomRadius =
+                        if (index == category.families.lastIndex) 28.dp else 5.dp
+
+                    EventFamilyCard(
+                        family = family,
+                        shape = RoundedCornerShape(
+                            topStart = topRadius,
+                            topEnd = topRadius,
+                            bottomStart = bottomRadius,
+                            bottomEnd = bottomRadius,
+                        ),
+                        source = customIcons[family.members.first()],
+                        dynamicColor = dynamicColor,
+                        dynamicColorRole = dynamicColorRole,
+                        dynamicColorOpacity = dynamicColorOpacity,
+                        animate = animatedIcons[family.members.first()] ?: true,
+                        loop = animatedIconLoops[family.members.first()]
+                            ?: family.members.first().animationLoopsByDefault(),
+                        eventEnabled = eventEnabled,
+                        onEnabledChange = {
+                            viewModel.setEventEnabled(family.members.first(), it)
+                        },
+                        onClick = {
+                            selectedFamily = family
+                        },
+                    )
+                }
             }
         }
     }
