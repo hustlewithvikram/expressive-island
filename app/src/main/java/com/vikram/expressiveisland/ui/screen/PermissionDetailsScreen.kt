@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Vibration
