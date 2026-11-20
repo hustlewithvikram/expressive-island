@@ -7,6 +7,7 @@ import com.vikram.expressiveisland.core.ChargingState
 import com.vikram.expressiveisland.core.HeadphonesBus
 import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.core.WifiBus
+import com.vikram.expressiveisland.core.UsbBus
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.overlay.island.IslandAction
 import com.vikram.expressiveisland.overlay.island.IslandEvent
@@ -39,6 +40,7 @@ fun ExpandedContent(
     onSelectAssistantChat: (String) -> Unit = {},
 ) {
     val wifiState by WifiBus.state.collectAsStateWithLifecycle()
+    val usbState by UsbBus.state.collectAsStateWithLifecycle()
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
 
     val currentWifiState = wifiState
@@ -102,6 +104,14 @@ fun ExpandedContent(
                 ipAddress = null,
                 isMetered = null,
             ),
+            notchBottomInsetDp = notchBottomInsetDp,
+        )
+        return
+    }
+
+    if (systemEventType == SystemEventType.USB_MOUNTED) {
+        UsbConnectedExpandedContent(
+            usb = usbState,
             notchBottomInsetDp = notchBottomInsetDp,
         )
         return
