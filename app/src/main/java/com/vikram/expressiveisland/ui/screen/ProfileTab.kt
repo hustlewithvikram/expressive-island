@@ -55,6 +55,7 @@ import androidx.compose.material.icons.rounded.NotificationsNone
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Upload
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -1999,5 +2000,112 @@ private fun DevAvatar() {
             .clip(
                 RoundedCornerShape(28.dp),
             ),
+    )
+}
+
+/**
+ * Blocks the app with the same grouped access controls shown on Profile > Access
+ * until the two permissions required for the island are enabled.
+ *
+ * Battery optimisation and Wi-Fi SSID access are shown as helpful optional access;
+ * neither prevents the user from entering the app.
+ */
+@Composable
+fun RequiredPermissionsDialog() {
+    val context = LocalContext.current
+    val status = rememberPermissionStatus()
+    val wifiPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { }
+
+    if (status.allEssentialGranted) return
+
+    val requestWifiPermissions = {
+        val permissions = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                add(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.NEARBY_WIFI_DEVICES)
+            }
+        }
+        if (permissions.isNotEmpty()) {
+            wifiPermissionLauncher.launch(permissions.toTypedArray())
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = { },
+        title = {
+            Text(
+                text = "Set up Expressive Island",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 440.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Allow the required system access below so the island can display notifications and appear over your screen. This guide stays open until both required permissions are enabled.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Spacer(Modifier.height(2.dp))
+
+                PermissionGroupCard(
+                    position = GroupPosition.First,
+                    icon = Icons.Rounded.Notifications,
+                    title = stringResource(R.string.perm_notifications_title),
+                    description = stringResource(R.string.perm_notifications_desc),
+                    granted = status.notifications,
+                    onClick = { Permissions.openNotificationAccessSettings(context) },
+                )
+
+                PermissionGroupCard(
+                    position = GroupPosition.Last,
+                    icon = Icons.Rounded.Shield,
+                    title = stringResource(R.string.perm_accessibility_title),
+                    description = stringResource(R.string.perm_accessibility_desc),
+                    granted = status.accessibility,
+                    onClick = { Permissions.openAccessibilitySettings(context) },
+                )
+
+                Text(
+                    text = "Optional access",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp, top = 6.dp),
+                )
+
+                PermissionGroupCard(
+                    position = GroupPosition.First,
+                    icon = Icons.Rounded.BatterySaver,
+                    title = stringResource(R.string.perm_battery_title),
+                    description = stringResource(R.string.perm_battery_desc),
+                    granted = status.batteryIgnored,
+                    onClick = { Permissions.requestIgnoreBatteryOptimization(context) },
+                )
+
+                PermissionGroupCard(
+                    position = GroupPosition.Last,
+                    icon = Icons.Rounded.Wifi,
+                    title = "Wi-Fi network name",
+                    description = "Allows the Wi-Fi event to show the connected network name. Android may also require Location services to be enabled.",
+                    granted = status.wifiSsidAccess,
+                    onClick = requestWifiPermissions,
+                )
+            }
+        },
+        confirmButton = { },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     )
 }
