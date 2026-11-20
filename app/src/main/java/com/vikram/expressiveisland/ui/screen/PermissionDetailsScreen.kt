@@ -136,6 +136,17 @@ private val PermissionDocs: List<PermissionDoc> = listOf(
         optional = true,
     ),
     PermissionDoc(
+        icon = Icons.Rounded.Mic,
+        title = "Microphone",
+        manifestName = "RECORD_AUDIO",
+        summary = "Requested only when you start voice input in the Assistant. On supported Android 12+ devices, audio is passed to Android's on-device speech recognizer. Availability depends on the device's installed on-device recognition service.",
+        uses = listOf(
+            "Capture speech while you actively use the Assistant microphone button",
+            "Convert speech to text on-device where supported; microphone audio is not sent to the app updater",
+        ),
+        optional = true,
+    ),
+    PermissionDoc(
         icon = Icons.Rounded.Cloud,
         title = "Internet access",
         manifestName = "INTERNET",
