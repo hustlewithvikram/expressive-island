@@ -7,8 +7,8 @@ import androidx.annotation.Keep
 import java.util.concurrent.TimeUnit
 
 /**
- * Shizuku UserService running with shell privileges. Only exposes fixed radio-toggle operations;
- * callers cannot submit arbitrary shell commands. This avoids the deprecated private newProcess API.
+ * Shizuku UserService running with shell privileges. Exposes only fixed, validated operations;
+ * callers cannot submit arbitrary shell commands. This avoids the deprecated newProcess API.
  */
 @Keep
 class ShizukuCommandService : Binder() {
