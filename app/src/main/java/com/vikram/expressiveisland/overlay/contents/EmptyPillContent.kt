@@ -119,7 +119,7 @@ fun EmptyPillContent(
                 PillWidget(leftWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock)
             }
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                PillWidget(rightWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock, wifi?.signalLevel)
+                PillWidget(rightWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock)
             }
         }
     }
