@@ -564,7 +564,7 @@ internal fun MusicTileScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { visualizerStyleDialog = true },
                     shape = groupShape(GroupPosition.MIDDLE),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
@@ -621,7 +621,7 @@ internal fun MusicTileScreen(
                             modifier = Modifier.fillMaxWidth().clickable { viewModel.setMusicVisualizerStyle(style) },
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (settings.visualizerStyle == style) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerLow,
+                                containerColor = if (settings.visualizerStyle == style) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
                             ),
                         ) {
                             Column(
@@ -678,7 +678,7 @@ internal fun MusicTileScreen(
                             modifier = Modifier.fillMaxWidth().clickable { viewModel.setMusicProgressStyle(style) },
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (settings.progressStyle == style) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                                containerColor = if (settings.progressStyle == style) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
                             ),
                         ) {
                             Column(
