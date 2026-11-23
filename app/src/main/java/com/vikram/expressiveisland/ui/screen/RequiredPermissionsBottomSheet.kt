@@ -33,6 +33,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -97,6 +99,16 @@ fun RequiredPermissionsBottomSheet() {
 
     if (status.allRequiredGranted) return
 
+    // Block transitions to Hidden (swipe-down, scrim tap, and back) until both
+    // required permissions are actually granted. Returning from Android Settings refreshes
+    // status; once both are granted, this composable exits and the sheet is removed.
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { target ->
+            target != SheetValue.Hidden || status.allRequiredGranted
+        },
+    )
+
     val requestWifiPermissions = {
         val requested = buildList {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -110,6 +122,7 @@ fun RequiredPermissionsBottomSheet() {
     }
 
     ModalBottomSheet(
+        sheetState = sheetState,
         onDismissRequest = {
             // Required access is a prerequisite for the island, so the setup sheet cannot
             // be swiped away or dismissed by tapping outside before both grants are enabled.
