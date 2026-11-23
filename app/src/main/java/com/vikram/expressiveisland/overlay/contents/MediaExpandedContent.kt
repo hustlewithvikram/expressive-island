@@ -49,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -581,11 +582,11 @@ fun MediaControls(
                 enabled = enabled,
                 heightDp = heightDp,
                 iconSize = 20.dp,
-                fill = (skipStyle.color?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHigh).copy(alpha = maxOf(skipStyle.opacity, 0.18f)),
+                fill = skipStyle.resolveFill(fallback = null),
                 cornerPercent = skipStyle.cornerPercent,
                 contentTint = seekIconColor,
                 onClick = onSeekBackward,
-                weight = 0.85f,
+                weight = 1f,
             )
         }
         MediaButton(
@@ -611,7 +612,7 @@ fun MediaControls(
                 enabled = enabled,
                 heightDp = heightDp,
                 iconSize = 20.dp,
-                fill = (skipStyle.color?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.78f)).copy(alpha = skipStyle.opacity),
+                fill = skipStyle.resolveFill(fallback = null),
                 cornerPercent = skipStyle.cornerPercent,
                 contentTint = seekIconColor,
                 onClick = onSeekForward,
