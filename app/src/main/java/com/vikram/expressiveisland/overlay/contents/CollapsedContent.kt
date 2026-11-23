@@ -108,6 +108,12 @@ fun CollapsedContent(
             }
         } else {
             when {
+                event.media?.previewPlaying == true && musicSettings.showAlbumArt -> PreviewAlbumArt(
+                    modifier = placement.size(badgeSize),
+                    rotate = event.media?.rotateAlbumArt == true,
+                    playing = true,
+                    strokeColor = albumArtStrokeFor(event),
+                )
                 albumArt != null -> AlbumArt(
                     bitmap = albumArt,
                     size = badgeSize,
