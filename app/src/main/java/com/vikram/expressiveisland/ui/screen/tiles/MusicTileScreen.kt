@@ -558,6 +558,7 @@ internal fun MusicTileScreen(
                 onCheckedChange = viewModel::setMusicShowVisualizer,
             )
             AnimatedVisibility(visible = settings.showVisualizer) {
+                Column(verticalArrangement = Arrangement.spacedBy(GROUP_CARD_SPACING)) {
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { visualizerStyleDialog = true },
                     shape = groupShape(GroupPosition.MIDDLE),
@@ -575,15 +576,16 @@ internal fun MusicTileScreen(
                         Icon(Icons.Rounded.Tune, contentDescription = stringResource(R.string.music_choose_visualizer_style), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
-            }
-            ColorPickerCard(
-                label = "Visualizer color",
+                ColorPickerCard(
+                    label = "Visualizer color",
                 selected = settings.visualizerColor,
                 onSelect = viewModel::setMusicVisualizerColor,
                 defaultLabel = "Use theme accent",
                 defaultColor = MaterialTheme.colorScheme.primary,
-                shape = groupShape(GroupPosition.LAST),
-            )
+                    shape = groupShape(GroupPosition.LAST),
+                )
+                }
+            }
         }
         }
 
