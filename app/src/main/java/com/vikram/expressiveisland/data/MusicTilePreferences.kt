@@ -44,6 +44,9 @@ enum class SeekButtonMode(val label: String) { LEFT("Left button"), RIGHT("Right
 enum class MusicProgressStyle(val label: String) {
     WAVY("Wavy"),
     LINEAR("Linear"),
+    SEGMENTED("Segmented"),
+    DASHED("Dashed"),
+    DOUBLE_LINE("Double line"),
 }
 
 enum class MusicVisualizerStyle(val label: String) {
