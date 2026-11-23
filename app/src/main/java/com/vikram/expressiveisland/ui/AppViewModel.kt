@@ -985,6 +985,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         musicTilePreferences.setVisualizerStyle(style)
     }
 
+    fun setMusicVisualizerColor(color: CutoutColor?) = viewModelScope.launch {
+        musicTilePreferences.setVisualizerColor(color)
+    }
+
     fun setMusicShowPlayPauseIcon(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setShowPlayPauseIcon(enabled) }
     fun setMusicShowPlayPauseText(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setShowPlayPauseText(enabled) }
     fun setMusicLeftSeekEnabled(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setLeftSeekEnabled(enabled) }
