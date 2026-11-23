@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -615,7 +616,10 @@ internal fun MusicTileScreen(
             onDismissRequest = { visualizerStyleDialog = false },
             title = { Text(stringResource(R.string.music_visualizer_title)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     MusicVisualizerStyle.entries.forEach { style ->
                         Card(
                             modifier = Modifier.fillMaxWidth().clickable { viewModel.setMusicVisualizerStyle(style) },
@@ -651,7 +655,7 @@ internal fun MusicTileScreen(
                                     MusicVisualizer(
                                         isPlaying = true,
                                         style = style,
-                                        color = settings.visualizerColor?.resolve() ?: MusicAccent,
+                                        color = settings.visualizerColor?.resolve() ?: MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(horizontal = 8.dp),
                                     )
                                     if (settings.visualizerStyle == style) {
@@ -672,7 +676,10 @@ internal fun MusicTileScreen(
             onDismissRequest = { progressStyleDialog = false },
             title = { Text("Progress bar style") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                     MusicProgressStyle.entries.forEach { style ->
                         Card(
                             modifier = Modifier.fillMaxWidth().clickable { viewModel.setMusicProgressStyle(style) },
@@ -1560,7 +1567,7 @@ private fun SeekOptionRow(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
