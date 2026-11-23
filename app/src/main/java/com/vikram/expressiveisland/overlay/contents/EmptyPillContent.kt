@@ -23,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,7 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import com.vikram.expressiveisland.core.WifiBus
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.IconSource
 import com.vikram.expressiveisland.data.PillWidgetType
@@ -71,7 +69,6 @@ fun EmptyPillContent(
         }
     }
     val materialIcon = (icon as? IconSource.Material)?.let { MaterialIconCatalog.iconFor(it.iconName) }
-    val wifi by WifiBus.state.collectAsState()
     val speed by produceState("0 KB/s", context) {
         var previousRx = TrafficStats.getTotalRxBytes()
         var previousTx = TrafficStats.getTotalTxBytes()
@@ -137,7 +134,6 @@ private fun PillWidget(
     speed: String,
     battery: Int,
     clock: String,
-    wifiLevel: Int?,
 ) {
     when (type) {
         PillWidgetType.NONE -> Unit
@@ -167,8 +163,6 @@ private fun PillWidget(
         PillWidgetType.NETWORK_SPEED -> Text(speed, color = LocalContentColor.current, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         PillWidgetType.BATTERY -> Text("$battery%", color = LocalContentColor.current, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         PillWidgetType.CLOCK -> Text(clock, color = LocalContentColor.current, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-        PillWidgetType.WIFI_SIGNAL -> Text(
-            wifiLevel?.let { "Wi-Fi ${((it + 1).coerceIn(1, 5) * 20)}%" } ?: "Wi-Fi",
             color = LocalContentColor.current, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
         )
     }
