@@ -185,8 +185,8 @@ fun CollapsedContent(
                 CircularProgressIndicator(
                     progress = { animatedFraction },
                     modifier = indicatorModifier,
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.primaryContainer,
+                    color = ringSettings.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary,
+                    trackColor = ringSettings.trackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer,
                     strokeWidth = strokeWidth,
                 )
             }
