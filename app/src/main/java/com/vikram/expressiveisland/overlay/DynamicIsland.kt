@@ -948,7 +948,6 @@ internal fun DynamicIsland(
                                         rightWidget = persistentPillRightWidget,
                                         speedFormat = persistentPillSpeedFormat,
                                         heightDp = collapsed.heightDp,
-                                        isStickToCamera = isStickToCamera,
                                     )
                                 }
                             } else {
