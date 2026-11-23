@@ -60,7 +60,7 @@ import com.vikram.expressiveisland.ui.components.BackNavBar
 import com.vikram.expressiveisland.ui.components.ExpressiveNavBar
 import com.vikram.expressiveisland.ui.components.NavBarItem
 import com.vikram.expressiveisland.ui.screen.PermissionsTab
-import com.vikram.expressiveisland.ui.screen.RequiredPermissionsDialog
+import com.vikram.expressiveisland.ui.screen.RequiredPermissionsBottomSheet
 import com.vikram.expressiveisland.ui.screen.ProfileRoute
 import com.vikram.expressiveisland.ui.screen.ProfileTab
 import com.vikram.expressiveisland.ui.screen.SettingsRoute
@@ -393,7 +393,7 @@ fun MainScreen(viewModel: AppViewModel = viewModel()) {
             }
 
             // Keep first-run setup in front until notification and accessibility access are enabled.
-            RequiredPermissionsDialog()
+            RequiredPermissionsBottomSheet()
         }
     }
 }
