@@ -171,8 +171,8 @@ fun CollapsedContent(
             if (progress.isIndeterminate) {
                 CircularProgressIndicator(
                     modifier = indicatorModifier,
-                    color = ringSettings.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary,
-                    trackColor = ringSettings.trackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer,
+                    color = ringSettings.downloadProgressColor?.resolve() ?: MaterialTheme.colorScheme.primary,
+                    trackColor = ringSettings.downloadTrackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer,
                     strokeWidth = strokeWidth,
                 )
             } else {
@@ -185,8 +185,8 @@ fun CollapsedContent(
                 CircularProgressIndicator(
                     progress = { animatedFraction },
                     modifier = indicatorModifier,
-                    color = ringSettings.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary,
-                    trackColor = ringSettings.trackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer,
+                    color = ringSettings.downloadProgressColor?.resolve() ?: MaterialTheme.colorScheme.primary,
+                    trackColor = ringSettings.downloadTrackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer,
                     strokeWidth = strokeWidth,
                 )
             }
@@ -246,10 +246,14 @@ private fun CollapsedIconProgressRing(
         animationSpec = infiniteRepeatable(animation = tween(1400, easing = LinearEasing), repeatMode = RepeatMode.Restart),
         label = "iconActivityRingRotation",
     )
-    val trackColor = (ringSettings.trackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer)
-        .copy(alpha = ringSettings.opacity * 0.72f)
-    val progressColor = (ringSettings.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary)
-        .copy(alpha = ringSettings.opacity)
+    val trackColor = (
+        if (hasNotificationProgress) ringSettings.downloadTrackColor else ringSettings.trackColor
+    )?.resolve()?.copy(alpha = ringSettings.opacity * 0.72f)
+        ?: MaterialTheme.colorScheme.primaryContainer.copy(alpha = ringSettings.opacity * 0.72f)
+    val progressColor = (
+        if (hasNotificationProgress) ringSettings.downloadProgressColor else ringSettings.progressColor
+    )?.resolve()?.copy(alpha = ringSettings.opacity)
+        ?: MaterialTheme.colorScheme.primary.copy(alpha = ringSettings.opacity)
     val stroke = ringSettings.thicknessDp.coerceIn(1f, 6f).dp
     val diameter = (diameterDp * ringSettings.diameterScale).dp
     Canvas(modifier = modifier.size(diameter).rotate(if (shouldRotate) rotation else 0f)) {
