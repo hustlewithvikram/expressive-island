@@ -22,7 +22,7 @@ private val Context.behaviourDataStore: DataStore<Preferences> by preferencesDat
 enum class HorizontalCutoutMode { HIDDEN, NORMAL_ONLY, STICK_TO_CAMERA, CENTER }
 
 /** Persistent pill slot content. */
-enum class PillWidgetType { NONE, ICON, ANIMATED_ICON, NETWORK_SPEED, BATTERY, CLOCK, WIFI_SIGNAL }
+enum class PillWidgetType { NONE, ICON, ANIMATED_ICON, NETWORK_SPEED, BATTERY, CLOCK }
 
 /** Preferred artwork for notification app icons shown in the island. */
 enum class NotificationIconMode { ORIGINAL, MONOCHROME, AUTOMATIC }
