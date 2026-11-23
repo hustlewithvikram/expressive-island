@@ -1245,6 +1245,13 @@ private fun MusicControlsPreviewSurface(
                     MusicProgressStyle.LINEAR -> LinearProgressIndicator(
                         progress = { 0.42f }, modifier = Modifier.fillMaxWidth().height(5.dp),
                         color = playPauseStyle.color?.resolve() ?: MusicAccent, trackColor = Color.White.copy(alpha = 0.20f))
+                    else -> LineProgressIndicator(
+                        progress = 0.42f,
+                        style = progressStyle,
+                        modifier = Modifier.fillMaxWidth().height(12.dp),
+                        color = playPauseStyle.color?.resolve() ?: MusicAccent,
+                        trackColor = Color.White.copy(alpha = 0.20f),
+                    )
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("1:24", color = Color.White.copy(alpha = 0.70f), style = MaterialTheme.typography.labelSmall)
