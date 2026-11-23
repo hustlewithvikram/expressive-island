@@ -258,7 +258,7 @@ internal fun ShowsWhenEmptyScreen(
             modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 2.dp),
         )
         // Configure the shortcuts shown in the Persistent Pill's quick-actions center.
-        AnimatedVisibility(visible = true) {
+        AnimatedVisibility(visible = clickAction == EmptyClickAction.OPEN_CENTER) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 SettingsToggleCard(
                     shape = persistentPillGroupShape(isFirst = true, isLast = false),
@@ -797,7 +797,7 @@ private fun PillWidgetSlotCard(
     val label = when (selected) {
         PillWidgetType.NONE -> "Nothing"
         PillWidgetType.ICON -> "Icon"
-        PillWidgetType.ANIMATED_ICON -> "Animated icon"
+        PillWidgetType.ANIMATED_ICON -> "Icon"
         PillWidgetType.NETWORK_SPEED -> "Internet speed"
         PillWidgetType.BATTERY -> "Battery percentage"
         PillWidgetType.CLOCK -> "Clock"
@@ -825,7 +825,7 @@ private fun PillWidgetSlotCard(
             title = { Text(title) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    PillWidgetType.entries.filter { it != PillWidgetType.ANIMATED_ICON && it != PillWidgetType.WIFI_SIGNAL }.forEach { type ->
+                    PillWidgetType.entries.filter { it != PillWidgetType.ANIMATED_ICON }.forEach { type ->
                         val optionLabel = when (type) {
                             PillWidgetType.NONE -> "Nothing"
                             PillWidgetType.ICON -> "Icon"
