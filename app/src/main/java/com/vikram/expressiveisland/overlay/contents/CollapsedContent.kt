@@ -136,6 +136,7 @@ fun CollapsedContent(
             MusicVisualizer(
                 isPlaying = true,
                 style = musicSettings.visualizerStyle,
+                color = musicSettings.visualizerColor?.resolve(),
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .padding(
@@ -170,8 +171,8 @@ fun CollapsedContent(
             if (progress.isIndeterminate) {
                 CircularProgressIndicator(
                     modifier = indicatorModifier,
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.primaryContainer,
+                    color = ringSettings.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary,
+                    trackColor = ringSettings.trackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer,
                     strokeWidth = strokeWidth,
                 )
             } else {
