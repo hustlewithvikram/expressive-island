@@ -19,6 +19,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -67,6 +68,8 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
@@ -964,6 +967,76 @@ private fun ExpressiveLoadingMark(modifier: Modifier = Modifier, color: Color) {
         modifier = modifier,
         color = color,
     )
+}
+
+/**
+ * Offline artwork used by settings previews when there is no active media session.
+ * It mirrors the real album-art rotation and optional outer ring without requiring network access.
+ */
+@Composable
+fun PreviewAlbumArt(
+    modifier: Modifier = Modifier,
+    rotate: Boolean = false,
+    playing: Boolean = true,
+    strokeColor: Color? = null,
+) {
+    val transition = rememberInfiniteTransition(label = "previewAlbumArt")
+    val rotation by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = ALBUM_SPIN_MS, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "previewAlbumArtRotation",
+    )
+    val shape = albumArtShape(rotate, 48.dp)
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(Color(0xFF17172E))
+            .graphicsLayer { rotationZ = if (rotate && playing) rotation else 0f },
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            drawRect(Color(0xFF25234A))
+            drawCircle(
+                color = Color(0xFFB85C91),
+                radius = minOf(w, h) * 0.34f,
+                center = Offset(w * 0.67f, h * 0.36f),
+            )
+            drawCircle(
+                color = Color(0xFFEFAD86),
+                radius = minOf(w, h) * 0.19f,
+                center = Offset(w * 0.34f, h * 0.62f),
+            )
+            val mountain = androidx.compose.ui.graphics.Path().apply {
+                moveTo(0f, h * 0.78f)
+                lineTo(w * 0.35f, h * 0.43f)
+                lineTo(w * 0.55f, h * 0.68f)
+                lineTo(w * 0.75f, h * 0.48f)
+                lineTo(w, h * 0.82f)
+                lineTo(w, h)
+                lineTo(0f, h)
+                close()
+            }
+            drawPath(mountain, Color(0xFF554B78))
+        }
+        if (strokeColor != null) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .border(2.dp, strokeColor, shape),
+            )
+        }
+    }
+}
+
+/** Full-bleed version of the same local artwork for the expanded tile's background preview. */
+@Composable
+fun PreviewAlbumArtworkBackground(modifier: Modifier = Modifier) {
+    PreviewAlbumArt(modifier = modifier)
 }
 
 /* Compact music visualizers used on the trailing edge of the collapsed island. */
