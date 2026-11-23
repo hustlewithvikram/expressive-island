@@ -45,6 +45,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -184,6 +185,15 @@ internal fun ShowsWhenEmptyScreen(
                     Text("Internet speed format", style = MaterialTheme.typography.titleMedium)
                     Text("Choose Auto, KB/s, or MB/s in the network speed display setting.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        NetworkSpeedFormat.entries.forEach { format ->
+                            FilterChip(
+                                selected = behaviour.networkSpeedFormat == format,
+                                onClick = { viewModel.setNetworkSpeedFormat(format) },
+                                label = { Text(format.name) },
+                            )
+                        }
+                    }
                 }
             }
         }
