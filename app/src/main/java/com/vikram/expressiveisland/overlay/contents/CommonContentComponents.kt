@@ -972,10 +972,11 @@ fun MusicVisualizer(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
     style: MusicVisualizerStyle = MusicVisualizerStyle.BARS,
+    color: Color? = null,
 ) {
     val transition = rememberInfiniteTransition(label = "musicVisualizer")
     val bars = listOf(0.35f to 1350, 0.55f to 1140, 0.25f to 1575, 0.45f to 1260, 0.30f to 1470, 0.40f to 1050)
-    val color = MaterialTheme.colorScheme.primary
+    val visualizerColor = color ?: MaterialTheme.colorScheme.primary
     if (style == MusicVisualizerStyle.EXPRESSIVE_LOADING) {
         val rotation by transition.animateFloat(
             initialValue = 0f,
@@ -988,7 +989,7 @@ fun MusicVisualizer(
         )
         ExpressiveLoadingMark(
             modifier = modifier.size(18.dp).graphicsLayer { rotationZ = if (isPlaying) rotation else 0f },
-            color = color,
+            color = visualizerColor,
         )
         return
     }
@@ -1010,23 +1011,23 @@ fun MusicVisualizer(
             val fraction = if (isPlaying) animated else 0.2f
             when (style) {
                 MusicVisualizerStyle.BARS -> Box(
-                    Modifier.width(2.5.dp).fillMaxHeight(fraction).clip(RoundedCornerShape(3.dp)).background(color)
+                    Modifier.width(2.5.dp).fillMaxHeight(fraction).clip(RoundedCornerShape(3.dp)).background(visualizerColor)
                 )
                 MusicVisualizerStyle.MIRRORED -> Box(
                     Modifier.width(2.5.dp).fillMaxHeight(fraction).clip(RoundedCornerShape(3.dp))
-                        .background(color).graphicsLayer { scaleY = -1f }
+                        .background(visualizerColor).graphicsLayer { scaleY = -1f }
                 )
                 MusicVisualizerStyle.DOTS -> Box(
                     Modifier.size(if (isPlaying) (3.dp + (animated * 4).dp) else 3.dp)
-                        .clip(CircleShape).background(color)
+                        .clip(CircleShape).background(visualizerColor)
                 )
                 MusicVisualizerStyle.WAVE -> Box(
                     Modifier.width(2.dp).fillMaxHeight(if (isPlaying) (0.25f + 0.7f * kotlin.math.abs(kotlin.math.sin(index * 0.9f + animated * 2f))) else 0.2f)
-                        .clip(RoundedCornerShape(2.dp)).background(color)
+                        .clip(RoundedCornerShape(2.dp)).background(visualizerColor)
                 )
                 MusicVisualizerStyle.PULSE -> Box(
                     Modifier.size(if (isPlaying) (4.dp + (animated * 5).dp) else 4.dp)
-                        .clip(CircleShape).background(color.copy(alpha = if (isPlaying) 0.55f + animated * 0.45f else 0.5f))
+                        .clip(CircleShape).background(visualizerColor.copy(alpha = if (isPlaying) 0.55f + animated * 0.45f else 0.5f))
                 )
                 MusicVisualizerStyle.EXPRESSIVE_LOADING -> Unit
             }
