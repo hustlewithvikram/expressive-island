@@ -65,7 +65,7 @@ internal fun SizePositionScreen(
      */
     IslandLivePreviewEffect(
         category = IslandPreviewCategory.SIZE_POSITION,
-        label = if (tab == 0) "Normal size" else "Expanded size",
+        label = if (tab == 0) "Shrinked size" else "Expanded size",
         detail = if (tab == 0) "Adjust width, height and position" else "Adjust expanded island geometry",
         expanded = tab == 1,
     )
@@ -104,7 +104,7 @@ internal fun SizePositionScreen(
 
                 Text(
                     text = if (tab == 0) {
-                        "Adjust the normal pill appearance."
+                        "Adjust the shrinked pill appearance."
                     } else {
                         "Adjust the expanded pill appearance."
                     },
@@ -114,7 +114,7 @@ internal fun SizePositionScreen(
 
                 ExpressiveSegmentedRow(
                     options = listOf(
-                        stringResource(R.string.tab_normal),
+                        "Shrinked",
                         stringResource(R.string.tab_expanded),
                     ),
                     selectedIndex = tab,
@@ -227,7 +227,7 @@ private fun DimensionsEditor(
                     IslandDimensions.MIN_WIDTH_PERCENT.toFloat()..
                             IslandDimensions.MAX_WIDTH_PERCENT.toFloat(),
                 step = 1f,
-                onValueChange = { width = it; commit() },
+                onValueChange = { width = it },
                 onCommit = { commit() },
             )
 
@@ -239,7 +239,7 @@ private fun DimensionsEditor(
                     IslandDimensions.MIN_HEIGHT_DP.toFloat()..
                             IslandDimensions.MAX_HEIGHT_DP.toFloat(),
                 step = 2f,
-                onValueChange = { height = it; commit() },
+                onValueChange = { height = it },
                 onCommit = { commit() },
             )
         }
@@ -258,10 +258,10 @@ private fun DimensionsEditor(
                 cornerBr = cornerBr,
                 mode = cornerMode,
                 onModeChange = { cornerMode = it },
-                onTlChange = { cornerTl = it; commit() },
-                onTrChange = { cornerTr = it; commit() },
-                onBlChange = { cornerBl = it; commit() },
-                onBrChange = { cornerBr = it; commit() },
+                onTlChange = { cornerTl = it },
+                onTrChange = { cornerTr = it },
+                onBlChange = { cornerBl = it },
+                onBrChange = { cornerBr = it },
                 onCommit = { commit() },
             )
         }
@@ -281,7 +281,7 @@ private fun DimensionsEditor(
                     IslandDimensions.MIN_OFFSET_Y_DP.toFloat()..
                             IslandDimensions.MAX_OFFSET_Y_DP.toFloat(),
                 step = 2f,
-                onValueChange = { offsetY = it; commit() },
+                onValueChange = { offsetY = it },
                 onCommit = { commit() },
             )
 
@@ -293,7 +293,7 @@ private fun DimensionsEditor(
                     IslandDimensions.MIN_OFFSET_X_DP.toFloat()..
                             IslandDimensions.MAX_OFFSET_X_DP.toFloat(),
                 step = 2f,
-                onValueChange = { offsetX = it; commit() },
+                onValueChange = { offsetX = it },
                 onCommit = { commit() },
             )
         }
