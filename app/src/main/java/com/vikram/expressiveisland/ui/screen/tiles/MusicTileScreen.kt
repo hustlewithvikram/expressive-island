@@ -78,6 +78,8 @@ import com.vikram.expressiveisland.data.MusicProgressStyle
 import com.vikram.expressiveisland.data.MusicVisualizerStyle
 import com.vikram.expressiveisland.data.SeekButtonMode
 import com.vikram.expressiveisland.overlay.resolve
+import com.vikram.expressiveisland.overlay.contents.LineProgressIndicator
+import com.vikram.expressiveisland.overlay.contents.MusicVisualizer
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 import com.vikram.expressiveisland.ui.screen.IslandLivePreviewEffect
@@ -527,7 +529,7 @@ internal fun MusicTileScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { progressStyleDialog = true },
                     shape = groupShape(GroupPosition.LAST),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
@@ -626,9 +628,35 @@ internal fun MusicTileScreen(
                                 modifier = Modifier.fillMaxWidth().padding(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(style.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-                                    if (settings.visualizerStyle == style) Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.music_selected), tint = MaterialTheme.colorScheme.onSurface)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Text(style.label, style = MaterialTheme.typography.titleSmall)
+                                        Text(
+                                            text = when (style) {
+                                                MusicVisualizerStyle.BARS -> "Classic animated bars"
+                                                MusicVisualizerStyle.MIRRORED -> "Balanced mirrored bars"
+                                                MusicVisualizerStyle.DOTS -> "Animated dot pattern"
+                                                MusicVisualizerStyle.WAVE -> "Waveform animation"
+                                                MusicVisualizerStyle.PULSE -> "Soft pulsing dots"
+                                                MusicVisualizerStyle.EXPRESSIVE_LOADING -> "Material expressive motion"
+                                            },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                    MusicVisualizer(
+                                        isPlaying = true,
+                                        style = style,
+                                        color = settings.visualizerColor?.resolve() ?: MusicAccent,
+                                        modifier = Modifier.padding(horizontal = 8.dp),
+                                    )
+                                    if (settings.visualizerStyle == style) {
+                                        Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.music_selected), tint = MaterialTheme.colorScheme.primary)
+                                    }
                                 }
                             }
                         }
@@ -664,11 +692,18 @@ internal fun MusicTileScreen(
                                 when (style) {
                                     MusicProgressStyle.WAVY -> com.vikram.expressiveisland.overlay.contents.WavyProgressIndicator(
                                         progress = 0.68f, modifier = Modifier.fillMaxWidth().height(14.dp),
-                                        color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer,
+                                        color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant,
                                     )
                                     MusicProgressStyle.LINEAR -> LinearProgressIndicator(
                                         progress = { 0.68f }, modifier = Modifier.fillMaxWidth().height(6.dp),
-                                        color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer,
+                                        color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    )
+                                    else -> LineProgressIndicator(
+                                        progress = 0.68f,
+                                        style = style,
+                                        modifier = Modifier.fillMaxWidth().height(14.dp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
                                     )
                                 }
                             }
