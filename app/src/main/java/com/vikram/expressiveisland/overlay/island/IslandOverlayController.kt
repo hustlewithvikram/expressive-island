@@ -75,6 +75,7 @@ import com.vikram.expressiveisland.data.HorizontalCutoutMode
 import com.vikram.expressiveisland.data.IconPreferences
 import com.vikram.expressiveisland.data.IconSource
 import com.vikram.expressiveisland.data.PillWidgetType
+import com.vikram.expressiveisland.data.NetworkSpeedFormat
 import com.vikram.expressiveisland.data.IslandDimensions
 import com.vikram.expressiveisland.data.IslandLayout
 import com.vikram.expressiveisland.data.LayoutPreferences
@@ -924,6 +925,7 @@ class IslandOverlayController(private val context: Context) {
                         emptyIconColor = behaviour.showsWhenEmptyIconColor,
                         persistentPillLeftWidget = behaviour.persistentPillLeftWidget,
                         persistentPillRightWidget = behaviour.persistentPillRightWidget,
+                        persistentPillSpeedFormat = behaviour.networkSpeedFormat,
                         emptyOpensCenter = cameraHoleQuickActionsValue ||
                                 behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
                         centerShortcuts = behaviour.centerShortcuts,
