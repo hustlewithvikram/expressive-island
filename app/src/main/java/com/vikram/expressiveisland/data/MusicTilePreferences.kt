@@ -79,6 +79,7 @@ data class MusicTileSettings(
     val showPlayPauseIcon: Boolean = true,
     val showPlayPauseText: Boolean = false,
     val visualizerStyle: MusicVisualizerStyle = MusicVisualizerStyle.BARS,
+    val visualizerColor: CutoutColor? = null,
     val expandedBackground: Boolean = DEFAULT_EXPANDED_BACKGROUND,
     val expandedBackgroundBlur: Float = DEFAULT_EXPANDED_BACKGROUND_BLUR,
 ) {
@@ -134,6 +135,7 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             showPlayPauseIcon = prefs[SHOW_PLAY_PAUSE_ICON] ?: true,
             showPlayPauseText = prefs[SHOW_PLAY_PAUSE_TEXT] ?: false,
             visualizerStyle = runCatching { MusicVisualizerStyle.valueOf(prefs[VISUALIZER_STYLE] ?: MusicVisualizerStyle.BARS.name) }.getOrDefault(MusicVisualizerStyle.BARS),
+            visualizerColor = CutoutColor.deserialize(prefs[VISUALIZER_COLOR]),
             expandedBackground = prefs[EXPANDED_BACKGROUND] ?: MusicTileSettings.DEFAULT_EXPANDED_BACKGROUND,
             expandedBackgroundBlur = (prefs[EXPANDED_BACKGROUND_BLUR]
                 ?: MusicTileSettings.DEFAULT_EXPANDED_BACKGROUND_BLUR).coerceIn(0f, 40f),
@@ -167,6 +169,7 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             put("showPlayPauseIcon", s.showPlayPauseIcon)
             put("showPlayPauseText", s.showPlayPauseText)
             put("visualizerStyle", s.visualizerStyle.name)
+            put("visualizerColor", s.visualizerColor?.serialize() ?: JSONObject.NULL)
             put("expandedBackground", s.expandedBackground)
             put("expandedBackgroundBlur", s.expandedBackgroundBlur.toDouble())
             put("skipButton", s.skipButton.toJsonObject())
@@ -202,6 +205,11 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             if (obj.has("showPlayPauseIcon")) prefs[SHOW_PLAY_PAUSE_ICON] = obj.getBoolean("showPlayPauseIcon")
             if (obj.has("showPlayPauseText")) prefs[SHOW_PLAY_PAUSE_TEXT] = obj.getBoolean("showPlayPauseText")
             if (obj.has("visualizerStyle")) prefs[VISUALIZER_STYLE] = runCatching { MusicVisualizerStyle.valueOf(obj.getString("visualizerStyle")).name }.getOrDefault(MusicVisualizerStyle.BARS.name)
+            if (obj.has("visualizerColor")) {
+                val raw = if (obj.isNull("visualizerColor")) null else obj.optString("visualizerColor")
+                val color = CutoutColor.deserialize(raw)
+                if (color == null) prefs.remove(VISUALIZER_COLOR) else prefs[VISUALIZER_COLOR] = color.serialize()
+            }
             if (obj.has("expandedBackground")) prefs[EXPANDED_BACKGROUND] = obj.getBoolean("expandedBackground")
             if (obj.has("expandedBackgroundBlur")) {
                 prefs[EXPANDED_BACKGROUND_BLUR] = obj.getDouble("expandedBackgroundBlur").toFloat().coerceIn(0f, 40f)
@@ -265,6 +273,7 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
     suspend fun setShowPlayPauseIcon(enabled: Boolean) = context.musicTileDataStore.edit { it[SHOW_PLAY_PAUSE_ICON] = enabled }
     suspend fun setShowPlayPauseText(enabled: Boolean) = context.musicTileDataStore.edit { it[SHOW_PLAY_PAUSE_TEXT] = enabled }
     suspend fun setVisualizerStyle(style: MusicVisualizerStyle) = context.musicTileDataStore.edit { it[VISUALIZER_STYLE] = style.name }
+    suspend fun setVisualizerColor(color: CutoutColor?) = context.musicTileDataStore.edit { p -> if (color == null) p.remove(VISUALIZER_COLOR) else p[VISUALIZER_COLOR] = color.serialize() }
     suspend fun setExpandedBackground(enabled: Boolean) = context.musicTileDataStore.edit { it[EXPANDED_BACKGROUND] = enabled }
     suspend fun setExpandedBackgroundBlur(blurDp: Float) = context.musicTileDataStore.edit { it[EXPANDED_BACKGROUND_BLUR] = blurDp.coerceIn(0f, 40f) }
     suspend fun setPlayPauseCornerPercent(percent: Int) = context.musicTileDataStore.edit { it[PLAY_PAUSE_CORNER] = percent.coerceIn(MusicButtonStyle.MIN_CORNER_PERCENT, MusicButtonStyle.MAX_CORNER_PERCENT) }
@@ -310,6 +319,7 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
         val LEFT_SEEK_SECONDS = intPreferencesKey("music_left_seek_seconds")
         val RIGHT_SEEK_SECONDS = intPreferencesKey("music_right_seek_seconds")
         val VISUALIZER_STYLE = stringPreferencesKey("music_visualizer_style")
+        val VISUALIZER_COLOR = stringPreferencesKey("music_visualizer_color")
         val EXPANDED_BACKGROUND = booleanPreferencesKey("expanded_background")
         val EXPANDED_BACKGROUND_BLUR = floatPreferencesKey("expanded_background_blur")
     }
