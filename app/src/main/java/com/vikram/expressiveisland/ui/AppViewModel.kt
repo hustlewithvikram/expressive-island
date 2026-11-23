@@ -24,6 +24,7 @@ import com.vikram.expressiveisland.data.AssistantTileSettings
 import com.vikram.expressiveisland.data.BehaviourPreferences
 import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.PillWidgetType
+import com.vikram.expressiveisland.data.NetworkSpeedFormat
 import com.vikram.expressiveisland.data.NotificationIconMode
 import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CenterShortcut
@@ -683,6 +684,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setShowsWhenEmpty(enabled: Boolean) = viewModelScope.launch {
         behaviourPreferences.setShowsWhenEmpty(enabled)
+    }
+
+    fun setNetworkSpeedFormat(format: NetworkSpeedFormat) = viewModelScope.launch {
+        behaviourPreferences.setNetworkSpeedFormat(format)
     }
 
     fun setPersistentPillWidget(left: Boolean, type: PillWidgetType) = viewModelScope.launch {
