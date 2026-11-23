@@ -886,7 +886,7 @@ class IslandOverlayController(private val context: Context) {
                         onAssistantPrompt = ::submitAssistantPrompt,
                         onNewAssistantChat = ::startNewAssistantChat,
                         onSelectAssistantChat = ::restoreAssistantSession,
-                        cameraHoleTapEnabled = behaviour.cameraHoleTapEnabled &&
+                        cameraHoleTapEnabled = (behaviour.cameraHoleTapEnabled || !behaviour.showsWhenEmpty) &&
                                 behaviour.cutoutEnabled &&
                                 !behaviour.showsWhenEmpty &&
                                 !previewPinned &&
@@ -897,16 +897,24 @@ class IslandOverlayController(private val context: Context) {
                         cameraHoleQuickActions = cameraHoleQuickActionsValue,
                         onCameraHoleQuickActionsDismiss = { cameraHoleQuickActions.value = false },
                         onCameraHoleTap = {
-                            val action = when {
-                                behaviour.cameraHoleAssistantEnabled -> com.vikram.expressiveisland.data.CameraHoleTapAction.APP_ASSISTANT
-                                assistantSettings.tapToOpenAssistant -> com.vikram.expressiveisland.data.CameraHoleTapAction.QUICK_ACTIONS
-                                else -> behaviour.cameraHoleTapAction
-                            }
-                            when (action) {
-                                com.vikram.expressiveisland.data.CameraHoleTapAction.QUICK_ACTIONS -> cameraHoleQuickActions.value = true
-                                com.vikram.expressiveisland.data.CameraHoleTapAction.ASSISTANT -> CenterShortcutExecutor.execute(CenterShortcut.Assistant, context)
-                                com.vikram.expressiveisland.data.CameraHoleTapAction.APP_ASSISTANT -> openAssistantPanel()
-                                else -> CenterShortcutExecutor.executeCameraHoleAction(action, context)
+                            if (!behaviour.showsWhenEmpty) {
+                                when (behaviour.showsWhenEmptyClickAction) {
+                                    EmptyClickAction.NONE -> Unit
+                                    EmptyClickAction.OPEN_APP -> onEmptyClick()
+                                    EmptyClickAction.OPEN_CENTER -> cameraHoleQuickActions.value = true
+                                }
+                            } else {
+                                val action = when {
+                                    behaviour.cameraHoleAssistantEnabled -> com.vikram.expressiveisland.data.CameraHoleTapAction.APP_ASSISTANT
+                                    assistantSettings.tapToOpenAssistant -> com.vikram.expressiveisland.data.CameraHoleTapAction.QUICK_ACTIONS
+                                    else -> behaviour.cameraHoleTapAction
+                                }
+                                when (action) {
+                                    com.vikram.expressiveisland.data.CameraHoleTapAction.QUICK_ACTIONS -> cameraHoleQuickActions.value = true
+                                    com.vikram.expressiveisland.data.CameraHoleTapAction.ASSISTANT -> CenterShortcutExecutor.execute(CenterShortcut.Assistant, context)
+                                    com.vikram.expressiveisland.data.CameraHoleTapAction.APP_ASSISTANT -> openAssistantPanel()
+                                    else -> CenterShortcutExecutor.executeCameraHoleAction(action, context)
+                                }
                             }
                         },
                         emptyIcon = behaviour.showsWhenEmptyIcon.takeIf {
