@@ -116,7 +116,7 @@ fun MediaExpandedContent(
         ?: previewProgress.takeIf { event.media?.previewPlaying == true }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (musicSettings.expandedBackground) {
+        if (musicSettings.expandedBackground && (sourceAlbumArt != null || event.media?.previewPlaying == true)) {
             when {
                 sourceAlbumArt != null -> Image(
                     bitmap = sourceAlbumArt,
