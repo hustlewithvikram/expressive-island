@@ -190,15 +190,15 @@ internal fun ShowsWhenEmptyScreen(
                             FilterChip(
                                 selected = behaviour.networkSpeedFormat == format,
                                 onClick = { viewModel.setNetworkSpeedFormat(format) },
-                                label = { Text(format.name) },
+                                label = { Text(when (format) { NetworkSpeedFormat.AUTO -> "Auto"; NetworkSpeedFormat.KBPS -> "KB/s"; NetworkSpeedFormat.MBPS -> "MB/s" }) },
                             )
                         }
                     }
                 }
             }
         }
-        SettingsToggleCard(shape = RoundedCornerShape(24.dp), title = "Persistent Pill visibility",
-            description = "Hide the visible pill while keeping its touch area active. Tap its usual position to run the selected touch action.",
+        SettingsToggleCard(shape = RoundedCornerShape(24.dp), title = "Show Persistent Pill",
+            description = "When disabled, the visible pill stays hidden but its touch area remains active and runs the selected touch action.",
             checked = behaviour.showsWhenEmpty, onCheckedChange = viewModel::setShowsWhenEmpty)
 
         Text(
