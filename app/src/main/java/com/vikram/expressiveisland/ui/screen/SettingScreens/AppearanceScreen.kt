@@ -438,30 +438,34 @@ private fun SatelliteRingSettingsSection() {
     var opacity by remember(settings.opacity) { mutableFloatStateOf(settings.opacity) }
     var ringSize by remember(settings.diameterScale) { mutableFloatStateOf(settings.diameterScale) }
 
-    CardSectionHeader(text = "Camera Ring", padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp))
+    CardSectionHeader(text = "Progress & Camera Ring", padding = PaddingValues(start = 4.dp, top = 4.dp, bottom = 2.dp))
     SettingsToggleCard(
         shape = RoundedCornerShape(24.dp),
         title = "Show camera activity ring",
-        description = "Display activity progress around the camera cutout for music and supported notifications",
+        description = "Display activity progress around the camera cutout. The selected progress colors also style download indicators.",
         checked = settings.enabled,
         onCheckedChange = { scope.launch { preferences.setEnabled(it) } },
     )
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        ColorPickerCard(
+            label = "Download & activity progress color",
+            selected = settings.progressColor,
+            defaultLabel = "Use theme accent",
+            defaultColor = MaterialTheme.colorScheme.primary,
+            onSelect = { scope.launch { preferences.setProgressColor(it) } },
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+        )
+        ColorPickerCard(
+            label = "Progress track color",
+            selected = settings.trackColor,
+            defaultLabel = "Use theme surface",
+            defaultColor = MaterialTheme.colorScheme.primaryContainer,
+            onSelect = { scope.launch { preferences.setTrackColor(it) } },
+            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp, topStart = 4.dp, topEnd = 4.dp),
+        )
+    }
     AnimatedVisibility(visible = settings.enabled) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ColorPickerCard(
-                label = "Activity tint",
-                selected = settings.progressColor,
-                defaultLabel = "Use theme accent",
-                defaultColor = MaterialTheme.colorScheme.primary,
-                onSelect = { scope.launch { preferences.setProgressColor(it) } },
-            )
-            ColorPickerCard(
-                label = "Track tint",
-                selected = settings.trackColor,
-                defaultLabel = "Use theme surface",
-                defaultColor = MaterialTheme.colorScheme.primaryContainer,
-                onSelect = { scope.launch { preferences.setTrackColor(it) } },
-            )
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     AdjustableSlider(
