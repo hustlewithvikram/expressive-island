@@ -216,7 +216,7 @@ private fun DimensionsEditor(
             description = if (expandedPreview) {
                 "Control the dimensions of the expanded island."
             } else {
-                "Control the dimensions of the normal island."
+                "Control the dimensions of the shrinked island."
             },
         ) {
             AdjustableSlider(
