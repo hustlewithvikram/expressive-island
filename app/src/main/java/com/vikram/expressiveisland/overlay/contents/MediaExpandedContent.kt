@@ -103,18 +103,36 @@ fun MediaExpandedContent(
     val musicSettings by musicPreferences.settings.collectAsState(
         initial = MusicTileSettings(),
     )
+    val previewProgress = remember(event.id) {
+        MediaProgress(
+            positionMs = 162_000L,
+            durationMs = 240_000L,
+            speed = 0f,
+            anchorUptimeMs = SystemClock.elapsedRealtime(),
+        )
+    }
+    val displayedProgress = nowPlaying?.progress
+        ?: previewProgress.takeIf { event.media?.previewPlaying == true }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (musicSettings.expandedBackground && sourceAlbumArt != null) {
-            Image(
-                bitmap = sourceAlbumArt,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(musicSettings.expandedBackgroundBlur.dp)
-                    .graphicsLayer { alpha = 0.72f },
-            )
+        if (musicSettings.expandedBackground) {
+            when {
+                sourceAlbumArt != null -> Image(
+                    bitmap = sourceAlbumArt,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(musicSettings.expandedBackgroundBlur.dp)
+                        .graphicsLayer { alpha = 0.72f },
+                )
+                event.media?.previewPlaying == true -> PreviewAlbumArtworkBackground(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(musicSettings.expandedBackgroundBlur.dp)
+                        .graphicsLayer { alpha = 0.82f },
+                )
+            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -137,16 +155,21 @@ fun MediaExpandedContent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                if (musicSettings.showAlbumArt && sourceAlbumArt != null) {
-                    AlbumArt(
+                when {
+                    musicSettings.showAlbumArt && sourceAlbumArt != null -> AlbumArt(
                         bitmap = sourceAlbumArt,
                         size = 44.dp,
                         rotate = event.media?.rotateAlbumArt == true,
                         playing = nowPlaying?.isPlaying == true,
                         strokeColor = albumArtStrokeFor(event),
                     )
-                } else {
-                    IconBadge(event = event, badgeSize = 44.dp, iconSize = 26.dp)
+                    musicSettings.showAlbumArt && event.media?.previewPlaying == true -> PreviewAlbumArt(
+                        modifier = Modifier.size(44.dp),
+                        rotate = event.media?.rotateAlbumArt == true,
+                        playing = true,
+                        strokeColor = albumArtStrokeFor(event),
+                    )
+                    else -> IconBadge(event = event, badgeSize = 44.dp, iconSize = 26.dp)
                 }
                 TileTitle(
                     title = event.label,
@@ -161,10 +184,12 @@ fun MediaExpandedContent(
                         .fillMaxWidth()
                         .height(28.dp),
                 ) {
-                    nowPlaying?.progress?.let { progress ->
+                    displayedProgress?.let { progress ->
                         MediaProgressBar(
                             progress = progress,
                             style = musicSettings.progressStyle,
+                            color = event.accent,
+                            trackColor = event.accent.copy(alpha = 0.32f),
                             canSeek = nowPlaying?.transport?.canSeek == true,
                             onSeek = { target -> nowPlaying?.transport?.seekTo(target) },
                             onInteraction = onMediaInteraction,
@@ -177,7 +202,7 @@ fun MediaExpandedContent(
                 MediaControls(
                     isPlaying = nowPlaying?.isPlaying == true,
                     accent = event.accent,
-                    enabled = nowPlaying != null,
+                    enabled = nowPlaying != null || media.previewPlaying,
                     heightDp = buttonHeightDp,
                     skipStyle = media.skipStyle,
                     playPauseStyle = media.playPauseStyle,
@@ -212,6 +237,8 @@ fun MediaExpandedContent(
 fun MediaProgressBar(
     progress: MediaProgress?,
     style: MusicProgressStyle = MusicProgressStyle.WAVY,
+    color: Color = MaterialTheme.colorScheme.primary,
+    trackColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
     canSeek: Boolean = false,
     onSeek: (Long) -> Unit = {},
     onInteraction: () -> Unit = {},
@@ -286,6 +313,8 @@ fun MediaProgressBar(
             durationMs = duration,
             initialPositionMs = positionMs,
             style = style,
+            color = color,
+            trackColor = trackColor,
             canSeek = canSeek,
             modifier = Modifier.weight(1f).height(28.dp),
             onScrubStart = { isScrubbing = true; onInteraction() },
@@ -314,6 +343,8 @@ private fun SeekableProgressTrack(
     durationMs: Long,
     initialPositionMs: Long,
     style: MusicProgressStyle,
+    color: Color,
+    trackColor: Color,
     canSeek: Boolean,
     modifier: Modifier = Modifier,
     onScrubStart: () -> Unit,
@@ -361,20 +392,73 @@ private fun SeekableProgressTrack(
             },
         contentAlignment = Alignment.Center,
     ) {
-        if (style == MusicProgressStyle.LINEAR) {
-            LinearProgressIndicator(
+        when (style) {
+            MusicProgressStyle.LINEAR -> LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth().height(4.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                color = color,
+                trackColor = trackColor,
             )
-        } else {
-            WavyProgressIndicator(
+            MusicProgressStyle.WAVY -> WavyProgressIndicator(
                 progress = progress,
                 modifier = Modifier.fillMaxWidth().height(12.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                color = color,
+                trackColor = trackColor,
             )
+            else -> LineProgressIndicator(
+                progress = progress,
+                style = style,
+                modifier = Modifier.fillMaxWidth().height(12.dp),
+                color = color,
+                trackColor = trackColor,
+            )
+        }
+    }
+}
+
+@Composable
+fun LineProgressIndicator(
+    progress: Float,
+    style: MusicProgressStyle,
+    modifier: Modifier = Modifier,
+    color: Color,
+    trackColor: Color,
+) {
+    Canvas(modifier) {
+        val fraction = progress.coerceIn(0f, 1f)
+        val centerY = size.height / 2f
+        val stroke = when (style) {
+            MusicProgressStyle.DOUBLE_LINE -> 2.dp.toPx()
+            MusicProgressStyle.SEGMENTED -> 4.dp.toPx()
+            MusicProgressStyle.DASHED -> 3.dp.toPx()
+            else -> 3.dp.toPx()
+        }
+        when (style) {
+            MusicProgressStyle.DOUBLE_LINE -> {
+                val gap = 3.dp.toPx()
+                listOf(centerY - gap, centerY + gap).forEach { y ->
+                    drawLine(trackColor, Offset(0f, y), Offset(size.width, y), stroke, StrokeCap.Round)
+                    drawLine(color, Offset(0f, y), Offset(size.width * fraction, y), stroke, StrokeCap.Round)
+                }
+            }
+            MusicProgressStyle.SEGMENTED, MusicProgressStyle.DASHED -> {
+                val dashWidth = if (style == MusicProgressStyle.SEGMENTED) 9.dp.toPx() else 5.dp.toPx()
+                val gap = if (style == MusicProgressStyle.SEGMENTED) 3.dp.toPx() else 4.dp.toPx()
+                var x = 0f
+                while (x < size.width) {
+                    val end = (x + dashWidth).coerceAtMost(size.width)
+                    drawLine(trackColor, Offset(x, centerY), Offset(end, centerY), stroke, StrokeCap.Round)
+                    val activeEnd = (size.width * fraction).coerceIn(x, end)
+                    if (activeEnd > x) {
+                        drawLine(color, Offset(x, centerY), Offset(activeEnd, centerY), stroke, StrokeCap.Round)
+                    }
+                    x = end + gap
+                }
+            }
+            else -> {
+                drawLine(trackColor, Offset(0f, centerY), Offset(size.width, centerY), stroke, StrokeCap.Round)
+                drawLine(color, Offset(0f, centerY), Offset(size.width * fraction, centerY), stroke, StrokeCap.Round)
+            }
         }
     }
 }
