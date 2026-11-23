@@ -1,7 +1,6 @@
 package com.vikram.expressiveisland.ui.screen
 
 import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,11 +46,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vikram.expressiveisland.R
+import androidx.compose.ui.res.stringResource
 import com.vikram.expressiveisland.permissions.Permissions
 import com.vikram.expressiveisland.system.ShizukuState
 import com.vikram.expressiveisland.system.ShizukuStatus
@@ -145,13 +145,13 @@ fun RequiredPermissionsBottomSheet() {
             )
             SetupPermissionCard(
                 icon = Icons.Rounded.Notifications,
-                title = "Notification access",
+                title = stringResource(R.string.perm_notifications_title),
                 granted = status.notifications,
                 onClick = { Permissions.openNotificationAccessSettings(context) },
             )
             SetupPermissionCard(
                 icon = Icons.Rounded.Shield,
-                title = "Display over other apps (Accessibility)",
+                title = stringResource(R.string.perm_accessibility_title),
                 granted = status.accessibility,
                 onClick = { Permissions.openAccessibilitySettings(context) },
             )
