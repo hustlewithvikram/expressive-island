@@ -560,7 +560,7 @@ internal fun MusicTileScreen(
             AnimatedVisibility(visible = settings.showVisualizer) {
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { visualizerStyleDialog = true },
-                    shape = groupShape(GroupPosition.LAST),
+                    shape = groupShape(GroupPosition.MIDDLE),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                 ) {
                     Row(
@@ -576,6 +576,14 @@ internal fun MusicTileScreen(
                     }
                 }
             }
+            ColorPickerCard(
+                label = "Visualizer color",
+                selected = settings.visualizerColor,
+                onSelect = viewModel::setMusicVisualizerColor,
+                defaultLabel = "Use theme accent",
+                defaultColor = MaterialTheme.colorScheme.primary,
+                shape = groupShape(GroupPosition.LAST),
+            )
         }
         }
 
