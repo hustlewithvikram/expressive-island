@@ -616,7 +616,7 @@ fun MediaControls(
                 cornerPercent = skipStyle.cornerPercent,
                 contentTint = seekIconColor,
                 onClick = onSeekForward,
-                weight = 0.85f,
+                weight = 1f,
             )
         }
         MediaButton(
