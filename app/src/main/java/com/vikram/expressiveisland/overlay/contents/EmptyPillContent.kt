@@ -110,13 +110,13 @@ fun EmptyPillContent(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = (heightDp * 0.16f).dp),
+                .padding(horizontal = (heightDp * 0.30f).dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Keep each slot anchored independently. Rendering NONE as an empty weighted slot
             // prevents a right-side widget from sliding into the left position.
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                PillWidget(leftWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock, wifi?.signalLevel)
+                PillWidget(leftWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock)
             }
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
                 PillWidget(rightWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock, wifi?.signalLevel)
