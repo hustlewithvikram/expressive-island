@@ -120,8 +120,9 @@ internal fun ShowsWhenEmptyScreen(
 
     val context = LocalContext.current
     val behaviour by viewModel.behaviour.collectAsStateWithLifecycle()
-    val showIcon = behaviour.persistentPillLeftWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON) ||
-        behaviour.persistentPillRightWidget in setOf(PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON)
+    var selectedSideLeft by remember { mutableStateOf(true) }
+    val selectedWidget = if (selectedSideLeft) behaviour.persistentPillLeftWidget else behaviour.persistentPillRightWidget
+    val showIcon = selectedWidget == PillWidgetType.ICON || selectedWidget == PillWidgetType.ANIMATED_ICON
     val source = behaviour.showsWhenEmptyIcon
     val containerColor = behaviour.showsWhenEmptyIconColor
     val clickAction = behaviour.showsWhenEmptyClickAction
@@ -133,90 +134,61 @@ internal fun ShowsWhenEmptyScreen(
     var showAddShortcut by remember { mutableStateOf(false) }
     var showCenterAppPicker by remember { mutableStateOf(false) }
 
-    val imagePicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri ->
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
+            context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             viewModel.setShowsWhenEmptyImageIcon(uri.toString())
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.persistent_pill_appearance),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 2.dp),
-        )
-        PillWidgetSlotCard(
-            title = "Left side",
-            selected = behaviour.persistentPillLeftWidget,
-            shape = persistentPillGroupShape(isFirst = true, isLast = false),
-            onSelect = { viewModel.setPersistentPillWidget(true, it) },
-        )
-        PillWidgetSlotCard(
-            title = "Right side",
-            selected = behaviour.persistentPillRightWidget,
-            shape = persistentPillGroupShape(isFirst = false, isLast = true),
-            onSelect = { viewModel.setPersistentPillWidget(false, it) },
-        )
-        Text(
-            text = "Choose a different widget for each side. Icon artwork is shared between icon slots.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-        )
-
-        // The icon + colour controls only make sense once the icon is switched on.
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
+        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.persistent_pill_appearance), style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp, top = 8.dp))
+        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilledTonalButton(onClick = { selectedSideLeft = true }, modifier = Modifier.weight(1f),
+                enabled = !selectedSideLeft, shape = RoundedCornerShape(18.dp)) { Text("Left side") }
+            FilledTonalButton(onClick = { selectedSideLeft = false }, modifier = Modifier.weight(1f),
+                enabled = selectedSideLeft, shape = RoundedCornerShape(18.dp)) { Text("Right side") }
+        }
+        PillWidgetSlotCard(title = if (selectedSideLeft) "Left side" else "Right side", selected = selectedWidget,
+            shape = RoundedCornerShape(24.dp), onSelect = { viewModel.setPersistentPillWidget(selectedSideLeft, it) })
         AnimatedVisibility(visible = showIcon) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Hero: the chosen icon at a glance, plus the "change icon" action.
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = persistentPillGroupShape(isFirst = false, isLast = true),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SettingsToggleCard(shape = RoundedCornerShape(24.dp), title = "Animate icon",
+                    description = "Add a subtle pulse animation to this side's icon",
+                    checked = selectedWidget == PillWidgetType.ANIMATED_ICON,
+                    onCheckedChange = { enabled -> viewModel.setPersistentPillWidget(selectedSideLeft,
+                        if (enabled) PillWidgetType.ANIMATED_ICON else PillWidgetType.ICON) })
+                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         EmptyIconThumbnail(source = source, containerColor = containerColor, size = 76.dp)
-                        FilledTonalButton(
-                            onClick = { showIconSheet = true },
-                            shape = RoundedCornerShape(24.dp),
-                        ) {
-                            Icon(imageVector = Icons.Rounded.Edit, contentDescription = null)
-                            Text(
-                                text = stringResource(R.string.event_change_icon),
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
+                        FilledTonalButton(onClick = { showIconSheet = true }, shape = RoundedCornerShape(24.dp)) {
+                            Icon(Icons.Rounded.Edit, contentDescription = null)
+                            Text(stringResource(R.string.event_change_icon), modifier = Modifier.padding(start = 8.dp))
                         }
                     }
                 }
-
-                // The colour of the disc drawn behind the glyph on the pill.
-                ColorPickerCard(
-                    label = stringResource(R.string.shows_when_empty_container_color),
-                    selected = containerColor,
+                ColorPickerCard(label = stringResource(R.string.shows_when_empty_container_color), selected = containerColor,
                     onSelect = { viewModel.setShowsWhenEmptyIconColor(it) },
-                    defaultLabel = stringResource(R.string.label_default),
-                    defaultColor = Color.White,
-                )
+                    defaultLabel = stringResource(R.string.label_default), defaultColor = Color.White)
             }
         }
+        AnimatedVisibility(visible = selectedWidget == PillWidgetType.NETWORK_SPEED) {
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Internet speed format", style = MaterialTheme.typography.titleMedium)
+                    Text("The meter currently switches automatically between KB/s and MB/s as traffic changes.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        SettingsToggleCard(shape = RoundedCornerShape(24.dp), title = "Persistent Pill visibility",
+            description = "Hide the visible pill while keeping its touch area active. Tap its usual position to run the selected touch action.",
+            checked = behaviour.showsWhenEmpty, onCheckedChange = viewModel::setShowsWhenEmpty)
 
         Text(
             text = stringResource(R.string.persistent_pill_interaction),
@@ -853,7 +825,7 @@ private fun PillWidgetSlotCard(
             title = { Text(title) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    PillWidgetType.entries.forEach { type ->
+                    PillWidgetType.entries.filter { it != PillWidgetType.ANIMATED_ICON && it != PillWidgetType.WIFI_SIGNAL }.forEach { type ->
                         val optionLabel = when (type) {
                             PillWidgetType.NONE -> "Nothing"
                             PillWidgetType.ICON -> "Icon"
