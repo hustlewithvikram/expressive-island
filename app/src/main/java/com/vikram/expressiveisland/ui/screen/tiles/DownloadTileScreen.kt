@@ -9,23 +9,31 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.core.DynamicTile
@@ -48,6 +56,9 @@ internal fun DownloadTileScreen(
 ) {
     val settings by viewModel.downloadTile.collectAsStateWithLifecycle()
     var showIconPicker by remember { mutableStateOf(false) }
+    var resetRotation by remember { mutableStateOf(0f) }
+    val resetRotationAnimated by animateFloatAsState(resetRotation, label = "downloadIconResetRotation")
+    val visibleProgressStyles = DownloadProgressStyle.entries.filterNot { it == DownloadProgressStyle.CIRCULAR }
     val selectedIcon = (settings.icon as? IconSource.Material)
         ?.let { MaterialIconCatalog.iconFor(it.iconName) }
         ?: DynamicTile.DOWNLOAD.defaultIcon
@@ -95,8 +106,22 @@ internal fun DownloadTileScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                TextButton(onClick = { viewModel.setDownloadIcon(null) }) {
-                    Text("Reset")
+                VerticalDivider(
+                    modifier = Modifier.height(38.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+                IconButton(
+                    onClick = {
+                        viewModel.setDownloadIcon(null)
+                        resetRotation += 360f
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Reset download icon",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.rotate(resetRotationAnimated),
+                    )
                 }
             }
         }
@@ -124,6 +149,14 @@ internal fun DownloadTileScreen(
         )
 
         if (settings.showProgress) {
+            SettingsToggleCard(
+                shape = RoundedCornerShape(28.dp),
+                title = "Immersive progress",
+                description = "Fill the expanded island from left to right as the download advances",
+                checked = settings.immersiveProgress,
+                onCheckedChange = viewModel::setDownloadImmersiveProgress,
+            )
+
             Text(
                 text = "Progress style",
                 style = MaterialTheme.typography.labelLarge,
@@ -131,9 +164,10 @@ internal fun DownloadTileScreen(
                 modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
             )
             ExpressiveSegmentedRow(
-                options = DownloadProgressStyle.entries.map { it.label },
-                selectedIndex = DownloadProgressStyle.entries.indexOf(settings.progressStyle),
-                onSelect = { viewModel.setDownloadProgressStyle(DownloadProgressStyle.entries[it]) },
+                options = visibleProgressStyles.map { it.label },
+                selectedIndex = visibleProgressStyles.indexOf(settings.progressStyle)
+                    .takeIf { it >= 0 } ?: visibleProgressStyles.indexOf(DownloadProgressStyle.LINEAR),
+                onSelect = { viewModel.setDownloadProgressStyle(visibleProgressStyles[it]) },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             )
 
