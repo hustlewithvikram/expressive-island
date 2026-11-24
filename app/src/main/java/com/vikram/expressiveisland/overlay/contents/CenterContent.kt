@@ -71,7 +71,7 @@ fun CenterContent(
             if (shortcuts.isEmpty()) {
                 Text(
                     text = stringResource(R.string.center_shortcuts_empty),
-                    color = LocalContentColor.current.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                 )
             } else {
