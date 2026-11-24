@@ -468,6 +468,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setDownloadIconContainerColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setIconContainerColor(color) }
     fun setDownloadProgressColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setProgressColor(color) }
     fun setDownloadTrackColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setTrackColor(color) }
+    fun setDownloadShowPauseResume(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowPauseResume(enabled) }
+    fun setDownloadShowCancel(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowCancel(enabled) }
 
     fun setAssistantActivationMode(mode: AssistantActivationMode) = viewModelScope.launch {
         assistantTilePreferences.setActivationMode(mode)
