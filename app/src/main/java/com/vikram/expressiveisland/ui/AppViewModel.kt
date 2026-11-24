@@ -34,6 +34,9 @@ import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.CutoutFill
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.DynamicTilePreferences
+import com.vikram.expressiveisland.data.DownloadTilePreferences
+import com.vikram.expressiveisland.data.DownloadTileSettings
+import com.vikram.expressiveisland.data.DownloadProgressStyle
 import com.vikram.expressiveisland.data.EmptyClickAction
 import com.vikram.expressiveisland.data.EventPreferences
 import com.vikram.expressiveisland.data.IconPreferences
@@ -89,6 +92,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val musicTilePreferences = MusicTilePreferences(application)
     private val phoneTilePreferences = PhoneTilePreferences(application)
     private val timerTilePreferences = TimerTilePreferences(application)
+    private val downloadTilePreferences = DownloadTilePreferences(application)
     private val assistantTilePreferences = AssistantTilePreferences(application)
     private val appPreferences = AppPreferences(application)
     private val recentColorPreferences = RecentColorPreferences(application)
@@ -203,6 +207,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = TimerTileSettings(),
+        )
+
+    val downloadTile: StateFlow<DownloadTileSettings> =
+        downloadTilePreferences.settings.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = DownloadTileSettings(),
         )
 
     val assistantTile: StateFlow<AssistantTileSettings> =
@@ -447,6 +458,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setTimerAddButtonColor(color: CutoutColor) = viewModelScope.launch {
         timerTilePreferences.setAddButtonColor(color)
     }
+
+    fun setDownloadIcon(icon: IconSource?) = viewModelScope.launch { downloadTilePreferences.setIcon(icon) }
+    fun setDownloadShowText(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowText(enabled) }
+    fun setDownloadShowPercentage(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowPercentage(enabled) }
+    fun setDownloadShowProgress(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowProgress(enabled) }
+    fun setDownloadProgressStyle(style: DownloadProgressStyle) = viewModelScope.launch { downloadTilePreferences.setProgressStyle(style) }
+    fun setDownloadIconContainerColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setIconContainerColor(color) }
+    fun setDownloadProgressColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setProgressColor(color) }
+    fun setDownloadTrackColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setTrackColor(color) }
 
     fun setAssistantActivationMode(mode: AssistantActivationMode) = viewModelScope.launch {
         assistantTilePreferences.setActivationMode(mode)
