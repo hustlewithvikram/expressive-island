@@ -392,6 +392,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
                 key = sbn.key,
                 progressData = progress,
                 contentIntent = sbn.notification.contentIntent,
+                actions = sbn.notification.surfaceableActions(),
             )
         }
         activeDownloads.values.lastOrNull()?.let(IslandEventBus::emit)
@@ -465,6 +466,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
                 key = notification.key,
                 progressData = progress,
                 contentIntent = notification.notification.contentIntent,
+                actions = notification.notification.surfaceableActions(),
             )
             activeDownloads.remove(notification.key)
             activeDownloads[notification.key] = download
