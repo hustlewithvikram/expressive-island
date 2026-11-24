@@ -919,6 +919,8 @@ fun IslandSurface(
     // while remaining visually subordinate and readable.
     val contentColor = appearance.textColor?.resolve(appColor, adaptiveColor)
         ?: if (repColor.luminance() > 0.5f) PillTextColorDark else PillTextColor
+    // Blend toward the neutral that contrasts with the current fill; this keeps supporting
+    // labels in the selected colour family without using translucent text that can wash out.
     val secondaryTextColor = lerp(
         contentColor,
         if (repColor.luminance() > 0.5f) Color.Black else Color.White,
