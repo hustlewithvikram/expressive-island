@@ -305,7 +305,7 @@ fun MediaProgressBar(
     ) {
         Text(
             text = formatMediaTime(positionMs),
-            color = LocalContentColor.current.copy(alpha = 0.65f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
         )
@@ -325,7 +325,7 @@ fun MediaProgressBar(
         )
         Text(
             text = formatMediaTime(duration),
-            color = LocalContentColor.current.copy(alpha = 0.65f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
         )
