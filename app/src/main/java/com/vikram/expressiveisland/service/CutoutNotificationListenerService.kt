@@ -159,6 +159,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         currentRanking = getCurrentRanking()
         observeBehaviour()
         seedMediaArt()
+        seedDownloads()
     }
 
     override fun onListenerDisconnected() {
@@ -171,6 +172,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         currentTimerKey = null
         currentMediaArtKey = null
         currentAssistantKey = null
+        activeDownloads.values.lastOrNull()?.let { IslandEventBus.emit(it.copy(active = false, progressData = null)) }
         activeDownloads.clear()
         OnCallBus.update(null)
         RunningTimerBus.update(null)
@@ -375,6 +377,26 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         )
     }
 
+    private fun seedDownloads() {
+        val active = runCatching { activeNotifications }.getOrNull() ?: return
+        active.sortedBy { it.postTime }.forEach { sbn ->
+            val progress = getProgressDataOrNull(sbn) ?: return@forEach
+            if (sbn.packageName == packageName || sbn.packageName in disabledApps) return@forEach
+            if (!sbn.shouldSurface()) return@forEach
+            val extras = sbn.notification.extras
+            activeDownloads.remove(sbn.key)
+            activeDownloads[sbn.key] = CutoutSignal.Download(
+                packageName = sbn.packageName,
+                title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString(),
+                text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
+                key = sbn.key,
+                progressData = progress,
+                contentIntent = sbn.notification.contentIntent,
+            )
+        }
+        activeDownloads.values.lastOrNull()?.let(IslandEventBus::emit)
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         val notification = sbn ?: return
 
@@ -406,6 +428,14 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         // let it settle into the panel without popping a second pill.
         if (returning.consume(notification.key)) return
 
+        val progress = getProgressDataOrNull(notification)
+        if (progress == null) {
+            val completed = activeDownloads.remove(notification.key)
+            if (completed != null) {
+                val latest = activeDownloads.values.lastOrNull()
+                IslandEventBus.emit(latest ?: completed.copy(active = false, progressData = null))
+            }
+        }
         if (!notification.shouldSurface()) return
 
         // Apply the same per-app mute decision used by the overlay before touching the real
@@ -419,7 +449,6 @@ class CutoutNotificationListenerService : NotificationListenerService() {
 
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString()
         val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString()
-        val progress = getProgressDataOrNull(sbn)
         val isSilent = isSilentNotification(notification)
 
         // Keep the listener-side decision in lockstep with the overlay. Otherwise an ignored
