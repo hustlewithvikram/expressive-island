@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.DownloadProgressStyle
+import com.vikram.expressiveisland.data.DownloadPillProgressStyle
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.AssistantChatTurn
@@ -167,6 +168,7 @@ data class DownloadTileOptions(
     val trackColor: CutoutColor? = null,
     val showPauseResume: Boolean = true,
     val showCancel: Boolean = true,
+    val pillProgressStyle: DownloadPillProgressStyle = DownloadPillProgressStyle.CIRCULAR,
 )
 
 /** Which parts of the assistant tile to render (display text, max height). */
