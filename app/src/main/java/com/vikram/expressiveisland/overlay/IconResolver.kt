@@ -333,6 +333,7 @@ class IconResolver(private val context: Context) {
                 showText = settings.showText,
                 showPercentage = settings.showPercentage,
                 showProgress = settings.showProgress,
+                immersiveProgress = settings.immersiveProgress,
                 progressStyle = settings.progressStyle,
                 progressColor = settings.progressColor,
                 trackColor = settings.trackColor,
