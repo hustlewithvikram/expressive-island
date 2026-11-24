@@ -138,8 +138,8 @@ internal fun DownloadTileScreen(
             )
             SettingsToggleCard(
                 shape = RoundedCornerShape(24.dp),
-                title = "Show percentage",
-                description = "Display the current completion percentage",
+                title = "Show percentage in expanded tile",
+                description = "Display the completion percentage beside the file name when the island is expanded",
                 checked = settings.showPercentage,
                 onCheckedChange = viewModel::setDownloadShowPercentage,
             )
