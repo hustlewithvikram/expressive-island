@@ -463,6 +463,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setDownloadShowText(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowText(enabled) }
     fun setDownloadShowPercentage(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowPercentage(enabled) }
     fun setDownloadShowProgress(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowProgress(enabled) }
+    fun setDownloadImmersiveProgress(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setImmersiveProgress(enabled) }
     fun setDownloadProgressStyle(style: DownloadProgressStyle) = viewModelScope.launch { downloadTilePreferences.setProgressStyle(style) }
     fun setDownloadIconContainerColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setIconContainerColor(color) }
     fun setDownloadProgressColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setProgressColor(color) }
