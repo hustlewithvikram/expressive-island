@@ -87,6 +87,9 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     // Key of the assistant notification currently driving the assistant tile.
     private var currentAssistantKey: String? = null
 
+    // Active progress notifications are tracked independently from their short-lived notification pills.
+    private val activeDownloads = LinkedHashMap<String, CutoutSignal.Download>()
+
     private var timerRemovalJob: Job? = null
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
@@ -156,6 +159,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         currentRanking = getCurrentRanking()
         observeBehaviour()
         seedMediaArt()
+        seedDownloads()
     }
 
     override fun onListenerDisconnected() {
@@ -168,6 +172,8 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         currentTimerKey = null
         currentMediaArtKey = null
         currentAssistantKey = null
+        activeDownloads.values.lastOrNull()?.let { IslandEventBus.emit(it.copy(active = false, progressData = null)) }
+        activeDownloads.clear()
         OnCallBus.update(null)
         RunningTimerBus.update(null)
         MediaArtBus.update(null)
@@ -188,6 +194,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         currentTimerKey = null
         currentMediaArtKey = null
         currentAssistantKey = null
+        activeDownloads.clear()
         scope.cancel()
         super.onDestroy()
     }
@@ -370,6 +377,27 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         )
     }
 
+    private fun seedDownloads() {
+        val active = runCatching { activeNotifications }.getOrNull() ?: return
+        active.sortedBy { it.postTime }.forEach { sbn ->
+            val progress = getProgressDataOrNull(sbn) ?: return@forEach
+            if (sbn.packageName == packageName || sbn.packageName in disabledApps) return@forEach
+            if (!sbn.shouldSurface()) return@forEach
+            val extras = sbn.notification.extras
+            activeDownloads.remove(sbn.key)
+            activeDownloads[sbn.key] = CutoutSignal.Download(
+                packageName = sbn.packageName,
+                title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString(),
+                text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
+                key = sbn.key,
+                progressData = progress,
+                contentIntent = sbn.notification.contentIntent,
+                actions = sbn.notification.surfaceableActions(),
+            )
+        }
+        activeDownloads.values.lastOrNull()?.let(IslandEventBus::emit)
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         val notification = sbn ?: return
 
@@ -401,6 +429,14 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         // let it settle into the panel without popping a second pill.
         if (returning.consume(notification.key)) return
 
+        val progress = getProgressDataOrNull(notification)
+        if (progress == null) {
+            val completed = activeDownloads.remove(notification.key)
+            if (completed != null) {
+                val latest = activeDownloads.values.lastOrNull()
+                IslandEventBus.emit(latest ?: completed.copy(active = false, progressData = null))
+            }
+        }
         if (!notification.shouldSurface()) return
 
         // Apply the same per-app mute decision used by the overlay before touching the real
@@ -414,12 +450,31 @@ class CutoutNotificationListenerService : NotificationListenerService() {
 
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString()
         val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString()
-        val progress = getProgressDataOrNull(sbn)
         val isSilent = isSilentNotification(notification)
 
         // Keep the listener-side decision in lockstep with the overlay. Otherwise an ignored
         // silent notification can still be snoozed and disappear from the notification shade.
         if (behaviourIgnoreSilentNotifications() && isSilent) return
+
+        // Progress-bearing notifications are promoted to the dedicated persistent Download tile.
+        // They no longer enter the transient notification queue or inherit its auto-dismiss timer.
+        if (progress != null) {
+            val download = CutoutSignal.Download(
+                packageName = notification.packageName,
+                title = title,
+                text = text,
+                key = notification.key,
+                progressData = progress,
+                contentIntent = notification.notification.contentIntent,
+                actions = notification.notification.surfaceableActions(),
+            )
+            activeDownloads.remove(notification.key)
+            activeDownloads[notification.key] = download
+            while (activeDownloads.size > 8) activeDownloads.remove(activeDownloads.keys.first())
+            IslandEventBus.emit(download)
+            alertFor(sbn)
+            return
+        }
 
         val islandEvent = CutoutSignal.Notification(
             packageName = notification.packageName,
@@ -431,7 +486,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
             actions = notification.notification.surfaceableActions(),
             largeIcon = notification.notification.getLargeIcon(),
             smallIcon = notification.notification.smallIcon,
-            progressData = progress,
+            progressData = null,
             isSilent = isSilent,
         )
 
@@ -448,6 +503,17 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
+        // Remove only the download session belonging to this notification key. If another
+        // transfer is active, promote its latest snapshot instead of clearing the tile.
+        sbn?.key?.let { key ->
+            val removed = activeDownloads.remove(key)
+            if (removed != null) {
+                val latest = activeDownloads.values.lastOrNull()
+                IslandEventBus.emit(
+                    latest ?: removed.copy(active = false, progressData = null)
+                )
+            }
+        }
         // Clears call cutout when call ends
         if (sbn?.key != null && sbn.key == currentCallKey) {
             currentCallKey = null

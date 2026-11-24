@@ -27,6 +27,8 @@ data class SatelliteRingSettings(
     val opacity: Float = 1f,
     val style: SatelliteRingStyle = SatelliteRingStyle.EXPRESSIVE,
     val clockwise: Boolean = true,
+    val downloadProgressColor: CutoutColor? = null,
+    val downloadTrackColor: CutoutColor? = null,
 )
 
 class SatelliteRingPreferences(private val context: Context) {
@@ -41,6 +43,8 @@ class SatelliteRingPreferences(private val context: Context) {
             style = runCatching { SatelliteRingStyle.valueOf(p[STYLE] ?: SatelliteRingStyle.EXPRESSIVE.name) }
                 .getOrDefault(SatelliteRingStyle.EXPRESSIVE),
             clockwise = p[CLOCKWISE] ?: true,
+            downloadProgressColor = CutoutColor.deserialize(p[DOWNLOAD_PROGRESS_COLOR]),
+            downloadTrackColor = CutoutColor.deserialize(p[DOWNLOAD_TRACK_COLOR]),
         )
     }
 
@@ -52,6 +56,8 @@ class SatelliteRingPreferences(private val context: Context) {
     suspend fun setOpacity(value: Float) { context.satelliteRingStore.edit { it[OPACITY] = value.coerceIn(0.2f, 1f) } }
     suspend fun setStyle(value: SatelliteRingStyle) { context.satelliteRingStore.edit { it[STYLE] = value.name } }
     suspend fun setClockwise(value: Boolean) { context.satelliteRingStore.edit { it[CLOCKWISE] = value } }
+    suspend fun setDownloadProgressColor(value: CutoutColor?) { context.satelliteRingStore.edit { p -> if (value == null) p.remove(DOWNLOAD_PROGRESS_COLOR) else p[DOWNLOAD_PROGRESS_COLOR] = value.serialize() } }
+    suspend fun setDownloadTrackColor(value: CutoutColor?) { context.satelliteRingStore.edit { p -> if (value == null) p.remove(DOWNLOAD_TRACK_COLOR) else p[DOWNLOAD_TRACK_COLOR] = value.serialize() } }
 
     private companion object {
         val ENABLED = booleanPreferencesKey("enabled")
@@ -62,5 +68,7 @@ class SatelliteRingPreferences(private val context: Context) {
         val OPACITY = floatPreferencesKey("opacity")
         val STYLE = stringPreferencesKey("style")
         val CLOCKWISE = booleanPreferencesKey("clockwise")
+        val DOWNLOAD_PROGRESS_COLOR = stringPreferencesKey("download_progress_color")
+        val DOWNLOAD_TRACK_COLOR = stringPreferencesKey("download_track_color")
     }
 }

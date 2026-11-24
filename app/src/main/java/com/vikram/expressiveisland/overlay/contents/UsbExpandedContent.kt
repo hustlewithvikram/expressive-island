@@ -35,8 +35,8 @@ fun UsbConnectedExpandedContent(
     usb: UsbState?,
     notchBottomInsetDp: Int,
 ) {
-    val foreground = Color.White
-    val secondary = Color.White.copy(alpha = 0.68f)
+    val foreground = MaterialTheme.colorScheme.onSurface
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
     val accent = Color(0xFF9CCBFA)
     val isPc = usb?.isPcConnection == true
     val deviceName = usb?.name?.takeIf(String::isNotBlank)
@@ -172,13 +172,13 @@ private fun UsbDetailRow(label: String, value: String) {
     ) {
         Text(
             label,
-            color = Color.White.copy(alpha = 0.62f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 10.sp,
             maxLines = 1,
         )
         Text(
             value,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,

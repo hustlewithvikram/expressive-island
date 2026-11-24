@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -23,5 +24,6 @@ enum class DynamicTile(
     MUSIC(Icons.Rounded.MusicNote, R.string.tile_music, R.string.tile_music_desc, 0xFFF472B6),
     PHONE(Icons.Rounded.Call, R.string.tile_phone, R.string.tile_phone_desc, 0xFF22C55E),
     TIMER(Icons.Rounded.Timer, R.string.tile_timer, R.string.tile_timer_desc, 0xFFF59E0B),
+    DOWNLOAD(Icons.Rounded.FileDownload, R.string.tile_download, R.string.tile_download_desc, 0xFF38BDF8),
     ASSISTANT(Icons.Rounded.AutoAwesome, R.string.tile_assistant, R.string.tile_assistant_desc, 0xFF8B5CF6),
 }

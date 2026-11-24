@@ -22,7 +22,8 @@ private val Context.behaviourDataStore: DataStore<Preferences> by preferencesDat
 enum class HorizontalCutoutMode { HIDDEN, NORMAL_ONLY, STICK_TO_CAMERA, CENTER }
 
 /** Persistent pill slot content. */
-enum class PillWidgetType { NONE, ICON, ANIMATED_ICON, NETWORK_SPEED, BATTERY, CLOCK, WIFI_SIGNAL }
+enum class PillWidgetType { NONE, ICON, ANIMATED_ICON, NETWORK_SPEED, BATTERY, CLOCK }
+enum class NetworkSpeedFormat { AUTO, KBPS, MBPS }
 
 /** Preferred artwork for notification app icons shown in the island. */
 enum class NotificationIconMode { ORIGINAL, MONOCHROME, AUTOMATIC }
@@ -109,6 +110,7 @@ data class BehaviourSettings(
     val showsWhenEmptyShowIcon: Boolean = SHOWS_WHEN_EMPTY_SHOW_ICON,
     val persistentPillLeftWidget: PillWidgetType = PillWidgetType.NONE,
     val persistentPillRightWidget: PillWidgetType = PillWidgetType.NONE,
+    val networkSpeedFormat: NetworkSpeedFormat = NetworkSpeedFormat.AUTO,
     val showsWhenEmptyIcon: IconSource? = null,
     val showsWhenEmptyIconColor: CutoutColor? = null,
     val showsWhenEmptyClickAction: EmptyClickAction = DEFAULT_EMPTY_CLICK_ACTION,
@@ -266,6 +268,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             persistentPillRightWidget = prefs[PILL_RIGHT_WIDGET]
                 ?.let { runCatching { PillWidgetType.valueOf(it) }.getOrNull() }
                 ?: PillWidgetType.NONE,
+            networkSpeedFormat = prefs[PILL_SPEED_FORMAT]?.let { runCatching { NetworkSpeedFormat.valueOf(it) }.getOrNull() } ?: NetworkSpeedFormat.AUTO,
             showsWhenEmptyIcon = prefs[SHOWS_WHEN_EMPTY_ICON]?.let { IconSource.decode(it) },
             showsWhenEmptyIconColor = CutoutColor.deserialize(prefs[SHOWS_WHEN_EMPTY_ICON_COLOR]),
             showsWhenEmptyClickAction = prefs[SHOWS_WHEN_EMPTY_CLICK_ACTION]
@@ -336,6 +339,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("showsWhenEmptyShowIcon", s.showsWhenEmptyShowIcon)
             put("persistentPillLeftWidget", s.persistentPillLeftWidget.name)
             put("persistentPillRightWidget", s.persistentPillRightWidget.name)
+            put("networkSpeedFormat", s.networkSpeedFormat.name)
             put("showsWhenEmptyIcon", s.showsWhenEmptyIcon?.encode() ?: JSONObject.NULL)
             put(
                 "showsWhenEmptyIconColor",
@@ -450,6 +454,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
                 obj.getBoolean("showsWhenEmptyShowIcon")
             parseEnum<PillWidgetType>(obj, "persistentPillLeftWidget")?.let { widget -> it[PILL_LEFT_WIDGET] = widget.name }
             parseEnum<PillWidgetType>(obj, "persistentPillRightWidget")?.let { widget -> it[PILL_RIGHT_WIDGET] = widget.name }
+            parseEnum<NetworkSpeedFormat>(obj, "networkSpeedFormat")?.let { format -> it[PILL_SPEED_FORMAT] = format.name }
             if (obj.has("showsWhenEmptyIcon")) {
                 val raw =
                     if (obj.isNull("showsWhenEmptyIcon")) null else obj.optString("showsWhenEmptyIcon")
@@ -646,6 +651,8 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         it[SHOWS_WHEN_EMPTY_SHOW_ICON] = enabled
     }
 
+    suspend fun setNetworkSpeedFormat(format: NetworkSpeedFormat) = context.behaviourDataStore.edit { it[PILL_SPEED_FORMAT] = format.name }
+
     suspend fun setPersistentPillWidget(left: Boolean, type: PillWidgetType) = context.behaviourDataStore.edit {
         if (left) it[PILL_LEFT_WIDGET] = type.name else it[PILL_RIGHT_WIDGET] = type.name
         if (left) it[SHOWS_WHEN_EMPTY_SHOW_ICON] = type == PillWidgetType.ICON || type == PillWidgetType.ANIMATED_ICON
@@ -776,6 +783,7 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val SHOWS_WHEN_EMPTY_SHOW_ICON = booleanPreferencesKey("shows_when_empty_show_icon")
         val PILL_LEFT_WIDGET = stringPreferencesKey("persistent_pill_left_widget")
         val PILL_RIGHT_WIDGET = stringPreferencesKey("persistent_pill_right_widget")
+        val PILL_SPEED_FORMAT = stringPreferencesKey("persistent_pill_speed_format")
         val SHOWS_WHEN_EMPTY_ICON = stringPreferencesKey("shows_when_empty_icon")
         val SHOWS_WHEN_EMPTY_ICON_COLOR = stringPreferencesKey("shows_when_empty_icon_color")
         val SHOWS_WHEN_EMPTY_CLICK_ACTION = stringPreferencesKey("shows_when_empty_click_action")

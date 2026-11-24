@@ -57,6 +57,17 @@ fun ExpandedContent(
 
         return
     }
+    // The download tile owns its expanded progress presentation.
+    if (event.download != null) {
+        DownloadExpandedContent(
+            event = event,
+            collapsedHeightDp = collapsedHeightDp,
+            appearance = appearance,
+            onAction = onAction,
+        )
+        return
+    }
+
     // The timer tile: icon + ticking remaining time, and its Reset / Add 1-min chips.
     if (event.timer != null) {
         TimerExpandedContent(

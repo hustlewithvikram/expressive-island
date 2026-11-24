@@ -9,6 +9,8 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
+import com.vikram.expressiveisland.data.DownloadProgressStyle
+import com.vikram.expressiveisland.data.DownloadPillProgressStyle
 import com.vikram.expressiveisland.data.MusicButtonStyle
 import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.AssistantChatTurn
@@ -135,6 +137,8 @@ data class IslandEvent(
      * [com.vikram.expressiveisland.core.RunningTimerBus]. Null for every other event.
      */
     val timer: TimerTileOptions? = null,
+    /** Non-null for the persistent download tile. */
+    val download: DownloadTileOptions? = null,
     /**
      * When non-null this is the assistant tile: the island displays voice assistant speech/response text
      * in the cutout, capped at [maxCutoutHeightPercent] of screen height. Null otherwise.
@@ -151,6 +155,20 @@ data class IslandEvent(
     val appColor: Color? = null,
     /** Original system-event type retained while this event moves between overlay slots. */
     val systemEventType: SystemEventType? = null,
+)
+
+/** Display options for the persistent download tile. */
+data class DownloadTileOptions(
+    val showText: Boolean = true,
+    val showPercentage: Boolean = true,
+    val showProgress: Boolean = true,
+    val immersiveProgress: Boolean = false,
+    val progressStyle: DownloadProgressStyle = DownloadProgressStyle.LINEAR,
+    val progressColor: CutoutColor? = null,
+    val trackColor: CutoutColor? = null,
+    val showPauseResume: Boolean = true,
+    val showCancel: Boolean = true,
+    val pillProgressStyle: DownloadPillProgressStyle = DownloadPillProgressStyle.CIRCULAR,
 )
 
 /** Which parts of the assistant tile to render (display text, max height). */

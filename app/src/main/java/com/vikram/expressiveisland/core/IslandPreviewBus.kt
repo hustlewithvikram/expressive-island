@@ -23,6 +23,7 @@ enum class IslandPreviewCategory {
     MUSIC_TILE,
     PHONE_TILE,
     TIMER_TILE,
+    DOWNLOAD_TILE,
     EVENT_DETAIL,
     EVENT_ICONS,
     INTEGRATION,

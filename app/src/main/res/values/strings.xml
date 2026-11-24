@@ -142,6 +142,8 @@
     <string name="tile_phone_desc">Show the current call, caller and controls</string>
     <string name="tile_timer">Timer</string>
     <string name="tile_timer_desc">Show a running countdown timer on the Island</string>
+    <string name="tile_download">Download</string>
+    <string name="tile_download_desc">Keep active download progress on the Island</string>
     <string name="tile_assistant">Assistant</string>
     <string name="tile_assistant_desc">Show supported assistant voice activity, prompts and responses on the Island</string>
     <string name="assistant_display_answer_title">Show assistant response text</string>

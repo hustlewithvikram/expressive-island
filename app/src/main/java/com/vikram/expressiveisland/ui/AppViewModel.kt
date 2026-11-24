@@ -24,6 +24,7 @@ import com.vikram.expressiveisland.data.AssistantTileSettings
 import com.vikram.expressiveisland.data.BehaviourPreferences
 import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.PillWidgetType
+import com.vikram.expressiveisland.data.NetworkSpeedFormat
 import com.vikram.expressiveisland.data.NotificationIconMode
 import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CenterShortcut
@@ -33,6 +34,10 @@ import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.CutoutFill
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.DynamicTilePreferences
+import com.vikram.expressiveisland.data.DownloadTilePreferences
+import com.vikram.expressiveisland.data.DownloadTileSettings
+import com.vikram.expressiveisland.data.DownloadPillProgressStyle
+import com.vikram.expressiveisland.data.DownloadProgressStyle
 import com.vikram.expressiveisland.data.EmptyClickAction
 import com.vikram.expressiveisland.data.EventPreferences
 import com.vikram.expressiveisland.data.IconPreferences
@@ -88,6 +93,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val musicTilePreferences = MusicTilePreferences(application)
     private val phoneTilePreferences = PhoneTilePreferences(application)
     private val timerTilePreferences = TimerTilePreferences(application)
+    private val downloadTilePreferences = DownloadTilePreferences(application)
     private val assistantTilePreferences = AssistantTilePreferences(application)
     private val appPreferences = AppPreferences(application)
     private val recentColorPreferences = RecentColorPreferences(application)
@@ -202,6 +208,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = TimerTileSettings(),
+        )
+
+    val downloadTile: StateFlow<DownloadTileSettings> =
+        downloadTilePreferences.settings.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = DownloadTileSettings(),
         )
 
     val assistantTile: StateFlow<AssistantTileSettings> =
@@ -447,6 +460,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         timerTilePreferences.setAddButtonColor(color)
     }
 
+    fun setDownloadIcon(icon: IconSource?) = viewModelScope.launch { downloadTilePreferences.setIcon(icon) }
+    fun setDownloadShowText(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowText(enabled) }
+    fun setDownloadShowPercentage(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowPercentage(enabled) }
+    fun setDownloadShowProgress(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowProgress(enabled) }
+    fun setDownloadImmersiveProgress(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setImmersiveProgress(enabled) }
+    fun setDownloadProgressStyle(style: DownloadProgressStyle) = viewModelScope.launch { downloadTilePreferences.setProgressStyle(style) }
+    fun setDownloadIconContainerColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setIconContainerColor(color) }
+    fun setDownloadProgressColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setProgressColor(color) }
+    fun setDownloadTrackColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setTrackColor(color) }
+    fun setDownloadShowPauseResume(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowPauseResume(enabled) }
+    fun setDownloadShowCancel(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowCancel(enabled) }
+    fun setDownloadPillProgressStyle(style: DownloadPillProgressStyle) = viewModelScope.launch {
+        downloadTilePreferences.setPillProgressStyle(style)
+    }
+
     fun setAssistantActivationMode(mode: AssistantActivationMode) = viewModelScope.launch {
         assistantTilePreferences.setActivationMode(mode)
     }
@@ -683,6 +711,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setShowsWhenEmpty(enabled: Boolean) = viewModelScope.launch {
         behaviourPreferences.setShowsWhenEmpty(enabled)
+    }
+
+    fun setNetworkSpeedFormat(format: NetworkSpeedFormat) = viewModelScope.launch {
+        behaviourPreferences.setNetworkSpeedFormat(format)
     }
 
     fun setPersistentPillWidget(left: Boolean, type: PillWidgetType) = viewModelScope.launch {
@@ -983,6 +1015,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setMusicVisualizerStyle(style: MusicVisualizerStyle) = viewModelScope.launch {
         musicTilePreferences.setVisualizerStyle(style)
+    }
+
+    fun setMusicVisualizerColor(color: CutoutColor?) = viewModelScope.launch {
+        musicTilePreferences.setVisualizerColor(color)
     }
 
     fun setMusicShowPlayPauseIcon(enabled: Boolean) = viewModelScope.launch { musicTilePreferences.setShowPlayPauseIcon(enabled) }

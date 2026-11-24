@@ -41,6 +41,7 @@ data class AppearanceSettings(
     val strokeWidthDp: Int = DEFAULT_STROKE_WIDTH_DP,
     val strokeOpacity: Float = DEFAULT_STROKE_OPACITY,
     val strokeColor: CutoutColor = DEFAULT_STROKE_COLOR,
+    /** Optional island-wide primary text colour; null restores automatic background contrast. */
     val textColor: CutoutColor? = DEFAULT_TEXT_COLOR,
     val showSourceAppName: Boolean = DEFAULT_SHOW_SOURCE_APP_NAME,
     val showTimestamp: Boolean = DEFAULT_SHOW_TIMESTAMP,

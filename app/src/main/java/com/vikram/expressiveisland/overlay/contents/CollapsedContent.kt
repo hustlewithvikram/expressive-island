@@ -4,6 +4,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,6 +43,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.core.NowPlayingBus
 import com.vikram.expressiveisland.core.OnCallBus
+import com.vikram.expressiveisland.data.DownloadPillProgressStyle
 import com.vikram.expressiveisland.data.MusicTilePreferences
 import com.vikram.expressiveisland.data.MusicTileSettings
 import com.vikram.expressiveisland.data.SatelliteRingPreferences
@@ -72,7 +75,7 @@ fun CollapsedContent(
     val callPhoto = event.call?.takeIf { it.showPhoto }?.let { onCall?.photo }
     val badgeSize = (heightDp * 0.72f).dp
     val showIconProgressRing = satelliteSharing && !ringSettings.enabled &&
-        (event.media != null || event.progressData != null)
+        (event.media != null || event.progressData != null) && event.download?.showProgress != false
 
     Box(modifier = Modifier.fillMaxSize()) {
         val placement = Modifier
@@ -108,6 +111,12 @@ fun CollapsedContent(
             }
         } else {
             when {
+                event.media?.previewPlaying == true && musicSettings.showAlbumArt -> PreviewAlbumArt(
+                    modifier = placement.size(badgeSize),
+                    rotate = event.media?.rotateAlbumArt == true,
+                    playing = true,
+                    strokeColor = albumArtStrokeFor(event),
+                )
                 albumArt != null -> AlbumArt(
                     bitmap = albumArt,
                     size = badgeSize,
@@ -136,6 +145,7 @@ fun CollapsedContent(
             MusicVisualizer(
                 isPlaying = true,
                 style = musicSettings.visualizerStyle,
+                color = musicSettings.visualizerColor?.resolve(),
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .padding(
@@ -161,17 +171,28 @@ fun CollapsedContent(
             }
         }
 
-        event.progressData?.takeIf { !isStickToCamera && !hideSatelliteIndicators }?.let { progress ->
+        event.progressData?.takeIf {
+            !isStickToCamera &&
+                !hideSatelliteIndicators &&
+                event.download?.showProgress != false &&
+                event.download?.pillProgressStyle != DownloadPillProgressStyle.PERCENTAGE
+        }?.let { progress ->
             val indicatorModifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(end = (heightDp * 0.24f).dp + trailingInsetDp.dp)
                 .size((heightDp * 0.5f).dp)
             val strokeWidth = (heightDp * 0.06f).dp
+            val progressColor = event.download?.progressColor?.resolve()
+                ?: ringSettings.downloadProgressColor?.resolve()
+                ?: MaterialTheme.colorScheme.primary
+            val trackColor = event.download?.trackColor?.resolve()
+                ?: ringSettings.downloadTrackColor?.resolve()
+                ?: MaterialTheme.colorScheme.primaryContainer
             if (progress.isIndeterminate) {
                 CircularProgressIndicator(
                     modifier = indicatorModifier,
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.primaryContainer,
+                    color = progressColor,
+                    trackColor = trackColor,
                     strokeWidth = strokeWidth,
                 )
             } else {
@@ -184,11 +205,32 @@ fun CollapsedContent(
                 CircularProgressIndicator(
                     progress = { animatedFraction },
                     modifier = indicatorModifier,
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.primaryContainer,
+                    color = progressColor,
+                    trackColor = trackColor,
                     strokeWidth = strokeWidth,
                 )
             }
+        }
+
+        if (
+            event.download?.pillProgressStyle == DownloadPillProgressStyle.PERCENTAGE &&
+            event.download.showProgress &&
+            event.progressData != null &&
+            !event.progressData.isIndeterminate &&
+            event.progressData.max > 0 &&
+            !isStickToCamera
+        ) {
+            val percent = (event.progressData.current.toFloat() / event.progressData.max * 100f)
+                .toInt().coerceIn(0, 100)
+            Text(
+                text = "$percent%",
+                color = LocalContentColor.current,
+                fontSize = (heightDp * 0.27f).sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                modifier = Modifier.align(Alignment.CenterEnd)
+                    .padding(end = (heightDp * 0.24f).dp + trailingInsetDp.dp),
+            )
         }
     }
 }
@@ -245,10 +287,16 @@ private fun CollapsedIconProgressRing(
         animationSpec = infiniteRepeatable(animation = tween(1400, easing = LinearEasing), repeatMode = RepeatMode.Restart),
         label = "iconActivityRingRotation",
     )
-    val trackColor = (ringSettings.trackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer)
-        .copy(alpha = ringSettings.opacity * 0.72f)
-    val progressColor = (ringSettings.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary)
-        .copy(alpha = ringSettings.opacity)
+    val trackColor = event.download?.trackColor?.resolve()?.copy(alpha = ringSettings.opacity * 0.72f)
+        ?: (
+            if (hasNotificationProgress) ringSettings.downloadTrackColor else ringSettings.trackColor
+        )?.resolve()?.copy(alpha = ringSettings.opacity * 0.72f)
+        ?: MaterialTheme.colorScheme.primaryContainer.copy(alpha = ringSettings.opacity * 0.72f)
+    val progressColor = event.download?.progressColor?.resolve()?.copy(alpha = ringSettings.opacity)
+        ?: (
+            if (hasNotificationProgress) ringSettings.downloadProgressColor else ringSettings.progressColor
+        )?.resolve()?.copy(alpha = ringSettings.opacity)
+        ?: MaterialTheme.colorScheme.primary.copy(alpha = ringSettings.opacity)
     val stroke = ringSettings.thicknessDp.coerceIn(1f, 6f).dp
     val diameter = (diameterDp * ringSettings.diameterScale).dp
     Canvas(modifier = modifier.size(diameter).rotate(if (shouldRotate) rotation else 0f)) {

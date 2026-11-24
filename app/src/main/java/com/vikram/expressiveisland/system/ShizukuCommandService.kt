@@ -7,8 +7,8 @@ import androidx.annotation.Keep
 import java.util.concurrent.TimeUnit
 
 /**
- * Shizuku UserService running with shell privileges. Only exposes fixed radio-toggle operations;
- * callers cannot submit arbitrary shell commands. This avoids the deprecated private newProcess API.
+ * Shizuku UserService running with shell privileges. Exposes only fixed, validated operations;
+ * callers cannot submit arbitrary shell commands. This avoids the deprecated newProcess API.
  */
 @Keep
 class ShizukuCommandService : Binder() {
@@ -23,6 +23,19 @@ class ShizukuCommandService : Binder() {
             return true
         }
 
+        if (code == TRANSACTION_GRANT_REQUIRED_PERMISSIONS) {
+            data.enforceInterface(DESCRIPTOR)
+            val packageName = data.readString().orEmpty()
+            val notificationListener = data.readString().orEmpty()
+            val accessibilityService = data.readString().orEmpty()
+            val result = runCatching {
+                grantRequiredPermissions(packageName, notificationListener, accessibilityService)
+            }.getOrDefault(false)
+            reply?.writeNoException()
+            reply?.writeInt(if (result) 1 else 0)
+            return true
+        }
+
         if (code == TRANSACTION_DESTROY) {
             Thread { System.exit(0) }.start()
             return true
@@ -30,6 +43,69 @@ class ShizukuCommandService : Binder() {
 
         return super.onTransact(code, data, reply, flags)
     }
+
+    /**
+     * Grants only the two user-approved core services. The existing accessibility service list is
+     * preserved so enabling Expressive Island never disables another accessibility tool.
+     */
+    private fun grantRequiredPermissions(
+        packageName: String,
+        notificationListener: String,
+        accessibilityService: String,
+    ): Boolean {
+        if (packageName.isBlank() || notificationListener.isBlank() || accessibilityService.isBlank()) {
+            return false
+        }
+
+        val notificationGranted = runCommand(
+            "cmd", "notification", "allow_listener", notificationListener,
+        )
+
+        val currentServices = runCommandOutput(
+            "settings", "get", "secure", "enabled_accessibility_services",
+        ) ?: return false
+        val enabledServices = currentServices
+            .takeUnless { it.isBlank() || it == "null" }
+            .orEmpty()
+            .split(':')
+            .filter { it.isNotBlank() }
+            .toMutableList()
+        if (enabledServices.none { it.equals(accessibilityService, ignoreCase = true) }) {
+            enabledServices += accessibilityService
+        }
+
+        val accessibilityListUpdated = runCommand(
+            "settings", "put", "secure", "enabled_accessibility_services",
+            enabledServices.joinToString(":"),
+        )
+        val accessibilityEnabled = runCommand(
+            "settings", "put", "secure", "accessibility_enabled", "1",
+        )
+
+        // Battery exemption is deliberately best-effort and is not required for success.
+        runCommand("dumpsys", "deviceidle", "whitelist", "+$packageName")
+
+        return notificationGranted && accessibilityListUpdated && accessibilityEnabled
+    }
+
+    private fun runCommand(vararg command: String): Boolean = runCatching {
+        val process = Runtime.getRuntime().exec(command)
+        if (!process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            process.destroy()
+            return false
+        }
+        process.exitValue() == 0
+    }.getOrDefault(false)
+
+    private fun runCommandOutput(vararg command: String): String? = runCatching {
+        val process = Runtime.getRuntime().exec(command)
+        if (!process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            process.destroy()
+            return null
+        }
+        if (process.exitValue() != 0) return null
+        process.inputStream.bufferedReader().use { it.readText().trim() }
+    }.getOrNull()
 
     private fun toggleRadio(radioId: Int): String {
         val (service, setting) = when (radioId) {
@@ -65,6 +141,7 @@ class ShizukuCommandService : Binder() {
     companion object {
         const val DESCRIPTOR = "com.vikram.expressiveisland.system.IShizukuCommandService"
         const val TRANSACTION_TOGGLE_RADIO = IBinder.FIRST_CALL_TRANSACTION
+        const val TRANSACTION_GRANT_REQUIRED_PERMISSIONS = IBinder.FIRST_CALL_TRANSACTION + 1
         const val TRANSACTION_DESTROY = 16777115
 
         const val RADIO_WIFI = 0

@@ -14,6 +14,17 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.getSystemService
 import com.vikram.expressiveisland.service.CutoutAccessibilityService
 import com.vikram.expressiveisland.system.ShizukuState
+import android.content.ServiceConnection
+import android.os.IBinder
+import android.os.Parcel
+import com.vikram.expressiveisland.system.ShizukuCommandService
+import com.vikram.expressiveisland.system.ShizukuStatus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import rikka.shizuku.Shizuku
+import kotlin.coroutines.resume
 
 /**
  * Thin, side-effect-free helpers for querying and requesting the three grants the app
@@ -79,6 +90,88 @@ object Permissions {
     fun isBatteryOptimizationIgnored(context: Context): Boolean {
         val powerManager = context.getSystemService<PowerManager>() ?: return false
         return powerManager.isIgnoringBatteryOptimizations(context.packageName)
+    }
+
+
+    /**
+     * Uses an explicitly authorized Shizuku shell UserService to enable the core notification
+     * listener and accessibility service. No permission is granted unless the user has already
+     * authorized this app in Shizuku.
+     */
+    suspend fun grantRequiredWithShizuku(context: Context): Boolean {
+        if (ShizukuState.status.value != ShizukuStatus.READY) return false
+
+        val args = Shizuku.UserServiceArgs(
+            ComponentName(context, ShizukuCommandService::class.java),
+        ).daemon(false)
+            .tag("expressive-island-permission-grant")
+            .version(1)
+
+        lateinit var connection: ServiceConnection
+        val binder = runCatching {
+            withTimeoutOrNull(15_000L) {
+                suspendCancellableCoroutine<IBinder> { continuation ->
+                connection = object : ServiceConnection {
+                    override fun onServiceConnected(name: ComponentName, service: IBinder) {
+                        if (continuation.isActive) continuation.resume(service)
+                    }
+
+                    override fun onServiceDisconnected(name: ComponentName) {
+                        if (continuation.isActive) {
+                            continuation.resumeWith(
+                                Result.failure(IllegalStateException("Shizuku service disconnected")),
+                            )
+                        }
+                    }
+                }
+                continuation.invokeOnCancellation {
+                    runCatching { Shizuku.unbindUserService(args, connection, true) }
+                }
+                runCatching {
+                    Shizuku.bindUserService(args, connection)
+                }.onFailure { continuation.resumeWith(Result.failure(it)) }
+                }
+            }
+        }.getOrNull() ?: return false
+
+        return try {
+            withContext(Dispatchers.IO) {
+                val data = Parcel.obtain()
+                val reply = Parcel.obtain()
+                try {
+                    data.writeInterfaceToken(ShizukuCommandService.DESCRIPTOR)
+                    data.writeString(context.packageName)
+                    data.writeString(
+                        ComponentName(
+                            context,
+                            com.vikram.expressiveisland.service.CutoutNotificationListenerService::class.java,
+                        ).flattenToString(),
+                    )
+                    data.writeString(
+                        ComponentName(
+                            context,
+                            com.vikram.expressiveisland.service.CutoutAccessibilityService::class.java,
+                        ).flattenToString(),
+                    )
+                    binder.transact(
+                        ShizukuCommandService.TRANSACTION_GRANT_REQUIRED_PERMISSIONS,
+                        data,
+                        reply,
+                        0,
+                    )
+                    reply.readException()
+                    reply.readInt() == 1
+                } finally {
+                    data.recycle()
+                    reply.recycle()
+                }
+            }
+        } catch (_: Exception) {
+            false
+        } finally {
+            runCatching { Shizuku.unbindUserService(args, connection, true) }
+            ShizukuState.refresh()
+        }
     }
 
     fun openNotificationAccessSettings(context: Context) =

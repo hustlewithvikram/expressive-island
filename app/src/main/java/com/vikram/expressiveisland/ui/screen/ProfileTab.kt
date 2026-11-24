@@ -55,7 +55,16 @@ import androidx.compose.material.icons.rounded.NotificationsNone
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Upload
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.material.icons.rounded.Terminal
+import com.vikram.expressiveisland.system.ShizukuState
+import com.vikram.expressiveisland.system.ShizukuStatus
+import kotlinx.coroutines.launch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -793,7 +802,7 @@ private data class ProfilePermissionStatus(
 }
 
 @Composable
-private fun rememberPermissionStatus(): ProfilePermissionStatus {
+private fun rememberPermissionStatus(refreshKey: Int = 0): ProfilePermissionStatus {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -821,6 +830,10 @@ private fun rememberPermissionStatus(): ProfilePermissionStatus {
         mutableStateOf(
             read(),
         )
+    }
+
+    LaunchedEffect(refreshKey) {
+        status = read()
     }
 
     DisposableEffect(
@@ -995,15 +1008,17 @@ private fun PermissionGroupCard(
                     fontWeight = FontWeight.Medium,
                 )
 
-                Spacer(
-                    modifier = Modifier.height(2.dp),
-                )
+                if (description.isNotBlank()) {
+                    Spacer(
+                        modifier = Modifier.height(2.dp),
+                    )
 
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             Spacer(
@@ -2000,4 +2015,244 @@ private fun DevAvatar() {
                 RoundedCornerShape(28.dp),
             ),
     )
+}
+
+/**
+ * Blocks the app with the same grouped access controls shown on Profile > Access
+ * until the two permissions required for the island are enabled.
+ *
+ * Battery optimisation and Wi-Fi SSID access are shown as helpful optional access;
+ * neither prevents the user from entering the app.
+ */
+@Composable
+fun RequiredPermissionsDialog() {
+    val context = LocalContext.current
+    var permissionRefreshKey by remember { mutableIntStateOf(0) }
+    val status = rememberPermissionStatus(permissionRefreshKey)
+    val shizukuStatus by ShizukuState.status.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) ShizukuState.refresh()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val scope = rememberCoroutineScope()
+    var grantingWithShizuku by remember { mutableStateOf(false) }
+    var shizukuMessage by remember { mutableStateOf<String?>(null) }
+    val wifiPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { }
+
+    if (status.allEssentialGranted) return
+
+    val requestWifiPermissions = {
+        val permissions = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                add(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.NEARBY_WIFI_DEVICES)
+            }
+        }
+        if (permissions.isNotEmpty()) {
+            wifiPermissionLauncher.launch(permissions.toTypedArray())
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = { },
+        title = {
+            Text(
+                text = "Set up Expressive Island",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 440.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Allow the required system access below so the island can display notifications and appear over your screen. This guide stays open until both required permissions are enabled.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Spacer(Modifier.height(2.dp))
+
+                ShizukuGrantCard(
+                    status = shizukuStatus,
+                    granting = grantingWithShizuku,
+                    message = shizukuMessage,
+                    onAction = {
+                        when (shizukuStatus) {
+                            ShizukuStatus.READY -> {
+                                if (!grantingWithShizuku) {
+                                    scope.launch {
+                                        grantingWithShizuku = true
+                                        shizukuMessage = null
+                                        val granted = Permissions.grantRequiredWithShizuku(context)
+                                        permissionRefreshKey++
+                                        grantingWithShizuku = false
+                                        shizukuMessage = if (granted) {
+                                            "Permission status refreshed. Any remaining access can be enabled manually below."
+                                        } else {
+                                            "Could not grant every required permission. Check Shizuku authorization and try again."
+                                        }
+                                    }
+                                }
+                            }
+                            ShizukuStatus.PERMISSION_REQUIRED -> ShizukuState.requestPermission()
+                            ShizukuStatus.NOT_INSTALLED,
+                            ShizukuStatus.NOT_RUNNING -> Permissions.openShizuku(context)
+                        }
+                    },
+                )
+
+                PermissionGroupCard(
+                    position = GroupPosition.First,
+                    icon = Icons.Rounded.Notifications,
+                    title = stringResource(R.string.perm_notifications_title),
+                    description = "",
+                    granted = status.notifications,
+                    onClick = { Permissions.openNotificationAccessSettings(context) },
+                )
+
+                PermissionGroupCard(
+                    position = GroupPosition.Last,
+                    icon = Icons.Rounded.Shield,
+                    title = stringResource(R.string.perm_accessibility_title),
+                    description = "",
+                    granted = status.accessibility,
+                    onClick = { Permissions.openAccessibilitySettings(context) },
+                )
+
+                Text(
+                    text = "Optional access",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp, top = 6.dp),
+                )
+
+                PermissionGroupCard(
+                    position = GroupPosition.First,
+                    icon = Icons.Rounded.BatterySaver,
+                    title = stringResource(R.string.perm_battery_title),
+                    description = "",
+                    granted = status.batteryIgnored,
+                    onClick = { Permissions.requestIgnoreBatteryOptimization(context) },
+                )
+
+                PermissionGroupCard(
+                    position = GroupPosition.Last,
+                    icon = Icons.Rounded.Wifi,
+                    title = "Wi-Fi network name",
+                    description = "",
+                    granted = status.wifiSsidAccess,
+                    onClick = requestWifiPermissions,
+                )
+            }
+        },
+        confirmButton = { },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    )
+}
+
+ 
+@Composable
+private fun ShizukuGrantCard(
+    status: ShizukuStatus,
+    granting: Boolean,
+    message: String?,
+    onAction: () -> Unit,
+) {
+    val title = when (status) {
+        ShizukuStatus.NOT_INSTALLED -> "Use Shizuku"
+        ShizukuStatus.NOT_RUNNING -> "Start Shizuku"
+        ShizukuStatus.PERMISSION_REQUIRED -> "Allow Shizuku access"
+        ShizukuStatus.READY -> "Grant permissions with Shizuku"
+    }
+    val description = when (status) {
+        ShizukuStatus.NOT_INSTALLED ->
+            "Optional: use Shizuku to enable the required access with one action."
+        ShizukuStatus.NOT_RUNNING ->
+            "Start Shizuku using wireless debugging or root, then return here."
+        ShizukuStatus.PERMISSION_REQUIRED ->
+            "Allow Expressive Island in Shizuku before using automatic permission setup."
+        ShizukuStatus.READY ->
+            "Shizuku is connected. It can enable notification and accessibility access for this app."
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Rounded.Terminal,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(24.dp),
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
+            if (message != null) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+            Button(
+                onClick = onAction,
+                enabled = !granting,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (granting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(
+                    when {
+                        granting -> "Granting…"
+                        status == ShizukuStatus.READY -> "Grant required permissions"
+                        status == ShizukuStatus.PERMISSION_REQUIRED -> "Authorize in Shizuku"
+                        status == ShizukuStatus.NOT_RUNNING -> "Open Shizuku"
+                        else -> "Get Shizuku"
+                    },
+                )
+            }
+        }
+    }
 }

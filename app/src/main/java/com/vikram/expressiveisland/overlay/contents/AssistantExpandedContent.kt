@@ -212,15 +212,15 @@ fun AssistantExpandedContent(
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Your conversations", style = MaterialTheme.typography.titleMedium, color = Color.White)
-                            Text("${assistant.sessions.size} saved chats", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.65f))
+                            Text("Your conversations", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                            Text("${assistant.sessions.size} saved chats", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         IconButton(onClick = { showChatHistory = false }) {
                             Icon(Icons.Rounded.Close, contentDescription = "Close chat history", tint = Color.White)
                         }
                     }
                     if (assistant.sessions.isEmpty()) {
-                        Text("Your previous chats will appear here.", color = Color.White.copy(alpha = 0.7f))
+                        Text("Your previous chats will appear here.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
                         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                             assistant.sessions.sortedByDescending { it.updatedAt }.forEach { session ->
@@ -234,8 +234,8 @@ fun AssistantExpandedContent(
                                     color = MaterialTheme.colorScheme.surface,
                                 ) {
                                     Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                                        Text(session.title.ifBlank { "New chat" }, color = Color.White, maxLines = 1)
-                                        Text(session.turns.lastOrNull()?.content?.takeIf { it.isNotBlank() } ?: "No messages yet", color = Color.White.copy(alpha = 0.68f), style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                        Text(session.title.ifBlank { "New chat" }, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+                                        Text(session.turns.lastOrNull()?.content?.takeIf { it.isNotBlank() } ?: "No messages yet", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                         Spacer(Modifier.height(5.dp))
                                         Text("${session.turns.size} messages", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
                                     }
@@ -259,7 +259,7 @@ fun AssistantExpandedContent(
                         text = "Type something...",
                         modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Start,
-                        color = Color.White.copy(alpha = 0.55f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -274,7 +274,7 @@ fun AssistantExpandedContent(
                                 color = Color(0xFF193B78),
                             ) {
                                 Text(it, Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                                    style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                         Spacer(Modifier.height(8.dp))
@@ -284,7 +284,7 @@ fun AssistantExpandedContent(
                             if (it == "Thinking…") {
                                 ThreeDotThinkingLoader()
                             } else {
-                                AssistantMarkdownText(it, modifier = Modifier.widthIn(max = maxHeaderWidthDp * 1.8f).padding(horizontal = 4.dp, vertical = 6.dp), color = Color.White)
+                                AssistantMarkdownText(it, modifier = Modifier.widthIn(max = maxHeaderWidthDp * 1.8f).padding(horizontal = 4.dp, vertical = 6.dp), color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                         Spacer(Modifier.height(8.dp))
@@ -317,7 +317,7 @@ fun AssistantExpandedContent(
                             value = query,
                             onValueChange = { query = it },
                             modifier = Modifier.weight(1f).heightIn(min = 56.dp, max = 132.dp).onFocusChanged { onInputFocusChange(it.isFocused) },
-                            placeholder = { Text("Type your message...", color = Color.White.copy(alpha = 0.58f)) },
+                            placeholder = { Text("Type your message...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             shape = RoundedCornerShape(28.dp),
                             singleLine = false,
                             minLines = 1,
@@ -325,8 +325,8 @@ fun AssistantExpandedContent(
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color(0xFF17233D),
                                 unfocusedContainerColor = Color(0xFF121D33),
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                                 cursorColor = MaterialTheme.colorScheme.primary,
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,

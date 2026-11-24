@@ -27,6 +27,7 @@ Notification content is handled on-device. Internet access is used by the in-app
 * [Features](#features)
 * [Screenshots](#screenshots)
 * [Download](#download)
+* [Support the project](#support-the-project)
 * [Permissions](#permissions)
 * [Help with translations](#help-with-translations)
 * [Credits & Inspiration](#credits--inspiration)
@@ -163,6 +164,24 @@ Expressive Island intentionally keeps its permissions to a minimum.
 # Credits & Inspiration
 
 Thanks to **[EvanKoe](https://github.com/EvanKoe)** for creating [Expressive Cutout](https://github.com/EvanKoe/expressive-cutout), the foundation of this project. Design inspiration also comes from [Dynamic Spot](https://play.google.com/store/apps/details?id=com.jamworks.dynamicspot), [Material Capsule](https://play.google.com/store/apps/details?id=com.pryshedko.mtisland), and [Sameerasw's Essentials](https://github.com/sameerasw/essentials), especially its Material You Expressive design.
+
+---
+
+# Support the project
+
+Expressive Island is developed and maintained independently. If you would like to help keep the project alive and support its continued development, you can make an optional contribution using UPI.
+
+**UPI ID:** `vs423502@ybl`
+
+Scan the QR code below with any UPI app to contribute:
+
+<div align="center">
+
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=upi%3A%2F%2Fpay%3Fpa%3Dvs423502%40ybl" alt="UPI payment QR code for Expressive Island donations" width="280" />
+
+</div>
+
+Every contribution helps keep Expressive Island going. Thank you for supporting the project.
 
 ---
 

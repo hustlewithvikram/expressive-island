@@ -65,6 +65,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vikram.expressiveisland.R
@@ -74,6 +76,8 @@ import com.vikram.expressiveisland.data.ActionButtonStyle
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.ReplyInputStyle
 import com.vikram.expressiveisland.data.SentAlignment
+import com.vikram.expressiveisland.data.SatelliteRingPreferences
+import com.vikram.expressiveisland.data.SatelliteRingSettings
 import com.vikram.expressiveisland.overlay.island.IslandAction
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.resolve
@@ -104,6 +108,12 @@ fun NotificationExpandedContent(
     val notificationHeader = rememberNotificationHeader(
         event = event,
         appearance = appearance,
+    )
+
+    val context = LocalContext.current
+    val progressPreferences = remember(context) { SatelliteRingPreferences(context) }
+    val progressSettings by progressPreferences.settings.collectAsStateWithLifecycle(
+        initialValue = SatelliteRingSettings(),
     )
 
     Box(
@@ -140,7 +150,7 @@ fun NotificationExpandedContent(
                     notificationHeader?.let { header ->
                         Text(
                             text = header,
-                            color = LocalContentColor.current.copy(alpha = 0.62f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -165,7 +175,7 @@ fun NotificationExpandedContent(
                                 modifier = Modifier.weight(1f).then(
                                     if (notificationTextExpanded) Modifier else Modifier.heightIn(max = 36.dp)
                                 ),
-                                color = LocalContentColor.current.copy(alpha = 0.70f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp,
                                 maxLines = if (notificationTextExpanded) Int.MAX_VALUE else 2,
                                 overflow = if (notificationTextExpanded) TextOverflow.Clip else TextOverflow.Ellipsis,
@@ -217,8 +227,8 @@ fun NotificationExpandedContent(
                             if (p.isIndeterminate) {
                                 LinearProgressIndicator(
                                     modifier = barModifier,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    trackColor = MaterialTheme.colorScheme.primaryContainer,
+                                    color = progressSettings.downloadProgressColor?.resolve() ?: MaterialTheme.colorScheme.primary,
+                                    trackColor = progressSettings.downloadTrackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer,
                                     strokeCap =
                                         ProgressIndicatorDefaults.LinearStrokeCap,
                                 )

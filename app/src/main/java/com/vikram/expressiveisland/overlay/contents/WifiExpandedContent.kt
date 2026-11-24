@@ -58,8 +58,8 @@ fun WifiConnectedExpandedContent(
     notchBottomInsetDp: Int,
 ) {
     val colors = MaterialTheme.colorScheme
-    val foreground = Color.White
-    val secondaryForeground = Color.White.copy(alpha = 0.76f)
+    val foreground = MaterialTheme.colorScheme.onSurface
+    val secondaryForeground = MaterialTheme.colorScheme.onSurfaceVariant
     val networkName = wifi.ssid
         ?.takeUnless { it.isBlank() || it.equals("<unknown ssid>", true) || it == "0x" }
         ?: if (BuildConfig.DEBUG) "NekoNet_5G" else "Unknown Wifi"
@@ -179,7 +179,7 @@ fun WifiConnectedExpandedContent(
 private fun MetadataText(value: String, compact: Boolean) {
     Text(
         text = value,
-        color = Color.White.copy(alpha = 0.82f),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontSize = if (compact) 9.sp else 10.sp,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,

@@ -12,7 +12,9 @@
       "Improved assistant chat navigation with a dedicated chat-history entry point and a contextual actions menu",
       "Improved assistant chat presentation with a fixed header and input area, scrollable conversation content, and clearer message styling",
       "Added or refined live previews for settings that affect island appearance and assistant controls",
-      "Added grouped event and settings controls for a more consistent settings experience"
+      "Added grouped event and settings controls for a more consistent settings experience",
+      "Added immersive download progress that fills the expanded island from left to right",
+      "Added Wavy, Dotted, and Expressive download progress bar styles"
     ],
     "bugfixes": [
       "Fixed duplicate information in the Wi-Fi expanded island",
@@ -22,7 +24,8 @@
       "Fixed system-event content backgrounds and nested containers causing inconsistent expanded-island presentation",
       "Fixed permission information and status presentation so microphone access is represented in both the Permissions tab and permission details",
       "Removed the obsolete Headphones system event and Audio Output implementation",
-      "Removed outdated headphone and audio-output references from the documented system-event feature list"
+      "Removed outdated headphone and audio-output references from the documented system-event feature list",
+      "Fixed duplicate download percentage text and progress bars extending beneath the icon"
     ],
     "improvements": [
       "Redesigned expanded system-event cards with clearer information hierarchy, more expressive layouts, and consistent visual treatment",
@@ -35,7 +38,9 @@
       "Updated README documentation with current system-event coverage, runtime permissions, microphone usage, accessibility-service behaviour, updater permissions, and privacy disclosures",
       "Clarified that notification content is processed on-device, while Assistant messages and relevant conversation context are sent to the AI provider configured by the user when the Assistant is used",
       "Clarified local API-key protection, voice-input behaviour, and the conditions under which accessibility text inspection is used",
-      "Updated app version metadata to version 0.1.7 with version code 6"
+      "Updated app version metadata to version 0.1.7 with version code 6",
+      "Improved download expanded layout with progress aligned beneath file details and a single optional percentage",
+      "Restored the circular progress ring in the compact download pill"
     ]
   },
   {

@@ -19,6 +19,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -52,6 +53,7 @@ import androidx.compose.material3.toShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -67,6 +69,8 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
@@ -551,7 +555,7 @@ fun TileTitle(
         subtitle?.let { supportingText ->
             Text(
                 text = supportingText,
-                color = LocalContentColor.current.copy(alpha = 0.70f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -617,7 +621,7 @@ fun CallStatus(onCall: OnCall?) {
     }
     Text(
         text = text,
-        color = LocalContentColor.current.copy(alpha = 0.70f),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontSize = 12.sp,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -861,7 +865,7 @@ fun CenterShortcutButton(
         if (showLabel) {
             Text(
                 text = centerShortcutLabel(shortcut),
-                color = LocalContentColor.current.copy(alpha = 0.85f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -910,7 +914,18 @@ fun IslandSurface(
         progress,
     )
 
-    val contentColor = if (repColor.luminance() > 0.5f) PillTextColorDark else PillTextColor
+    // A custom text colour is the island-wide foreground. Supporting text is a tonal
+    // variation mixed toward the background's contrasting neutral, so it keeps the chosen hue
+    // while remaining visually subordinate and readable.
+    val contentColor = appearance.textColor?.resolve(appColor, adaptiveColor)
+        ?: if (repColor.luminance() > 0.5f) PillTextColorDark else PillTextColor
+    // Blend toward the neutral that contrasts with the current fill; this keeps supporting
+    // labels in the selected colour family without using translucent text that can wash out.
+    val secondaryTextColor = lerp(
+        contentColor,
+        if (repColor.luminance() > 0.5f) Color.Black else Color.White,
+        0.38f,
+    )
     // Resolve the configurable shadow colour in composition; graphicsLayer is not composable.
     val shadowColor = appearance.shadowColor.resolve(appColor, adaptiveColor)
     val border = if (appearance.strokeEnabled) {
@@ -938,21 +953,32 @@ fun IslandSurface(
         tonalElevation = 0.dp,
         border = border,
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(normalBrush)
-            )
-            if (progress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = progress }
-                        .background(expandedBrush),
-                )
+        MaterialTheme(
+            colorScheme = MaterialTheme.colorScheme.copy(
+                onSurface = contentColor,
+                onSurfaceVariant = secondaryTextColor,
+            ),
+            typography = MaterialTheme.typography,
+            shapes = MaterialTheme.shapes,
+        ) {
+            CompositionLocalProvider(LocalContentColor provides contentColor) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(normalBrush)
+                    )
+                    if (progress > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer { alpha = progress }
+                                .background(expandedBrush),
+                        )
+                    }
+                    content()
+                }
             }
-            content()
         }
     }
 }
@@ -966,16 +992,87 @@ private fun ExpressiveLoadingMark(modifier: Modifier = Modifier, color: Color) {
     )
 }
 
+/**
+ * Offline artwork used by settings previews when there is no active media session.
+ * It mirrors the real album-art rotation and optional outer ring without requiring network access.
+ */
+@Composable
+fun PreviewAlbumArt(
+    modifier: Modifier = Modifier,
+    rotate: Boolean = false,
+    playing: Boolean = true,
+    strokeColor: Color? = null,
+) {
+    val transition = rememberInfiniteTransition(label = "previewAlbumArt")
+    val rotation by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = ALBUM_SPIN_MS, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "previewAlbumArtRotation",
+    )
+    val shape = albumArtShape(rotate, 48.dp)
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(Color(0xFF17172E))
+            .graphicsLayer { rotationZ = if (rotate && playing) rotation else 0f },
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            drawRect(Color(0xFF25234A))
+            drawCircle(
+                color = Color(0xFFB85C91),
+                radius = minOf(w, h) * 0.34f,
+                center = Offset(w * 0.67f, h * 0.36f),
+            )
+            drawCircle(
+                color = Color(0xFFEFAD86),
+                radius = minOf(w, h) * 0.19f,
+                center = Offset(w * 0.34f, h * 0.62f),
+            )
+            val mountain = androidx.compose.ui.graphics.Path().apply {
+                moveTo(0f, h * 0.78f)
+                lineTo(w * 0.35f, h * 0.43f)
+                lineTo(w * 0.55f, h * 0.68f)
+                lineTo(w * 0.75f, h * 0.48f)
+                lineTo(w, h * 0.82f)
+                lineTo(w, h)
+                lineTo(0f, h)
+                close()
+            }
+            drawPath(mountain, Color(0xFF554B78))
+        }
+        if (strokeColor != null) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .border(2.dp, strokeColor, shape),
+            )
+        }
+    }
+}
+
+/** Full-bleed version of the same local artwork for the expanded tile's background preview. */
+@Composable
+fun PreviewAlbumArtworkBackground(modifier: Modifier = Modifier) {
+    PreviewAlbumArt(modifier = modifier)
+}
+
 /* Compact music visualizers used on the trailing edge of the collapsed island. */
 @Composable
 fun MusicVisualizer(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
     style: MusicVisualizerStyle = MusicVisualizerStyle.BARS,
+    color: Color? = null,
 ) {
     val transition = rememberInfiniteTransition(label = "musicVisualizer")
     val bars = listOf(0.35f to 1350, 0.55f to 1140, 0.25f to 1575, 0.45f to 1260, 0.30f to 1470, 0.40f to 1050)
-    val color = MaterialTheme.colorScheme.primary
+    val visualizerColor = color ?: MaterialTheme.colorScheme.primary
     if (style == MusicVisualizerStyle.EXPRESSIVE_LOADING) {
         val rotation by transition.animateFloat(
             initialValue = 0f,
@@ -988,7 +1085,7 @@ fun MusicVisualizer(
         )
         ExpressiveLoadingMark(
             modifier = modifier.size(18.dp).graphicsLayer { rotationZ = if (isPlaying) rotation else 0f },
-            color = color,
+            color = visualizerColor,
         )
         return
     }
@@ -1010,23 +1107,23 @@ fun MusicVisualizer(
             val fraction = if (isPlaying) animated else 0.2f
             when (style) {
                 MusicVisualizerStyle.BARS -> Box(
-                    Modifier.width(2.5.dp).fillMaxHeight(fraction).clip(RoundedCornerShape(3.dp)).background(color)
+                    Modifier.width(2.5.dp).fillMaxHeight(fraction).clip(RoundedCornerShape(3.dp)).background(visualizerColor)
                 )
                 MusicVisualizerStyle.MIRRORED -> Box(
                     Modifier.width(2.5.dp).fillMaxHeight(fraction).clip(RoundedCornerShape(3.dp))
-                        .background(color).graphicsLayer { scaleY = -1f }
+                        .background(visualizerColor).graphicsLayer { scaleY = -1f }
                 )
                 MusicVisualizerStyle.DOTS -> Box(
                     Modifier.size(if (isPlaying) (3.dp + (animated * 4).dp) else 3.dp)
-                        .clip(CircleShape).background(color)
+                        .clip(CircleShape).background(visualizerColor)
                 )
                 MusicVisualizerStyle.WAVE -> Box(
                     Modifier.width(2.dp).fillMaxHeight(if (isPlaying) (0.25f + 0.7f * kotlin.math.abs(kotlin.math.sin(index * 0.9f + animated * 2f))) else 0.2f)
-                        .clip(RoundedCornerShape(2.dp)).background(color)
+                        .clip(RoundedCornerShape(2.dp)).background(visualizerColor)
                 )
                 MusicVisualizerStyle.PULSE -> Box(
                     Modifier.size(if (isPlaying) (4.dp + (animated * 5).dp) else 4.dp)
-                        .clip(CircleShape).background(color.copy(alpha = if (isPlaying) 0.55f + animated * 0.45f else 0.5f))
+                        .clip(CircleShape).background(visualizerColor.copy(alpha = if (isPlaying) 0.55f + animated * 0.45f else 0.5f))
                 )
                 MusicVisualizerStyle.EXPRESSIVE_LOADING -> Unit
             }
