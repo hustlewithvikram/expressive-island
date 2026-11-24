@@ -147,7 +147,7 @@ fun ChargingExpandedContent(
                     Spacer(Modifier.size(if (compact) 7.dp else 9.dp))
                     Text(
                         text = "Charging...",
-                        color = Color.White.copy(alpha = 0.78f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = if (compact) 10.sp else 12.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
@@ -163,7 +163,7 @@ fun ChargingExpandedContent(
                 ) {
                     Text(
                         text = "$percent%",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = percentSize,
                         lineHeight = percentSize,
                         fontWeight = FontWeight.Light,
@@ -171,7 +171,7 @@ fun ChargingExpandedContent(
                     )
                     Text(
                         text = eta,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = etaSize,
                         lineHeight = etaSize,
                         fontWeight = FontWeight.Light,
@@ -300,7 +300,7 @@ fun BatteryStatusExpandedContent(
                     Spacer(Modifier.size(if (compact) 7.dp else 9.dp))
                     Text(
                         text = status,
-                        color = Color.White.copy(alpha = 0.88f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = if (compact) 11.sp else 13.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
@@ -313,7 +313,7 @@ fun BatteryStatusExpandedContent(
                 ) {
                     Text(
                         text = "$percent%",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = percentSize,
                         lineHeight = percentSize,
                         fontWeight = FontWeight.Light,
@@ -338,7 +338,7 @@ fun BatteryStatusExpandedContent(
                     } else {
                         Text(
                             text = "On battery",
-                            color = Color.White.copy(alpha = 0.72f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = if (compact) 10.sp else 12.sp,
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
