@@ -165,6 +165,8 @@ data class DownloadTileOptions(
     val progressStyle: DownloadProgressStyle = DownloadProgressStyle.LINEAR,
     val progressColor: CutoutColor? = null,
     val trackColor: CutoutColor? = null,
+    val showPauseResume: Boolean = true,
+    val showCancel: Boolean = true,
 )
 
 /** Which parts of the assistant tile to render (display text, max height). */
