@@ -166,6 +166,7 @@ sealed interface CutoutSignal {
         val key: String,
         val progressData: ProgressData? = null,
         val contentIntent: PendingIntent? = null,
+        val actions: List<Notification.Action> = emptyList(),
         val active: Boolean = true,
     ) : CutoutSignal
 
