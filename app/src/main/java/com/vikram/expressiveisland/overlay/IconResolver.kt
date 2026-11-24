@@ -14,6 +14,7 @@ import com.vikram.expressiveisland.core.CutoutSignal
 import com.vikram.expressiveisland.core.DynamicTile
 import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.data.AssistantTileSettings
+import com.vikram.expressiveisland.data.DownloadTileSettings
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.IconSource
@@ -24,6 +25,7 @@ import com.vikram.expressiveisland.data.PhoneTileSettings
 import com.vikram.expressiveisland.data.TimerTileSettings
 import com.vikram.expressiveisland.overlay.island.AssistantTileOptions
 import com.vikram.expressiveisland.overlay.island.CallTileOptions
+import com.vikram.expressiveisland.overlay.island.DownloadTileOptions
 import com.vikram.expressiveisland.overlay.island.IslandAction
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.island.IslandIcon
@@ -103,6 +105,7 @@ class IconResolver(private val context: Context) {
         preferDynamicIconColor: Boolean = false,
         notificationIconMode: NotificationIconMode = NotificationIconMode.AUTOMATIC,
         notificationIconShape: NotificationIconShape = NotificationIconShape.CIRCLE,
+        downloadSettings: DownloadTileSettings = DownloadTileSettings(),
     ): IslandEvent = when (signal) {
         is CutoutSignal.Notification -> resolveNotification(
             signal,
@@ -128,6 +131,7 @@ class IconResolver(private val context: Context) {
         is CutoutSignal.Music -> resolveMusic(signal, musicSettings)
         is CutoutSignal.Call -> resolveCall(signal, phoneSettings)
         is CutoutSignal.Timer -> resolveTimer(signal, timerSettings)
+        is CutoutSignal.Download -> resolveDownload(signal, downloadSettings)
         is CutoutSignal.Assistant -> resolveAssistant(signal, assistantSettings)
     }
 
@@ -307,6 +311,33 @@ class IconResolver(private val context: Context) {
                 resetColor = settings.resetColor,
                 addButtonColor = settings.addButtonColor,
             ),
+        )
+    }
+
+    private fun resolveDownload(
+        signal: CutoutSignal.Download,
+        settings: DownloadTileSettings,
+    ): IslandEvent {
+        val title = signal.title?.takeIf { it.isNotBlank() }
+        return IslandEvent(
+            id = idGenerator.incrementAndGet(),
+            icon = settings.icon?.toIslandIconOrNull()
+                ?: IslandIcon.Vector(DynamicTile.DOWNLOAD.defaultIcon),
+            label = title ?: context.getString(DynamicTile.DOWNLOAD.labelRes),
+            detail = signal.text?.takeIf { settings.showText && it.isNotBlank() },
+            accent = Color(DynamicTile.DOWNLOAD.accent),
+            iconContainerColor = settings.iconContainerColor,
+            contentIntent = signal.contentIntent,
+            progressData = signal.progressData,
+            download = DownloadTileOptions(
+                showText = settings.showText,
+                showPercentage = settings.showPercentage,
+                showProgress = settings.showProgress,
+                progressStyle = settings.progressStyle,
+                progressColor = settings.progressColor,
+                trackColor = settings.trackColor,
+            ),
+            packageName = signal.packageName,
         )
     }
 
