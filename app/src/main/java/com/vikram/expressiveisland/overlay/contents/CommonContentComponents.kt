@@ -554,7 +554,7 @@ fun TileTitle(
         subtitle?.let { supportingText ->
             Text(
                 text = supportingText,
-                color = LocalContentColor.current.copy(alpha = 0.70f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -620,7 +620,7 @@ fun CallStatus(onCall: OnCall?) {
     }
     Text(
         text = text,
-        color = LocalContentColor.current.copy(alpha = 0.70f),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontSize = 12.sp,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -864,7 +864,7 @@ fun CenterShortcutButton(
         if (showLabel) {
             Text(
                 text = centerShortcutLabel(shortcut),
-                color = LocalContentColor.current.copy(alpha = 0.85f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
