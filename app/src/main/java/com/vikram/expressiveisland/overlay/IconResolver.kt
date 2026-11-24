@@ -314,6 +314,24 @@ class IconResolver(private val context: Context) {
         )
     }
 
+    private fun downloadActions(
+        actions: List<CutoutSignal.Notification.Action>,
+        settings: DownloadTileSettings,
+    ): List<IslandAction> {
+        val pauseResume = if (settings.showPauseResume) actions.firstOrNull { action ->
+            val label = action.title.lowercase()
+            label.contains("pause") || label.contains("resume") || label.contains("continue")
+        } else null
+        val cancel = if (settings.showCancel) actions.firstOrNull { action ->
+            val label = action.title.lowercase()
+            label.contains("cancel") || label.contains("abort") || label == "stop" || label.startsWith("stop ")
+        } else null
+        return listOfNotNull(
+            pauseResume?.let { IslandAction(label = it.title, intent = it.intent) },
+            cancel?.let { IslandAction(label = it.title, intent = it.intent, destructive = true) },
+        )
+    }
+
     private fun resolveDownload(
         signal: CutoutSignal.Download,
         settings: DownloadTileSettings,
@@ -337,7 +355,10 @@ class IconResolver(private val context: Context) {
                 progressStyle = settings.progressStyle,
                 progressColor = settings.progressColor,
                 trackColor = settings.trackColor,
+                showPauseResume = settings.showPauseResume,
+                showCancel = settings.showCancel,
             ),
+            actions = downloadActions(signal.actions, settings),
             packageName = signal.packageName,
         )
     }
