@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -169,7 +170,8 @@ fun CollapsedContent(
         }
 
         event.progressData?.takeIf {
-            !isStickToCamera && !hideSatelliteIndicators && event.download?.showProgress != false
+            !isStickToCamera && !hideSatelliteIndicators && event.download?.showProgress != false &&
+                event.download?.showPercentage != true
         }?.let { progress ->
             val indicatorModifier = Modifier
                 .align(Alignment.CenterEnd)
@@ -203,6 +205,45 @@ fun CollapsedContent(
                     trackColor = trackColor,
                     strokeWidth = strokeWidth,
                 )
+            }
+        }
+
+        if (
+            event.download?.showProgress == true &&
+            event.download?.showPercentage == true &&
+            event.progressData != null &&
+            !isStickToCamera &&
+            !hideSatelliteIndicators
+        ) {
+            val data = event.progressData
+            val fraction = if (data.isIndeterminate || data.max <= 0) null
+                else (data.current.toFloat() / data.max).coerceIn(0f, 1f)
+            val progressColor = event.download.progressColor?.resolve()
+                ?: ringSettings.downloadProgressColor?.resolve()
+                ?: MaterialTheme.colorScheme.primary
+            val trackColor = event.download.trackColor?.resolve()
+                ?: ringSettings.downloadTrackColor?.resolve()
+                ?: MaterialTheme.colorScheme.primaryContainer
+            Box(
+                modifier = Modifier.align(Alignment.BottomCenter)
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 2.dp),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                if (fraction == null) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxSize().padding(bottom = 0.dp).size(height = 2.dp, width = androidx.compose.ui.unit.Dp.Unspecified),
+                        color = progressColor,
+                        trackColor = trackColor,
+                    )
+                } else {
+                    LinearProgressIndicator(
+                        progress = { fraction },
+                        modifier = Modifier.fillMaxSize().padding(bottom = 0.dp).size(height = 2.dp, width = androidx.compose.ui.unit.Dp.Unspecified),
+                        color = progressColor,
+                        trackColor = trackColor,
+                    )
+                }
             }
         }
 
