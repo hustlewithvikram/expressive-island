@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.core.DynamicTile
 import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.data.DownloadProgressStyle
+import com.vikram.expressiveisland.data.DownloadPillProgressStyle
 import com.vikram.expressiveisland.data.IconSource
 import com.vikram.expressiveisland.overlay.MaterialIconCatalog
 import com.vikram.expressiveisland.ui.AppViewModel
@@ -151,11 +152,24 @@ internal fun DownloadTileScreen(
             SettingsToggleCard(
                 shape = RoundedCornerShape(24.dp),
                 title = "Show progress",
-                description = "Display progress while a download is active",
+                description = "Display the selected progress indicator in the pill and expanded tile",
                 checked = settings.showProgress,
                 onCheckedChange = viewModel::setDownloadShowProgress,
             )
             if (settings.showProgress) {
+                Text(
+                    text = "Pill progress indicator",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp, top = 6.dp),
+                )
+                ExpressiveSegmentedRow(
+                    options = DownloadPillProgressStyle.entries.map { it.label },
+                    selectedIndex = DownloadPillProgressStyle.entries.indexOf(settings.pillProgressStyle),
+                    onSelect = { viewModel.setDownloadPillProgressStyle(DownloadPillProgressStyle.entries[it]) },
+                    modifier = Modifier.fillMaxWidth(),
+                    allowFullLabels = true,
+                )
                 SettingsToggleCard(
                     shape = RoundedCornerShape(24.dp),
                     title = "Immersive progress",
