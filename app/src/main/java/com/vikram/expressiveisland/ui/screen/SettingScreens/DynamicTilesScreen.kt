@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.core.DynamicTile
 import com.vikram.expressiveisland.data.CutoutColor
+import com.vikram.expressiveisland.data.IconSource
+import com.vikram.expressiveisland.overlay.MaterialIconCatalog
 import com.vikram.expressiveisland.overlay.onDynamicRole
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
@@ -97,8 +99,14 @@ internal fun DynamicTilesScreen(
                     DynamicTile.DOWNLOAD -> download.iconContainerColor
                 }
 
+                val tileIcon = if (tile == DynamicTile.DOWNLOAD) {
+                    (download.icon as? IconSource.Material)?.let { MaterialIconCatalog.iconFor(it.iconName) }
+                        ?: tile.defaultIcon
+                } else tile.defaultIcon
+
                 DynamicTileCard(
                     tile = tile,
+                    icon = tileIcon,
                     shape = groupShape(index = index, lastIndex = lastIndex),
                     enabled = tileEnabled[tile] != false,
                     containerColor = containerColor,
@@ -121,6 +129,7 @@ private fun groupShape(index: Int, lastIndex: Int): Shape = RoundedCornerShape(
 @Composable
 private fun DynamicTileCard(
     tile: DynamicTile,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     shape: Shape,
     enabled: Boolean,
     containerColor: CutoutColor?,
@@ -165,7 +174,7 @@ private fun DynamicTileCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = tile.defaultIcon,
+                    imageVector = icon,
                     contentDescription = null,
                     tint = glyphColor,
                     modifier = Modifier.size(22.dp),
