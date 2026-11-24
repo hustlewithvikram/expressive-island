@@ -36,6 +36,7 @@ import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.DynamicTilePreferences
 import com.vikram.expressiveisland.data.DownloadTilePreferences
 import com.vikram.expressiveisland.data.DownloadTileSettings
+import com.vikram.expressiveisland.data.DownloadPillProgressStyle
 import com.vikram.expressiveisland.data.DownloadProgressStyle
 import com.vikram.expressiveisland.data.EmptyClickAction
 import com.vikram.expressiveisland.data.EventPreferences
@@ -470,6 +471,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setDownloadTrackColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setTrackColor(color) }
     fun setDownloadShowPauseResume(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowPauseResume(enabled) }
     fun setDownloadShowCancel(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowCancel(enabled) }
+    fun setDownloadPillProgressStyle(style: DownloadPillProgressStyle) = viewModelScope.launch {
+        downloadTilePreferences.setPillProgressStyle(style)
+    }
 
     fun setAssistantActivationMode(mode: AssistantActivationMode) = viewModelScope.launch {
         assistantTilePreferences.setActivationMode(mode)
