@@ -75,7 +75,7 @@ fun CollapsedContent(
     val callPhoto = event.call?.takeIf { it.showPhoto }?.let { onCall?.photo }
     val badgeSize = (heightDp * 0.72f).dp
     val showIconProgressRing = satelliteSharing && !ringSettings.enabled &&
-        (event.media != null || event.progressData != null)
+        (event.media != null || event.progressData != null) && event.download?.showProgress != false
 
     Box(modifier = Modifier.fillMaxSize()) {
         val placement = Modifier
