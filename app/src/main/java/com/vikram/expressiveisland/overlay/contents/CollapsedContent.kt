@@ -173,7 +173,8 @@ fun CollapsedContent(
 
         event.progressData?.takeIf {
             !isStickToCamera && !hideSatelliteIndicators && event.download?.showProgress != false &&
-                event.download?.showPercentage != true
+                (event.download?.showPercentage != true ||
+                    event.download?.progressStyle == com.vikram.expressiveisland.data.DownloadProgressStyle.CIRCULAR)
         }?.let { progress ->
             val indicatorModifier = Modifier
                 .align(Alignment.CenterEnd)
@@ -213,6 +214,7 @@ fun CollapsedContent(
         if (
             event.download?.showProgress == true &&
             event.download?.showPercentage == true &&
+            event.download?.progressStyle != com.vikram.expressiveisland.data.DownloadProgressStyle.CIRCULAR &&
             event.progressData != null &&
             !isStickToCamera &&
             !hideSatelliteIndicators
@@ -228,11 +230,17 @@ fun CollapsedContent(
                 ?: MaterialTheme.colorScheme.primaryContainer
             Box(
                 modifier = Modifier.align(Alignment.BottomCenter)
-                    .padding(horizontal = 20.dp, vertical = 2.dp)
+                    .padding(horizontal = 18.dp, vertical = 2.dp)
                     .fillMaxWidth()
-                    .height(2.dp),
+                    .height(3.dp),
             ) {
-                if (fraction == null) {
+                if (event.download.progressStyle == com.vikram.expressiveisland.data.DownloadProgressStyle.SEGMENTED && fraction != null) {
+                    SegmentedDownloadProgress(
+                        fraction = fraction,
+                        color = progressColor,
+                        trackColor = trackColor,
+                    )
+                } else if (fraction == null) {
                     LinearProgressIndicator(
                         modifier = Modifier.fillMaxSize(),
                         color = progressColor,
