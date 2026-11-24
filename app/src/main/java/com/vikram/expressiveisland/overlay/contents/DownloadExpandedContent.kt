@@ -35,12 +35,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vikram.expressiveisland.data.DownloadProgressStyle
+import com.vikram.expressiveisland.data.AppearanceSettings
+import com.vikram.expressiveisland.overlay.island.IslandAction
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.resolve
 import kotlin.math.sin
 
 @Composable
-fun DownloadExpandedContent(event: IslandEvent, collapsedHeightDp: Int) {
+fun DownloadExpandedContent(
+    event: IslandEvent,
+    collapsedHeightDp: Int,
+    appearance: AppearanceSettings,
+    onAction: (IslandAction) -> Unit,
+) {
     val options = event.download ?: return
     val progress = event.progressData
     val fraction = progress?.takeIf { !it.isIndeterminate && it.max > 0 }
@@ -70,6 +77,12 @@ fun DownloadExpandedContent(event: IslandEvent, collapsedHeightDp: Int) {
             .then(
                 if (options.immersiveProgress && options.showProgress) {
                     Modifier.drawBehind {
+                        drawRoundRect(
+                            color = trackColor.copy(alpha = 0.18f),
+                            topLeft = Offset.Zero,
+                            size = size,
+                            cornerRadius = CornerRadius(30.dp.toPx()),
+                        )
                         drawRoundRect(
                             color = progressColor.copy(alpha = 0.22f),
                             topLeft = Offset.Zero,
@@ -150,6 +163,16 @@ fun DownloadExpandedContent(event: IslandEvent, collapsedHeightDp: Int) {
                         )
                     }
                 }
+            }
+            if (event.actions.isNotEmpty()) {
+                ActionChipRow(
+                    actions = event.actions.take(2),
+                    style = appearance.actionButtonStyle,
+                    fill = appearance.actionButtonColor?.resolve() ?: progressColor,
+                    heightDp = appearance.actionButtonHeightDp,
+                    alignment = appearance.actionButtonAlignment,
+                    onChip = onAction,
+                )
             }
         }
     }
