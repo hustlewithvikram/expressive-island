@@ -33,6 +33,8 @@ data class DownloadTileSettings(
     val iconContainerColor: CutoutColor? = null,
     val progressColor: CutoutColor? = null,
     val trackColor: CutoutColor? = null,
+    val showPauseResume: Boolean = true,
+    val showCancel: Boolean = true,
 )
 
 class DownloadTilePreferences(private val context: Context) : JsonSerializable {
@@ -49,6 +51,8 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             iconContainerColor = CutoutColor.deserialize(prefs[ICON_CONTAINER_COLOR]),
             progressColor = CutoutColor.deserialize(prefs[PROGRESS_COLOR]),
             trackColor = CutoutColor.deserialize(prefs[TRACK_COLOR]),
+            showPauseResume = prefs[SHOW_PAUSE_RESUME] ?: true,
+            showCancel = prefs[SHOW_CANCEL] ?: true,
         )
     }
 
@@ -64,6 +68,8 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             put("iconContainerColor", s.iconContainerColor?.serialize() ?: JSONObject.NULL)
             put("progressColor", s.progressColor?.serialize() ?: JSONObject.NULL)
             put("trackColor", s.trackColor?.serialize() ?: JSONObject.NULL)
+            put("showPauseResume", s.showPauseResume)
+            put("showCancel", s.showCancel)
         }.toString()
     }
 
@@ -91,6 +97,8 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             applyColor("iconContainerColor", ICON_CONTAINER_COLOR)
             applyColor("progressColor", PROGRESS_COLOR)
             applyColor("trackColor", TRACK_COLOR)
+            if (obj.has("showPauseResume")) prefs[SHOW_PAUSE_RESUME] = obj.getBoolean("showPauseResume")
+            if (obj.has("showCancel")) prefs[SHOW_CANCEL] = obj.getBoolean("showCancel")
         }
     }
 
@@ -111,6 +119,8 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
     suspend fun setTrackColor(color: CutoutColor?) = context.downloadTileDataStore.edit {
         if (color == null) it.remove(TRACK_COLOR) else it[TRACK_COLOR] = color.serialize()
     }
+    suspend fun setShowPauseResume(enabled: Boolean) = context.downloadTileDataStore.edit { it[SHOW_PAUSE_RESUME] = enabled }
+    suspend fun setShowCancel(enabled: Boolean) = context.downloadTileDataStore.edit { it[SHOW_CANCEL] = enabled }
 
     private companion object {
         val ICON = stringPreferencesKey("icon")
@@ -122,5 +132,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
         val ICON_CONTAINER_COLOR = stringPreferencesKey("icon_container_color")
         val PROGRESS_COLOR = stringPreferencesKey("progress_color")
         val TRACK_COLOR = stringPreferencesKey("track_color")
+        val SHOW_PAUSE_RESUME = booleanPreferencesKey("show_pause_resume")
+        val SHOW_CANCEL = booleanPreferencesKey("show_cancel")
     }
 }
