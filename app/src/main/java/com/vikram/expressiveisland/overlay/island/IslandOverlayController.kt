@@ -2074,6 +2074,15 @@ class IslandOverlayController(private val context: Context) {
         """.trimIndent()
                 )
             }
+            // Clear ended downloads even if their source app has since been muted or the tile disabled.
+            if (signal is CutoutSignal.Download && !signal.active) {
+                downloadActive = false
+                lastDownloadEvent = null
+                pruneSatellite()
+                if (currentEvent.value?.download != null) dismissIsland()
+                return@collect
+            }
+
             // Skip system events the user disabled for the pill.
             if (signal is CutoutSignal.System && eventEnabled[signal.type] == false) return@collect
             // Skip now-playing media when the music tile is turned off.
@@ -2093,14 +2102,6 @@ class IslandOverlayController(private val context: Context) {
                 behaviourState.value.ignoreSilentNotifications &&
                 signal.isSilent
             ) {
-                return@collect
-            }
-
-            if (signal is CutoutSignal.Download && !signal.active) {
-                downloadActive = false
-                lastDownloadEvent = null
-                pruneSatellite()
-                if (currentEvent.value?.download != null) dismissIsland()
                 return@collect
             }
 
