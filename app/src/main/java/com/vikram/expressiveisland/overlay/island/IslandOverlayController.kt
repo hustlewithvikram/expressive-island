@@ -527,6 +527,7 @@ class IslandOverlayController(private val context: Context) {
         observeMusicSettings()
         observePhoneSettings()
         observeTimerSettings()
+        observeDownloadSettings()
         observeAssistantSettings()
         observeNowPlaying()
         observeForegroundApp()
@@ -2956,14 +2957,14 @@ class IslandOverlayController(private val context: Context) {
      * hidden event wasn't a live pill itself, that tile is still live, and the tile is enabled.
      */
     private fun livePillToReturnTo(): IslandEvent? =
-        callPillToReturnTo() ?: musicPillToReturnTo() ?: timerPillToReturnTo()
+        callPillToReturnTo() ?: musicPillToReturnTo() ?: timerPillToReturnTo() ?: downloadPillToReturnTo()
 
     /** True while the shown event is itself a live tile (so we never "return" on top of one). */
     private fun showingLiveTile(): Boolean =
         isLiveTileEvent(currentEvent.value) || isLiveTileEvent(satelliteEvent.value)
 
     private fun isLiveTileEvent(event: IslandEvent?): Boolean = event?.let {
-        it.media != null || it.call != null || it.timer != null || it.assistant?.interactivePanel == true
+        it.media != null || it.call != null || it.timer != null || it.download != null || it.assistant?.interactivePanel == true
     } == true
 
     /**
