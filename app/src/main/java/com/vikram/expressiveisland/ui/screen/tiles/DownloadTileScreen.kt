@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen.tiles
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -7,31 +8,30 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.VerticalDivider
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.core.DynamicTile
@@ -70,23 +70,16 @@ internal fun DownloadTileScreen(
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         IslandPreviewSpacer()
 
-        Text(
-            text = "Download tile",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 4.dp),
-        )
-
-        Card(
-            modifier = Modifier.fillMaxWidth().clickable { showIconPicker = true },
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        DownloadSettingsGroup(
+            title = "Download icon",
+            description = "Choose the icon used for active downloads",
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                modifier = Modifier.fillMaxWidth().clickable { showIconPicker = true },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -94,12 +87,12 @@ internal fun DownloadTileScreen(
                     imageVector = selectedIcon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(30.dp),
                 )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Download icon", style = MaterialTheme.typography.titleMedium)
+                    Text("Choose icon", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Choose the icon shown while a download is active",
+                        "Select a Material icon for the download tile",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -122,94 +115,126 @@ internal fun DownloadTileScreen(
                     )
                 }
             }
+            ColorPickerCard(
+                label = "Icon background",
+                selected = settings.iconContainerColor,
+                onSelect = viewModel::setDownloadIconContainerColor,
+                defaultLabel = "Download accent",
+                defaultColor = Color(DynamicTile.DOWNLOAD.accent),
+            )
         }
 
-        SettingsToggleCard(
-            shape = RoundedCornerShape(28.dp),
-            title = "Show text",
-            description = "Show the file name and supporting download information",
-            checked = settings.showText,
-            onCheckedChange = viewModel::setDownloadShowText,
-        )
-        SettingsToggleCard(
-            shape = RoundedCornerShape(28.dp),
-            title = "Show percentage",
-            description = "Display the current completion percentage",
-            checked = settings.showPercentage,
-            onCheckedChange = viewModel::setDownloadShowPercentage,
-        )
-        SettingsToggleCard(
-            shape = RoundedCornerShape(28.dp),
-            title = "Show progress",
-            description = "Display a progress indicator for the active download",
-            checked = settings.showProgress,
-            onCheckedChange = viewModel::setDownloadShowProgress,
-        )
-
-        if (settings.showProgress) {
+        DownloadSettingsGroup(
+            title = "Content",
+            description = "Choose which download details appear in the expanded island",
+        ) {
             SettingsToggleCard(
-                shape = RoundedCornerShape(28.dp),
-                title = "Immersive progress",
-                description = "Fill the expanded island from left to right as the download advances",
-                checked = settings.immersiveProgress,
-                onCheckedChange = viewModel::setDownloadImmersiveProgress,
+                shape = RoundedCornerShape(24.dp),
+                title = "Show text",
+                description = "Show the file name and supporting download information",
+                checked = settings.showText,
+                onCheckedChange = viewModel::setDownloadShowText,
             )
+            SettingsToggleCard(
+                shape = RoundedCornerShape(24.dp),
+                title = "Show percentage",
+                description = "Display the current completion percentage",
+                checked = settings.showPercentage,
+                onCheckedChange = viewModel::setDownloadShowPercentage,
+            )
+        }
 
-            Text(
-                text = "Progress style",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
+        DownloadSettingsGroup(
+            title = "Progress indicator",
+            description = "Choose how download progress is displayed",
+        ) {
+            SettingsToggleCard(
+                shape = RoundedCornerShape(24.dp),
+                title = "Show progress",
+                description = "Display progress while a download is active",
+                checked = settings.showProgress,
+                onCheckedChange = viewModel::setDownloadShowProgress,
             )
-            ExpressiveSegmentedRow(
-                options = visibleProgressStyles.map { it.label },
-                selectedIndex = visibleProgressStyles.indexOf(settings.progressStyle)
-                    .takeIf { it >= 0 } ?: visibleProgressStyles.indexOf(DownloadProgressStyle.LINEAR),
-                onSelect = { viewModel.setDownloadProgressStyle(visibleProgressStyles[it]) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            )
+            if (settings.showProgress) {
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = "Immersive progress",
+                    description = "Use the entire expanded island as a progress surface. The classic bar is hidden while this is enabled.",
+                    checked = settings.immersiveProgress,
+                    onCheckedChange = viewModel::setDownloadImmersiveProgress,
+                )
+                if (!settings.immersiveProgress) {
+                    Text(
+                        text = "Progress style",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 4.dp, top = 6.dp),
+                    )
+                    ExpressiveSegmentedRow(
+                        options = visibleProgressStyles.map { it.label },
+                        selectedIndex = visibleProgressStyles.indexOf(settings.progressStyle)
+                            .takeIf { it >= 0 } ?: visibleProgressStyles.indexOf(DownloadProgressStyle.LINEAR),
+                        onSelect = { viewModel.setDownloadProgressStyle(visibleProgressStyles[it]) },
+                        modifier = Modifier.fillMaxWidth(),
+                        scrollable = true,
+                        allowFullLabels = true,
+                    )
+                }
+                Text(
+                    text = if (settings.immersiveProgress) "Immersive progress colours" else "Progress colours",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp, top = 6.dp),
+                )
+                ColorPickerCard(
+                    label = "Progress",
+                    selected = settings.progressColor,
+                    onSelect = viewModel::setDownloadProgressColor,
+                    defaultLabel = "Theme primary",
+                    defaultColor = MaterialTheme.colorScheme.primary,
+                )
+                if (!settings.immersiveProgress) {
+                    ColorPickerCard(
+                        label = "Track",
+                        selected = settings.trackColor,
+                        onSelect = viewModel::setDownloadTrackColor,
+                        defaultLabel = "Theme surface",
+                        defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    )
+                }
+            }
+        }
 
+        DownloadSettingsGroup(
+            title = "Download actions",
+            description = "Show notification-provided controls when the source app supports them",
+        ) {
+            SettingsToggleCard(
+                shape = RoundedCornerShape(24.dp),
+                title = "Pause / resume",
+                description = "Show the available Pause or Resume action",
+                checked = settings.showPauseResume,
+                onCheckedChange = viewModel::setDownloadShowPauseResume,
+            )
+            SettingsToggleCard(
+                shape = RoundedCornerShape(24.dp),
+                title = "Cancel download",
+                description = "Show the notification's Cancel action when available",
+                checked = settings.showCancel,
+                onCheckedChange = viewModel::setDownloadShowCancel,
+            )
             Text(
-                text = "Progress colours",
-                style = MaterialTheme.typography.labelLarge,
+                text = "These buttons use the download app's own notification actions. They appear only when that app exposes a matching action; Expressive Island cannot create pause or cancel controls for apps that do not provide them.",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
-            )
-            ColorPickerCard(
-                label = "Progress",
-                selected = settings.progressColor,
-                onSelect = viewModel::setDownloadProgressColor,
-                defaultLabel = "Theme primary",
-                defaultColor = MaterialTheme.colorScheme.primary,
-            )
-            ColorPickerCard(
-                label = "Track",
-                selected = settings.trackColor,
-                onSelect = viewModel::setDownloadTrackColor,
-                defaultLabel = "Theme surface",
-                defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             )
         }
 
         Text(
-            text = "Icon container",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
-        )
-        ColorPickerCard(
-            label = "Icon background",
-            selected = settings.iconContainerColor,
-            onSelect = viewModel::setDownloadIconContainerColor,
-            defaultLabel = "Download accent",
-            defaultColor = Color(DynamicTile.DOWNLOAD.accent),
-        )
-
-        Text(
-            text = "Downloads are detected from active notifications that publish real progress. The tile stays visible while the transfer is active and clears when its notification is removed.",
+            text = "Downloads are detected from active notifications that publish real progress. The tile remains visible while a transfer is active and clears when its notification is removed.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         )
     }
 
@@ -221,5 +246,35 @@ internal fun DownloadTileScreen(
             },
             onDismiss = { showIconPicker = false },
         )
+    }
+}
+
+@Composable
+private fun DownloadSettingsGroup(
+    title: String,
+    description: String,
+    content: @Composable () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            content()
+        }
     }
 }
