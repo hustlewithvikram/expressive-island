@@ -913,7 +913,16 @@ fun IslandSurface(
         progress,
     )
 
-    val contentColor = if (repColor.luminance() > 0.5f) PillTextColorDark else PillTextColor
+    // A custom text colour is the island-wide foreground. Supporting text is a tonal
+    // variation mixed toward the background's contrasting neutral, so it keeps the chosen hue
+    // while remaining visually subordinate and readable.
+    val contentColor = appearance.textColor?.resolve(appColor, adaptiveColor)
+        ?: if (repColor.luminance() > 0.5f) PillTextColorDark else PillTextColor
+    val secondaryTextColor = lerp(
+        contentColor,
+        if (repColor.luminance() > 0.5f) Color.Black else Color.White,
+        0.38f,
+    )
     // Resolve the configurable shadow colour in composition; graphicsLayer is not composable.
     val shadowColor = appearance.shadowColor.resolve(appColor, adaptiveColor)
     val border = if (appearance.strokeEnabled) {
@@ -941,21 +950,32 @@ fun IslandSurface(
         tonalElevation = 0.dp,
         border = border,
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(normalBrush)
-            )
-            if (progress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = progress }
-                        .background(expandedBrush),
-                )
+        MaterialTheme(
+            colorScheme = MaterialTheme.colorScheme.copy(
+                onSurface = contentColor,
+                onSurfaceVariant = secondaryTextColor,
+            ),
+            typography = MaterialTheme.typography,
+            shapes = MaterialTheme.shapes,
+        ) {
+            CompositionLocalProvider(LocalContentColor provides contentColor) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(normalBrush)
+                    )
+                    if (progress > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer { alpha = progress }
+                                .background(expandedBrush),
+                        )
+                    }
+                    content()
+                }
             }
-            content()
         }
     }
 }
