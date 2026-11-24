@@ -323,13 +323,15 @@ private fun CollapsedIconProgressRing(
         animationSpec = infiniteRepeatable(animation = tween(1400, easing = LinearEasing), repeatMode = RepeatMode.Restart),
         label = "iconActivityRingRotation",
     )
-    val trackColor = (
-        if (hasNotificationProgress) ringSettings.downloadTrackColor else ringSettings.trackColor
-    )?.resolve()?.copy(alpha = ringSettings.opacity * 0.72f)
+    val trackColor = event.download?.trackColor?.resolve()?.copy(alpha = ringSettings.opacity * 0.72f)
+        ?: (
+            if (hasNotificationProgress) ringSettings.downloadTrackColor else ringSettings.trackColor
+        )?.resolve()?.copy(alpha = ringSettings.opacity * 0.72f)
         ?: MaterialTheme.colorScheme.primaryContainer.copy(alpha = ringSettings.opacity * 0.72f)
-    val progressColor = (
-        if (hasNotificationProgress) ringSettings.downloadProgressColor else ringSettings.progressColor
-    )?.resolve()?.copy(alpha = ringSettings.opacity)
+    val progressColor = event.download?.progressColor?.resolve()?.copy(alpha = ringSettings.opacity)
+        ?: (
+            if (hasNotificationProgress) ringSettings.downloadProgressColor else ringSettings.progressColor
+        )?.resolve()?.copy(alpha = ringSettings.opacity)
         ?: MaterialTheme.colorScheme.primary.copy(alpha = ringSettings.opacity)
     val stroke = ringSettings.thicknessDp.coerceIn(1f, 6f).dp
     val diameter = (diameterDp * ringSettings.diameterScale).dp
