@@ -152,6 +152,7 @@ internal object PreviewRenderer {
                 immersiveProgress = downloadSettings.immersiveProgress,
                 showPauseResume = downloadSettings.showPauseResume,
                 showCancel = downloadSettings.showCancel,
+                pillProgressStyle = downloadSettings.pillProgressStyle,
             ) else null,
             progressData = if (category == IslandPreviewCategory.DOWNLOAD_TILE) {
                 ProgressData(max = 100, current = 64, title = "Downloading update.zip")
