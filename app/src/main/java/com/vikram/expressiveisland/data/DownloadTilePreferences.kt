@@ -14,6 +14,11 @@ import org.json.JSONObject
 
 private val Context.downloadTileDataStore: DataStore<Preferences> by preferencesDataStore(name = "download_tile_prefs")
 
+enum class DownloadPillProgressStyle(val label: String) {
+    CIRCULAR("Circular progress"),
+    PERCENTAGE("Percentage"),
+}
+
 enum class DownloadProgressStyle(val label: String) {
     LINEAR("Linear"),
     CIRCULAR("Circular"),
@@ -35,6 +40,7 @@ data class DownloadTileSettings(
     val trackColor: CutoutColor? = null,
     val showPauseResume: Boolean = true,
     val showCancel: Boolean = true,
+    val pillProgressStyle: DownloadPillProgressStyle = DownloadPillProgressStyle.CIRCULAR,
 )
 
 class DownloadTilePreferences(private val context: Context) : JsonSerializable {
@@ -53,6 +59,9 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             trackColor = CutoutColor.deserialize(prefs[TRACK_COLOR]),
             showPauseResume = prefs[SHOW_PAUSE_RESUME] ?: true,
             showCancel = prefs[SHOW_CANCEL] ?: true,
+            pillProgressStyle = runCatching {
+                DownloadPillProgressStyle.valueOf(prefs[PILL_PROGRESS_STYLE] ?: DownloadPillProgressStyle.CIRCULAR.name)
+            }.getOrDefault(DownloadPillProgressStyle.CIRCULAR),
         )
     }
 
@@ -70,6 +79,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             put("trackColor", s.trackColor?.serialize() ?: JSONObject.NULL)
             put("showPauseResume", s.showPauseResume)
             put("showCancel", s.showCancel)
+            put("pillProgressStyle", s.pillProgressStyle.name)
         }.toString()
     }
 
@@ -99,6 +109,9 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             applyColor("trackColor", TRACK_COLOR)
             if (obj.has("showPauseResume")) prefs[SHOW_PAUSE_RESUME] = obj.getBoolean("showPauseResume")
             if (obj.has("showCancel")) prefs[SHOW_CANCEL] = obj.getBoolean("showCancel")
+            if (obj.has("pillProgressStyle")) prefs[PILL_PROGRESS_STYLE] = runCatching {
+                DownloadPillProgressStyle.valueOf(obj.getString("pillProgressStyle")).name
+            }.getOrDefault(DownloadPillProgressStyle.CIRCULAR.name)
         }
     }
 
@@ -121,6 +134,9 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
     }
     suspend fun setShowPauseResume(enabled: Boolean) = context.downloadTileDataStore.edit { it[SHOW_PAUSE_RESUME] = enabled }
     suspend fun setShowCancel(enabled: Boolean) = context.downloadTileDataStore.edit { it[SHOW_CANCEL] = enabled }
+    suspend fun setPillProgressStyle(style: DownloadPillProgressStyle) = context.downloadTileDataStore.edit {
+        it[PILL_PROGRESS_STYLE] = style.name
+    }
 
     private companion object {
         val ICON = stringPreferencesKey("icon")
@@ -134,5 +150,6 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
         val TRACK_COLOR = stringPreferencesKey("track_color")
         val SHOW_PAUSE_RESUME = booleanPreferencesKey("show_pause_resume")
         val SHOW_CANCEL = booleanPreferencesKey("show_cancel")
+        val PILL_PROGRESS_STYLE = stringPreferencesKey("pill_progress_style")
     }
 }
