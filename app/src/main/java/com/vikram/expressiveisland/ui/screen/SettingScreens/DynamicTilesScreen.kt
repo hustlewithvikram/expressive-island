@@ -56,7 +56,7 @@ internal fun DynamicTilesScreen(
     IslandLivePreviewEffect(
         category = IslandPreviewCategory.DYNAMIC_TILES,
         label = "Persistent tiles",
-        detail = "Preview ongoing music, timer and call activity",
+        detail = "Preview ongoing music, timer, downloads and calls",
         expanded = false,
     )
 
