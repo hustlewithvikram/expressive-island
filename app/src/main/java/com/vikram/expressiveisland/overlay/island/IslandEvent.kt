@@ -161,6 +161,7 @@ data class DownloadTileOptions(
     val showText: Boolean = true,
     val showPercentage: Boolean = true,
     val showProgress: Boolean = true,
+    val immersiveProgress: Boolean = false,
     val progressStyle: DownloadProgressStyle = DownloadProgressStyle.LINEAR,
     val progressColor: CutoutColor? = null,
     val trackColor: CutoutColor? = null,
