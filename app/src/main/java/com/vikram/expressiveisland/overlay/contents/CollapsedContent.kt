@@ -172,9 +172,7 @@ fun CollapsedContent(
         }
 
         event.progressData?.takeIf {
-            !isStickToCamera && !hideSatelliteIndicators && event.download?.showProgress != false &&
-                (event.download?.showPercentage != true ||
-                    event.download?.progressStyle == com.vikram.expressiveisland.data.DownloadProgressStyle.CIRCULAR)
+            !isStickToCamera && !hideSatelliteIndicators && event.download?.showProgress != false
         }?.let { progress ->
             val indicatorModifier = Modifier
                 .align(Alignment.CenterEnd)
@@ -208,46 +206,6 @@ fun CollapsedContent(
                     trackColor = trackColor,
                     strokeWidth = strokeWidth,
                 )
-            }
-        }
-
-        if (
-            event.download?.showProgress == true &&
-            event.download?.showPercentage == true &&
-            event.download?.progressStyle != com.vikram.expressiveisland.data.DownloadProgressStyle.CIRCULAR &&
-            event.progressData != null &&
-            !isStickToCamera &&
-            !hideSatelliteIndicators
-        ) {
-            val data = event.progressData
-            val fraction = if (data.isIndeterminate || data.max <= 0) null
-                else (data.current.toFloat() / data.max).coerceIn(0f, 1f)
-            val progressColor = event.download.progressColor?.resolve()
-                ?: ringSettings.downloadProgressColor?.resolve()
-                ?: MaterialTheme.colorScheme.primary
-            val trackColor = event.download.trackColor?.resolve()
-                ?: ringSettings.downloadTrackColor?.resolve()
-                ?: MaterialTheme.colorScheme.primaryContainer
-            Box(
-                modifier = Modifier.align(Alignment.BottomCenter)
-                    .padding(horizontal = 18.dp, vertical = 2.dp)
-                    .fillMaxWidth()
-                    .height(3.dp),
-            ) {
-                if (fraction == null) {
-                    LinearProgressIndicator(
-                        modifier = Modifier.fillMaxSize(),
-                        color = progressColor,
-                        trackColor = trackColor,
-                    )
-                } else {
-                    LinearProgressIndicator(
-                        progress = { fraction },
-                        modifier = Modifier.fillMaxSize(),
-                        color = progressColor,
-                        trackColor = trackColor,
-                    )
-                }
             }
         }
 
