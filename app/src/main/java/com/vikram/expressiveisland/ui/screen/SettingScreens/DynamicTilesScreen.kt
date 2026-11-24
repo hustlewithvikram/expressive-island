@@ -65,6 +65,7 @@ internal fun DynamicTilesScreen(
     val phone by viewModel.phoneTile.collectAsStateWithLifecycle()
     val timer by viewModel.timerTile.collectAsStateWithLifecycle()
     val assistant by viewModel.assistantTile.collectAsStateWithLifecycle()
+    val download by viewModel.downloadTile.collectAsStateWithLifecycle()
 
     val tiles = DynamicTile.entries
     val lastIndex = tiles.lastIndex
@@ -93,6 +94,7 @@ internal fun DynamicTilesScreen(
                     DynamicTile.TIMER -> timer.iconContainerColor
                     DynamicTile.ASSISTANT -> assistant.iconContainerColor
                     DynamicTile.MUSIC -> null
+                    DynamicTile.DOWNLOAD -> download.iconContainerColor
                 }
 
                 DynamicTileCard(
