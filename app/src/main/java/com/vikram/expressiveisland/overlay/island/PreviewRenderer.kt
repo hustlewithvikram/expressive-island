@@ -84,6 +84,14 @@ internal object PreviewRenderer {
                 IslandAction(label = "Reset", intent = previewIntent(4), destructive = true),
                 IslandAction(label = "Add 1 min", intent = previewIntent(5)),
             )
+            IslandPreviewCategory.DOWNLOAD_TILE -> buildList {
+                if (downloadSettings.showPauseResume) {
+                    add(IslandAction(label = "Pause", intent = previewIntent(6)))
+                }
+                if (downloadSettings.showCancel) {
+                    add(IslandAction(label = "Cancel", intent = previewIntent(7), destructive = true))
+                }
+            }
             else -> emptyList()
         }
 
@@ -141,6 +149,9 @@ internal object PreviewRenderer {
                 progressStyle = downloadSettings.progressStyle,
                 progressColor = downloadSettings.progressColor,
                 trackColor = downloadSettings.trackColor,
+                immersiveProgress = downloadSettings.immersiveProgress,
+                showPauseResume = downloadSettings.showPauseResume,
+                showCancel = downloadSettings.showCancel,
             ) else null,
             progressData = if (category == IslandPreviewCategory.DOWNLOAD_TILE) {
                 ProgressData(max = 100, current = 64, title = "Downloading update.zip")
