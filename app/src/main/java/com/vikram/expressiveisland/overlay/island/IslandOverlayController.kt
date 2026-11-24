@@ -408,6 +408,7 @@ class IslandOverlayController(private val context: Context) {
             musicSettings = musicSettings,
             phoneSettings = phoneSettings,
             timerSettings = timerSettings,
+            downloadSettings = downloadSettings,
         )
     }
 
