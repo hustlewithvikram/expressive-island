@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.ui.graphics.Color
 import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.core.IslandPreviewContent
+import com.vikram.expressiveisland.overlay.MaterialIconCatalog
 import com.vikram.expressiveisland.overlay.island.IslandReply
 import com.vikram.expressiveisland.overlay.island.DownloadTileOptions
 import com.vikram.expressiveisland.data.MusicTileSettings
