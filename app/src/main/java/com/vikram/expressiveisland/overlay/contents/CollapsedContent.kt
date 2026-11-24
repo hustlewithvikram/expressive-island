@@ -4,6 +4,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
@@ -226,20 +228,20 @@ fun CollapsedContent(
                 ?: MaterialTheme.colorScheme.primaryContainer
             Box(
                 modifier = Modifier.align(Alignment.BottomCenter)
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 2.dp),
-                contentAlignment = Alignment.BottomCenter,
+                    .padding(horizontal = 20.dp, vertical = 2.dp)
+                    .fillMaxWidth()
+                    .height(2.dp),
             ) {
                 if (fraction == null) {
                     LinearProgressIndicator(
-                        modifier = Modifier.fillMaxSize().padding(bottom = 0.dp).size(height = 2.dp, width = androidx.compose.ui.unit.Dp.Unspecified),
+                        modifier = Modifier.fillMaxSize(),
                         color = progressColor,
                         trackColor = trackColor,
                     )
                 } else {
                     LinearProgressIndicator(
                         progress = { fraction },
-                        modifier = Modifier.fillMaxSize().padding(bottom = 0.dp).size(height = 2.dp, width = androidx.compose.ui.unit.Dp.Unspecified),
+                        modifier = Modifier.fillMaxSize(),
                         color = progressColor,
                         trackColor = trackColor,
                     )
