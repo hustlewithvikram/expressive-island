@@ -18,6 +18,9 @@ enum class DownloadProgressStyle(val label: String) {
     LINEAR("Linear"),
     CIRCULAR("Circular"),
     SEGMENTED("Segmented"),
+    WAVY("Wavy"),
+    DOTTED("Dotted"),
+    EXPRESSIVE("Expressive"),
 }
 
 data class DownloadTileSettings(
@@ -25,6 +28,7 @@ data class DownloadTileSettings(
     val showText: Boolean = true,
     val showPercentage: Boolean = true,
     val showProgress: Boolean = true,
+    val immersiveProgress: Boolean = false,
     val progressStyle: DownloadProgressStyle = DownloadProgressStyle.LINEAR,
     val iconContainerColor: CutoutColor? = null,
     val progressColor: CutoutColor? = null,
@@ -38,6 +42,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             showText = prefs[SHOW_TEXT] ?: true,
             showPercentage = prefs[SHOW_PERCENTAGE] ?: true,
             showProgress = prefs[SHOW_PROGRESS] ?: true,
+            immersiveProgress = prefs[IMMERSIVE_PROGRESS] ?: false,
             progressStyle = runCatching {
                 DownloadProgressStyle.valueOf(prefs[PROGRESS_STYLE] ?: DownloadProgressStyle.LINEAR.name)
             }.getOrDefault(DownloadProgressStyle.LINEAR),
@@ -54,6 +59,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             put("showText", s.showText)
             put("showPercentage", s.showPercentage)
             put("showProgress", s.showProgress)
+            put("immersiveProgress", s.immersiveProgress)
             put("progressStyle", s.progressStyle.name)
             put("iconContainerColor", s.iconContainerColor?.serialize() ?: JSONObject.NULL)
             put("progressColor", s.progressColor?.serialize() ?: JSONObject.NULL)
@@ -71,6 +77,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             if (obj.has("showText")) prefs[SHOW_TEXT] = obj.getBoolean("showText")
             if (obj.has("showPercentage")) prefs[SHOW_PERCENTAGE] = obj.getBoolean("showPercentage")
             if (obj.has("showProgress")) prefs[SHOW_PROGRESS] = obj.getBoolean("showProgress")
+            if (obj.has("immersiveProgress")) prefs[IMMERSIVE_PROGRESS] = obj.getBoolean("immersiveProgress")
             if (obj.has("progressStyle")) prefs[PROGRESS_STYLE] = runCatching {
                 DownloadProgressStyle.valueOf(obj.getString("progressStyle")).name
             }.getOrDefault(DownloadProgressStyle.LINEAR.name)
@@ -93,6 +100,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
     suspend fun setShowText(enabled: Boolean) = context.downloadTileDataStore.edit { it[SHOW_TEXT] = enabled }
     suspend fun setShowPercentage(enabled: Boolean) = context.downloadTileDataStore.edit { it[SHOW_PERCENTAGE] = enabled }
     suspend fun setShowProgress(enabled: Boolean) = context.downloadTileDataStore.edit { it[SHOW_PROGRESS] = enabled }
+    suspend fun setImmersiveProgress(enabled: Boolean) = context.downloadTileDataStore.edit { it[IMMERSIVE_PROGRESS] = enabled }
     suspend fun setProgressStyle(style: DownloadProgressStyle) = context.downloadTileDataStore.edit { it[PROGRESS_STYLE] = style.name }
     suspend fun setIconContainerColor(color: CutoutColor?) = context.downloadTileDataStore.edit {
         if (color == null) it.remove(ICON_CONTAINER_COLOR) else it[ICON_CONTAINER_COLOR] = color.serialize()
@@ -109,6 +117,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
         val SHOW_TEXT = booleanPreferencesKey("show_text")
         val SHOW_PERCENTAGE = booleanPreferencesKey("show_percentage")
         val SHOW_PROGRESS = booleanPreferencesKey("show_progress")
+        val IMMERSIVE_PROGRESS = booleanPreferencesKey("immersive_progress")
         val PROGRESS_STYLE = stringPreferencesKey("progress_style")
         val ICON_CONTAINER_COLOR = stringPreferencesKey("icon_container_color")
         val PROGRESS_COLOR = stringPreferencesKey("progress_color")
