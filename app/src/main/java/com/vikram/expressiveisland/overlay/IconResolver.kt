@@ -357,6 +357,7 @@ class IconResolver(private val context: Context) {
                 trackColor = settings.trackColor,
                 showPauseResume = settings.showPauseResume,
                 showCancel = settings.showCancel,
+                pillProgressStyle = settings.pillProgressStyle,
             ),
             actions = downloadActions(signal.actions, settings),
             packageName = signal.packageName,
