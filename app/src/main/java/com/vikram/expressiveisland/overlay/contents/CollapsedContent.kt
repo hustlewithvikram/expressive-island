@@ -168,17 +168,25 @@ fun CollapsedContent(
             }
         }
 
-        event.progressData?.takeIf { !isStickToCamera && !hideSatelliteIndicators }?.let { progress ->
+        event.progressData?.takeIf {
+            !isStickToCamera && !hideSatelliteIndicators && event.download?.showProgress != false
+        }?.let { progress ->
             val indicatorModifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(end = (heightDp * 0.24f).dp + trailingInsetDp.dp)
                 .size((heightDp * 0.5f).dp)
             val strokeWidth = (heightDp * 0.06f).dp
+            val progressColor = event.download?.progressColor?.resolve()
+                ?: ringSettings.downloadProgressColor?.resolve()
+                ?: MaterialTheme.colorScheme.primary
+            val trackColor = event.download?.trackColor?.resolve()
+                ?: ringSettings.downloadTrackColor?.resolve()
+                ?: MaterialTheme.colorScheme.primaryContainer
             if (progress.isIndeterminate) {
                 CircularProgressIndicator(
                     modifier = indicatorModifier,
-                    color = ringSettings.downloadProgressColor?.resolve() ?: MaterialTheme.colorScheme.primary,
-                    trackColor = ringSettings.downloadTrackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer,
+                    color = progressColor,
+                    trackColor = trackColor,
                     strokeWidth = strokeWidth,
                 )
             } else {
@@ -191,11 +199,31 @@ fun CollapsedContent(
                 CircularProgressIndicator(
                     progress = { animatedFraction },
                     modifier = indicatorModifier,
-                    color = ringSettings.downloadProgressColor?.resolve() ?: MaterialTheme.colorScheme.primary,
-                    trackColor = ringSettings.downloadTrackColor?.resolve() ?: MaterialTheme.colorScheme.primaryContainer,
+                    color = progressColor,
+                    trackColor = trackColor,
                     strokeWidth = strokeWidth,
                 )
             }
+        }
+
+        if (
+            event.download?.showPercentage == true &&
+            event.progressData != null &&
+            !event.progressData.isIndeterminate &&
+            event.progressData.max > 0 &&
+            !isStickToCamera
+        ) {
+            val percent = (event.progressData.current.toFloat() / event.progressData.max * 100f)
+                .toInt().coerceIn(0, 100)
+            Text(
+                text = "$percent%",
+                color = LocalContentColor.current,
+                fontSize = (heightDp * 0.27f).sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                modifier = Modifier.align(Alignment.CenterEnd)
+                    .padding(end = (heightDp * 0.24f).dp + trailingInsetDp.dp),
+            )
         }
     }
 }
