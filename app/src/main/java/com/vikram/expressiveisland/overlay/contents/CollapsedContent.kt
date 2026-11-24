@@ -234,13 +234,7 @@ fun CollapsedContent(
                     .fillMaxWidth()
                     .height(3.dp),
             ) {
-                if (event.download.progressStyle == com.vikram.expressiveisland.data.DownloadProgressStyle.SEGMENTED && fraction != null) {
-                    SegmentedDownloadProgress(
-                        fraction = fraction,
-                        color = progressColor,
-                        trackColor = trackColor,
-                    )
-                } else if (fraction == null) {
+                if (fraction == null) {
                     LinearProgressIndicator(
                         modifier = Modifier.fillMaxSize(),
                         color = progressColor,
