@@ -68,6 +68,8 @@ import com.vikram.expressiveisland.data.CenterShortcut
 import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.DynamicRole
 import com.vikram.expressiveisland.data.DynamicTilePreferences
+import com.vikram.expressiveisland.data.DownloadTilePreferences
+import com.vikram.expressiveisland.data.DownloadTileSettings
 import com.vikram.expressiveisland.data.EmptyClickAction
 import com.vikram.expressiveisland.data.EventPreferences
 import com.vikram.expressiveisland.data.GlobalAction
@@ -92,6 +94,7 @@ import com.vikram.expressiveisland.data.PermissionDotPreferences
 import com.vikram.expressiveisland.overlay.CENTER_SHORTCUTS_EXTRA_DP
 import com.vikram.expressiveisland.overlay.DynamicIsland
 import com.vikram.expressiveisland.overlay.IconResolver
+import com.vikram.expressiveisland.overlay.MaterialIconCatalog
 import com.vikram.expressiveisland.overlay.OverlayLifecycleOwner
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.overlay.contents.callCutoutWidthPercent
@@ -179,6 +182,7 @@ class IslandOverlayController(private val context: Context) {
     private val appearancePreferences = AppearancePreferences(context)
     private val eventPreferences = EventPreferences(context)
     private val dynamicTilePreferences = DynamicTilePreferences(context)
+    private val downloadTilePreferences = DownloadTilePreferences(context)
     private val musicTilePreferences = MusicTilePreferences(context)
     private val phoneTilePreferences = PhoneTilePreferences(context)
     private val timerTilePreferences = TimerTilePreferences(context)
@@ -266,6 +270,7 @@ class IslandOverlayController(private val context: Context) {
     private var musicSettings: MusicTileSettings = MusicTileSettings()
     private var phoneSettings: PhoneTileSettings = PhoneTileSettings()
     private var timerSettings: TimerTileSettings = TimerTileSettings()
+    private var downloadSettings: DownloadTileSettings = DownloadTileSettings()
     private var assistantSettings: AssistantTileSettings = AssistantTileSettings()
     private var previewPinned = false
     // Preserve the real overlay slots while a settings preview temporarily owns the island.
@@ -309,6 +314,8 @@ class IslandOverlayController(private val context: Context) {
     // the whole countdown, and — like [lastCallEvent] — lets the pill return after an interruption.
     private var timerActive = false
     private var lastTimerEvent: IslandEvent? = null
+    private var downloadActive = false
+    private var lastDownloadEvent: IslandEvent? = null
     private var assistantActive = false
     private var lastAssistantEvent: IslandEvent? = null
 
@@ -649,6 +656,11 @@ class IslandOverlayController(private val context: Context) {
             timerActive && lastTimerEvent != null -> {
                 dismissJob?.cancel()
                 currentEvent.value = lastTimerEvent
+            }
+
+            downloadActive && lastDownloadEvent != null -> {
+                dismissJob?.cancel()
+                currentEvent.value = lastDownloadEvent
             }
 
             savedEventBeforeHide != null -> {
@@ -1105,6 +1117,34 @@ class IslandOverlayController(private val context: Context) {
         }
     }
 
+    private fun observeDownloadSettings() = scope.launch {
+        downloadTilePreferences.settings.collect { settings ->
+            downloadSettings = settings
+            refreshPinnedPreview()
+            val current = currentEvent.value
+            if (current?.download != null) {
+                val icon = (settings.icon as? IconSource.Material)?.let { source ->
+                    MaterialIconCatalog.iconFor(source.iconName)?.let(IslandIcon::Vector)
+                } ?: IslandIcon.Vector(DynamicTile.DOWNLOAD.defaultIcon)
+                val updated = current.copy(
+                    icon = icon,
+                    iconContainerColor = settings.iconContainerColor,
+                    download = current.download.copy(
+                        showText = settings.showText,
+                        showPercentage = settings.showPercentage,
+                        showProgress = settings.showProgress,
+                        progressStyle = settings.progressStyle,
+                        progressColor = settings.progressColor,
+                        trackColor = settings.trackColor,
+                    ),
+                )
+                currentEvent.value = updated
+                lastDownloadEvent = updated
+                syncWindowSize()
+            }
+        }
+    }
+
     private fun observeAssistantSettings() = scope.launch {
         assistantTilePreferences.settings.collect { settings ->
             assistantSettings = settings
@@ -1313,13 +1353,16 @@ class IslandOverlayController(private val context: Context) {
     /** The timer cutout should stay pinned up (no auto-dismiss) while a countdown is running. */
     private fun isPinnedTimer(): Boolean = timerActive && currentEvent.value?.timer != null
 
+    /** A download remains pinned while its progress notification is active. */
+    private fun isPinnedDownload(): Boolean = downloadActive && currentEvent.value?.download != null
+
     /** Only the manually opened assistant panel is persistent; mirrored responses time out. */
     private fun isPinnedAssistant(): Boolean =
         assistantActive && currentEvent.value?.assistant?.interactivePanel == true
 
     /** Any live tile (music, a call, a running timer, or assistant) is currently pinned up. */
     private fun isPinnedLiveTile(): Boolean =
-        isPinnedMusic() || isPinnedCall() || isPinnedTimer() || isPinnedAssistant()
+        isPinnedMusic() || isPinnedCall() || isPinnedTimer() || isPinnedDownload() || isPinnedAssistant()
 
     private fun observeLayout() = scope.launch {
         layoutPreferences.layout.collect { layout ->
@@ -1655,6 +1698,7 @@ class IslandOverlayController(private val context: Context) {
     private fun isSameTile(a: IslandEvent, b: IslandEvent): Boolean =
         (a.media != null && b.media != null) ||
                 (a.timer != null && b.timer != null) ||
+                (a.download != null && b.download != null) ||
                 (a.call != null && b.call != null) ||
                 (a.assistant != null && b.assistant != null)
 
@@ -1697,7 +1741,7 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun isPersistentTileEvent(event: IslandEvent): Boolean =
-        event.media != null || event.call != null || event.timer != null ||
+        event.media != null || event.call != null || event.timer != null || event.download != null ||
                 event.assistant?.interactivePanel == true
 
     private fun isSameActivity(a: IslandEvent, b: IslandEvent): Boolean =
@@ -1709,6 +1753,7 @@ class IslandOverlayController(private val context: Context) {
         event.call != null -> callActive && tileEnabled[DynamicTile.PHONE] != false &&
             OnCallBus.state.value?.packageName !in disabledApps && !shouldHideForPhoneApp()
         event.timer != null -> timerActive && tileEnabled[DynamicTile.TIMER] != false
+        event.download != null -> downloadActive && tileEnabled[DynamicTile.DOWNLOAD] != false
         event.assistant?.interactivePanel == true -> assistantActive && tileEnabled[DynamicTile.ASSISTANT] != false
         else -> false
     }
@@ -2035,6 +2080,7 @@ class IslandOverlayController(private val context: Context) {
             if (signal is CutoutSignal.Call && tileEnabled[DynamicTile.PHONE] == false) return@collect
             // Skip the running timer when the timer tile is turned off.
             if (signal is CutoutSignal.Timer && tileEnabled[DynamicTile.TIMER] == false) return@collect
+            if (signal is CutoutSignal.Download && tileEnabled[DynamicTile.DOWNLOAD] == false) return@collect
             // Skip assistant responses when the assistant tile is turned off.
             if (signal is CutoutSignal.Assistant && tileEnabled[DynamicTile.ASSISTANT] == false) return@collect
             // Skip anything posted by an app the user muted on the Apps screen.
@@ -2045,6 +2091,14 @@ class IslandOverlayController(private val context: Context) {
                 behaviourState.value.ignoreSilentNotifications &&
                 signal.isSilent
             ) {
+                return@collect
+            }
+
+            if (signal is CutoutSignal.Download && !signal.active) {
+                downloadActive = false
+                lastDownloadEvent = null
+                pruneSatellite()
+                if (currentEvent.value?.download != null) dismissIsland()
                 return@collect
             }
 
@@ -2082,6 +2136,9 @@ class IslandOverlayController(private val context: Context) {
 
                 is CutoutSignal.Timer ->
                     false
+
+                is CutoutSignal.Download ->
+                    false
             }
             // "Normal only": this app's pill has no expanded state at all. Suppressing auto-expand
             // here keeps the window from ever being sized for it; the flag carried on the event is
@@ -2111,6 +2168,7 @@ class IslandOverlayController(private val context: Context) {
                 appearanceState.value.preferDynamicIconColor,
                 behaviourState.value.notificationIconMode,
                 behaviourState.value.notificationIconShape,
+                downloadSettings = downloadSettings,
             ).copy(
                 notificationIconStrokeEnabled = behaviourState.value.notificationIconStrokeEnabled,
                 notificationIconStrokeColor = behaviourState.value.notificationIconStrokeColor,
@@ -2136,6 +2194,10 @@ class IslandOverlayController(private val context: Context) {
                         is CutoutSignal.Timer -> {
                             timerActive = true
                             lastTimerEvent = resolvedEvent
+                        }
+                        is CutoutSignal.Download -> {
+                            downloadActive = true
+                            lastDownloadEvent = resolvedEvent
                         }
 
                         else -> {}
@@ -2339,6 +2401,12 @@ class IslandOverlayController(private val context: Context) {
                     dismissJob?.cancel()
                 }
 
+                is CutoutSignal.Download -> {
+                    downloadActive = true
+                    lastDownloadEvent = resolvedEvent
+                    dismissJob?.cancel()
+                }
+
                 is CutoutSignal.Assistant -> {
                     assistantActive = true
                     lastAssistantEvent = currentEvent.value
@@ -2374,6 +2442,7 @@ class IslandOverlayController(private val context: Context) {
             is CutoutSignal.Music -> { musicPlaying = true; lastMusicEvent = event }
             is CutoutSignal.Call -> { callActive = true; lastCallEvent = event }
             is CutoutSignal.Timer -> { timerActive = true; lastTimerEvent = event }
+            is CutoutSignal.Download -> { downloadActive = true; lastDownloadEvent = event }
             is CutoutSignal.Assistant -> { assistantActive = signal.active; lastAssistantEvent = event }
             else -> Unit
         }
@@ -2906,6 +2975,7 @@ class IslandOverlayController(private val context: Context) {
         is CutoutSignal.Music -> packageName
         is CutoutSignal.Call -> packageName
         is CutoutSignal.Timer -> packageName
+        is CutoutSignal.Download -> packageName
         is CutoutSignal.Assistant -> packageName
         is CutoutSignal.System -> null
     }
@@ -2934,6 +3004,12 @@ class IslandOverlayController(private val context: Context) {
         if (!timerActive) return null
         if (tileEnabled[DynamicTile.TIMER] == false) return null
         return lastTimerEvent?.copy(initiallyExpanded = false)
+    }
+
+    private fun downloadPillToReturnTo(): IslandEvent? {
+        if (showingLiveTile()) return null
+        if (!downloadActive || tileEnabled[DynamicTile.DOWNLOAD] == false) return null
+        return lastDownloadEvent?.copy(initiallyExpanded = false)
     }
 
     /**
