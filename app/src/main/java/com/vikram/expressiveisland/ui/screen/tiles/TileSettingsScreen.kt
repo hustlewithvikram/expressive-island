@@ -20,6 +20,7 @@ internal fun TileSettingsScreen(
         DynamicTile.MUSIC -> MusicTileScreen(viewModel, contentPadding)
         DynamicTile.PHONE -> PhoneTileScreen(viewModel, contentPadding)
         DynamicTile.TIMER -> TimerTileScreen(viewModel, contentPadding)
+        DynamicTile.DOWNLOAD -> DownloadTileScreen(viewModel, contentPadding)
         DynamicTile.ASSISTANT -> AssistantScreen(viewModel, contentPadding)
     }
 }
