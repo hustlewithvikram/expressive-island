@@ -158,6 +158,17 @@ sealed interface CutoutSignal {
         val actions: List<Notification.Action> = emptyList(),
     ) : CutoutSignal
 
+    /** A live download / transfer notification, kept independent of its notification lifecycle. */
+    data class Download(
+        val packageName: String,
+        val title: String?,
+        val text: String? = null,
+        val key: String,
+        val progressData: ProgressData? = null,
+        val contentIntent: PendingIntent? = null,
+        val active: Boolean = true,
+    ) : CutoutSignal
+
     /** Voice assistant activity or response (surfaced from voice assistant media session / app). */
     data class Assistant(
         val packageName: String,
