@@ -59,7 +59,12 @@ fun ExpandedContent(
     }
     // The download tile owns its expanded progress presentation.
     if (event.download != null) {
-        DownloadExpandedContent(event, collapsedHeightDp)
+        DownloadExpandedContent(
+            event = event,
+            collapsedHeightDp = collapsedHeightDp,
+            appearance = appearance,
+            onAction = onAction,
+        )
         return
     }
 
