@@ -173,6 +173,14 @@ Expressive Island is developed and maintained independently. If you would like t
 
 **UPI ID:** `vs423502@ybl`
 
+Scan the QR code below with any UPI app to contribute:
+
+<div align="center">
+
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=upi%3A%2F%2Fpay%3Fpa%3Dvs423502%40ybl" alt="UPI payment QR code for Expressive Island donations" width="280" />
+
+</div>
+
 Every contribution helps keep Expressive Island going. Thank you for supporting the project.
 
 ---
