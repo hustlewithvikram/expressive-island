@@ -43,6 +43,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.core.NowPlayingBus
 import com.vikram.expressiveisland.core.OnCallBus
+import com.vikram.expressiveisland.data.DownloadPillProgressStyle
 import com.vikram.expressiveisland.data.MusicTilePreferences
 import com.vikram.expressiveisland.data.MusicTileSettings
 import com.vikram.expressiveisland.data.SatelliteRingPreferences
@@ -171,7 +172,10 @@ fun CollapsedContent(
         }
 
         event.progressData?.takeIf {
-            !isStickToCamera && !hideSatelliteIndicators && event.download?.showProgress != false
+            !isStickToCamera &&
+                !hideSatelliteIndicators &&
+                event.download?.showProgress != false &&
+                event.download?.pillProgressStyle != DownloadPillProgressStyle.PERCENTAGE
         }?.let { progress ->
             val indicatorModifier = Modifier
                 .align(Alignment.CenterEnd)
@@ -209,7 +213,8 @@ fun CollapsedContent(
         }
 
         if (
-            event.download?.showPercentage == true &&
+            event.download?.pillProgressStyle == DownloadPillProgressStyle.PERCENTAGE &&
+            event.download.showProgress &&
             event.progressData != null &&
             !event.progressData.isIndeterminate &&
             event.progressData.max > 0 &&
