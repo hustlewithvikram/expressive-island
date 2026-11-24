@@ -68,19 +68,19 @@ fun DownloadExpandedContent(event: IslandEvent, collapsedHeightDp: Int) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 18.dp, end = 18.dp, top = collapsedHeightDp.dp)
             .then(
                 if (options.immersiveProgress && options.showProgress) {
                     Modifier.drawBehind {
                         drawRoundRect(
-                            color = progressColor.copy(alpha = 0.13f),
+                            color = progressColor.copy(alpha = 0.22f),
                             topLeft = Offset.Zero,
                             size = Size(size.width * displayFraction, size.height),
                             cornerRadius = CornerRadius(30.dp.toPx()),
                         )
                     }
                 } else Modifier
-            ),
+            )
+            .padding(start = 18.dp, end = 18.dp, top = collapsedHeightDp.dp),
     ) {
         Column(
             modifier = Modifier
