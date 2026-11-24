@@ -150,7 +150,7 @@ fun NotificationExpandedContent(
                     notificationHeader?.let { header ->
                         Text(
                             text = header,
-                            color = LocalContentColor.current.copy(alpha = 0.62f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -175,7 +175,7 @@ fun NotificationExpandedContent(
                                 modifier = Modifier.weight(1f).then(
                                     if (notificationTextExpanded) Modifier else Modifier.heightIn(max = 36.dp)
                                 ),
-                                color = LocalContentColor.current.copy(alpha = 0.70f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp,
                                 maxLines = if (notificationTextExpanded) Int.MAX_VALUE else 2,
                                 overflow = if (notificationTextExpanded) TextOverflow.Clip else TextOverflow.Ellipsis,
