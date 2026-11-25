@@ -97,14 +97,24 @@ fun CollapsedContent(
     val pillTrackColor = event.download?.pillTrackColor?.resolve()
         ?: event.download?.trackColor?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHighest
 
-    Box(modifier = Modifier.fillMaxSize().then(if (pillImmersive) Modifier.drawBehind {
-        drawRoundRect(pillTrackColor, cornerRadius = CornerRadius(size.height / 2f))
-        drawRoundRect(
-            color = pillProgressColor.copy(alpha = 0.92f),
-            size = Size(size.width * pillDisplayFraction, size.height),
-            cornerRadius = CornerRadius(size.height / 2f),
-        )
-    } else Modifier)) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Keep immersive progress in its own first-drawn layer. A sibling Canvas is
+        // guaranteed to sit beneath every icon, label, timer and interactive overlay
+        // composable instead of tinting foreground content.
+        if (pillImmersive) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                drawRoundRect(
+                    color = pillTrackColor,
+                    cornerRadius = CornerRadius(size.height / 2f),
+                )
+                drawRoundRect(
+                    color = pillProgressColor.copy(alpha = 0.78f),
+                    size = Size(size.width * pillDisplayFraction, size.height),
+                    cornerRadius = CornerRadius(size.height / 2f),
+                )
+            }
+        }
+
         val placement = Modifier
             .align(if (isStickToCamera) Alignment.BottomCenter else Alignment.CenterStart)
             .padding(
