@@ -42,6 +42,7 @@ data class DownloadTileSettings(
     val showPauseResume: Boolean = true,
     val showCancel: Boolean = true,
     val pillShowProgress: Boolean = true,
+    val pillImmersiveProgress: Boolean = false,
     val pillProgressColor: CutoutColor? = null,
     val pillTrackColor: CutoutColor? = null,
     val actionButtonColor: CutoutColor? = null,
@@ -66,6 +67,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             showPauseResume = prefs[SHOW_PAUSE_RESUME] ?: true,
             showCancel = prefs[SHOW_CANCEL] ?: true,
             pillShowProgress = prefs[PILL_SHOW_PROGRESS] ?: (prefs[SHOW_PROGRESS] ?: true),
+            pillImmersiveProgress = prefs[PILL_IMMERSIVE_PROGRESS] ?: false,
             pillProgressColor = CutoutColor.deserialize(prefs[PILL_PROGRESS_COLOR]),
             pillTrackColor = CutoutColor.deserialize(prefs[PILL_TRACK_COLOR]),
             actionButtonColor = CutoutColor.deserialize(prefs[ACTION_BUTTON_COLOR]),
@@ -91,6 +93,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             put("showPauseResume", s.showPauseResume)
             put("showCancel", s.showCancel)
             put("pillShowProgress", s.pillShowProgress)
+            put("pillImmersiveProgress", s.pillImmersiveProgress)
             put("pillProgressColor", s.pillProgressColor?.serialize() ?: JSONObject.NULL)
             put("pillTrackColor", s.pillTrackColor?.serialize() ?: JSONObject.NULL)
             put("pillProgressStyle", s.pillProgressStyle.name)
@@ -127,6 +130,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             applyColor("pillTrackColor", PILL_TRACK_COLOR)
             applyColor("actionButtonColor", ACTION_BUTTON_COLOR)
             if (obj.has("pillShowProgress")) prefs[PILL_SHOW_PROGRESS] = obj.getBoolean("pillShowProgress")
+            if (obj.has("pillImmersiveProgress")) prefs[PILL_IMMERSIVE_PROGRESS] = obj.getBoolean("pillImmersiveProgress")
             if (obj.has("showPauseResume")) prefs[SHOW_PAUSE_RESUME] = obj.getBoolean("showPauseResume")
             if (obj.has("showCancel")) prefs[SHOW_CANCEL] = obj.getBoolean("showCancel")
             if (obj.has("pillProgressStyle")) prefs[PILL_PROGRESS_STYLE] = runCatching {
@@ -156,6 +160,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
     suspend fun setShowPauseResume(enabled: Boolean) = context.downloadTileDataStore.edit { it[SHOW_PAUSE_RESUME] = enabled }
     suspend fun setShowCancel(enabled: Boolean) = context.downloadTileDataStore.edit { it[SHOW_CANCEL] = enabled }
     suspend fun setPillShowProgress(enabled: Boolean) = context.downloadTileDataStore.edit { it[PILL_SHOW_PROGRESS] = enabled }
+    suspend fun setPillImmersiveProgress(enabled: Boolean) = context.downloadTileDataStore.edit { it[PILL_IMMERSIVE_PROGRESS] = enabled }
     suspend fun setPillProgressColor(color: CutoutColor?) = context.downloadTileDataStore.edit { if (color == null) it.remove(PILL_PROGRESS_COLOR) else it[PILL_PROGRESS_COLOR] = color.serialize() }
     suspend fun setPillTrackColor(color: CutoutColor?) = context.downloadTileDataStore.edit { if (color == null) it.remove(PILL_TRACK_COLOR) else it[PILL_TRACK_COLOR] = color.serialize() }
     suspend fun setActionButtonColor(color: CutoutColor?) = context.downloadTileDataStore.edit { if (color == null) it.remove(ACTION_BUTTON_COLOR) else it[ACTION_BUTTON_COLOR] = color.serialize() }
@@ -178,6 +183,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
         val SHOW_CANCEL = booleanPreferencesKey("show_cancel")
         val PILL_PROGRESS_STYLE = stringPreferencesKey("pill_progress_style")
         val PILL_SHOW_PROGRESS = booleanPreferencesKey("pill_show_progress")
+        val PILL_IMMERSIVE_PROGRESS = booleanPreferencesKey("pill_immersive_progress")
         val PILL_PROGRESS_COLOR = stringPreferencesKey("pill_progress_color")
         val PILL_TRACK_COLOR = stringPreferencesKey("pill_track_color")
         val ACTION_BUTTON_COLOR = stringPreferencesKey("action_button_color")
