@@ -517,7 +517,6 @@ internal fun MusicTileScreen(
         SectionLabel("Playback Display")
 
         SettingsGroup {
-
             SettingsToggleCard(
                 shape = groupShape(if (settings.showProgress) GroupPosition.FIRST else GroupPosition.ONLY),
                 title = stringResource(R.string.music_progress_title),
@@ -527,21 +526,46 @@ internal fun MusicTileScreen(
             )
 
             AnimatedVisibility(visible = settings.showProgress) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().clickable { progressStyleDialog = true },
-                    shape = groupShape(GroupPosition.LAST),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                Column(verticalArrangement = Arrangement.spacedBy(GROUP_CARD_SPACING)) {
+                    SettingsToggleCard(
+                        shape = groupShape(GroupPosition.FIRST),
+                        title = "Immersive progress",
+                        description = "Use the progress track as the island background in the pill and expanded player",
+                        checked = settings.immersiveProgress,
+                        onCheckedChange = viewModel::setMusicImmersiveProgress,
+                    )
+                    ColorPickerCard(
+                        label = "Progress color",
+                        selected = settings.progressColor,
+                        onSelect = viewModel::setMusicProgressColor,
+                        defaultLabel = "Use theme accent",
+                        defaultColor = MaterialTheme.colorScheme.primary,
+                        shape = groupShape(GroupPosition.MIDDLE),
+                    )
+                    ColorPickerCard(
+                        label = "Track color",
+                        selected = settings.progressTrackColor,
+                        onSelect = viewModel::setMusicProgressTrackColor,
+                        defaultLabel = "Use theme surface",
+                        defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        shape = groupShape(GroupPosition.MIDDLE),
+                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable { progressStyleDialog = true },
+                        shape = groupShape(GroupPosition.LAST),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     ) {
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(stringResource(R.string.music_progress_bar_style), style = MaterialTheme.typography.titleSmall)
-                            Text(settings.progressStyle.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(stringResource(R.string.music_progress_bar_style), style = MaterialTheme.typography.titleSmall)
+                                Text(settings.progressStyle.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Icon(Icons.Rounded.Tune, contentDescription = stringResource(R.string.music_choose_progress_style), tint = MaterialTheme.colorScheme.primary)
                         }
-                        Icon(Icons.Rounded.Tune, contentDescription = stringResource(R.string.music_choose_progress_style), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
