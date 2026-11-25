@@ -73,11 +73,13 @@ object JsonSettings {
         if (!looksLikeOurs(root, sections.keys)) return ImportResult.NOT_A_SETTINGS_FILE
 
         return try {
+            var failedSections = false
             for ((label, store) in sections) {
                 val section = root.optJSONObject(label) ?: continue
                 runCatching { store.fromJson(section.toString()) }
+                    .onFailure { failedSections = true }
             }
-            ImportResult.SUCCESS
+            if (failedSections) ImportResult.ERROR else ImportResult.SUCCESS
         } catch (e: Exception) {
             ImportResult.ERROR
         }
