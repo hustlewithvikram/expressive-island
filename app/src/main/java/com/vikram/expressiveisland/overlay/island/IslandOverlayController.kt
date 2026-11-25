@@ -95,6 +95,7 @@ import com.vikram.expressiveisland.overlay.CENTER_SHORTCUTS_EXTRA_DP
 import com.vikram.expressiveisland.overlay.DynamicIsland
 import com.vikram.expressiveisland.overlay.IconResolver
 import com.vikram.expressiveisland.overlay.MaterialIconCatalog
+import com.vikram.expressiveisland.overlay.toImageBitmap
 import com.vikram.expressiveisland.overlay.OverlayLifecycleOwner
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.overlay.contents.callCutoutWidthPercent

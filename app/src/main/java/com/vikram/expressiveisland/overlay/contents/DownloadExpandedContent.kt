@@ -165,7 +165,7 @@ fun DownloadExpandedContent(
                 ActionChipRow(
                     actions = event.actions.take(2),
                     style = appearance.actionButtonStyle,
-                    fill = appearance.actionButtonColor?.resolve() ?: progressColor,
+                    fill = options.actionButtonColor?.resolve() ?: appearance.actionButtonColor?.resolve() ?: progressColor,
                     heightDp = appearance.actionButtonHeightDp,
                     alignment = appearance.actionButtonAlignment,
                     onChip = onAction,

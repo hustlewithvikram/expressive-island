@@ -29,6 +29,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.Modifier
@@ -171,66 +174,63 @@ fun CollapsedContent(
             }
         }
 
-        event.progressData?.takeIf {
-            !isStickToCamera &&
-                !hideSatelliteIndicators &&
-                event.download?.showProgress != false &&
-                event.download?.pillProgressStyle != DownloadPillProgressStyle.PERCENTAGE
-        }?.let { progress ->
-            val indicatorModifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = (heightDp * 0.24f).dp + trailingInsetDp.dp)
-                .size((heightDp * 0.5f).dp)
-            val strokeWidth = (heightDp * 0.06f).dp
-            val progressColor = event.download?.progressColor?.resolve()
+        if (event.progressData != null && event.download?.pillShowProgress != false &&
+            !isStickToCamera && !hideSatelliteIndicators
+        ) {
+            val progress = event.progressData
+            val style = event.download?.pillProgressStyle ?: DownloadPillProgressStyle.CIRCULAR
+            val progressColor = event.download?.pillProgressColor?.resolve()
+                ?: event.download?.progressColor?.resolve()
                 ?: ringSettings.downloadProgressColor?.resolve()
                 ?: MaterialTheme.colorScheme.primary
-            val trackColor = event.download?.trackColor?.resolve()
+            val trackColor = event.download?.pillTrackColor?.resolve()
+                ?: event.download?.trackColor?.resolve()
                 ?: ringSettings.downloadTrackColor?.resolve()
                 ?: MaterialTheme.colorScheme.primaryContainer
-            if (progress.isIndeterminate) {
-                CircularProgressIndicator(
-                    modifier = indicatorModifier,
-                    color = progressColor,
-                    trackColor = trackColor,
-                    strokeWidth = strokeWidth,
-                )
-            } else {
-                val fraction = if (progress.max <= 0) 0f
+            val fraction = if (progress.isIndeterminate || progress.max <= 0) 0f
                 else (progress.current.toFloat() / progress.max).coerceIn(0f, 1f)
-                val animatedFraction by animateFloatAsState(
-                    targetValue = fraction,
-                    label = "collapsedProgress",
+            val animatedFraction by animateFloatAsState(fraction, label = "collapsedProgress")
+            val trailing = Modifier.align(Alignment.CenterEnd)
+                .padding(end = (heightDp * 0.24f).dp + trailingInsetDp.dp)
+            when (style) {
+                DownloadPillProgressStyle.CIRCULAR -> CircularProgressIndicator(
+                    progress = { animatedFraction }, modifier = trailing.size((heightDp * 0.5f).dp),
+                    color = progressColor, trackColor = trackColor, strokeWidth = (heightDp * 0.06f).dp,
                 )
-                CircularProgressIndicator(
-                    progress = { animatedFraction },
-                    modifier = indicatorModifier,
-                    color = progressColor,
-                    trackColor = trackColor,
-                    strokeWidth = strokeWidth,
-                )
+                DownloadPillProgressStyle.PERCENTAGE -> if (!progress.isIndeterminate && progress.max > 0) {
+                    Text(text = "${(fraction * 100f).toInt().coerceIn(0, 100)}%",
+                        color = LocalContentColor.current, fontSize = (heightDp * 0.27f).sp,
+                        fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = trailing)
+                }
+                else -> Canvas(Modifier.align(Alignment.CenterEnd)
+                    .padding(end = (heightDp * 0.24f).dp + trailingInsetDp.dp)
+                    .size(width = 26.dp, height = 5.dp)) {
+                    val h = size.height
+                    val w = size.width
+                    val radius = CornerRadius(h / 2f)
+                    drawRoundRect(trackColor, size = size, cornerRadius = radius)
+                    val fillWidth = w * (if (progress.isIndeterminate) 0.32f else animatedFraction)
+                    when (style) {
+                        DownloadPillProgressStyle.SEGMENTED -> {
+                            val count = 8
+                            val gap = 1.2.dp.toPx()
+                            val segmentWidth = (w - gap * (count - 1)) / count
+                            repeat(count) { index ->
+                                val left = index * (segmentWidth + gap)
+                                val fill = ((fillWidth - left) / segmentWidth).coerceIn(0f, 1f)
+                                if (fill > 0f) drawRoundRect(progressColor, Offset(left, 0f),
+                                    Size(segmentWidth * fill, h), radius)
+                            }
+                        }
+                        DownloadPillProgressStyle.DOTTED -> repeat(12) { index ->
+                            val x = (index + 0.5f) * w / 12f
+                            val filled = (index + 1f) / 12f <= (if (progress.isIndeterminate) 0.35f else animatedFraction)
+                            drawCircle(if (filled) progressColor else trackColor, h * 0.42f, Offset(x, h / 2f))
+                        }
+                        else -> drawRoundRect(progressColor, size = Size(fillWidth, h), cornerRadius = radius)
+                    }
+                }
             }
-        }
-
-        if (
-            event.download?.pillProgressStyle == DownloadPillProgressStyle.PERCENTAGE &&
-            event.download.showProgress &&
-            event.progressData != null &&
-            !event.progressData.isIndeterminate &&
-            event.progressData.max > 0 &&
-            !isStickToCamera
-        ) {
-            val percent = (event.progressData.current.toFloat() / event.progressData.max * 100f)
-                .toInt().coerceIn(0, 100)
-            Text(
-                text = "$percent%",
-                color = LocalContentColor.current,
-                fontSize = (heightDp * 0.27f).sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                modifier = Modifier.align(Alignment.CenterEnd)
-                    .padding(end = (heightDp * 0.24f).dp + trailingInsetDp.dp),
-            )
         }
     }
 }

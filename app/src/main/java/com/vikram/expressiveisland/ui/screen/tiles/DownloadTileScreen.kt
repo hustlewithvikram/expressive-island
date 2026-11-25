@@ -55,6 +55,7 @@ internal fun DownloadTileScreen(
 ) {
     val settings by viewModel.downloadTile.collectAsStateWithLifecycle()
     var showIconPicker by remember { mutableStateOf(false) }
+    var selectedSection by remember { mutableStateOf(0) }
     var resetRotation by remember { mutableStateOf(0f) }
     val resetRotationAnimated by animateFloatAsState(resetRotation, label = "downloadIconResetRotation")
     val visibleProgressStyles = DownloadProgressStyle.entries.filterNot { it == DownloadProgressStyle.CIRCULAR }
@@ -66,7 +67,7 @@ internal fun DownloadTileScreen(
         category = IslandPreviewCategory.DOWNLOAD_TILE,
         label = "Downloading update.zip",
         detail = "64% • 128 MB of 200 MB",
-        expanded = true,
+        expanded = selectedSection != 1,
     )
 
     Column(
@@ -79,6 +80,13 @@ internal fun DownloadTileScreen(
             title = "Download icon",
             description = "Choose the icon used for active downloads",
         ) {
+            SettingsToggleCard(
+                shape = RoundedCornerShape(24.dp),
+                title = "Use downloading app icon",
+                description = "Show the source app's launcher icon instead of the custom icon",
+                checked = settings.showAppIcon,
+                onCheckedChange = viewModel::setDownloadShowAppIcon,
+            )
             Row(
                 modifier = Modifier.fillMaxWidth().clickable { showIconPicker = true },
                 verticalAlignment = Alignment.CenterVertically,
@@ -125,121 +133,150 @@ internal fun DownloadTileScreen(
             )
         }
 
-        DownloadSettingsGroup(
-            title = "Content",
-            description = "Choose which download details appear in the expanded island",
-        ) {
-            SettingsToggleCard(
-                shape = RoundedCornerShape(24.dp),
-                title = "Show text",
-                description = "Show the file name and supporting download information",
-                checked = settings.showText,
-                onCheckedChange = viewModel::setDownloadShowText,
-            )
-            SettingsToggleCard(
-                shape = RoundedCornerShape(24.dp),
-                title = "Show percentage in expanded tile",
-                description = "Display the completion percentage beside the file name when the island is expanded",
-                checked = settings.showPercentage,
-                onCheckedChange = viewModel::setDownloadShowPercentage,
-            )
-        }
+        ExpressiveSegmentedRow(
+            options = listOf("Expanded", "Collapsed pill", "Actions"),
+            selectedIndex = selectedSection,
+            onSelect = { selectedSection = it },
+            modifier = Modifier.fillMaxWidth(),
+            allowFullLabels = true,
+        )
 
-        DownloadSettingsGroup(
-            title = "Progress indicator",
-            description = "Choose how download progress is displayed",
-        ) {
-            SettingsToggleCard(
-                shape = RoundedCornerShape(24.dp),
-                title = "Show progress",
-                description = "Display the selected progress indicator in the pill and expanded tile",
-                checked = settings.showProgress,
-                onCheckedChange = viewModel::setDownloadShowProgress,
-            )
-            if (settings.showProgress) {
-                Text(
-                    text = "Pill progress indicator",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 4.dp, top = 6.dp),
-                )
-                ExpressiveSegmentedRow(
-                    options = DownloadPillProgressStyle.entries.map { it.label },
-                    selectedIndex = DownloadPillProgressStyle.entries.indexOf(settings.pillProgressStyle),
-                    onSelect = { viewModel.setDownloadPillProgressStyle(DownloadPillProgressStyle.entries[it]) },
-                    modifier = Modifier.fillMaxWidth(),
-                    allowFullLabels = true,
+        if (selectedSection == 0) {
+            DownloadSettingsGroup(
+                title = "Expanded content",
+                description = "These settings only affect the expanded island",
+            ) {
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = "Show text",
+                    description = "Show the file name and supporting download information",
+                    checked = settings.showText,
+                    onCheckedChange = viewModel::setDownloadShowText,
                 )
                 SettingsToggleCard(
                     shape = RoundedCornerShape(24.dp),
-                    title = "Immersive progress",
-                    description = "Use the entire expanded island as a progress surface. The classic bar is hidden while this is enabled.",
-                    checked = settings.immersiveProgress,
-                    onCheckedChange = viewModel::setDownloadImmersiveProgress,
+                    title = "Show percentage",
+                    description = "Display the completion percentage before the transfer amount",
+                    checked = settings.showPercentage,
+                    onCheckedChange = viewModel::setDownloadShowPercentage,
                 )
-                if (!settings.immersiveProgress) {
-                    Text(
-                        text = "Progress style",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 4.dp, top = 6.dp),
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = "Show progress",
+                    description = "Display a progress indicator in the expanded island",
+                    checked = settings.showProgress,
+                    onCheckedChange = viewModel::setDownloadShowProgress,
+                )
+                if (settings.showProgress) {
+                    SettingsToggleCard(
+                        shape = RoundedCornerShape(24.dp),
+                        title = "Immersive progress",
+                        description = "Use the expanded island as a full progress surface",
+                        checked = settings.immersiveProgress,
+                        onCheckedChange = viewModel::setDownloadImmersiveProgress,
                     )
+                    if (!settings.immersiveProgress) {
+                        Text("Progress style", style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp, top = 6.dp))
+                        ExpressiveSegmentedRow(
+                            options = visibleProgressStyles.map { it.label },
+                            selectedIndex = visibleProgressStyles.indexOf(settings.progressStyle)
+                                .takeIf { it >= 0 } ?: 0,
+                            onSelect = { viewModel.setDownloadProgressStyle(visibleProgressStyles[it]) },
+                            modifier = Modifier.fillMaxWidth(),
+                            scrollable = true,
+                            allowFullLabels = true,
+                        )
+                    }
+                    ColorPickerCard(
+                        label = "Progress colour",
+                        selected = settings.progressColor,
+                        onSelect = viewModel::setDownloadProgressColor,
+                        defaultLabel = "Theme primary",
+                        defaultColor = MaterialTheme.colorScheme.primary,
+                    )
+                    ColorPickerCard(
+                        label = "Remaining track colour",
+                        selected = settings.trackColor,
+                        onSelect = viewModel::setDownloadTrackColor,
+                        defaultLabel = "Theme surface",
+                        defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    )
+                }
+            }
+        } else if (selectedSection == 1) {
+            DownloadSettingsGroup(
+                title = "Collapsed pill",
+                description = "Configure the compact progress indicator independently",
+            ) {
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = "Show pill progress",
+                    description = "Show progress beside the icon while the island is collapsed",
+                    checked = settings.pillShowProgress,
+                    onCheckedChange = viewModel::setDownloadPillShowProgress,
+                )
+                if (settings.pillShowProgress) {
+                    Text("Pill progress style", style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 4.dp, top = 6.dp))
                     ExpressiveSegmentedRow(
-                        options = visibleProgressStyles.map { it.label },
-                        selectedIndex = visibleProgressStyles.indexOf(settings.progressStyle)
-                            .takeIf { it >= 0 } ?: visibleProgressStyles.indexOf(DownloadProgressStyle.LINEAR),
-                        onSelect = { viewModel.setDownloadProgressStyle(visibleProgressStyles[it]) },
+                        options = DownloadPillProgressStyle.entries.map { it.label },
+                        selectedIndex = DownloadPillProgressStyle.entries.indexOf(settings.pillProgressStyle),
+                        onSelect = { viewModel.setDownloadPillProgressStyle(DownloadPillProgressStyle.entries[it]) },
                         modifier = Modifier.fillMaxWidth(),
                         scrollable = true,
                         allowFullLabels = true,
                     )
+                    ColorPickerCard(
+                        label = "Pill progress colour",
+                        selected = settings.pillProgressColor,
+                        onSelect = viewModel::setDownloadPillProgressColor,
+                        defaultLabel = "Theme primary",
+                        defaultColor = MaterialTheme.colorScheme.primary,
+                    )
+                    ColorPickerCard(
+                        label = "Pill remaining track colour",
+                        selected = settings.pillTrackColor,
+                        onSelect = viewModel::setDownloadPillTrackColor,
+                        defaultLabel = "Theme surface",
+                        defaultColor = MaterialTheme.colorScheme.primaryContainer,
+                    )
                 }
-                Text(
-                    text = if (settings.immersiveProgress) "Immersive progress colours" else "Progress colours",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 4.dp, top = 6.dp),
+            }
+        } else {
+            DownloadSettingsGroup(
+                title = "Download actions",
+                description = "Show notification-provided controls when the source app supports them",
+            ) {
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = "Pause / resume",
+                    description = "Show the available Pause or Resume action",
+                    checked = settings.showPauseResume,
+                    onCheckedChange = viewModel::setDownloadShowPauseResume,
+                )
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = "Cancel download",
+                    description = "Show the notification's Cancel action when available",
+                    checked = settings.showCancel,
+                    onCheckedChange = viewModel::setDownloadShowCancel,
                 )
                 ColorPickerCard(
-                    label = "Progress",
-                    selected = settings.progressColor,
-                    onSelect = viewModel::setDownloadProgressColor,
+                    label = "Action button colour",
+                    selected = settings.actionButtonColor,
+                    onSelect = viewModel::setDownloadActionButtonColor,
                     defaultLabel = "Theme primary",
                     defaultColor = MaterialTheme.colorScheme.primary,
                 )
-                ColorPickerCard(
-                    label = "Track",
-                    selected = settings.trackColor,
-                    onSelect = viewModel::setDownloadTrackColor,
-                    defaultLabel = "Theme surface",
-                    defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                Text(
+                    text = "Actions invoke the original notification PendingIntent. Pause/resume keeps the tile visible while the source app updates; cancel is destructive.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-
-        DownloadSettingsGroup(
-            title = "Download actions",
-            description = "Show notification-provided controls when the source app supports them",
-        ) {
-            SettingsToggleCard(
-                shape = RoundedCornerShape(24.dp),
-                title = "Pause / resume",
-                description = "Show the available Pause or Resume action",
-                checked = settings.showPauseResume,
-                onCheckedChange = viewModel::setDownloadShowPauseResume,
-            )
-            SettingsToggleCard(
-                shape = RoundedCornerShape(24.dp),
-                title = "Cancel download",
-                description = "Show the notification's Cancel action when available",
-                checked = settings.showCancel,
-                onCheckedChange = viewModel::setDownloadShowCancel,
-            )
-            Text(
-                text = "These buttons use the download app's own notification actions. They appear only when that app exposes a matching action; Expressive Island cannot create pause or cancel controls for apps that do not provide them.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
 
         Text(

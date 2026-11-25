@@ -461,6 +461,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setDownloadIcon(icon: IconSource?) = viewModelScope.launch { downloadTilePreferences.setIcon(icon) }
+    fun setDownloadShowAppIcon(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowAppIcon(enabled) }
     fun setDownloadShowText(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowText(enabled) }
     fun setDownloadShowPercentage(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowPercentage(enabled) }
     fun setDownloadShowProgress(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowProgress(enabled) }
@@ -469,6 +470,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setDownloadIconContainerColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setIconContainerColor(color) }
     fun setDownloadProgressColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setProgressColor(color) }
     fun setDownloadTrackColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setTrackColor(color) }
+    fun setDownloadPillShowProgress(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setPillShowProgress(enabled) }
+    fun setDownloadPillProgressColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setPillProgressColor(color) }
+    fun setDownloadPillTrackColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setPillTrackColor(color) }
+    fun setDownloadActionButtonColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setActionButtonColor(color) }
     fun setDownloadShowPauseResume(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowPauseResume(enabled) }
     fun setDownloadShowCancel(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowCancel(enabled) }
     fun setDownloadPillProgressStyle(style: DownloadPillProgressStyle) = viewModelScope.launch {
