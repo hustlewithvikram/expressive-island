@@ -82,6 +82,11 @@ class AssistantIntegrationPreferences(context: Context) : JsonSerializable {
         put("selectedProviderId", selectedProviderId)
         put("endpoint", endpoint)
         put("model", model)
+        put("providerModels", JSONObject().apply {
+            prefs.all.forEach { (key, value) ->
+                if (key.startsWith("model_") && value is String) put(key.removePrefix("model_"), value)
+            }
+        })
         put("maxOutputTokens", maxOutputTokens)
         put("temperature", temperature.toDouble())
         put("requestTimeoutSeconds", requestTimeoutSeconds)
@@ -99,6 +104,15 @@ class AssistantIntegrationPreferences(context: Context) : JsonSerializable {
         if (obj.has("provider")) provider = obj.optString("provider")
         if (obj.has("endpoint")) endpoint = obj.optString("endpoint")
         if (obj.has("model")) model = obj.optString("model")
+        obj.optJSONObject("providerModels")?.let { models ->
+            val editor = prefs.edit()
+            models.keys().forEach { providerId ->
+                val safeId = providerId.lowercase().replace(Regex("[^a-z0-9_-]"), "_")
+                val providerModel = models.optString(providerId).takeIf { it.isNotBlank() }
+                if (providerModel != null) editor.putString("model_$safeId", providerModel)
+            }
+            editor.apply()
+        }
         if (obj.has("maxOutputTokens")) maxOutputTokens = obj.optInt("maxOutputTokens", maxOutputTokens)
         if (obj.has("temperature")) temperature = obj.optDouble("temperature", temperature.toDouble()).toFloat()
         if (obj.has("requestTimeoutSeconds")) requestTimeoutSeconds = obj.optInt("requestTimeoutSeconds", requestTimeoutSeconds)
