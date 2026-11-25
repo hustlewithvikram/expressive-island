@@ -7,7 +7,9 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import org.json.JSONObject
 
 private val Context.satelliteRingStore by preferencesDataStore(name = "satellite_ring")
 
@@ -31,7 +33,7 @@ data class SatelliteRingSettings(
     val downloadTrackColor: CutoutColor? = null,
 )
 
-class SatelliteRingPreferences(private val context: Context) {
+class SatelliteRingPreferences(private val context: Context) : JsonSerializable {
     val settings: Flow<SatelliteRingSettings> = context.satelliteRingStore.data.map { p ->
         SatelliteRingSettings(
             enabled = p[ENABLED] ?: true,
@@ -46,6 +48,47 @@ class SatelliteRingPreferences(private val context: Context) {
             downloadProgressColor = CutoutColor.deserialize(p[DOWNLOAD_PROGRESS_COLOR]),
             downloadTrackColor = CutoutColor.deserialize(p[DOWNLOAD_TRACK_COLOR]),
         )
+    }
+
+    override suspend fun toJson(): String {
+        val s = settings.first()
+        return JSONObject().apply {
+            put("enabled", s.enabled)
+            put("progressColor", s.progressColor?.serialize() ?: JSONObject.NULL)
+            put("trackColor", s.trackColor?.serialize() ?: JSONObject.NULL)
+            put("thicknessDp", s.thicknessDp.toDouble())
+            put("diameterScale", s.diameterScale.toDouble())
+            put("opacity", s.opacity.toDouble())
+            put("style", s.style.name)
+            put("clockwise", s.clockwise)
+            put("downloadProgressColor", s.downloadProgressColor?.serialize() ?: JSONObject.NULL)
+            put("downloadTrackColor", s.downloadTrackColor?.serialize() ?: JSONObject.NULL)
+        }.toString()
+    }
+
+    override suspend fun fromJson(json: String) {
+        val obj = JSONObject(json)
+        context.satelliteRingStore.edit { prefs ->
+            fun applyColor(name: String, key: androidx.datastore.preferences.core.Preferences.Key<String>) {
+                if (!obj.has(name)) return
+                val raw = if (obj.isNull(name)) null else obj.optString(name)
+                val color = CutoutColor.deserialize(raw)
+                if (color == null) prefs.remove(key) else prefs[key] = color.serialize()
+            }
+            if (obj.has("enabled")) prefs[ENABLED] = obj.optBoolean("enabled")
+            applyColor("progressColor", PROGRESS_COLOR)
+            applyColor("trackColor", TRACK_COLOR)
+            if (obj.has("thicknessDp")) prefs[THICKNESS] = obj.optDouble("thicknessDp", 2.5).toFloat().coerceIn(1f, 6f)
+            if (obj.has("diameterScale")) prefs[DIAMETER_SCALE] = obj.optDouble("diameterScale", 0.94).toFloat().coerceIn(0.88f, 1f)
+            if (obj.has("opacity")) prefs[OPACITY] = obj.optDouble("opacity", 1.0).toFloat().coerceIn(0.2f, 1f)
+            if (obj.has("style")) {
+                prefs[STYLE] = runCatching { SatelliteRingStyle.valueOf(obj.getString("style")).name }
+                    .getOrDefault(SatelliteRingStyle.EXPRESSIVE.name)
+            }
+            if (obj.has("clockwise")) prefs[CLOCKWISE] = obj.optBoolean("clockwise")
+            applyColor("downloadProgressColor", DOWNLOAD_PROGRESS_COLOR)
+            applyColor("downloadTrackColor", DOWNLOAD_TRACK_COLOR)
+        }
     }
 
     suspend fun setEnabled(value: Boolean) { context.satelliteRingStore.edit { it[ENABLED] = value } }
