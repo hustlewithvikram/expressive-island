@@ -403,8 +403,6 @@ private fun downloadFailureMessage(reason: Int): String = when (reason) {
         "GitHub rejected the APK download (HTTP error). Check that the release asset is still available."
     DownloadManager.ERROR_TOO_MANY_REDIRECTS ->
         "GitHub redirected the download too many times. Try again later."
-    DownloadManager.ERROR_BLOCKED ->
-        "Android blocked the download. Check network or device download restrictions."
     else -> "Download failed (Android error $reason). Check your connection and available storage, then retry."
 }
 
