@@ -1446,9 +1446,15 @@ class IslandOverlayController(private val context: Context) {
 
         // Publish the island's actual rendered height (including expanded action rows), not the
         // overlay window's margins or a hard-coded estimate. The settings screen adds exactly 20%.
-        val previewHeight = if (previewPinned && expanded && currentEvent.value?.id == -1L) {
-            val dimensions = effectiveDims(layout, expanded)
-            (dimensions.heightDp + currentHeightBonusDp(expanded) +
+        val reserveExpandedPreview = previewPinned &&
+            (expanded || previewCategory == IslandPreviewCategory.ANIMATION) &&
+            currentEvent.value?.id == -1L
+        val previewHeight = if (reserveExpandedPreview) {
+            // Animation and transition controls update the live island continuously. Keep their
+            // settings-page spacer pegged to the expanded footprint even while the preview itself
+            // morphs, so the page never jumps vertically with each selected motion.
+            val dimensions = effectiveDims(layout, expanded = true)
+            (dimensions.heightDp + currentHeightBonusDp(expanded = true) +
                     if (currentEvent.value?.media != null) 20 else 0).coerceAtLeast(0)
         } else {
             0
