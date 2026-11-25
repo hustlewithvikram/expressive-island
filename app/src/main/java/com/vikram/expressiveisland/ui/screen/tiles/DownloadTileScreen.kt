@@ -81,7 +81,7 @@ internal fun DownloadTileScreen(
             description = "Choose the icon used for active downloads",
         ) {
             SettingsToggleCard(
-                shape = RoundedCornerShape(24.dp),
+                shape = downloadGroupShape(0, if (settings.showAppIcon) 1 else 3),
                 title = "Use app icon",
                 description = "Use the downloading app's launcher icon. Custom icon and background options are hidden while enabled.",
                 checked = settings.showAppIcon,
@@ -131,6 +131,8 @@ internal fun DownloadTileScreen(
                     onSelect = viewModel::setDownloadIconContainerColor,
                     defaultLabel = "Download accent",
                     defaultColor = Color(DynamicTile.DOWNLOAD.accent),
+                ,
+                    shape = downloadGroupShape(2, 3)
                 )
             }
         }
@@ -149,21 +151,21 @@ internal fun DownloadTileScreen(
                 description = "These settings only affect the expanded island",
             ) {
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = downloadGroupShape(0, 3 + if (settings.showProgress) 1 + (if (settings.immersiveProgress) 0 else 1) + 2 else 0),
                     title = "Show text",
                     description = "Show the file name and supporting download information",
                     checked = settings.showText,
                     onCheckedChange = viewModel::setDownloadShowText,
                 )
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = downloadGroupShape(1, 3 + if (settings.showProgress) 1 + (if (settings.immersiveProgress) 0 else 1) + 2 else 0),
                     title = "Show percentage",
                     description = "Display the completion percentage before the transfer amount",
                     checked = settings.showPercentage,
                     onCheckedChange = viewModel::setDownloadShowPercentage,
                 )
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = downloadGroupShape(2, 3 + if (settings.showProgress) 1 + (if (settings.immersiveProgress) 0 else 1) + 2 else 0),
                     title = "Show progress",
                     description = "Display a progress indicator in the expanded island",
                     checked = settings.showProgress,
@@ -171,7 +173,7 @@ internal fun DownloadTileScreen(
                 )
                 if (settings.showProgress) {
                     SettingsToggleCard(
-                        shape = RoundedCornerShape(24.dp),
+                        shape = downloadGroupShape(3, 3 + if (settings.showProgress) 1 + (if (settings.immersiveProgress) 0 else 1) + 2 else 0),
                         title = "Immersive progress",
                         description = "Use the expanded island as a full progress surface",
                         checked = settings.immersiveProgress,
@@ -197,14 +199,18 @@ internal fun DownloadTileScreen(
                         onSelect = viewModel::setDownloadProgressColor,
                         defaultLabel = "Theme primary",
                         defaultColor = MaterialTheme.colorScheme.primary,
-                    )
+                    ,
+                    shape = downloadGroupShape(if (settings.immersiveProgress) 4 else 5, 3 + if (settings.showProgress) 1 + (if (settings.immersiveProgress) 0 else 1) + 2 else 0)
+                )
                     ColorPickerCard(
                         label = "Remaining track colour",
                         selected = settings.trackColor,
                         onSelect = viewModel::setDownloadTrackColor,
                         defaultLabel = "Theme surface",
                         defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    )
+                    ,
+                    shape = downloadGroupShape(if (settings.immersiveProgress) 5 else 6, 3 + if (settings.showProgress) 1 + (if (settings.immersiveProgress) 0 else 1) + 2 else 0)
+                )
                 }
             }
         } else if (selectedSection == 1) {
@@ -213,7 +219,7 @@ internal fun DownloadTileScreen(
                 description = "Control the compact indicator independently from expanded progress",
             ) {
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = downloadGroupShape(0, if (settings.pillShowProgress) 2 + (if (settings.pillImmersiveProgress) 0 else 1) + 2 else 1),
                     title = "Show pill progress",
                     description = "Show progress beside the icon while the island is collapsed",
                     checked = settings.pillShowProgress,
@@ -221,7 +227,7 @@ internal fun DownloadTileScreen(
                 )
                 if (settings.pillShowProgress) {
                     SettingsToggleCard(
-                        shape = RoundedCornerShape(24.dp),
+                        shape = downloadGroupShape(1, if (settings.pillShowProgress) 2 + (if (settings.pillImmersiveProgress) 0 else 1) + 2 else 1),
                         title = "Immersive progress",
                         description = "Fill the collapsed pill with the download progress",
                         checked = settings.pillImmersiveProgress,
@@ -246,14 +252,18 @@ internal fun DownloadTileScreen(
                         onSelect = viewModel::setDownloadPillProgressColor,
                         defaultLabel = "Theme primary",
                         defaultColor = MaterialTheme.colorScheme.primary,
-                    )
+                    ,
+                    shape = downloadGroupShape(if (settings.pillImmersiveProgress) 2 else 3, if (settings.pillShowProgress) 2 + (if (settings.pillImmersiveProgress) 0 else 1) + 2 else 1)
+                )
                     ColorPickerCard(
                         label = "Pill remaining track colour",
                         selected = settings.pillTrackColor,
                         onSelect = viewModel::setDownloadPillTrackColor,
                         defaultLabel = "Theme surface",
                         defaultColor = MaterialTheme.colorScheme.primaryContainer,
-                    )
+                    ,
+                    shape = downloadGroupShape(if (settings.pillImmersiveProgress) 3 else 4, if (settings.pillShowProgress) 2 + (if (settings.pillImmersiveProgress) 0 else 1) + 2 else 1)
+                )
                 }
             }
         } else {
@@ -262,14 +272,14 @@ internal fun DownloadTileScreen(
                 description = "Choose which notification controls appear and how they are tinted",
             ) {
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = downloadGroupShape(0, 3),
                     title = "Pause / resume",
                     description = "Show the available Pause or Resume action",
                     checked = settings.showPauseResume,
                     onCheckedChange = viewModel::setDownloadShowPauseResume,
                 )
                 SettingsToggleCard(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = downloadGroupShape(1, 3),
                     title = "Cancel download",
                     description = "Show the notification's Cancel action when available",
                     checked = settings.showCancel,
@@ -281,6 +291,8 @@ internal fun DownloadTileScreen(
                     onSelect = viewModel::setDownloadActionButtonColor,
                     defaultLabel = "Theme primary",
                     defaultColor = MaterialTheme.colorScheme.primary,
+                ,
+                    shape = downloadGroupShape(2, 3)
                 )
                 Text(
                     text = "Actions invoke the original notification PendingIntent. Pause/resume keeps the tile visible while the source app updates; cancel is destructive.",
@@ -310,31 +322,12 @@ internal fun DownloadTileScreen(
 }
 
 @Composable
-private fun DownloadSettingsGroup(
-    title: String,
-    description: String,
-    content: @Composable () -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            content()
-        }
-    }
+private fun DownloadSettingsGroup(title: String, description: String, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) { content() }
+}
+private fun downloadGroupShape(index: Int, count: Int): RoundedCornerShape = when {
+    count <= 1 -> RoundedCornerShape(24.dp)
+    index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+    index >= count - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
+    else -> RoundedCornerShape(4.dp)
 }
