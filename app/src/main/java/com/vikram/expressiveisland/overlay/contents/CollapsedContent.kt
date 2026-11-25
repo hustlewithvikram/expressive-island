@@ -83,7 +83,7 @@ fun CollapsedContent(
     var musicProgressFraction by remember(event.id, musicProgress?.durationMs) {
         mutableFloatStateOf(musicProgress?.fractionAt(SystemClock.elapsedRealtime())?.coerceIn(0f, 1f) ?: 0f)
     }
-    LaunchedEffect(event.id, musicProgress?.durationMs, musicProgress?.speed) {
+    LaunchedEffect(event.id, musicProgress?.durationMs, musicProgress?.speed, musicProgress?.positionMs) {
         while (true) {
             val current = nowPlaying?.progress ?: break
             musicProgressFraction = current.fractionAt(SystemClock.elapsedRealtime())?.coerceIn(0f, 1f) ?: musicProgressFraction
