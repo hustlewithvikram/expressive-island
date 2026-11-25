@@ -296,7 +296,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 "app_prefs", "layout_prefs", "icon_prefs", "behaviour_prefs",
                 "appearance_prefs", "event_prefs", "dynamic_tile_prefs", "music_tile_prefs",
                 "phone_tile_prefs", "timer_tile_prefs", "download_tile_prefs",
-                "assistant_tile_prefs", "download_tile_prefs", "satellite_ring", "per_app_prefs", "recent_colors",
+                "assistant_tile_prefs", "satellite_ring", "per_app_prefs", "recent_colors",
                 "status_bar_prefs", "permission_dot_prefs",
             )
             val hasExistingSettings = existingStoreFiles.any { name ->
