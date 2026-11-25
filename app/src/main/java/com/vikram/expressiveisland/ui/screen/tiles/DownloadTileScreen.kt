@@ -88,8 +88,13 @@ internal fun DownloadTileScreen(
                 onCheckedChange = viewModel::setDownloadShowAppIcon,
             )
             if (!settings.showAppIcon) {
-                Row(
+                Card(
                     modifier = Modifier.fillMaxWidth().clickable { showIconPicker = true },
+                    shape = downloadGroupShape(1, 3),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
@@ -124,6 +129,7 @@ internal fun DownloadTileScreen(
                             modifier = Modifier.rotate(resetRotationAnimated),
                         )
                     }
+                }
                 }
                 ColorPickerCard(
                     label = "Icon background",
