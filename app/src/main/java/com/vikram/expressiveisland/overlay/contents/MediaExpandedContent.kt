@@ -122,7 +122,7 @@ fun MediaExpandedContent(
     var immersiveFraction by remember(event.id, displayedProgress?.durationMs) {
         mutableFloatStateOf(displayedProgress?.fractionAt(SystemClock.elapsedRealtime())?.coerceIn(0f, 1f) ?: 0f)
     }
-    LaunchedEffect(event.id, displayedProgress?.durationMs, displayedProgress?.speed, immersiveProgress) {
+    LaunchedEffect(event.id, displayedProgress?.durationMs, displayedProgress?.speed, displayedProgress?.positionMs, immersiveProgress) {
         while (immersiveProgress) {
             val current = latestDisplayedProgress ?: break
             immersiveFraction = current.fractionAt(SystemClock.elapsedRealtime())?.coerceIn(0f, 1f) ?: immersiveFraction
