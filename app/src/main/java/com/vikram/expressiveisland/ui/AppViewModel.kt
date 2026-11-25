@@ -101,38 +101,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val statusBarPreferences = StatusBarPreferences(application)
     private val permissionDotPreferences = PermissionDotPreferences(application)
 
-    /**
-     * Applies the bundled configuration only on a genuinely fresh install. Existing installs
-     * already have one or more DataStore files, so an app update never overwrites user choices.
-     * This runs before the ViewModel is returned and before its WhileSubscribed flows are collected.
-     */
-    init {
-        viewModelScope.launch(Dispatchers.IO) {
-            val dataStoreDir = application.filesDir.resolve("datastore")
-            val existingStoreFiles = listOf(
-                "app_prefs", "layout_prefs", "icon_prefs", "behaviour_prefs",
-                "appearance_prefs", "event_prefs", "dynamic_tile_prefs", "music_tile_prefs",
-                "phone_tile_prefs", "timer_tile_prefs", "download_tile_prefs",
-                "assistant_tile_prefs", "per_app_prefs", "recent_colors",
-                "status_bar_prefs", "permission_dot_prefs",
-            )
-            val hasExistingSettings = existingStoreFiles.any { name ->
-                File(dataStoreDir, "$name.preferences_pb").exists()
-            }
-            if (!hasExistingSettings) {
-                runCatching {
-                    val defaults = application.assets.open("default_settings.json")
-                        .bufferedReader(Charsets.UTF_8).use { it.readText() }
-                    val result = JsonSettings.import(defaults, jsonSections)
-                    if (result != JsonSettings.ImportResult.SUCCESS) {
-                        Log.w("AppViewModel", "Bundled default settings could not be applied: $result")
-                    }
-                }.onFailure { error ->
-                    Log.w("AppViewModel", "Unable to apply bundled default settings", error)
-                }
-            }
-        }
-    }
 
     val customIcons: StateFlow<Map<SystemEventType, IconSource>> =
         preferences.customIcons.stateIn(
@@ -308,6 +276,40 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         JsonSettings.STATUS_BAR to statusBarPreferences,
         JsonSettings.PERMISSION_DOT to permissionDotPreferences,
     )
+
+    /**
+     * Applies the bundled configuration only on a genuinely fresh install. Existing installs
+     * already have one or more DataStore files, so an app update never overwrites user choices.
+     * This runs before the ViewModel is returned and before its WhileSubscribed flows are collected.
+     */
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            val dataStoreDir = application.filesDir.resolve("datastore")
+            val existingStoreFiles = listOf(
+                "app_prefs", "layout_prefs", "icon_prefs", "behaviour_prefs",
+                "appearance_prefs", "event_prefs", "dynamic_tile_prefs", "music_tile_prefs",
+                "phone_tile_prefs", "timer_tile_prefs", "download_tile_prefs",
+                "assistant_tile_prefs", "per_app_prefs", "recent_colors",
+                "status_bar_prefs", "permission_dot_prefs",
+            )
+            val hasExistingSettings = existingStoreFiles.any { name ->
+                File(dataStoreDir, "$name.preferences_pb").exists()
+            }
+            if (!hasExistingSettings) {
+                runCatching {
+                    val defaults = application.assets.open("default_settings.json")
+                        .bufferedReader(Charsets.UTF_8).use { it.readText() }
+                    val result = JsonSettings.import(defaults, jsonSections)
+                    if (result != JsonSettings.ImportResult.SUCCESS) {
+                        Log.w("AppViewModel", "Bundled default settings could not be applied: $result")
+                    }
+                }.onFailure { error ->
+                    Log.w("AppViewModel", "Unable to apply bundled default settings", error)
+                }
+            }
+        }
+    }
+
 
     /** Exports every settings store as one JSON document; see [JsonSettings.export]. */
     suspend fun getSettingsAsJsonString(): String = JsonSettings.export(jsonSections)
