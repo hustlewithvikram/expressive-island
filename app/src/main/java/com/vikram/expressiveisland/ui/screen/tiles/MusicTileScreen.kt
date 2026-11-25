@@ -573,7 +573,7 @@ internal fun MusicTileScreen(
             AnimatedVisibility(visible = settings.showProgress) {
                 Column(verticalArrangement = Arrangement.spacedBy(GROUP_CARD_SPACING)) {
                     SettingsToggleCard(
-                        shape = groupShape(GroupPosition.MIDDLE),
+                        shape = groupShape(GroupPosition.FIRST),
                         title = "Immersive progress",
                         description = "Use the playback progress as the expanded player background",
                         checked = settings.expandedImmersiveProgress,
