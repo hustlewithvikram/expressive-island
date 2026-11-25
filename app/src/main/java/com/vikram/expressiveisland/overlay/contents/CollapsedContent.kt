@@ -79,8 +79,22 @@ fun CollapsedContent(
     val badgeSize = (heightDp * 0.72f).dp
     val showIconProgressRing = satelliteSharing && !ringSettings.enabled &&
         (event.media != null || event.progressData != null) && event.download?.pillShowProgress != false
-    val pillImmersive = event.download?.let { it.pillShowProgress && it.pillImmersiveProgress } == true &&
-        event.progressData != null && !isStickToCamera && !satelliteSharing
+    val musicProgress = nowPlaying?.progress?.takeIf { event.media?.showProgress == true && it.durationMs > 0L }
+    var musicProgressFraction by remember(event.id, musicProgress?.durationMs) {
+        mutableFloatStateOf(musicProgress?.fractionAt(SystemClock.elapsedRealtime())?.coerceIn(0f, 1f) ?: 0f)
+    }
+    LaunchedEffect(event.id, musicProgress?.durationMs, musicProgress?.speed) {
+        while (true) {
+            val current = nowPlaying?.progress ?: break
+            musicProgressFraction = current.fractionAt(SystemClock.elapsedRealtime())?.coerceIn(0f, 1f) ?: musicProgressFraction
+            if (current.speed <= 0f) break
+            delay(250L)
+        }
+    }
+    val downloadImmersive = event.download?.let { it.pillShowProgress && it.pillImmersiveProgress } == true &&
+        event.progressData != null
+    val musicImmersive = musicSettings.showProgress && musicSettings.immersiveProgress && musicProgress != null
+    val pillImmersive = (downloadImmersive || musicImmersive) && !isStickToCamera && !satelliteSharing
     val pillProgress = event.progressData
     val pillFraction = pillProgress?.takeIf { !it.isIndeterminate && it.max > 0 }
         ?.let { (it.current.toFloat() / it.max).coerceIn(0f, 1f) } ?: 0f
@@ -91,11 +105,12 @@ fun CollapsedContent(
         label = "pillImmersiveProgressFraction",
     )
     val animatedPillFraction by animateFloatAsState(pillFraction, label = "pillImmersiveProgressDeterminate")
-    val pillDisplayFraction = if (pillProgress?.isIndeterminate == true || (pillProgress?.max ?: 0) <= 0) pillIndeterminateFraction else animatedPillFraction
-    val pillProgressColor = event.download?.pillProgressColor?.resolve()
-        ?: event.download?.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary
-    val pillTrackColor = event.download?.pillTrackColor?.resolve()
-        ?: event.download?.trackColor?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHighest
+    val downloadDisplayFraction = if (pillProgress?.isIndeterminate == true || (pillProgress?.max ?: 0) <= 0) pillIndeterminateFraction else animatedPillFraction
+    val pillDisplayFraction = if (musicImmersive) musicProgressFraction else downloadDisplayFraction
+    val pillProgressColor = if (musicImmersive) musicSettings.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary
+        else event.download?.pillProgressColor?.resolve() ?: event.download?.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary
+    val pillTrackColor = if (musicImmersive) musicSettings.progressTrackColor?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHighest
+        else event.download?.pillTrackColor?.resolve() ?: event.download?.trackColor?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHighest
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Keep immersive progress in its own first-drawn layer. A sibling Canvas is
@@ -209,7 +224,7 @@ fun CollapsedContent(
         }
 
         if (event.progressData != null && event.download?.pillShowProgress != false &&
-            event.download?.pillImmersiveProgress != true &&
+            !pillImmersive &&
             !isStickToCamera && !hideSatelliteIndicators
         ) {
             val progress = event.progressData
