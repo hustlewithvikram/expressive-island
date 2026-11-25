@@ -471,6 +471,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setDownloadProgressColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setProgressColor(color) }
     fun setDownloadTrackColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setTrackColor(color) }
     fun setDownloadPillShowProgress(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setPillShowProgress(enabled) }
+    fun setDownloadPillImmersiveProgress(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setPillImmersiveProgress(enabled) }
     fun setDownloadPillProgressColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setPillProgressColor(color) }
     fun setDownloadPillTrackColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setPillTrackColor(color) }
     fun setDownloadActionButtonColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setActionButtonColor(color) }
