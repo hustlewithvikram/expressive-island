@@ -1,6 +1,5 @@
 package com.vikram.expressiveisland.receiver
 
-import android.accessibilityservice.AccessibilityService
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
@@ -10,7 +9,6 @@ import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import com.vikram.expressiveisland.service.CutoutAccessibilityService
 import com.vikram.expressiveisland.service.CutoutNotificationListenerService
-import android.provider.Settings
 
 /**
  * Requests the system-bound services to reconnect after a reboot or app replacement.
@@ -31,27 +29,9 @@ class ServiceRecoveryReceiver : BroadcastReceiver() {
     private fun recoverSystemServices(context: Context) {
         val packageName = context.packageName
 
-        val enabledAccessibilityServices = Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-        ).orEmpty()
-        val accessibilityComponent = ComponentName(
-            context,
-            CutoutAccessibilityService::class.java,
-        ).flattenToString()
-        val accessibilityEnabled = enabledAccessibilityServices
-            .split(':')
-            .any { it.equals(accessibilityComponent, ignoreCase = true) }
-
-        if (accessibilityEnabled) {
-            runCatching {
-                AccessibilityService.requestRebind(
-                    ComponentName(context, CutoutAccessibilityService::class.java),
-                )
-            }.onFailure {
-                Log.w(TAG, "Could not request accessibility service rebind", it)
-            }
-        }
+        // AccessibilityService instances are rebound by Android itself when the user
+        // has kept the service enabled. Unlike NotificationListenerService, there is no
+        // public requestRebind API for AccessibilityService.
 
         val notificationAccessEnabled =
             NotificationManagerCompat.getEnabledListenerPackages(context)
