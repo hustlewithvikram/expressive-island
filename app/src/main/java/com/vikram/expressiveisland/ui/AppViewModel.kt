@@ -1015,6 +1015,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         musicTilePreferences.setProgressStyle(style)
     }
 
+    fun setMusicImmersiveProgress(enabled: Boolean) = viewModelScope.launch {
+        musicTilePreferences.setImmersiveProgress(enabled)
+    }
+
+    fun setMusicProgressColor(color: CutoutColor?) = viewModelScope.launch {
+        musicTilePreferences.setProgressColor(color)
+    }
+
+    fun setMusicProgressTrackColor(color: CutoutColor?) = viewModelScope.launch {
+        musicTilePreferences.setProgressTrackColor(color)
+    }
+
     fun setMusicShowVisualizer(enabled: Boolean) = viewModelScope.launch {
         musicTilePreferences.setShowVisualizer(enabled)
     }
