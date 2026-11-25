@@ -170,6 +170,7 @@ data class DownloadTileOptions(
     val showPauseResume: Boolean = true,
     val showCancel: Boolean = true,
     val pillShowProgress: Boolean = true,
+    val pillImmersiveProgress: Boolean = false,
     val pillProgressColor: CutoutColor? = null,
     val pillTrackColor: CutoutColor? = null,
     val actionButtonColor: CutoutColor? = null,
