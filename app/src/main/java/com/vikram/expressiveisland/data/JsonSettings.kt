@@ -34,6 +34,8 @@ object JsonSettings {
     const val MUSIC_TILE = "musicTile"
     const val PHONE_TILE = "phoneTile"
     const val TIMER_TILE = "timerTile"
+    const val SATELLITE_RING = "satelliteRing"
+    const val ASSISTANT_INTEGRATION = "assistantIntegration"
     const val DOWNLOAD_TILE = "downloadTile"
     const val ASSISTANT_TILE = "assistantTile"
     const val APPS = "apps"
