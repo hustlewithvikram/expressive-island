@@ -79,8 +79,32 @@ fun CollapsedContent(
     val badgeSize = (heightDp * 0.72f).dp
     val showIconProgressRing = satelliteSharing && !ringSettings.enabled &&
         (event.media != null || event.progressData != null) && event.download?.pillShowProgress != false
+    val pillImmersive = event.download?.let { it.pillShowProgress && it.pillImmersiveProgress } == true &&
+        event.progressData != null && !isStickToCamera && !satelliteSharing
+    val pillProgress = event.progressData
+    val pillFraction = pillProgress?.takeIf { !it.isIndeterminate && it.max > 0 }
+        ?.let { (it.current.toFloat() / it.max).coerceIn(0f, 1f) } ?: 0f
+    val pillIndeterminate = rememberInfiniteTransition(label = "pillImmersiveProgress")
+    val pillIndeterminateFraction by pillIndeterminate.animateFloat(
+        initialValue = 0.08f, targetValue = 0.92f,
+        animationSpec = infiniteRepeatable(tween(1800), repeatMode = RepeatMode.Reverse),
+        label = "pillImmersiveProgressFraction",
+    )
+    val animatedPillFraction by animateFloatAsState(pillFraction, label = "pillImmersiveProgressDeterminate")
+    val pillDisplayFraction = if (pillProgress?.isIndeterminate == true || (pillProgress?.max ?: 0) <= 0) pillIndeterminateFraction else animatedPillFraction
+    val pillProgressColor = event.download?.pillProgressColor?.resolve()
+        ?: event.download?.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary
+    val pillTrackColor = event.download?.pillTrackColor?.resolve()
+        ?: event.download?.trackColor?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHighest
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().then(if (pillImmersive) Modifier.drawBehind {
+        drawRoundRect(pillTrackColor, cornerRadius = CornerRadius(size.height / 2f))
+        drawRoundRect(
+            color = pillProgressColor.copy(alpha = 0.92f),
+            size = Size(size.width * pillDisplayFraction, size.height),
+            cornerRadius = CornerRadius(size.height / 2f),
+        )
+    } else Modifier)) {
         val placement = Modifier
             .align(if (isStickToCamera) Alignment.BottomCenter else Alignment.CenterStart)
             .padding(
@@ -175,6 +199,7 @@ fun CollapsedContent(
         }
 
         if (event.progressData != null && event.download?.pillShowProgress != false &&
+            event.download?.pillImmersiveProgress != true &&
             !isStickToCamera && !hideSatelliteIndicators
         ) {
             val progress = event.progressData
