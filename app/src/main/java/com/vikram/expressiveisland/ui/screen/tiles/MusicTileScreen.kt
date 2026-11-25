@@ -210,11 +210,27 @@ internal fun MusicTileScreen(
             )
             AnimatedVisibility(visible = settings.showProgress) {
                 SettingsToggleCard(
-                    shape = groupShape(GroupPosition.LAST),
-                    title = "Collapsed immersive progress",
-                    description = "Fill the collapsed music pill with the playback progress track",
+                    shape = groupShape(GroupPosition.FIRST),
+                    title = "Immersive progress",
+                    description = "Use the playback progress as the collapsed pill background",
                     checked = settings.collapsedImmersiveProgress,
                     onCheckedChange = viewModel::setMusicCollapsedImmersiveProgress,
+                )
+                ColorPickerCard(
+                    label = "Progress color",
+                    selected = settings.progressColor,
+                    onSelect = viewModel::setMusicProgressColor,
+                    defaultLabel = "Use theme accent",
+                    defaultColor = MaterialTheme.colorScheme.primary,
+                    shape = groupShape(GroupPosition.MIDDLE),
+                )
+                ColorPickerCard(
+                    label = "Track color",
+                    selected = settings.progressTrackColor,
+                    onSelect = viewModel::setMusicProgressTrackColor,
+                    defaultLabel = "Use theme surface",
+                    defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    shape = groupShape(GroupPosition.LAST),
                 )
             }
         }
@@ -557,9 +573,9 @@ internal fun MusicTileScreen(
             AnimatedVisibility(visible = settings.showProgress) {
                 Column(verticalArrangement = Arrangement.spacedBy(GROUP_CARD_SPACING)) {
                     SettingsToggleCard(
-                        shape = groupShape(GroupPosition.FIRST),
-                        title = "Expanded immersive progress",
-                        description = "Use the progress track as the expanded music player background",
+                        shape = groupShape(GroupPosition.MIDDLE),
+                        title = "Immersive progress",
+                        description = "Use the playback progress as the expanded player background",
                         checked = settings.expandedImmersiveProgress,
                         onCheckedChange = viewModel::setMusicExpandedImmersiveProgress,
                     )
