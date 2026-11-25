@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.core.IslandPreviewContent
 import com.vikram.expressiveisland.overlay.MaterialIconCatalog
+import com.vikram.expressiveisland.overlay.toImageBitmap
 import com.vikram.expressiveisland.overlay.island.IslandReply
 import com.vikram.expressiveisland.overlay.island.DownloadTileOptions
 import com.vikram.expressiveisland.data.MusicTileSettings
@@ -119,7 +120,7 @@ internal object PreviewRenderer {
             iconContainerColor = when (category) {
                 IslandPreviewCategory.PHONE_TILE -> phoneSettings.iconContainerColor
                 IslandPreviewCategory.TIMER_TILE -> timerSettings.iconContainerColor
-                IslandPreviewCategory.DOWNLOAD_TILE -> downloadSettings.iconContainerColor
+                IslandPreviewCategory.DOWNLOAD_TILE -> if (downloadSettings.showAppIcon) null else downloadSettings.iconContainerColor
                 else -> null
             },
             media = if (category == IslandPreviewCategory.MUSIC_TILE) MediaTileOptions(

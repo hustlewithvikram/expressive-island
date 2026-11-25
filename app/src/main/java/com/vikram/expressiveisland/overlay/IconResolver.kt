@@ -349,7 +349,7 @@ class IconResolver(private val context: Context) {
             label = title ?: context.getString(DynamicTile.DOWNLOAD.labelRes),
             detail = signal.text?.takeIf { settings.showText && it.isNotBlank() },
             accent = Color(DynamicTile.DOWNLOAD.accent),
-            iconContainerColor = settings.iconContainerColor,
+            iconContainerColor = if (settings.showAppIcon) null else settings.iconContainerColor,
             contentIntent = signal.contentIntent,
             progressData = signal.progressData,
             download = DownloadTileOptions(
