@@ -98,8 +98,13 @@ internal object PreviewRenderer {
         return IslandEvent(
             id = -1L,
             icon = if (category == IslandPreviewCategory.DOWNLOAD_TILE) {
-                (downloadSettings.icon as? IconSource.Material)?.let { MaterialIconCatalog.iconFor(it.iconName) }
-                    ?.let(IslandIcon::Vector) ?: IslandIcon.Vector(iconFor(category))
+                val appIcon = if (downloadSettings.showAppIcon) runCatching {
+                    IslandIcon.Raster(context.packageManager.getApplicationIcon(context.packageName).toImageBitmap())
+                }.getOrNull() else null
+                appIcon
+                    ?: (downloadSettings.icon as? IconSource.Material)?.let { MaterialIconCatalog.iconFor(it.iconName) }
+                        ?.let(IslandIcon::Vector)
+                    ?: IslandIcon.Vector(iconFor(category))
             } else IslandIcon.Vector(iconFor(category)),
             label = content.label,
             detail = content.detail,
@@ -145,6 +150,7 @@ internal object PreviewRenderer {
             download = if (category == IslandPreviewCategory.DOWNLOAD_TILE) DownloadTileOptions(
                 showText = downloadSettings.showText,
                 showPercentage = downloadSettings.showPercentage,
+                showAppIcon = downloadSettings.showAppIcon,
                 showProgress = downloadSettings.showProgress,
                 progressStyle = downloadSettings.progressStyle,
                 progressColor = downloadSettings.progressColor,
@@ -152,6 +158,10 @@ internal object PreviewRenderer {
                 immersiveProgress = downloadSettings.immersiveProgress,
                 showPauseResume = downloadSettings.showPauseResume,
                 showCancel = downloadSettings.showCancel,
+                pillShowProgress = downloadSettings.pillShowProgress,
+                pillProgressColor = downloadSettings.pillProgressColor,
+                pillTrackColor = downloadSettings.pillTrackColor,
+                actionButtonColor = downloadSettings.actionButtonColor,
                 pillProgressStyle = downloadSettings.pillProgressStyle,
             ) else null,
             progressData = if (category == IslandPreviewCategory.DOWNLOAD_TILE) {

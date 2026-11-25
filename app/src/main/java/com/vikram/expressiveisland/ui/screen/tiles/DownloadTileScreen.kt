@@ -82,59 +82,61 @@ internal fun DownloadTileScreen(
         ) {
             SettingsToggleCard(
                 shape = RoundedCornerShape(24.dp),
-                title = "Use downloading app icon",
-                description = "Show the source app's launcher icon instead of the custom icon",
+                title = "Use app icon",
+                description = "Use the downloading app's launcher icon. Custom icon and background options are hidden while enabled.",
                 checked = settings.showAppIcon,
                 onCheckedChange = viewModel::setDownloadShowAppIcon,
             )
-            Row(
-                modifier = Modifier.fillMaxWidth().clickable { showIconPicker = true },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Icon(
-                    imageVector = selectedIcon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(30.dp),
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Choose icon", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Select a Material icon for the download tile",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                VerticalDivider(
-                    modifier = Modifier.height(38.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                )
-                IconButton(
-                    onClick = {
-                        viewModel.setDownloadIcon(null)
-                        resetRotation += 360f
-                    },
+            if (!settings.showAppIcon) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { showIconPicker = true },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Reset download icon",
+                        imageVector = selectedIcon,
+                        contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.rotate(resetRotationAnimated),
+                        modifier = Modifier.size(30.dp),
                     )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Choose icon", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Select a Material icon for the download tile",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    VerticalDivider(
+                        modifier = Modifier.height(38.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                    IconButton(
+                        onClick = {
+                            viewModel.setDownloadIcon(null)
+                            resetRotation += 360f
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Reset download icon",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.rotate(resetRotationAnimated),
+                        )
+                    }
                 }
+                ColorPickerCard(
+                    label = "Icon background",
+                    selected = settings.iconContainerColor,
+                    onSelect = viewModel::setDownloadIconContainerColor,
+                    defaultLabel = "Download accent",
+                    defaultColor = Color(DynamicTile.DOWNLOAD.accent),
+                )
             }
-            ColorPickerCard(
-                label = "Icon background",
-                selected = settings.iconContainerColor,
-                onSelect = viewModel::setDownloadIconContainerColor,
-                defaultLabel = "Download accent",
-                defaultColor = Color(DynamicTile.DOWNLOAD.accent),
-            )
         }
 
         ExpressiveSegmentedRow(
-            options = listOf("Expanded", "Collapsed pill", "Actions"),
+            options = listOf("Expanded", "Pill", "Actions"),
             selectedIndex = selectedSection,
             onSelect = { selectedSection = it },
             modifier = Modifier.fillMaxWidth(),
@@ -207,8 +209,8 @@ internal fun DownloadTileScreen(
             }
         } else if (selectedSection == 1) {
             DownloadSettingsGroup(
-                title = "Collapsed pill",
-                description = "Configure the compact progress indicator independently",
+                title = "Pill progress",
+                description = "Control the compact indicator independently from expanded progress",
             ) {
                 SettingsToggleCard(
                     shape = RoundedCornerShape(24.dp),
@@ -247,8 +249,8 @@ internal fun DownloadTileScreen(
             }
         } else {
             DownloadSettingsGroup(
-                title = "Download actions",
-                description = "Show notification-provided controls when the source app supports them",
+                title = "Action buttons",
+                description = "Choose which notification controls appear and how they are tinted",
             ) {
                 SettingsToggleCard(
                     shape = RoundedCornerShape(24.dp),

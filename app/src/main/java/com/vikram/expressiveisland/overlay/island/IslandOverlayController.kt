@@ -1126,19 +1126,33 @@ class IslandOverlayController(private val context: Context) {
             refreshPinnedPreview()
             val current = currentEvent.value
             if (current?.download != null) {
-                val icon = (settings.icon as? IconSource.Material)?.let { source ->
+                val customIcon = (settings.icon as? IconSource.Material)?.let { source ->
                     MaterialIconCatalog.iconFor(source.iconName)?.let(IslandIcon::Vector)
-                } ?: IslandIcon.Vector(DynamicTile.DOWNLOAD.defaultIcon)
+                }
+                val appIcon = if (settings.showAppIcon) current.packageName?.let { packageName ->
+                    runCatching {
+                        IslandIcon.Raster(context.packageManager.getApplicationIcon(packageName).toImageBitmap())
+                    }.getOrNull()
+                } else null
                 val updated = current.copy(
-                    icon = icon,
-                    iconContainerColor = settings.iconContainerColor,
+                    icon = appIcon ?: customIcon ?: IslandIcon.Vector(DynamicTile.DOWNLOAD.defaultIcon),
+                    iconContainerColor = if (settings.showAppIcon) null else settings.iconContainerColor,
                     download = current.download.copy(
                         showText = settings.showText,
                         showPercentage = settings.showPercentage,
+                        showAppIcon = settings.showAppIcon,
                         showProgress = settings.showProgress,
+                        immersiveProgress = settings.immersiveProgress,
                         progressStyle = settings.progressStyle,
                         progressColor = settings.progressColor,
                         trackColor = settings.trackColor,
+                        showPauseResume = settings.showPauseResume,
+                        showCancel = settings.showCancel,
+                        pillShowProgress = settings.pillShowProgress,
+                        pillProgressStyle = settings.pillProgressStyle,
+                        pillProgressColor = settings.pillProgressColor,
+                        pillTrackColor = settings.pillTrackColor,
+                        actionButtonColor = settings.actionButtonColor,
                     ),
                 )
                 currentEvent.value = updated
