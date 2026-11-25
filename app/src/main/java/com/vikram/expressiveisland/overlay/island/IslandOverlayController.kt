@@ -1611,7 +1611,8 @@ class IslandOverlayController(private val context: Context) {
         val centerX =
             viewWidth / 2 + (dims.offsetXDp * density).toInt() + satelliteShiftPx(satelliteSplitDp())
         val topPx = (dims.offsetYDp * density).toInt()
-        val bottomPx = ((dims.offsetYDp + dims.heightDp + bonusDp) * density).toInt()
+        val mediaExtraDp = if (expanded && currentEvent.value?.media != null) 20 else 0
+        val bottomPx = ((dims.offsetYDp + dims.heightDp + bonusDp + mediaExtraDp) * density).toInt()
         return Rect(
             (centerX - pillWidthPx / 2 - margin).coerceAtLeast(0),
             (topPx - margin).coerceAtLeast(0),
@@ -1647,7 +1648,11 @@ class IslandOverlayController(private val context: Context) {
             return ((islandLengthDp + TOUCH_MARGIN_DP * 2) * density).toInt()
         }
         val bonus = currentHeightBonusDp(expanded)
-        return ((dims.offsetYDp + dims.heightDp + bonus + WINDOW_MARGIN_DP) * density).toInt()
+        // MediaExpandedContent has a 20dp visual breathing margin beyond its configured
+        // expanded dimensions. Reserve it in the host window too, otherwise the expanding
+        // music surface is clipped by the overlay window during the final part of the morph.
+        val mediaExtraDp = if (expanded && currentEvent.value?.media != null) 20 else 0
+        return ((dims.offsetYDp + dims.heightDp + bonus + mediaExtraDp + WINDOW_MARGIN_DP) * density).toInt()
     }
 
     /** Wide enough for whichever state is widest — used for the initial, safe window size. */
