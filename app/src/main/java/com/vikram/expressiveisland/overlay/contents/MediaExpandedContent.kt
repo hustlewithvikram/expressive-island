@@ -116,7 +116,7 @@ fun MediaExpandedContent(
     }
     val displayedProgress = nowPlaying?.progress
         ?: previewProgress.takeIf { event.media?.previewPlaying == true }
-    val immersiveProgress = musicSettings.showProgress && musicSettings.immersiveProgress &&
+    val immersiveProgress = musicSettings.showProgress && musicSettings.expandedImmersiveProgress &&
         event.media?.showProgress == true && displayedProgress?.durationMs?.let { it > 0L } == true
     val latestDisplayedProgress by rememberUpdatedState(displayedProgress)
     var immersiveFraction by remember(event.id, displayedProgress?.durationMs) {
@@ -139,12 +139,12 @@ fun MediaExpandedContent(
             Canvas(modifier = Modifier.fillMaxSize()) {
                 drawRoundRect(
                     color = progressTrackColor,
-                    cornerRadius = CornerRadius(size.height / 2f),
+                    cornerRadius = CornerRadius(32.dp.toPx()),
                 )
                 drawRoundRect(
                     color = progressColor,
                     size = Size(size.width * immersiveFraction, size.height),
-                    cornerRadius = CornerRadius(size.height / 2f),
+                    cornerRadius = CornerRadius(32.dp.toPx()),
                 )
             }
         }
