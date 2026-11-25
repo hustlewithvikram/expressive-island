@@ -75,10 +75,10 @@ internal fun IslandPreviewSpacer() {
     val expanded = IslandPreviewBus.expandedPreview.collectAsState().value
     val active = IslandPreviewBus.active.collectAsState().value
     val islandHeightDp = IslandPreviewBus.previewHeightDp.collectAsState().value
-    val reservedHeight by animateDpAsState(
-        targetValue = if (active && expanded) (islandHeightDp * 1.1f).dp else 0.dp,
-        label = "islandPreviewSpacer",
-    )
+    // Reserve the expanded footprint whenever the live preview is active. The preview
+    // island animates independently above this screen; following its expanded/collapsed state
+    // here makes every animation tick relayout the settings page and causes visible vertical jitter.
+    val reservedHeight = if (active) (islandHeightDp * 1.1f).dp else 0.dp
     Spacer(
         modifier = Modifier
             .fillMaxWidth()
