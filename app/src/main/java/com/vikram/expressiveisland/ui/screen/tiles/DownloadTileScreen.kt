@@ -220,6 +220,14 @@ internal fun DownloadTileScreen(
                     onCheckedChange = viewModel::setDownloadPillShowProgress,
                 )
                 if (settings.pillShowProgress) {
+                    SettingsToggleCard(
+                        shape = RoundedCornerShape(24.dp),
+                        title = "Immersive progress",
+                        description = "Fill the collapsed pill with the download progress",
+                        checked = settings.pillImmersiveProgress,
+                        onCheckedChange = viewModel::setDownloadPillImmersiveProgress,
+                    )
+                    if (!settings.pillImmersiveProgress) {
                     Text("Pill progress style", style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 4.dp, top = 6.dp))
@@ -231,6 +239,7 @@ internal fun DownloadTileScreen(
                         scrollable = true,
                         allowFullLabels = true,
                     )
+                    }
                     ColorPickerCard(
                         label = "Pill progress colour",
                         selected = settings.pillProgressColor,
