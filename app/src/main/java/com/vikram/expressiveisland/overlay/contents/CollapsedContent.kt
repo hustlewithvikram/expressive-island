@@ -78,7 +78,7 @@ fun CollapsedContent(
     val callPhoto = event.call?.takeIf { it.showPhoto }?.let { onCall?.photo }
     val badgeSize = (heightDp * 0.72f).dp
     val showIconProgressRing = satelliteSharing && !ringSettings.enabled &&
-        (event.media != null || event.progressData != null) && event.download?.showProgress != false
+        (event.media != null || event.progressData != null) && event.download?.pillShowProgress != false
 
     Box(modifier = Modifier.fillMaxSize()) {
         val placement = Modifier
@@ -193,10 +193,19 @@ fun CollapsedContent(
             val trailing = Modifier.align(Alignment.CenterEnd)
                 .padding(end = (heightDp * 0.24f).dp + trailingInsetDp.dp)
             when (style) {
-                DownloadPillProgressStyle.CIRCULAR -> CircularProgressIndicator(
-                    progress = { animatedFraction }, modifier = trailing.size((heightDp * 0.5f).dp),
-                    color = progressColor, trackColor = trackColor, strokeWidth = (heightDp * 0.06f).dp,
-                )
+                DownloadPillProgressStyle.CIRCULAR -> if (progress.isIndeterminate) {
+                    CircularProgressIndicator(
+                        modifier = trailing.size((heightDp * 0.5f).dp),
+                        color = progressColor, trackColor = trackColor,
+                        strokeWidth = (heightDp * 0.06f).dp,
+                    )
+                } else {
+                    CircularProgressIndicator(
+                        progress = { animatedFraction }, modifier = trailing.size((heightDp * 0.5f).dp),
+                        color = progressColor, trackColor = trackColor,
+                        strokeWidth = (heightDp * 0.06f).dp,
+                    )
+                }
                 DownloadPillProgressStyle.PERCENTAGE -> if (!progress.isIndeterminate && progress.max > 0) {
                     Text(text = "${(fraction * 100f).toInt().coerceIn(0, 100)}%",
                         color = LocalContentColor.current, fontSize = (heightDp * 0.27f).sp,
