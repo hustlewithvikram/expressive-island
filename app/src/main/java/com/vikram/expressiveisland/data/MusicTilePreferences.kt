@@ -72,6 +72,9 @@ data class MusicTileSettings(
     val playPauseIconColor: CutoutColor? = DEFAULT_CONTROL_ICON_COLOR,
     val seekIconColor: CutoutColor? = DEFAULT_CONTROL_ICON_COLOR,
     val showProgress: Boolean = DEFAULT_SHOW_PROGRESS,
+    val immersiveProgress: Boolean = false,
+    val progressColor: CutoutColor? = null,
+    val progressTrackColor: CutoutColor? = null,
     val progressStyle: MusicProgressStyle = MusicProgressStyle.WAVY,
     val showVisualizer: Boolean = true,
     val seekButtonMode: SeekButtonMode = SeekButtonMode.BOTH,
@@ -128,6 +131,9 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             playPauseIconColor = CutoutColor.deserialize(prefs[PLAY_PAUSE_ICON_COLOR]) ?: MusicTileSettings.DEFAULT_CONTROL_ICON_COLOR,
             seekIconColor = CutoutColor.deserialize(prefs[SEEK_ICON_COLOR]) ?: MusicTileSettings.DEFAULT_CONTROL_ICON_COLOR,
             showProgress = prefs[SHOW_PROGRESS] ?: MusicTileSettings.DEFAULT_SHOW_PROGRESS,
+            immersiveProgress = prefs[IMMERSIVE_PROGRESS] ?: false,
+            progressColor = CutoutColor.deserialize(prefs[PROGRESS_COLOR]),
+            progressTrackColor = CutoutColor.deserialize(prefs[PROGRESS_TRACK_COLOR]),
             progressStyle = runCatching { MusicProgressStyle.valueOf(prefs[PROGRESS_STYLE] ?: MusicProgressStyle.WAVY.name) }.getOrDefault(MusicProgressStyle.WAVY),
             showVisualizer = prefs[SHOW_VISUALIZER] ?: true,
             seekButtonMode = runCatching { SeekButtonMode.valueOf(prefs[SEEK_BUTTON_MODE] ?: SeekButtonMode.BOTH.name) }.getOrDefault(SeekButtonMode.BOTH),
@@ -162,6 +168,9 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             put("visibleInPlayerApp", s.visibleInPlayerApp)
             put("showControls", s.showControls)
             put("showProgress", s.showProgress)
+            put("immersiveProgress", s.immersiveProgress)
+            put("progressColor", s.progressColor?.serialize() ?: JSONObject.NULL)
+            put("progressTrackColor", s.progressTrackColor?.serialize() ?: JSONObject.NULL)
             put("progressStyle", s.progressStyle.name)
             put("showVisualizer", s.showVisualizer)
             put("seekButtonMode", s.seekButtonMode.name)
@@ -198,6 +207,16 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
             if (obj.has("visibleInPlayerApp")) prefs[VISIBLE_IN_PLAYER_APP] = obj.getBoolean("visibleInPlayerApp")
             if (obj.has("showControls")) prefs[SHOW_CONTROLS] = obj.getBoolean("showControls")
             if (obj.has("showProgress")) prefs[SHOW_PROGRESS] = obj.getBoolean("showProgress")
+            if (obj.has("immersiveProgress")) prefs[IMMERSIVE_PROGRESS] = obj.getBoolean("immersiveProgress")
+            fun applyProgressColor(name: String, key: Preferences.Key<String>) {
+                if (obj.has(name)) {
+                    val raw = if (obj.isNull(name)) null else obj.optString(name)
+                    val color = CutoutColor.deserialize(raw)
+                    if (color == null) prefs.remove(key) else prefs[key] = color.serialize()
+                }
+            }
+            applyProgressColor("progressColor", PROGRESS_COLOR)
+            applyProgressColor("progressTrackColor", PROGRESS_TRACK_COLOR)
             if (obj.has("progressStyle")) prefs[PROGRESS_STYLE] = runCatching { MusicProgressStyle.valueOf(obj.getString("progressStyle")).name }.getOrDefault(MusicProgressStyle.WAVY.name)
             if (obj.has("showVisualizer")) prefs[SHOW_VISUALIZER] = obj.getBoolean("showVisualizer")
             if (obj.has("seekButtonMode")) prefs[SEEK_BUTTON_MODE] = runCatching { SeekButtonMode.valueOf(obj.getString("seekButtonMode")).name }.getOrDefault(SeekButtonMode.BOTH.name)
@@ -266,6 +285,9 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
     suspend fun setPlayPauseColor(color: CutoutColor?) = context.musicTileDataStore.edit { if (color == null) it.remove(PLAY_PAUSE_COLOR) else it[PLAY_PAUSE_COLOR] = color.serialize() }
     suspend fun setPlayPauseOpacity(opacity: Float) = context.musicTileDataStore.edit { it[PLAY_PAUSE_OPACITY] = opacity.coerceIn(0f, 1f) }
     suspend fun setShowProgress(enabled: Boolean) = context.musicTileDataStore.edit { it[SHOW_PROGRESS] = enabled }
+    suspend fun setImmersiveProgress(enabled: Boolean) = context.musicTileDataStore.edit { it[IMMERSIVE_PROGRESS] = enabled }
+    suspend fun setProgressColor(color: CutoutColor?) = context.musicTileDataStore.edit { if (color == null) it.remove(PROGRESS_COLOR) else it[PROGRESS_COLOR] = color.serialize() }
+    suspend fun setProgressTrackColor(color: CutoutColor?) = context.musicTileDataStore.edit { if (color == null) it.remove(PROGRESS_TRACK_COLOR) else it[PROGRESS_TRACK_COLOR] = color.serialize() }
     suspend fun setProgressStyle(style: MusicProgressStyle) = context.musicTileDataStore.edit { it[PROGRESS_STYLE] = style.name }
     suspend fun setShowVisualizer(enabled: Boolean) = context.musicTileDataStore.edit { it[SHOW_VISUALIZER] = enabled }
     suspend fun setSeekButtonMode(mode: SeekButtonMode) = context.musicTileDataStore.edit { it[SEEK_BUTTON_MODE] = mode.name }
@@ -312,6 +334,9 @@ class MusicTilePreferences(private val context: Context) : JsonSerializable {
         val PLAY_PAUSE_CORNER = intPreferencesKey("play_pause_button_corner_percent")
         val PLAY_PAUSE_FILLED = booleanPreferencesKey("play_pause_button_filled")
         val SHOW_PROGRESS = booleanPreferencesKey("show_current_progress")
+        val IMMERSIVE_PROGRESS = booleanPreferencesKey("music_immersive_progress")
+        val PROGRESS_COLOR = stringPreferencesKey("music_progress_color")
+        val PROGRESS_TRACK_COLOR = stringPreferencesKey("music_progress_track_color")
         val PROGRESS_STYLE = stringPreferencesKey("music_progress_style")
         val SHOW_VISUALIZER = booleanPreferencesKey("show_music_visualizer")
         val SHOW_PLAY_PAUSE_ICON = booleanPreferencesKey("music_show_play_pause_icon")
