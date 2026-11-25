@@ -630,6 +630,12 @@ class IslandOverlayController(private val context: Context) {
             !shouldHide && overlayHidden -> {
                 overlayHidden = false
                 addOverlay()
+                // Foreground-app changes and music settings updates are intentionally ignored
+                // while the overlay window is detached. Re-evaluate both app-specific hide
+                // policies before restoring a live tile, otherwise a stale hidden flag can
+                // leave the island empty until the next accessibility event.
+                applyPlayerAppVisibility()
+                applyPhoneAppVisibility()
                 syncWindowSize()
                 restoreActiveState()
             }
@@ -2056,6 +2062,14 @@ class IslandOverlayController(private val context: Context) {
                 previewPinned = pinned
                 previewExpanded = expandedTab
                 refreshPreviewSatellite()
+                if (!pinned) {
+                    // While a settings preview owns the island, app-visibility updates are
+                    // deferred. Reconcile them as soon as the preview releases the surface;
+                    // otherwise changing any music option during preview can leave the real
+                    // music tile cleared with no subsequent foreground event to restore it.
+                    applyPlayerAppVisibility()
+                    applyPhoneAppVisibility()
+                }
                 val isNoExpandLandscape =
                     currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
                             (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
