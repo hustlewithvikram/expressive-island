@@ -160,6 +160,7 @@ internal object PreviewRenderer {
                 showPauseResume = downloadSettings.showPauseResume,
                 showCancel = downloadSettings.showCancel,
                 pillShowProgress = downloadSettings.pillShowProgress,
+                pillImmersiveProgress = downloadSettings.pillImmersiveProgress,
                 pillProgressColor = downloadSettings.pillProgressColor,
                 pillTrackColor = downloadSettings.pillTrackColor,
                 actionButtonColor = downloadSettings.actionButtonColor,
