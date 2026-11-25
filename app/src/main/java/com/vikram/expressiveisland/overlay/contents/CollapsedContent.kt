@@ -79,7 +79,7 @@ fun CollapsedContent(
     val badgeSize = (heightDp * 0.72f).dp
     val showIconProgressRing = satelliteSharing && !ringSettings.enabled &&
         (event.media != null || event.progressData != null) && event.download?.pillShowProgress != false
-    val musicProgress = nowPlaying?.progress?.takeIf { event.media?.showProgress == true && it.durationMs > 0L }
+    val musicProgress = nowPlaying?.progress?.takeIf { event.media?.showProgress == true && it.durationMs?.let { duration -> duration > 0L } == true }
     var musicProgressFraction by remember(event.id, musicProgress?.durationMs) {
         mutableFloatStateOf(musicProgress?.fractionAt(SystemClock.elapsedRealtime())?.coerceIn(0f, 1f) ?: 0f)
     }
