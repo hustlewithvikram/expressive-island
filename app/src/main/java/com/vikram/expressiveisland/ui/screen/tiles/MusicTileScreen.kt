@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen.tiles
 
+import android.widget.Toast
 import android.R.attr.checked
 import android.R.attr.description
 import androidx.compose.animation.AnimatedVisibility
@@ -69,6 +70,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -147,6 +149,7 @@ internal fun MusicTileScreen(
     contentPadding: PaddingValues,
 ) {
     val settings by viewModel.musicTile.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(MusicSettingsTab.SHRINKED) }
     var selectedButtonSettingsTab by remember { mutableStateOf(MusicButtonSettingsTab.PLAY_PAUSE) }
     var progressStyleDialog by remember { mutableStateOf(false) }
@@ -196,6 +199,26 @@ internal fun MusicTileScreen(
         // =====================================================================
 
         if (selectedTab == MusicSettingsTab.SHRINKED) {
+        SectionLabel("Playback Display")
+        SettingsGroup {
+            SettingsToggleCard(
+                shape = groupShape(if (settings.showProgress) GroupPosition.FIRST else GroupPosition.ONLY),
+                title = stringResource(R.string.music_progress_title),
+                description = stringResource(R.string.music_progress_description),
+                checked = settings.showProgress,
+                onCheckedChange = viewModel::setMusicShowProgress,
+            )
+            AnimatedVisibility(visible = settings.showProgress) {
+                SettingsToggleCard(
+                    shape = groupShape(GroupPosition.LAST),
+                    title = "Collapsed immersive progress",
+                    description = "Fill the collapsed music pill with the playback progress track",
+                    checked = settings.collapsedImmersiveProgress,
+                    onCheckedChange = viewModel::setMusicCollapsedImmersiveProgress,
+                )
+            }
+        }
+
         SectionLabel("Album Art")
 
         SettingsGroup {
@@ -290,7 +313,13 @@ internal fun MusicTileScreen(
                     R.string.music_expanded_background_desc,
                 ),
                 checked = settings.expandedBackground,
-                onCheckedChange = viewModel::setMusicExpandedBackground,
+                onCheckedChange = { enabled ->
+                    if (enabled && settings.expandedImmersiveProgress) {
+                        Toast.makeText(context, "Turn off expanded immersive progress in Music Tile first", Toast.LENGTH_SHORT).show()
+                    } else {
+                        viewModel.setMusicExpandedBackground(enabled)
+                    }
+                },
             )
 
             AnimatedVisibility(
@@ -529,10 +558,10 @@ internal fun MusicTileScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(GROUP_CARD_SPACING)) {
                     SettingsToggleCard(
                         shape = groupShape(GroupPosition.FIRST),
-                        title = "Immersive progress",
-                        description = "Use the progress track as the island background in the pill and expanded player",
-                        checked = settings.immersiveProgress,
-                        onCheckedChange = viewModel::setMusicImmersiveProgress,
+                        title = "Expanded immersive progress",
+                        description = "Use the progress track as the expanded music player background",
+                        checked = settings.expandedImmersiveProgress,
+                        onCheckedChange = viewModel::setMusicExpandedImmersiveProgress,
                     )
                     ColorPickerCard(
                         label = "Progress color",
