@@ -9,12 +9,13 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import org.json.JSONObject
 
 /**
  * Local configuration for the Assistant API integration.
  * API credentials are encrypted with an Android Keystore AES-GCM key before persistence.
  */
-class AssistantIntegrationPreferences(context: Context) {
+class AssistantIntegrationPreferences(context: Context) : JsonSerializable {
     private val prefs = context.applicationContext.getSharedPreferences("assistant_integration", Context.MODE_PRIVATE)
 
     var provider: String
@@ -70,6 +71,42 @@ class AssistantIntegrationPreferences(context: Context) {
     var includeConversationContext: Boolean
         get() = prefs.getBoolean("include_context", true)
         set(value) { prefs.edit().putBoolean("include_context", value).apply() }
+
+
+    /**
+     * Exports provider configuration only. API keys are deliberately excluded because they are
+     * encrypted with a device-bound Android Keystore key and must never be placed in a portable file.
+     */
+    override suspend fun toJson(): String = JSONObject().apply {
+        put("provider", provider)
+        put("selectedProviderId", selectedProviderId)
+        put("endpoint", endpoint)
+        put("model", model)
+        put("maxOutputTokens", maxOutputTokens)
+        put("temperature", temperature.toDouble())
+        put("requestTimeoutSeconds", requestTimeoutSeconds)
+        put("streamResponses", streamResponses)
+        put("includeConversationContext", includeConversationContext)
+    }.toString()
+
+    /**
+     * Restores non-secret provider configuration. Existing encrypted API keys are intentionally
+     * left untouched; restoring to another device requires the user to enter its API key again.
+     */
+    override suspend fun fromJson(json: String) {
+        val obj = JSONObject(json)
+        if (obj.has("selectedProviderId")) selectedProviderId = obj.optString("selectedProviderId")
+        if (obj.has("provider")) provider = obj.optString("provider")
+        if (obj.has("endpoint")) endpoint = obj.optString("endpoint")
+        if (obj.has("model")) model = obj.optString("model")
+        if (obj.has("maxOutputTokens")) maxOutputTokens = obj.optInt("maxOutputTokens", maxOutputTokens)
+        if (obj.has("temperature")) temperature = obj.optDouble("temperature", temperature.toDouble()).toFloat()
+        if (obj.has("requestTimeoutSeconds")) requestTimeoutSeconds = obj.optInt("requestTimeoutSeconds", requestTimeoutSeconds)
+        if (obj.has("streamResponses")) streamResponses = obj.optBoolean("streamResponses", streamResponses)
+        if (obj.has("includeConversationContext")) {
+            includeConversationContext = obj.optBoolean("includeConversationContext", includeConversationContext)
+        }
+    }
 
     var apiKey: String
         get() = getApiKey(selectedProviderId)
