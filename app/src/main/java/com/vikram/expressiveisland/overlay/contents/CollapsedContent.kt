@@ -93,7 +93,7 @@ fun CollapsedContent(
     }
     val downloadImmersive = event.download?.let { it.pillShowProgress && it.pillImmersiveProgress } == true &&
         event.progressData != null
-    val musicImmersive = musicSettings.showProgress && musicSettings.immersiveProgress && musicProgress != null
+    val musicImmersive = musicSettings.showProgress && musicSettings.collapsedImmersiveProgress && musicProgress != null
     val pillImmersive = (downloadImmersive || musicImmersive) && !isStickToCamera && !satelliteSharing
     val pillProgress = event.progressData
     val pillFraction = pillProgress?.takeIf { !it.isIndeterminate && it.max > 0 }
