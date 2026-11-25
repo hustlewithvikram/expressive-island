@@ -1149,6 +1149,7 @@ class IslandOverlayController(private val context: Context) {
                         showPauseResume = settings.showPauseResume,
                         showCancel = settings.showCancel,
                         pillShowProgress = settings.pillShowProgress,
+                        pillImmersiveProgress = settings.pillImmersiveProgress,
                         pillProgressStyle = settings.pillProgressStyle,
                         pillProgressColor = settings.pillProgressColor,
                         pillTrackColor = settings.pillTrackColor,
