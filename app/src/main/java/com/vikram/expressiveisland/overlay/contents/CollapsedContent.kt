@@ -123,7 +123,7 @@ fun CollapsedContent(
                     cornerRadius = CornerRadius(size.height / 2f),
                 )
                 drawRoundRect(
-                    color = pillProgressColor.copy(alpha = 0.78f),
+                    color = if (musicImmersive) pillProgressColor else pillProgressColor.copy(alpha = 0.78f),
                     size = Size(size.width * pillDisplayFraction, size.height),
                     cornerRadius = CornerRadius(size.height / 2f),
                 )
