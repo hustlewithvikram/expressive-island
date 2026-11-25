@@ -50,6 +50,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -114,9 +116,39 @@ fun MediaExpandedContent(
     }
     val displayedProgress = nowPlaying?.progress
         ?: previewProgress.takeIf { event.media?.previewPlaying == true }
+    val immersiveProgress = musicSettings.showProgress && musicSettings.immersiveProgress &&
+        event.media?.showProgress == true && displayedProgress?.durationMs?.let { it > 0L } == true
+    val latestDisplayedProgress by rememberUpdatedState(displayedProgress)
+    var immersiveFraction by remember(event.id, displayedProgress?.durationMs) {
+        mutableFloatStateOf(displayedProgress?.fractionAt(SystemClock.elapsedRealtime())?.coerceIn(0f, 1f) ?: 0f)
+    }
+    LaunchedEffect(event.id, displayedProgress?.durationMs, displayedProgress?.speed, immersiveProgress) {
+        while (immersiveProgress) {
+            val current = latestDisplayedProgress ?: break
+            immersiveFraction = current.fractionAt(SystemClock.elapsedRealtime())?.coerceIn(0f, 1f) ?: immersiveFraction
+            if (current.speed <= 0f) break
+            delay(PROGRESS_TICK_MS.milliseconds)
+        }
+    }
+    val progressColor = musicSettings.progressColor?.resolve() ?: event.accent
+    val progressTrackColor = musicSettings.progressTrackColor?.resolve()
+        ?: MaterialTheme.colorScheme.surfaceContainerHighest
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (musicSettings.expandedBackground && (sourceAlbumArt != null || event.media?.previewPlaying == true)) {
+        if (immersiveProgress) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawRoundRect(
+                    color = progressTrackColor,
+                    cornerRadius = CornerRadius(size.height / 2f),
+                )
+                drawRoundRect(
+                    color = progressColor,
+                    size = Size(size.width * immersiveFraction, size.height),
+                    cornerRadius = CornerRadius(size.height / 2f),
+                )
+            }
+        }
+        if (!immersiveProgress && musicSettings.expandedBackground && (sourceAlbumArt != null || event.media?.previewPlaying == true)) {
             when {
                 sourceAlbumArt != null -> Image(
                     bitmap = sourceAlbumArt,
@@ -179,7 +211,7 @@ fun MediaExpandedContent(
                 )
             }
 
-            event.media?.takeIf { it.showProgress }?.let {
+            event.media?.takeIf { it.showProgress && !immersiveProgress }?.let {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -189,8 +221,8 @@ fun MediaExpandedContent(
                         MediaProgressBar(
                             progress = progress,
                             style = musicSettings.progressStyle,
-                            color = event.accent,
-                            trackColor = event.accent.copy(alpha = 0.32f),
+                            color = progressColor,
+                            trackColor = progressTrackColor,
                             canSeek = nowPlaying?.transport?.canSeek == true,
                             onSeek = { target -> nowPlaying?.transport?.seekTo(target) },
                             onInteraction = onMediaInteraction,
