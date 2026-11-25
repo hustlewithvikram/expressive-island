@@ -65,7 +65,7 @@ class DownloadTilePreferences(private val context: Context) : JsonSerializable {
             trackColor = CutoutColor.deserialize(prefs[TRACK_COLOR]),
             showPauseResume = prefs[SHOW_PAUSE_RESUME] ?: true,
             showCancel = prefs[SHOW_CANCEL] ?: true,
-            pillShowProgress = prefs[PILL_SHOW_PROGRESS] ?: true,
+            pillShowProgress = prefs[PILL_SHOW_PROGRESS] ?: (prefs[SHOW_PROGRESS] ?: true),
             pillProgressColor = CutoutColor.deserialize(prefs[PILL_PROGRESS_COLOR]),
             pillTrackColor = CutoutColor.deserialize(prefs[PILL_TRACK_COLOR]),
             actionButtonColor = CutoutColor.deserialize(prefs[ACTION_BUTTON_COLOR]),
