@@ -364,6 +364,7 @@ class IconResolver(private val context: Context) {
                 showPauseResume = settings.showPauseResume,
                 showCancel = settings.showCancel,
                 pillShowProgress = settings.pillShowProgress,
+                pillImmersiveProgress = settings.pillImmersiveProgress,
                 pillProgressColor = settings.pillProgressColor,
                 pillTrackColor = settings.pillTrackColor,
                 actionButtonColor = settings.actionButtonColor,
