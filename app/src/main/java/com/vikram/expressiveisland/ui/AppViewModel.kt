@@ -18,6 +18,8 @@ import com.vikram.expressiveisland.data.AppearancePreferences
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.ReplyInputStyle
 import com.vikram.expressiveisland.data.SentAlignment
+import com.vikram.expressiveisland.data.AssistantIntegrationPreferences
+import com.vikram.expressiveisland.data.SatelliteRingPreferences
 import com.vikram.expressiveisland.data.AssistantTilePreferences
 import com.vikram.expressiveisland.data.AssistantActivationMode
 import com.vikram.expressiveisland.data.AssistantTileSettings
@@ -100,6 +102,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val recentColorPreferences = RecentColorPreferences(application)
     private val statusBarPreferences = StatusBarPreferences(application)
     private val permissionDotPreferences = PermissionDotPreferences(application)
+    private val satelliteRingPreferences = SatelliteRingPreferences(application)
+    private val assistantIntegrationPreferences = AssistantIntegrationPreferences(application)
 
 
     val customIcons: StateFlow<Map<SystemEventType, IconSource>> =
@@ -270,7 +274,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         JsonSettings.MUSIC_TILE to musicTilePreferences,
         JsonSettings.PHONE_TILE to phoneTilePreferences,
         JsonSettings.TIMER_TILE to timerTilePreferences,
+        JsonSettings.DOWNLOAD_TILE to downloadTilePreferences,
+        JsonSettings.SATELLITE_RING to satelliteRingPreferences,
         JsonSettings.ASSISTANT_TILE to assistantTilePreferences,
+        JsonSettings.ASSISTANT_INTEGRATION to assistantIntegrationPreferences,
         JsonSettings.APPS to appPreferences,
         JsonSettings.RECENT_COLORS to recentColorPreferences,
         JsonSettings.STATUS_BAR to statusBarPreferences,
@@ -289,12 +296,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 "app_prefs", "layout_prefs", "icon_prefs", "behaviour_prefs",
                 "appearance_prefs", "event_prefs", "dynamic_tile_prefs", "music_tile_prefs",
                 "phone_tile_prefs", "timer_tile_prefs", "download_tile_prefs",
-                "assistant_tile_prefs", "per_app_prefs", "recent_colors",
+                "assistant_tile_prefs", "download_tile_prefs", "satellite_ring", "per_app_prefs", "recent_colors",
                 "status_bar_prefs", "permission_dot_prefs",
             )
             val hasExistingSettings = existingStoreFiles.any { name ->
                 File(dataStoreDir, "$name.preferences_pb").exists()
-            }
+            } || File(application.applicationInfo.dataDir, "shared_prefs/assistant_integration.xml").exists()
             if (!hasExistingSettings) {
                 runCatching {
                     val defaults = application.assets.open("default_settings.json")
