@@ -131,7 +131,6 @@ internal fun DownloadTileScreen(
                     onSelect = viewModel::setDownloadIconContainerColor,
                     defaultLabel = "Download accent",
                     defaultColor = Color(DynamicTile.DOWNLOAD.accent),
-                ,
                     shape = downloadGroupShape(2, 3)
                 )
             }
@@ -199,7 +198,6 @@ internal fun DownloadTileScreen(
                         onSelect = viewModel::setDownloadProgressColor,
                         defaultLabel = "Theme primary",
                         defaultColor = MaterialTheme.colorScheme.primary,
-                    ,
                     shape = downloadGroupShape(if (settings.immersiveProgress) 4 else 5, 3 + if (settings.showProgress) 1 + (if (settings.immersiveProgress) 0 else 1) + 2 else 0)
                 )
                     ColorPickerCard(
@@ -208,7 +206,6 @@ internal fun DownloadTileScreen(
                         onSelect = viewModel::setDownloadTrackColor,
                         defaultLabel = "Theme surface",
                         defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    ,
                     shape = downloadGroupShape(if (settings.immersiveProgress) 5 else 6, 3 + if (settings.showProgress) 1 + (if (settings.immersiveProgress) 0 else 1) + 2 else 0)
                 )
                 }
@@ -252,7 +249,6 @@ internal fun DownloadTileScreen(
                         onSelect = viewModel::setDownloadPillProgressColor,
                         defaultLabel = "Theme primary",
                         defaultColor = MaterialTheme.colorScheme.primary,
-                    ,
                     shape = downloadGroupShape(if (settings.pillImmersiveProgress) 2 else 3, if (settings.pillShowProgress) 2 + (if (settings.pillImmersiveProgress) 0 else 1) + 2 else 1)
                 )
                     ColorPickerCard(
@@ -261,7 +257,6 @@ internal fun DownloadTileScreen(
                         onSelect = viewModel::setDownloadPillTrackColor,
                         defaultLabel = "Theme surface",
                         defaultColor = MaterialTheme.colorScheme.primaryContainer,
-                    ,
                     shape = downloadGroupShape(if (settings.pillImmersiveProgress) 3 else 4, if (settings.pillShowProgress) 2 + (if (settings.pillImmersiveProgress) 0 else 1) + 2 else 1)
                 )
                 }
@@ -291,7 +286,6 @@ internal fun DownloadTileScreen(
                     onSelect = viewModel::setDownloadActionButtonColor,
                     defaultLabel = "Theme primary",
                     defaultColor = MaterialTheme.colorScheme.primary,
-                ,
                     shape = downloadGroupShape(2, 3)
                 )
                 Text(
