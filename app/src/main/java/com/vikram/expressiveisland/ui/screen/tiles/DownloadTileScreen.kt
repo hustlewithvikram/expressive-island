@@ -207,15 +207,13 @@ internal fun DownloadTileScreen(
                     defaultLabel = "Theme primary",
                     defaultColor = MaterialTheme.colorScheme.primary,
                 )
-                if (!settings.immersiveProgress) {
-                    ColorPickerCard(
-                        label = "Track",
-                        selected = settings.trackColor,
-                        onSelect = viewModel::setDownloadTrackColor,
-                        defaultLabel = "Theme surface",
-                        defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    )
-                }
+                ColorPickerCard(
+                    label = "Track",
+                    selected = settings.trackColor,
+                    onSelect = viewModel::setDownloadTrackColor,
+                    defaultLabel = "Theme surface",
+                    defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                )
             }
         }
 

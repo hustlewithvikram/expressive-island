@@ -78,13 +78,13 @@ fun DownloadExpandedContent(
                 if (options.immersiveProgress && options.showProgress) {
                     Modifier.drawBehind {
                         drawRoundRect(
-                            color = trackColor.copy(alpha = 0.18f),
+                            color = trackColor,
                             topLeft = Offset.Zero,
                             size = size,
                             cornerRadius = CornerRadius(30.dp.toPx()),
                         )
                         drawRoundRect(
-                            color = progressColor.copy(alpha = 0.22f),
+                            color = progressColor.copy(alpha = 0.92f),
                             topLeft = Offset.Zero,
                             size = Size(size.width * displayFraction, size.height),
                             cornerRadius = CornerRadius(30.dp.toPx()),
@@ -129,18 +129,15 @@ fun DownloadExpandedContent(
                         } else {
                             Box(Modifier.weight(1f))
                         }
-                        if (options.showPercentage) {
-                            Text(
-                                text = percentage?.let { "$it%" } ?: "…",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
+
                     }
-                    if (options.showText && !secondaryDetail.isNullOrBlank()) {
+                    if (options.showText && (!secondaryDetail.isNullOrBlank() || options.showPercentage && percentage != null)) {
+                        val progressSummary = buildList {
+                            if (options.showPercentage && percentage != null) add("$percentage%")
+                            secondaryDetail?.takeIf { it.isNotBlank() }?.let(::add)
+                        }.joinToString(" • ")
                         Text(
-                            text = secondaryDetail,
+                            text = progressSummary,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp,
                             maxLines = 1,
