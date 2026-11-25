@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.core.IslandPreviewContent
 import com.vikram.expressiveisland.overlay.MaterialIconCatalog
+import com.vikram.expressiveisland.overlay.toImageBitmap
 import com.vikram.expressiveisland.overlay.island.IslandReply
 import com.vikram.expressiveisland.overlay.island.DownloadTileOptions
 import com.vikram.expressiveisland.data.MusicTileSettings
@@ -98,8 +99,13 @@ internal object PreviewRenderer {
         return IslandEvent(
             id = -1L,
             icon = if (category == IslandPreviewCategory.DOWNLOAD_TILE) {
-                (downloadSettings.icon as? IconSource.Material)?.let { MaterialIconCatalog.iconFor(it.iconName) }
-                    ?.let(IslandIcon::Vector) ?: IslandIcon.Vector(iconFor(category))
+                val appIcon = if (downloadSettings.showAppIcon) runCatching {
+                    IslandIcon.Raster(context.packageManager.getApplicationIcon(context.packageName).toImageBitmap())
+                }.getOrNull() else null
+                appIcon
+                    ?: (downloadSettings.icon as? IconSource.Material)?.let { MaterialIconCatalog.iconFor(it.iconName) }
+                        ?.let(IslandIcon::Vector)
+                    ?: IslandIcon.Vector(iconFor(category))
             } else IslandIcon.Vector(iconFor(category)),
             label = content.label,
             detail = content.detail,
@@ -114,7 +120,7 @@ internal object PreviewRenderer {
             iconContainerColor = when (category) {
                 IslandPreviewCategory.PHONE_TILE -> phoneSettings.iconContainerColor
                 IslandPreviewCategory.TIMER_TILE -> timerSettings.iconContainerColor
-                IslandPreviewCategory.DOWNLOAD_TILE -> downloadSettings.iconContainerColor
+                IslandPreviewCategory.DOWNLOAD_TILE -> if (downloadSettings.showAppIcon) null else downloadSettings.iconContainerColor
                 else -> null
             },
             media = if (category == IslandPreviewCategory.MUSIC_TILE) MediaTileOptions(
@@ -145,6 +151,7 @@ internal object PreviewRenderer {
             download = if (category == IslandPreviewCategory.DOWNLOAD_TILE) DownloadTileOptions(
                 showText = downloadSettings.showText,
                 showPercentage = downloadSettings.showPercentage,
+                showAppIcon = downloadSettings.showAppIcon,
                 showProgress = downloadSettings.showProgress,
                 progressStyle = downloadSettings.progressStyle,
                 progressColor = downloadSettings.progressColor,
@@ -152,6 +159,11 @@ internal object PreviewRenderer {
                 immersiveProgress = downloadSettings.immersiveProgress,
                 showPauseResume = downloadSettings.showPauseResume,
                 showCancel = downloadSettings.showCancel,
+                pillShowProgress = downloadSettings.pillShowProgress,
+                pillImmersiveProgress = downloadSettings.pillImmersiveProgress,
+                pillProgressColor = downloadSettings.pillProgressColor,
+                pillTrackColor = downloadSettings.pillTrackColor,
+                actionButtonColor = downloadSettings.actionButtonColor,
                 pillProgressStyle = downloadSettings.pillProgressStyle,
             ) else null,
             progressData = if (category == IslandPreviewCategory.DOWNLOAD_TILE) {

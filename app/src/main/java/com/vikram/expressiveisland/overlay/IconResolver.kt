@@ -339,17 +339,23 @@ class IconResolver(private val context: Context) {
         val title = signal.title?.takeIf { it.isNotBlank() }
         return IslandEvent(
             id = idGenerator.incrementAndGet(),
-            icon = settings.icon?.toIslandIconOrNull()
+            icon = if (settings.showAppIcon) {
+                runCatching { context.packageManager.getApplicationIcon(signal.packageName).toImageBitmap() }
+                    .getOrNull()?.let(IslandIcon::Raster)
+                    ?: settings.icon?.toIslandIconOrNull()
+                    ?: IslandIcon.Vector(DynamicTile.DOWNLOAD.defaultIcon)
+            } else settings.icon?.toIslandIconOrNull()
                 ?: IslandIcon.Vector(DynamicTile.DOWNLOAD.defaultIcon),
             label = title ?: context.getString(DynamicTile.DOWNLOAD.labelRes),
             detail = signal.text?.takeIf { settings.showText && it.isNotBlank() },
             accent = Color(DynamicTile.DOWNLOAD.accent),
-            iconContainerColor = settings.iconContainerColor,
+            iconContainerColor = if (settings.showAppIcon) null else settings.iconContainerColor,
             contentIntent = signal.contentIntent,
             progressData = signal.progressData,
             download = DownloadTileOptions(
                 showText = settings.showText,
                 showPercentage = settings.showPercentage,
+                showAppIcon = settings.showAppIcon,
                 showProgress = settings.showProgress,
                 immersiveProgress = settings.immersiveProgress,
                 progressStyle = settings.progressStyle,
@@ -357,6 +363,11 @@ class IconResolver(private val context: Context) {
                 trackColor = settings.trackColor,
                 showPauseResume = settings.showPauseResume,
                 showCancel = settings.showCancel,
+                pillShowProgress = settings.pillShowProgress,
+                pillImmersiveProgress = settings.pillImmersiveProgress,
+                pillProgressColor = settings.pillProgressColor,
+                pillTrackColor = settings.pillTrackColor,
+                actionButtonColor = settings.actionButtonColor,
                 pillProgressStyle = settings.pillProgressStyle,
             ),
             actions = downloadActions(signal.actions, settings),

@@ -18,6 +18,8 @@ import com.vikram.expressiveisland.data.AppearancePreferences
 import com.vikram.expressiveisland.data.AppearanceSettings
 import com.vikram.expressiveisland.data.ReplyInputStyle
 import com.vikram.expressiveisland.data.SentAlignment
+import com.vikram.expressiveisland.data.AssistantIntegrationPreferences
+import com.vikram.expressiveisland.data.SatelliteRingPreferences
 import com.vikram.expressiveisland.data.AssistantTilePreferences
 import com.vikram.expressiveisland.data.AssistantActivationMode
 import com.vikram.expressiveisland.data.AssistantTileSettings
@@ -76,6 +78,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.io.File
 
 /**
  * Holds UI-facing state for the icon customisation screen and mediates writes to
@@ -99,6 +102,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val recentColorPreferences = RecentColorPreferences(application)
     private val statusBarPreferences = StatusBarPreferences(application)
     private val permissionDotPreferences = PermissionDotPreferences(application)
+    private val satelliteRingPreferences = SatelliteRingPreferences(application)
+    private val assistantIntegrationPreferences = AssistantIntegrationPreferences(application)
+
 
     val customIcons: StateFlow<Map<SystemEventType, IconSource>> =
         preferences.customIcons.stateIn(
@@ -268,12 +274,49 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         JsonSettings.MUSIC_TILE to musicTilePreferences,
         JsonSettings.PHONE_TILE to phoneTilePreferences,
         JsonSettings.TIMER_TILE to timerTilePreferences,
+        JsonSettings.DOWNLOAD_TILE to downloadTilePreferences,
+        JsonSettings.SATELLITE_RING to satelliteRingPreferences,
         JsonSettings.ASSISTANT_TILE to assistantTilePreferences,
+        JsonSettings.ASSISTANT_INTEGRATION to assistantIntegrationPreferences,
         JsonSettings.APPS to appPreferences,
         JsonSettings.RECENT_COLORS to recentColorPreferences,
         JsonSettings.STATUS_BAR to statusBarPreferences,
         JsonSettings.PERMISSION_DOT to permissionDotPreferences,
     )
+
+    /**
+     * Applies the bundled configuration only on a genuinely fresh install. Existing installs
+     * already have one or more DataStore files, so an app update never overwrites user choices.
+     * This runs before the ViewModel is returned and before its WhileSubscribed flows are collected.
+     */
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            val dataStoreDir = application.filesDir.resolve("datastore")
+            val existingStoreFiles = listOf(
+                "app_prefs", "layout_prefs", "icon_prefs", "behaviour_prefs",
+                "appearance_prefs", "event_prefs", "dynamic_tile_prefs", "music_tile_prefs",
+                "phone_tile_prefs", "timer_tile_prefs", "download_tile_prefs",
+                "assistant_tile_prefs", "satellite_ring", "per_app_prefs", "recent_colors",
+                "status_bar_prefs", "permission_dot_prefs",
+            )
+            val hasExistingSettings = existingStoreFiles.any { name ->
+                File(dataStoreDir, "$name.preferences_pb").exists()
+            } || File(application.applicationInfo.dataDir, "shared_prefs/assistant_integration.xml").exists()
+            if (!hasExistingSettings) {
+                runCatching {
+                    val defaults = application.assets.open("default_settings.json")
+                        .bufferedReader(Charsets.UTF_8).use { it.readText() }
+                    val result = JsonSettings.import(defaults, jsonSections)
+                    if (result != JsonSettings.ImportResult.SUCCESS) {
+                        Log.w("AppViewModel", "Bundled default settings could not be applied: $result")
+                    }
+                }.onFailure { error ->
+                    Log.w("AppViewModel", "Unable to apply bundled default settings", error)
+                }
+            }
+        }
+    }
+
 
     /** Exports every settings store as one JSON document; see [JsonSettings.export]. */
     suspend fun getSettingsAsJsonString(): String = JsonSettings.export(jsonSections)
@@ -461,6 +504,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setDownloadIcon(icon: IconSource?) = viewModelScope.launch { downloadTilePreferences.setIcon(icon) }
+    fun setDownloadShowAppIcon(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowAppIcon(enabled) }
     fun setDownloadShowText(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowText(enabled) }
     fun setDownloadShowPercentage(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowPercentage(enabled) }
     fun setDownloadShowProgress(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowProgress(enabled) }
@@ -469,6 +513,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setDownloadIconContainerColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setIconContainerColor(color) }
     fun setDownloadProgressColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setProgressColor(color) }
     fun setDownloadTrackColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setTrackColor(color) }
+    fun setDownloadPillShowProgress(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setPillShowProgress(enabled) }
+    fun setDownloadPillImmersiveProgress(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setPillImmersiveProgress(enabled) }
+    fun setDownloadPillProgressColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setPillProgressColor(color) }
+    fun setDownloadPillTrackColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setPillTrackColor(color) }
+    fun setDownloadActionButtonColor(color: CutoutColor?) = viewModelScope.launch { downloadTilePreferences.setActionButtonColor(color) }
     fun setDownloadShowPauseResume(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowPauseResume(enabled) }
     fun setDownloadShowCancel(enabled: Boolean) = viewModelScope.launch { downloadTilePreferences.setShowCancel(enabled) }
     fun setDownloadPillProgressStyle(style: DownloadPillProgressStyle) = viewModelScope.launch {
@@ -1007,6 +1056,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setMusicProgressStyle(style: MusicProgressStyle) = viewModelScope.launch {
         musicTilePreferences.setProgressStyle(style)
+    }
+
+    fun setMusicCollapsedImmersiveProgress(enabled: Boolean) = viewModelScope.launch {
+        musicTilePreferences.setCollapsedImmersiveProgress(enabled)
+    }
+
+    fun setMusicExpandedImmersiveProgress(enabled: Boolean) = viewModelScope.launch {
+        musicTilePreferences.setExpandedImmersiveProgress(enabled)
+    }
+
+    fun setMusicProgressColor(color: CutoutColor?) = viewModelScope.launch {
+        musicTilePreferences.setProgressColor(color)
+    }
+
+    fun setMusicProgressTrackColor(color: CutoutColor?) = viewModelScope.launch {
+        musicTilePreferences.setProgressTrackColor(color)
     }
 
     fun setMusicShowVisualizer(enabled: Boolean) = viewModelScope.launch {

@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.ui.screen.tiles
 
+import android.widget.Toast
 import android.R.attr.checked
 import android.R.attr.description
 import androidx.compose.animation.AnimatedVisibility
@@ -69,6 +70,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -147,6 +149,7 @@ internal fun MusicTileScreen(
     contentPadding: PaddingValues,
 ) {
     val settings by viewModel.musicTile.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(MusicSettingsTab.SHRINKED) }
     var selectedButtonSettingsTab by remember { mutableStateOf(MusicButtonSettingsTab.PLAY_PAUSE) }
     var progressStyleDialog by remember { mutableStateOf(false) }
@@ -196,6 +199,42 @@ internal fun MusicTileScreen(
         // =====================================================================
 
         if (selectedTab == MusicSettingsTab.SHRINKED) {
+        SectionLabel("Playback Display")
+        SettingsGroup {
+            SettingsToggleCard(
+                shape = groupShape(if (settings.showProgress) GroupPosition.FIRST else GroupPosition.ONLY),
+                title = stringResource(R.string.music_progress_title),
+                description = stringResource(R.string.music_progress_description),
+                checked = settings.showProgress,
+                onCheckedChange = viewModel::setMusicShowProgress,
+            )
+            AnimatedVisibility(visible = settings.showProgress) {
+                SettingsToggleCard(
+                    shape = groupShape(GroupPosition.FIRST),
+                    title = "Immersive progress",
+                    description = "Use the playback progress as the collapsed pill background",
+                    checked = settings.collapsedImmersiveProgress,
+                    onCheckedChange = viewModel::setMusicCollapsedImmersiveProgress,
+                )
+                ColorPickerCard(
+                    label = "Progress color",
+                    selected = settings.progressColor,
+                    onSelect = viewModel::setMusicProgressColor,
+                    defaultLabel = "Use theme accent",
+                    defaultColor = MaterialTheme.colorScheme.primary,
+                    shape = groupShape(GroupPosition.MIDDLE),
+                )
+                ColorPickerCard(
+                    label = "Track color",
+                    selected = settings.progressTrackColor,
+                    onSelect = viewModel::setMusicProgressTrackColor,
+                    defaultLabel = "Use theme surface",
+                    defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    shape = groupShape(GroupPosition.LAST),
+                )
+            }
+        }
+
         SectionLabel("Album Art")
 
         SettingsGroup {
@@ -290,7 +329,13 @@ internal fun MusicTileScreen(
                     R.string.music_expanded_background_desc,
                 ),
                 checked = settings.expandedBackground,
-                onCheckedChange = viewModel::setMusicExpandedBackground,
+                onCheckedChange = { enabled ->
+                    if (enabled && settings.expandedImmersiveProgress) {
+                        Toast.makeText(context, "Turn off expanded immersive progress in Music Tile first", Toast.LENGTH_SHORT).show()
+                    } else {
+                        viewModel.setMusicExpandedBackground(enabled)
+                    }
+                },
             )
 
             AnimatedVisibility(
@@ -517,7 +562,6 @@ internal fun MusicTileScreen(
         SectionLabel("Playback Display")
 
         SettingsGroup {
-
             SettingsToggleCard(
                 shape = groupShape(if (settings.showProgress) GroupPosition.FIRST else GroupPosition.ONLY),
                 title = stringResource(R.string.music_progress_title),
@@ -527,21 +571,46 @@ internal fun MusicTileScreen(
             )
 
             AnimatedVisibility(visible = settings.showProgress) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().clickable { progressStyleDialog = true },
-                    shape = groupShape(GroupPosition.LAST),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                Column(verticalArrangement = Arrangement.spacedBy(GROUP_CARD_SPACING)) {
+                    SettingsToggleCard(
+                        shape = groupShape(GroupPosition.FIRST),
+                        title = "Immersive progress",
+                        description = "Use the playback progress as the expanded player background",
+                        checked = settings.expandedImmersiveProgress,
+                        onCheckedChange = viewModel::setMusicExpandedImmersiveProgress,
+                    )
+                    ColorPickerCard(
+                        label = "Progress color",
+                        selected = settings.progressColor,
+                        onSelect = viewModel::setMusicProgressColor,
+                        defaultLabel = "Use theme accent",
+                        defaultColor = MaterialTheme.colorScheme.primary,
+                        shape = groupShape(GroupPosition.MIDDLE),
+                    )
+                    ColorPickerCard(
+                        label = "Track color",
+                        selected = settings.progressTrackColor,
+                        onSelect = viewModel::setMusicProgressTrackColor,
+                        defaultLabel = "Use theme surface",
+                        defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        shape = groupShape(GroupPosition.MIDDLE),
+                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable { progressStyleDialog = true },
+                        shape = groupShape(GroupPosition.LAST),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     ) {
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(stringResource(R.string.music_progress_bar_style), style = MaterialTheme.typography.titleSmall)
-                            Text(settings.progressStyle.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(stringResource(R.string.music_progress_bar_style), style = MaterialTheme.typography.titleSmall)
+                                Text(settings.progressStyle.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Icon(Icons.Rounded.Tune, contentDescription = stringResource(R.string.music_choose_progress_style), tint = MaterialTheme.colorScheme.primary)
                         }
-                        Icon(Icons.Rounded.Tune, contentDescription = stringResource(R.string.music_choose_progress_style), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }

@@ -86,9 +86,44 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
             val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             val prefs = context.getSharedPreferences("app_update_download", Context.MODE_PRIVATE)
             val oldId = prefs.getLong("download_id", -1L)
-            if (oldId >= 0L) runCatching { manager.remove(oldId) }
+            val oldUrl = prefs.getString("download_url", null)
             val target = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "expressive-island-update.apk")
             target.parentFile?.mkdirs()
+
+            // Reuse the system download whenever it is still active or waiting for connectivity.
+            // DownloadManager persists its transfer across screen changes and network handovers.
+            if (oldId >= 0L && oldUrl == info.apkUrl) {
+                val oldStatus = runCatching {
+                    manager.query(DownloadManager.Query().setFilterById(oldId)).use { cursor ->
+                        if (cursor != null && cursor.moveToFirst()) {
+                            cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                        } else null
+                    }
+                }.getOrNull()
+                when (oldStatus) {
+                    DownloadManager.STATUS_PENDING,
+                    DownloadManager.STATUS_RUNNING,
+                    DownloadManager.STATUS_PAUSED -> {
+                        downloadId = oldId
+                        downloading = true
+                        error = null
+                        return
+                    }
+                    DownloadManager.STATUS_SUCCESSFUL -> if (target.exists() && target.length() > 0L) {
+                        downloadId = oldId
+                        apk = target
+                        downloadedUpdate = savedUpdateInfo(prefs, channel)
+                        progress = 1f
+                        downloading = false
+                        error = null
+                        return
+                    }
+                }
+            }
+
+            // Only discard an old request when it is no longer resumable or targets another build.
+            if (oldId >= 0L) runCatching { manager.remove(oldId) }
+            prefs.edit().remove("download_id").apply()
             target.delete()
             val request = DownloadManager.Request(Uri.parse(info.apkUrl))
                 .setTitle("Expressive Island update")
@@ -202,7 +237,8 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
                         }
                         DownloadManager.STATUS_FAILED -> {
                             downloading = false
-                            error = "Download failed (code ${cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))}). Check your connection and retry."
+                            val reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))
+                            error = downloadFailureMessage(reason)
                             prefs.edit().remove("download_id").apply()
                             downloadId = -1L
                         }
@@ -351,6 +387,24 @@ fun AppUpdatesScreen(contentPadding: PaddingValues) {
         }) { Text("Install") }},dismissButton={TextButton(onClick={installDialog=false}) { Text("Later") }})
 }
 
+
+private fun downloadFailureMessage(reason: Int): String = when (reason) {
+    DownloadManager.ERROR_CANNOT_RESUME ->
+        "The server interrupted the resumable transfer. Start the download again; the updater will keep active transfers across network changes."
+    DownloadManager.ERROR_INSUFFICIENT_SPACE ->
+        "Not enough storage space to download the update. Free up storage and retry."
+    DownloadManager.ERROR_DEVICE_NOT_FOUND ->
+        "Download storage is unavailable. Check your device storage and retry."
+    DownloadManager.ERROR_FILE_ERROR ->
+        "Android could not write the update file. Check available storage and retry."
+    DownloadManager.ERROR_HTTP_DATA_ERROR ->
+        "The update server connection was interrupted. Check your connection and retry."
+    DownloadManager.ERROR_UNHANDLED_HTTP_CODE ->
+        "GitHub rejected the APK download (HTTP error). Check that the release asset is still available."
+    DownloadManager.ERROR_TOO_MANY_REDIRECTS ->
+        "GitHub redirected the download too many times. Try again later."
+    else -> "Download failed (Android error $reason). Check your connection and available storage, then retry."
+}
 
 private fun savedUpdateInfo(prefs: android.content.SharedPreferences, channel: String) = UpdateInfo(
     prefs.getString("download_version", "Unknown") ?: "Unknown",

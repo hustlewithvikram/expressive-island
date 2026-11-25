@@ -161,6 +161,7 @@ data class IslandEvent(
 data class DownloadTileOptions(
     val showText: Boolean = true,
     val showPercentage: Boolean = true,
+    val showAppIcon: Boolean = false,
     val showProgress: Boolean = true,
     val immersiveProgress: Boolean = false,
     val progressStyle: DownloadProgressStyle = DownloadProgressStyle.LINEAR,
@@ -168,6 +169,11 @@ data class DownloadTileOptions(
     val trackColor: CutoutColor? = null,
     val showPauseResume: Boolean = true,
     val showCancel: Boolean = true,
+    val pillShowProgress: Boolean = true,
+    val pillImmersiveProgress: Boolean = false,
+    val pillProgressColor: CutoutColor? = null,
+    val pillTrackColor: CutoutColor? = null,
+    val actionButtonColor: CutoutColor? = null,
     val pillProgressStyle: DownloadPillProgressStyle = DownloadPillProgressStyle.CIRCULAR,
 )
 

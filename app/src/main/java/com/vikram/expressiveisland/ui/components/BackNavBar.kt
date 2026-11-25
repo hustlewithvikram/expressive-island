@@ -43,6 +43,7 @@ fun BackNavBar(
     Surface(
         // Match the translucent glass dock used on the top-level pages.
         modifier = modifier
+            .clip(barShape)
             .border(
                 width = 0.5.dp,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f),

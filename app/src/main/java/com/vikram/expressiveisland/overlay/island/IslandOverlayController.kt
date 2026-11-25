@@ -95,6 +95,7 @@ import com.vikram.expressiveisland.overlay.CENTER_SHORTCUTS_EXTRA_DP
 import com.vikram.expressiveisland.overlay.DynamicIsland
 import com.vikram.expressiveisland.overlay.IconResolver
 import com.vikram.expressiveisland.overlay.MaterialIconCatalog
+import com.vikram.expressiveisland.overlay.toImageBitmap
 import com.vikram.expressiveisland.overlay.OverlayLifecycleOwner
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.overlay.contents.callCutoutWidthPercent
@@ -629,6 +630,12 @@ class IslandOverlayController(private val context: Context) {
             !shouldHide && overlayHidden -> {
                 overlayHidden = false
                 addOverlay()
+                // Foreground-app changes and music settings updates are intentionally ignored
+                // while the overlay window is detached. Re-evaluate both app-specific hide
+                // policies before restoring a live tile, otherwise a stale hidden flag can
+                // leave the island empty until the next accessibility event.
+                applyPlayerAppVisibility()
+                applyPhoneAppVisibility()
                 syncWindowSize()
                 restoreActiveState()
             }
@@ -1125,19 +1132,34 @@ class IslandOverlayController(private val context: Context) {
             refreshPinnedPreview()
             val current = currentEvent.value
             if (current?.download != null) {
-                val icon = (settings.icon as? IconSource.Material)?.let { source ->
+                val customIcon = (settings.icon as? IconSource.Material)?.let { source ->
                     MaterialIconCatalog.iconFor(source.iconName)?.let(IslandIcon::Vector)
-                } ?: IslandIcon.Vector(DynamicTile.DOWNLOAD.defaultIcon)
+                }
+                val appIcon = if (settings.showAppIcon) current.packageName?.let { packageName ->
+                    runCatching {
+                        IslandIcon.Raster(context.packageManager.getApplicationIcon(packageName).toImageBitmap())
+                    }.getOrNull()
+                } else null
                 val updated = current.copy(
-                    icon = icon,
-                    iconContainerColor = settings.iconContainerColor,
+                    icon = appIcon ?: customIcon ?: IslandIcon.Vector(DynamicTile.DOWNLOAD.defaultIcon),
+                    iconContainerColor = if (settings.showAppIcon) null else settings.iconContainerColor,
                     download = current.download.copy(
                         showText = settings.showText,
                         showPercentage = settings.showPercentage,
+                        showAppIcon = settings.showAppIcon,
                         showProgress = settings.showProgress,
+                        immersiveProgress = settings.immersiveProgress,
                         progressStyle = settings.progressStyle,
                         progressColor = settings.progressColor,
                         trackColor = settings.trackColor,
+                        showPauseResume = settings.showPauseResume,
+                        showCancel = settings.showCancel,
+                        pillShowProgress = settings.pillShowProgress,
+                        pillImmersiveProgress = settings.pillImmersiveProgress,
+                        pillProgressStyle = settings.pillProgressStyle,
+                        pillProgressColor = settings.pillProgressColor,
+                        pillTrackColor = settings.pillTrackColor,
+                        actionButtonColor = settings.actionButtonColor,
                     ),
                 )
                 currentEvent.value = updated
@@ -1430,9 +1452,15 @@ class IslandOverlayController(private val context: Context) {
 
         // Publish the island's actual rendered height (including expanded action rows), not the
         // overlay window's margins or a hard-coded estimate. The settings screen adds exactly 20%.
-        val previewHeight = if (previewPinned && expanded && currentEvent.value?.id == -1L) {
-            val dimensions = effectiveDims(layout, expanded)
-            (dimensions.heightDp + currentHeightBonusDp(expanded) +
+        val reserveExpandedPreview = previewPinned &&
+            (expanded || previewCategory == IslandPreviewCategory.ANIMATION) &&
+            currentEvent.value?.id == -1L
+        val previewHeight = if (reserveExpandedPreview) {
+            // Animation and transition controls update the live island continuously. Keep their
+            // settings-page spacer pegged to the expanded footprint even while the preview itself
+            // morphs, so the page never jumps vertically with each selected motion.
+            val dimensions = effectiveDims(layout, expanded = true)
+            (dimensions.heightDp + currentHeightBonusDp(expanded = true) +
                     if (currentEvent.value?.media != null) 20 else 0).coerceAtLeast(0)
         } else {
             0
@@ -1595,7 +1623,8 @@ class IslandOverlayController(private val context: Context) {
         val centerX =
             viewWidth / 2 + (dims.offsetXDp * density).toInt() + satelliteShiftPx(satelliteSplitDp())
         val topPx = (dims.offsetYDp * density).toInt()
-        val bottomPx = ((dims.offsetYDp + dims.heightDp + bonusDp) * density).toInt()
+        val mediaExtraDp = if (expanded && currentEvent.value?.media != null) 20 else 0
+        val bottomPx = ((dims.offsetYDp + dims.heightDp + bonusDp + mediaExtraDp) * density).toInt()
         return Rect(
             (centerX - pillWidthPx / 2 - margin).coerceAtLeast(0),
             (topPx - margin).coerceAtLeast(0),
@@ -1631,7 +1660,11 @@ class IslandOverlayController(private val context: Context) {
             return ((islandLengthDp + TOUCH_MARGIN_DP * 2) * density).toInt()
         }
         val bonus = currentHeightBonusDp(expanded)
-        return ((dims.offsetYDp + dims.heightDp + bonus + WINDOW_MARGIN_DP) * density).toInt()
+        // MediaExpandedContent has a 20dp visual breathing margin beyond its configured
+        // expanded dimensions. Reserve it in the host window too, otherwise the expanding
+        // music surface is clipped by the overlay window during the final part of the morph.
+        val mediaExtraDp = if (expanded && currentEvent.value?.media != null) 20 else 0
+        return ((dims.offsetYDp + dims.heightDp + bonus + mediaExtraDp + WINDOW_MARGIN_DP) * density).toInt()
     }
 
     /** Wide enough for whichever state is widest — used for the initial, safe window size. */
@@ -2029,6 +2062,14 @@ class IslandOverlayController(private val context: Context) {
                 previewPinned = pinned
                 previewExpanded = expandedTab
                 refreshPreviewSatellite()
+                if (!pinned) {
+                    // While a settings preview owns the island, app-visibility updates are
+                    // deferred. Reconcile them as soon as the preview releases the surface;
+                    // otherwise changing any music option during preview can leave the real
+                    // music tile cleared with no subsequent foreground event to restore it.
+                    applyPlayerAppVisibility()
+                    applyPhoneAppVisibility()
+                }
                 val isNoExpandLandscape =
                     currentOrientation == Configuration.ORIENTATION_LANDSCAPE &&
                             (behaviourState.value.horizontalCutoutMode == HorizontalCutoutMode.NORMAL_ONLY ||
