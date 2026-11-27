@@ -2013,7 +2013,8 @@ class IslandOverlayController(private val context: Context) {
         return when {
             // The empty pill's expanded "center" (no event) claims room for its shortcut row.
             expanded && event == null &&
-                    behaviourState.value.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER ->
+                    (cameraHoleQuickActions.value ||
+                            behaviourState.value.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER) ->
                 CENTER_SHORTCUTS_EXTRA_DP
 
             expanded -> expandedActionsBonusDp()
