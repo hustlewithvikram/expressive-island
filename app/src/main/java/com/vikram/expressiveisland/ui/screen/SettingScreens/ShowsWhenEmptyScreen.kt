@@ -177,7 +177,7 @@ internal fun ShowsWhenEmptyScreen(
             onSelect = { viewModel.setPersistentPillWidget(selectedSideLeft, it) },
         )
         val widgetPosition = if (selectedSideLeft) behaviour.persistentPillLeftPosition else behaviour.persistentPillRightPosition
-        AnimatedVisibility(visible = selectedWidget == PillWidgetType.NETWORK_SPEED || selectedWidget == PillWidgetType.BATTERY || selectedWidget == PillWidgetType.CLOCK || selectedWidget == PillWidgetType.DATE) {
+        AnimatedVisibility(visible = selectedWidget == PillWidgetType.NETWORK_SPEED || selectedWidget == PillWidgetType.BATTERY || selectedWidget == PillWidgetType.CLOCK || selectedWidget == PillWidgetType.DATE || selectedWidget == PillWidgetType.WEEKDAY) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
@@ -916,6 +916,7 @@ private fun PillWidgetSlotCard(
         PillWidgetType.BATTERY -> "Battery percentage"
         PillWidgetType.CLOCK -> "Clock"
         PillWidgetType.DATE -> "Date"
+        PillWidgetType.WEEKDAY -> "Weekday"
     }
     Card(
         modifier = Modifier.fillMaxWidth().clickable { pending = selected; showDialog = true },
@@ -948,6 +949,7 @@ private fun PillWidgetSlotCard(
                             PillWidgetType.BATTERY -> "Battery percentage"
                             PillWidgetType.CLOCK -> "Clock"
                             PillWidgetType.DATE -> "Date"
+                            PillWidgetType.WEEKDAY -> "Weekday"
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth()
