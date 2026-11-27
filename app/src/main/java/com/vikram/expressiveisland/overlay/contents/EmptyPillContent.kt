@@ -212,8 +212,7 @@ private fun PillWidget(
                     contentAlignment = Alignment.BottomCenter,
                 ) {
                     Box(
-                        Modifier.fillMaxWidth()
-                            .fillMaxSize()
+                        Modifier.fillMaxSize()
                             .graphicsLayer {
                                 scaleY = battery / 100f
                                 transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
