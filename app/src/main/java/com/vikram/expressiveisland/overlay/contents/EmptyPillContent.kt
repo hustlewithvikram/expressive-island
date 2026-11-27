@@ -38,6 +38,8 @@ import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.IconSource
 import com.vikram.expressiveisland.data.NetworkSpeedFormat
 import com.vikram.expressiveisland.data.PillWidgetType
+import com.vikram.expressiveisland.data.PillBatteryStyle
+import com.vikram.expressiveisland.data.PillClockFormat
 import com.vikram.expressiveisland.overlay.MaterialIconCatalog
 import com.vikram.expressiveisland.overlay.loadImageBitmapOrNull
 import com.vikram.expressiveisland.overlay.resolve
@@ -57,6 +59,10 @@ fun EmptyPillContent(
     rightWidget: PillWidgetType,
     speedFormat: NetworkSpeedFormat,
     heightDp: Int,
+    leftPosition: Float = 0.5f,
+    rightPosition: Float = 0.5f,
+    batteryStyle: PillBatteryStyle = PillBatteryStyle.PERCENTAGE,
+    clockFormat: PillClockFormat = PillClockFormat.HOUR_24,
 ) {
     val context = LocalContext.current
     val disc = containerColor?.resolve()
@@ -92,7 +98,7 @@ fun EmptyPillContent(
     }
     val clock by produceState("", context) {
         while (true) {
-            value = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+            value = SimpleDateFormat(if (clockFormat == PillClockFormat.HOUR_12) "hh:mm a" else "HH:mm", Locale.getDefault()).format(Date())
             delay(15_000)
         }
     }
@@ -104,10 +110,10 @@ fun EmptyPillContent(
     Row(Modifier.fillMaxSize().padding(horizontal = (heightDp * 0.30f).dp),
         verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-            PillWidget(leftWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock)
+            PillWidget(leftWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock, batteryStyle, Modifier, leftPosition)
         }
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-            PillWidget(rightWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock)
+            PillWidget(rightWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock, batteryStyle, Modifier, rightPosition)
         }
     }
 }
@@ -124,7 +130,11 @@ private fun PillWidget(
     speed: String,
     battery: Int,
     clock: String,
+    batteryStyle: PillBatteryStyle,
+    slotModifier: Modifier,
+    position: Float,
 ) {
+    Box(slotModifier.fillMaxSize(), contentAlignment = Alignment(horizontal = (position.coerceIn(0f, 1f) * 2f - 1f), vertical = 0f)) {
     when (type) {
         PillWidgetType.NONE -> Unit
         PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON -> {
@@ -147,10 +157,22 @@ private fun PillWidget(
         }
         PillWidgetType.NETWORK_SPEED -> Text(speed, color = LocalContentColor.current,
             fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-        PillWidgetType.BATTERY -> Text("$battery%", color = LocalContentColor.current,
-            fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        PillWidgetType.BATTERY -> when (batteryStyle) {
+            PillBatteryStyle.PERCENTAGE -> Text("$battery%", color = LocalContentColor.current, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            PillBatteryStyle.ICON_WITH_PERCENTAGE -> Text("▱ $battery%", color = LocalContentColor.current, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            PillBatteryStyle.VERTICAL -> Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(0.dp)) {
+                Text("▯", color = LocalContentColor.current, fontSize = 17.sp, fontWeight = FontWeight.Bold, lineHeight = 16.sp)
+                Text("$battery%", color = LocalContentColor.current, fontSize = 8.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            }
+            PillBatteryStyle.HORIZONTAL_FILL -> Box(Modifier.size(width = 44.dp, height = 18.dp).clip(CircleShape).background(LocalContentColor.current.copy(alpha = 0.18f)), contentAlignment = Alignment.CenterStart) {
+                Box(Modifier.fillMaxSize().graphicsLayer { scaleX = battery / 100f; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f) }.background(LocalContentColor.current.copy(alpha = 0.38f)))
+                Text("$battery%", modifier = Modifier.align(Alignment.Center), color = LocalContentColor.current, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        PillWidgetType.DATE -> Text(SimpleDateFormat("d MMM", Locale.getDefault()).format(Date()), color = LocalContentColor.current, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         PillWidgetType.CLOCK -> Text(clock, color = LocalContentColor.current,
             fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+    }
     }
 }
 
