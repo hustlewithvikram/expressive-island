@@ -924,6 +924,7 @@ class IslandOverlayController(private val context: Context) {
                                     EmptyClickAction.NONE -> Unit
                                     EmptyClickAction.OPEN_APP -> onEmptyClick()
                                     EmptyClickAction.OPEN_CENTER -> cameraHoleQuickActions.value = true
+                                    EmptyClickAction.CIRCLE_TO_SEARCH -> com.vikram.expressiveisland.overlay.CircleToSearchLauncher.trigger(context)
                                 }
                             } else {
                                 val action = when {
