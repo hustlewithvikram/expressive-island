@@ -798,6 +798,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         behaviourPreferences.setShowsWhenEmptyClickPackage(packageName)
     }
 
+    fun setPersistentPillHoldAction(action: EmptyClickAction) = viewModelScope.launch { behaviourPreferences.setPersistentPillHoldAction(action) }
+    fun setPersistentPillHoldPackage(packageName: String?) = viewModelScope.launch { behaviourPreferences.setPersistentPillHoldPackage(packageName) }
+
     fun setCenterShortcuts(shortcuts: List<CenterShortcut>) = viewModelScope.launch {
         behaviourPreferences.setCenterShortcuts(shortcuts)
     }
