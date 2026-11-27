@@ -915,6 +915,7 @@ private fun PillWidgetSlotCard(
         PillWidgetType.NETWORK_SPEED -> "Internet speed"
         PillWidgetType.BATTERY -> "Battery percentage"
         PillWidgetType.CLOCK -> "Clock"
+        PillWidgetType.DATE -> "Date"
     }
     Card(
         modifier = Modifier.fillMaxWidth().clickable { pending = selected; showDialog = true },
@@ -946,6 +947,7 @@ private fun PillWidgetSlotCard(
                             PillWidgetType.NETWORK_SPEED -> "Internet speed"
                             PillWidgetType.BATTERY -> "Battery percentage"
                             PillWidgetType.CLOCK -> "Clock"
+                            PillWidgetType.DATE -> "Date"
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth()
