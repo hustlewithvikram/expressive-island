@@ -238,7 +238,8 @@ internal fun DynamicIsland(
     val displayedChargingState = chargingPreviewState ?: chargingState
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
     val mediaActive = shownEvent?.media != null
-    val emptyPill = event == null && (showsWhenEmpty || cameraHoleQuickActions)
+    // The resting pill always retains its touch target; showsWhenEmpty controls only visibility.
+    val emptyPill = event == null
 
     val initialExpandedState =
         if (forcedExpanded == false) false else (shownEvent?.initiallyExpanded ?: false)
@@ -402,7 +403,7 @@ internal fun DynamicIsland(
         } + if (isExpanded && notificationTextExpanded) notificationTextExtraHeightDp else 0
     }
 
-    val present = event != null || showsWhenEmpty || cameraHoleQuickActions
+    val present = event != null || emptyPill || cameraHoleQuickActions
     // Keep the shell mounted while it travels from its expanded geometry back into the
     // camera-notch footprint. This is separate from reveal: reveal controls visibility,
     // while shellProgress controls the actual size/position/corner morph.
@@ -707,7 +708,8 @@ internal fun DynamicIsland(
                                 // collapse softens the disappearance; revealAlpha then removes
                                 // the retained surface after the shrink animation completes.
                                 val collapseAlpha = 1f - exitProgress.coerceIn(0f, 1f) * 0.95f
-                                alpha = (1f - travel * 0.75f).coerceIn(0.25f, 1f) *
+                                val invisibleRestingPill = emptyPill && !showsWhenEmpty && !isExpanded
+                                alpha = if (invisibleRestingPill) 0f else (1f - travel * 0.75f).coerceIn(0.25f, 1f) *
                                     collapseAlpha * revealAlpha
                             }
                             .pointerInput(
