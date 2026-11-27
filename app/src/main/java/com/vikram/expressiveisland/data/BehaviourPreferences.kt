@@ -117,6 +117,8 @@ data class BehaviourSettings(
     val showsWhenEmptyClickPackage: String? = null,
     val persistentPillHoldAction: EmptyClickAction = DEFAULT_EMPTY_CLICK_ACTION,
     val persistentPillHoldPackage: String? = null,
+    val persistentPillDoubleTapAction: EmptyClickAction = DEFAULT_EMPTY_CLICK_ACTION,
+    val persistentPillDoubleTapPackage: String? = null,
     val centerShortcuts: List<CenterShortcut> = CenterShortcut.DEFAULTS,
     val centerShowLabels: Boolean = CENTER_SHOW_LABELS,
     val centerFillContainers: Boolean = CENTER_FILL_CONTAINERS,
@@ -279,6 +281,8 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             showsWhenEmptyClickPackage = prefs[SHOWS_WHEN_EMPTY_CLICK_PACKAGE],
             persistentPillHoldAction = prefs[PERSISTENT_PILL_HOLD_ACTION]?.let { runCatching { EmptyClickAction.valueOf(it) }.getOrNull() } ?: BehaviourSettings.DEFAULT_EMPTY_CLICK_ACTION,
             persistentPillHoldPackage = prefs[PERSISTENT_PILL_HOLD_PACKAGE],
+            persistentPillDoubleTapAction = prefs[PERSISTENT_PILL_DOUBLE_TAP_ACTION]?.let { runCatching { EmptyClickAction.valueOf(it) }.getOrNull() } ?: BehaviourSettings.DEFAULT_EMPTY_CLICK_ACTION,
+            persistentPillDoubleTapPackage = prefs[PERSISTENT_PILL_DOUBLE_TAP_PACKAGE],
             centerShortcuts = CenterShortcut.decodeList(prefs[CENTER_SHORTCUTS]),
             centerShowLabels = prefs[CENTER_SHOW_LABELS] ?: BehaviourSettings.CENTER_SHOW_LABELS,
             centerFillContainers = prefs[CENTER_FILL_CONTAINERS]
@@ -353,6 +357,8 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("showsWhenEmptyClickPackage", s.showsWhenEmptyClickPackage ?: JSONObject.NULL)
             put("persistentPillHoldAction", s.persistentPillHoldAction.name)
             put("persistentPillHoldPackage", s.persistentPillHoldPackage ?: JSONObject.NULL)
+            put("persistentPillDoubleTapAction", s.persistentPillDoubleTapAction.name)
+            put("persistentPillDoubleTapPackage", s.persistentPillDoubleTapPackage ?: JSONObject.NULL)
             put("centerShortcuts", CenterShortcut.encodeList(s.centerShortcuts))
             put("centerShowLabels", s.centerShowLabels)
             put("centerFillContainers", s.centerFillContainers)
@@ -489,6 +495,11 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             if (obj.has("persistentPillHoldPackage")) {
                 val pkg = if (obj.isNull("persistentPillHoldPackage")) null else obj.optString("persistentPillHoldPackage").takeIf { s -> s.isNotEmpty() }
                 if (pkg == null) it.remove(PERSISTENT_PILL_HOLD_PACKAGE) else it[PERSISTENT_PILL_HOLD_PACKAGE] = pkg
+            }
+            parseEnum<EmptyClickAction>(obj, "persistentPillDoubleTapAction")?.let { action -> it[PERSISTENT_PILL_DOUBLE_TAP_ACTION] = action.name }
+            if (obj.has("persistentPillDoubleTapPackage")) {
+                val pkg = if (obj.isNull("persistentPillDoubleTapPackage")) null else obj.optString("persistentPillDoubleTapPackage").takeIf { s -> s.isNotEmpty() }
+                if (pkg == null) it.remove(PERSISTENT_PILL_DOUBLE_TAP_PACKAGE) else it[PERSISTENT_PILL_DOUBLE_TAP_PACKAGE] = pkg
             }
             if (obj.has("centerShortcuts") && !obj.isNull("centerShortcuts")) {
                 it[CENTER_SHORTCUTS] = obj.getString("centerShortcuts")
@@ -698,6 +709,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
     suspend fun setPersistentPillHoldPackage(packageName: String?) = context.behaviourDataStore.edit {
         if (packageName == null) it.remove(PERSISTENT_PILL_HOLD_PACKAGE) else it[PERSISTENT_PILL_HOLD_PACKAGE] = packageName
     }
+    suspend fun setPersistentPillDoubleTapAction(action: EmptyClickAction) = context.behaviourDataStore.edit { it[PERSISTENT_PILL_DOUBLE_TAP_ACTION] = action.name }
+    suspend fun setPersistentPillDoubleTapPackage(packageName: String?) = context.behaviourDataStore.edit {
+        if (packageName == null) it.remove(PERSISTENT_PILL_DOUBLE_TAP_PACKAGE) else it[PERSISTENT_PILL_DOUBLE_TAP_PACKAGE] = packageName
+    }
 
     /** Persist the ordered set of shortcuts shown in the expanded "center". */
     suspend fun setCenterShortcuts(shortcuts: List<CenterShortcut>) =
@@ -806,6 +821,8 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val SHOWS_WHEN_EMPTY_CLICK_PACKAGE = stringPreferencesKey("shows_when_empty_click_package")
         val PERSISTENT_PILL_HOLD_ACTION = stringPreferencesKey("persistent_pill_hold_action")
         val PERSISTENT_PILL_HOLD_PACKAGE = stringPreferencesKey("persistent_pill_hold_package")
+        val PERSISTENT_PILL_DOUBLE_TAP_ACTION = stringPreferencesKey("persistent_pill_double_tap_action")
+        val PERSISTENT_PILL_DOUBLE_TAP_PACKAGE = stringPreferencesKey("persistent_pill_double_tap_package")
         val CENTER_SHORTCUTS = stringPreferencesKey("center_shortcuts")
         val CENTER_SHOW_LABELS = booleanPreferencesKey("center_show_labels")
         val CENTER_FILL_CONTAINERS = booleanPreferencesKey("center_fill_containers")
