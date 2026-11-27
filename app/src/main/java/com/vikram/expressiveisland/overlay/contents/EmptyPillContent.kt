@@ -172,6 +172,7 @@ private fun PillWidget(
             }
         }
         PillWidgetType.DATE -> Text(SimpleDateFormat("d MMM", Locale.getDefault()).format(Date()), color = LocalContentColor.current, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        PillWidgetType.WEEKDAY -> Text(SimpleDateFormat("EEE", Locale.getDefault()).format(Date()), color = LocalContentColor.current, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         PillWidgetType.CLOCK -> Text(clock, color = LocalContentColor.current,
             fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
