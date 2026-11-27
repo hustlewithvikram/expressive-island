@@ -746,14 +746,14 @@ internal fun DynamicIsland(
                                         }
                                     },
 
-                                    onDoubleTap = {
-                                        if (emptyPill) {
+                                    onDoubleTap = if (emptyPill) {
+                                        {
                                             if (vibrateOnTap) {
                                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                             }
                                             onEmptyDoubleClick()
                                         }
-                                    },
+                                    } else null,
 
                                     // Long press:
                                     // - If the current event has an app/content intent, open it.
