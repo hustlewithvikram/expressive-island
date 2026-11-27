@@ -97,7 +97,7 @@ fun EmptyPillContent(
             delay(30_000)
         }
     }
-    val clock by produceState("", context) {
+    val clock by produceState("", context, clockFormat) {
         while (true) {
             value = SimpleDateFormat(if (clockFormat == PillClockFormat.HOUR_12) "hh:mm a" else "HH:mm", Locale.getDefault()).format(Date())
             delay(15_000)
