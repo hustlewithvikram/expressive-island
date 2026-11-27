@@ -58,6 +58,8 @@ import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.IconSource
 import com.vikram.expressiveisland.data.PillWidgetType
 import com.vikram.expressiveisland.data.NetworkSpeedFormat
+import com.vikram.expressiveisland.data.PillBatteryStyle
+import com.vikram.expressiveisland.data.PillClockFormat
 import com.vikram.expressiveisland.data.IslandDimensions
 import com.vikram.expressiveisland.data.PermissionDotColors
 import com.vikram.expressiveisland.data.PermissionDotPosition
@@ -177,6 +179,10 @@ internal fun DynamicIsland(
     persistentPillLeftWidget: PillWidgetType = PillWidgetType.NONE,
     persistentPillRightWidget: PillWidgetType = PillWidgetType.NONE,
     persistentPillSpeedFormat: NetworkSpeedFormat = NetworkSpeedFormat.AUTO,
+    persistentPillLeftPosition: Float = 0.5f,
+    persistentPillRightPosition: Float = 0.5f,
+    persistentPillBatteryStyle: PillBatteryStyle = PillBatteryStyle.PERCENTAGE,
+    persistentPillClockFormat: PillClockFormat = PillClockFormat.HOUR_24,
     emptyOpensCenter: Boolean = false,
     assistantTapEnabled: Boolean = false,
     onAssistantTap: () -> Unit = {},
@@ -964,6 +970,10 @@ internal fun DynamicIsland(
                                         rightWidget = persistentPillRightWidget,
                                         speedFormat = persistentPillSpeedFormat,
                                         heightDp = collapsed.heightDp,
+                                        leftPosition = persistentPillLeftPosition,
+                                        rightPosition = persistentPillRightPosition,
+                                        batteryStyle = persistentPillBatteryStyle,
+                                        clockFormat = persistentPillClockFormat,
                                     )
                                 }
                             } else {
