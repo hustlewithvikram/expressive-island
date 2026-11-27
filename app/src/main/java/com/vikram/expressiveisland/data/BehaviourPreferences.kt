@@ -75,7 +75,7 @@ enum class ActionButtonAnimation { SCALE, EXPAND }
  * [OPEN_APP] launches the app chosen in [BehaviourSettings.showsWhenEmptyClickPackage]; [OPEN_CENTER]
  * is reserved for a future feature. Ordered to match the settings selector.
  */
-enum class EmptyClickAction { NONE, OPEN_APP, OPEN_CENTER, CIRCLE_TO_SEARCH }
+enum class EmptyClickAction { NONE, OPEN_APP, OPEN_CENTER, CIRCLE_TO_SEARCH, SCREENSHOT }
 
 /**
  * How the island behaves once expanded. [expandedAutoCollapse] chooses between collapsing after
