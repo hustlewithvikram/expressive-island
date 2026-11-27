@@ -972,6 +972,7 @@ class IslandOverlayController(private val context: Context) {
                         },
 
                         onEmptyClick = ::onEmptyClick,
+                        onEmptyLongClick = ::onEmptyLongClick,
                         onCenterShortcut = ::onCenterShortcut,
                         collapseRequest = collapseRequestValue,
                         notificationTextExpanded = notificationTextExpandedValue,
@@ -2625,14 +2626,27 @@ class IslandOverlayController(private val context: Context) {
      * the press animation the pill already plays.
      */
     private fun onEmptyClick() {
-        cameraHoleQuickActions.value = false
         val behaviour = behaviourState.value
-        if (behaviour.showsWhenEmptyClickAction != EmptyClickAction.OPEN_APP) return
-        val packageName = behaviour.showsWhenEmptyClickPackage ?: return
-        val launch = context.packageManager.getLaunchIntentForPackage(packageName)?.apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        } ?: return
-        runCatching { context.startActivity(launch) }
+        runPersistentPillAction(behaviour.showsWhenEmptyClickAction, behaviour.showsWhenEmptyClickPackage)
+    }
+
+    private fun onEmptyLongClick() {
+        val behaviour = behaviourState.value
+        runPersistentPillAction(behaviour.persistentPillHoldAction, behaviour.persistentPillHoldPackage)
+    }
+
+    private fun runPersistentPillAction(action: EmptyClickAction, packageName: String?) {
+        cameraHoleQuickActions.value = false
+        when (action) {
+            EmptyClickAction.NONE -> Unit
+            EmptyClickAction.OPEN_APP -> {
+                val launch = packageName?.let { context.packageManager.getLaunchIntentForPackage(it) }
+                    ?.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) } ?: return
+                runCatching { context.startActivity(launch) }
+            }
+            EmptyClickAction.OPEN_CENTER -> cameraHoleQuickActions.value = true
+            EmptyClickAction.CIRCLE_TO_SEARCH -> com.vikram.expressiveisland.overlay.CircleToSearchLauncher.trigger(context)
+        }
     }
 
     /**
