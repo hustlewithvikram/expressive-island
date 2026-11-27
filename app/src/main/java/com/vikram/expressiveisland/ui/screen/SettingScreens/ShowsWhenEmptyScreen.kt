@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -133,11 +134,14 @@ internal fun ShowsWhenEmptyScreen(
     val clickPackage = behaviour.showsWhenEmptyClickPackage
     val holdAction = behaviour.persistentPillHoldAction
     val holdPackage = behaviour.persistentPillHoldPackage
+    val doubleTapAction = behaviour.persistentPillDoubleTapAction
+    val doubleTapPackage = behaviour.persistentPillDoubleTapPackage
 
     var showIconSheet by remember { mutableStateOf(false) }
     var showMaterialPicker by remember { mutableStateOf(false) }
     var showAppPicker by remember { mutableStateOf(false) }
     var showHoldAppPicker by remember { mutableStateOf(false) }
+    var showDoubleTapAppPicker by remember { mutableStateOf(false) }
     var showAddShortcut by remember { mutableStateOf(false) }
     var showCenterAppPicker by remember { mutableStateOf(false) }
 
@@ -266,30 +270,13 @@ internal fun ShowsWhenEmptyScreen(
 
         PersistentPillSectionTitle(
             title = stringResource(R.string.persistent_pill_interaction),
-            subtitle = "Set a separate action for a tap and a press & hold",
+            subtitle = "Choose what a single tap, double tap, or press & hold should do.",
         )
-        PersistentPillActionCard(
-            title = stringResource(R.string.shows_when_empty_on_click),
-            description = "Run this action when you tap the pill.",
-            selected = clickAction,
-            packageName = clickPackage,
-            onActionSelected = viewModel::setShowsWhenEmptyClickAction,
-            onChooseApp = { showAppPicker = true },
-        )
-        PersistentPillActionCard(
-            title = stringResource(R.string.persistent_pill_hold_action_title),
-            description = stringResource(R.string.persistent_pill_hold_action_desc),
-            selected = holdAction,
-            packageName = holdPackage,
-            onActionSelected = viewModel::setPersistentPillHoldAction,
-            onChooseApp = { showHoldAppPicker = true },
-        )
-
-        AnimatedVisibility(visible = clickAction == EmptyClickAction.OPEN_CENTER || holdAction == EmptyClickAction.OPEN_CENTER) {
+        val quickActionsContent: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 PersistentPillSectionTitle(
                     title = stringResource(R.string.persistent_pill_shortcuts),
-                    subtitle = "Customise the quick actions shown from the pill",
+                    subtitle = "These shortcut settings are shared by every trigger using Quick Actions.",
                 )
                 SettingsToggleCard(
                     shape = persistentPillGroupShape(isFirst = true, isLast = false),
@@ -329,6 +316,36 @@ internal fun ShowsWhenEmptyScreen(
                 )
             }
         }
+        PersistentPillActionCard(
+            index = "01",
+            title = "Tap",
+            description = "A quick, single tap on the resting pill.",
+            selected = clickAction,
+            packageName = clickPackage,
+            onActionSelected = viewModel::setShowsWhenEmptyClickAction,
+            onChooseApp = { showAppPicker = true },
+            quickActionsContent = quickActionsContent,
+        )
+        PersistentPillActionCard(
+            index = "02",
+            title = "Double tap",
+            description = "Two quick taps in succession.",
+            selected = doubleTapAction,
+            packageName = doubleTapPackage,
+            onActionSelected = viewModel::setPersistentPillDoubleTapAction,
+            onChooseApp = { showDoubleTapAppPicker = true },
+            quickActionsContent = quickActionsContent,
+        )
+        PersistentPillActionCard(
+            index = "03",
+            title = "Touch & Hold",
+            description = "Press and hold the resting pill.",
+            selected = holdAction,
+            packageName = holdPackage,
+            onActionSelected = viewModel::setPersistentPillHoldAction,
+            onChooseApp = { showHoldAppPicker = true },
+            quickActionsContent = quickActionsContent,
+        )
     }
 
     if (showIconSheet) {
@@ -367,6 +384,15 @@ internal fun ShowsWhenEmptyScreen(
                 viewModel.setShowsWhenEmptyClickPackage(packageName)
             },
             onDismiss = { showAppPicker = false },
+        )
+    }
+    if (showDoubleTapAppPicker) {
+        AppPickerSheet(
+            onPick = { packageName ->
+                showDoubleTapAppPicker = false
+                viewModel.setPersistentPillDoubleTapPackage(packageName)
+            },
+            onDismiss = { showDoubleTapAppPicker = false },
         )
     }
     if (showHoldAppPicker) {
@@ -912,74 +938,79 @@ private fun PersistentPillSectionTitle(title: String, subtitle: String) {
 
 @Composable
 private fun PersistentPillActionCard(
+    index: String,
     title: String,
     description: String,
     selected: EmptyClickAction,
     packageName: String?,
     onActionSelected: (EmptyClickAction) -> Unit,
     onChooseApp: () -> Unit,
+    quickActionsContent: @Composable () -> Unit,
 ) {
     val actions = listOf(
-        Triple(EmptyClickAction.NONE, "Do nothing", "Keep the pill idle"),
-        Triple(EmptyClickAction.OPEN_APP, "Open app", "Launch a selected app"),
-        Triple(EmptyClickAction.OPEN_CENTER, "Quick actions", "Open the shortcut panel"),
-        Triple(EmptyClickAction.CIRCLE_TO_SEARCH, "Circle to Search", "Invoke Google's search overlay"),
+        EmptyClickAction.NONE to "None",
+        EmptyClickAction.OPEN_APP to "Open app",
+        EmptyClickAction.OPEN_CENTER to "Quick actions",
+        EmptyClickAction.CIRCLE_TO_SEARCH to "Circle to Search",
     )
+    val selectedDescription = when (selected) {
+        EmptyClickAction.NONE -> "No action will run for this trigger."
+        EmptyClickAction.OPEN_APP -> "Launch the app selected below."
+        EmptyClickAction.OPEN_CENTER -> "Expand the configured shortcut panel below."
+        EmptyClickAction.CIRCLE_TO_SEARCH -> "Open the system Circle to Search experience."
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            actions.chunked(2).forEach { rowActions ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    rowActions.forEach { (action, label, detail) ->
-                        val isSelected = selected == action
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(20.dp))
-                                .clickable { onActionSelected(action) },
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                            border = androidx.compose.foundation.BorderStroke(
-                                width = if (isSelected) 1.5.dp else 1.dp,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                            ),
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Text(
-                                    label,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-                                )
-                                Text(
-                                    detail,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 2,
-                                )
-                            }
-                        }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(index, style = MaterialTheme.typography.labelLarge)
                     }
                 }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium)
+                    Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                actions.forEach { (action, label) ->
+                    FilterChip(
+                        selected = selected == action,
+                        onClick = { onActionSelected(action) },
+                        label = { Text(label, maxLines = 1) },
+                    )
+                }
+            }
+            Text(
+                selectedDescription,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             AnimatedVisibility(visible = selected == EmptyClickAction.OPEN_APP) {
                 AppChoiceCard(
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(18.dp),
                     packageName = packageName,
                     onChoose = onChooseApp,
                 )
+            }
+            AnimatedVisibility(visible = selected == EmptyClickAction.OPEN_CENTER) {
+                quickActionsContent()
             }
         }
     }
