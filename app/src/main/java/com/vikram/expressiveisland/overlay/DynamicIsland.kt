@@ -256,7 +256,7 @@ internal fun DynamicIsland(
     }
 
     LaunchedEffect(cameraHoleQuickActions) {
-        if (cameraHoleQuickActions) tapExpanded = true
+        tapExpanded = cameraHoleQuickActions
     }
 
     var centerInteraction by remember { mutableIntStateOf(0) }
@@ -270,7 +270,7 @@ internal fun DynamicIsland(
     val isAssistantNormalOnly =
         shownEvent?.assistant != null && !shownEvent.assistant.displayAnswerInCutout
     val isNormalOnly = isCall || isAssistantNormalOnly || shownEvent?.normalOnly == true
-    val centerExpanded = emptyPill && (emptyOpensCenter || cameraHoleQuickActions) && tapExpanded
+    val centerExpanded = emptyPill && cameraHoleQuickActions && tapExpanded
 
     val isExpanded = when {
         forcedExpanded == false -> false
@@ -290,8 +290,8 @@ internal fun DynamicIsland(
     }
 
     LaunchedEffect(replying) { onReplyActiveChange(replying) }
-    LaunchedEffect(isExpanded, event != null, emptyPill, emptyOpensCenter) {
-        if (event != null || (emptyPill && emptyOpensCenter)) onExpandedChange(isExpanded)
+    LaunchedEffect(isExpanded, event != null, emptyPill, cameraHoleQuickActions) {
+        if (event != null || (emptyPill && cameraHoleQuickActions)) onExpandedChange(isExpanded)
     }
 
     LaunchedEffect(collapseRequest) {
@@ -806,23 +806,9 @@ internal fun DynamicIsland(
                                         }
 
                                         if (emptyPill) {
-                                            // "Open center" expands the resting pill into the shortcut
-                                            // grid (a second tap toggles it closed); every other "On
-                                            // click" action (e.g. open an app) runs via onEmptyClick.
-                                            if (emptyOpensCenter) {
-                                                if (forcedExpanded == null) {
-                                                    val wasExpanded = tapExpanded
-                                                    tapExpanded = !tapExpanded
-                                                    if (wasExpanded && cameraHoleQuickActions) {
-                                                        onCameraHoleQuickActionsDismiss()
-                                                    }
-                                                    // The empty-pill center uses the same width/height
-                                                    // transition as notification expansion; avoid an
-                                                    // extra scale pop that makes the surface feel detached.
-                                                }
-                                            } else {
-                                                onEmptyClick()
-                                            }
+                                            // Route tap through the same action dispatcher as double-tap
+                                            // and hold. OPEN_CENTER toggles the shared quick-actions state.
+                                            onEmptyClick()
                                             return@detectTapGestures
                                         }
 
