@@ -1003,12 +1003,14 @@ private fun PersistentPillActionCard(
         EmptyClickAction.OPEN_APP to "Open app",
         EmptyClickAction.OPEN_CENTER to "Quick actions",
         EmptyClickAction.CIRCLE_TO_SEARCH to "Circle to Search",
+        EmptyClickAction.SCREENSHOT to "Screenshot",
     )
     val selectedDescription = when (selected) {
         EmptyClickAction.NONE -> "No action will run for this trigger."
         EmptyClickAction.OPEN_APP -> "Launch the app selected below."
         EmptyClickAction.OPEN_CENTER -> "Expand the configured shortcut panel below."
         EmptyClickAction.CIRCLE_TO_SEARCH -> "Open the system Circle to Search experience."
+        EmptyClickAction.SCREENSHOT -> "Capture a screenshot using the accessibility service."
     }
     Card(
         modifier = Modifier.fillMaxWidth(),
