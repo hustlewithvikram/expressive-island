@@ -55,6 +55,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -83,6 +84,8 @@ import com.vikram.expressiveisland.data.EmptyClickAction
 import com.vikram.expressiveisland.data.IconSource
 import com.vikram.expressiveisland.data.PillWidgetType
 import com.vikram.expressiveisland.data.NetworkSpeedFormat
+import com.vikram.expressiveisland.data.PillBatteryStyle
+import com.vikram.expressiveisland.data.PillClockFormat
 import com.vikram.expressiveisland.overlay.CenterShortcutCatalog
 import com.vikram.expressiveisland.overlay.MaterialIconCatalog
 import com.vikram.expressiveisland.overlay.loadImageBitmapOrNull
@@ -157,13 +160,10 @@ internal fun ShowsWhenEmptyScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(contentPadding)
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        PersistentPillSectionTitle(
-            title = stringResource(R.string.persistent_pill_appearance),
-            subtitle = "Choose what appears on each side of the pill",
-        )
+        PersistentPillSectionTitle(stringResource(R.string.persistent_pill_appearance))
         ExpressiveSegmentedRow(
             options = listOf("Left side", "Right side"),
             selectedIndex = if (selectedSideLeft) 0 else 1,
@@ -176,6 +176,61 @@ internal fun ShowsWhenEmptyScreen(
             shape = RoundedCornerShape(24.dp),
             onSelect = { viewModel.setPersistentPillWidget(selectedSideLeft, it) },
         )
+        val widgetPosition = if (selectedSideLeft) behaviour.persistentPillLeftPosition else behaviour.persistentPillRightPosition
+        AnimatedVisibility(visible = selectedWidget == PillWidgetType.NETWORK_SPEED || selectedWidget == PillWidgetType.BATTERY || selectedWidget == PillWidgetType.CLOCK || selectedWidget == PillWidgetType.DATE) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Horizontal position", style = MaterialTheme.typography.titleSmall)
+                    Slider(
+                        value = widgetPosition,
+                        onValueChange = { viewModel.setPersistentPillPosition(selectedSideLeft, it) },
+                        valueRange = 0f..1f,
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Start", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Center", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("End", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (selectedWidget == PillWidgetType.BATTERY) {
+                        Text("Battery style", style = MaterialTheme.typography.titleSmall)
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            PillBatteryStyle.entries.chunked(2).forEach { row ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    row.forEach { style ->
+                                        FilterChip(
+                                            selected = behaviour.persistentPillBatteryStyle == style,
+                                            onClick = { viewModel.setPersistentPillBatteryStyle(style) },
+                                            label = { Text(when (style) {
+                                                PillBatteryStyle.PERCENTAGE -> "Percentage"
+                                                PillBatteryStyle.ICON_WITH_PERCENTAGE -> "Icon + %"
+                                                PillBatteryStyle.VERTICAL -> "Vertical"
+                                                PillBatteryStyle.HORIZONTAL_FILL -> "Horizontal fill"
+                                            }) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (selectedWidget == PillWidgetType.CLOCK) {
+                        Text("Clock format", style = MaterialTheme.typography.titleSmall)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            PillClockFormat.entries.forEach { format ->
+                                FilterChip(
+                                    selected = behaviour.persistentPillClockFormat == format,
+                                    onClick = { viewModel.setPersistentPillClockFormat(format) },
+                                    label = { Text(if (format == PillClockFormat.HOUR_12) "12-hour" else "24-hour") },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         AnimatedVisibility(visible = showIcon) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -262,22 +317,16 @@ internal fun ShowsWhenEmptyScreen(
 
         SettingsToggleCard(
             shape = RoundedCornerShape(24.dp),
-            title = "Show Persistent Pill",
-            description = "Hide the pill's appearance while keeping its touch actions available.",
-            checked = behaviour.showsWhenEmpty,
-            onCheckedChange = viewModel::setShowsWhenEmpty,
+            title = "Invisible Persistent Pill",
+            description = "Hide the pill visually while keeping its touch area and actions active.",
+            checked = !behaviour.showsWhenEmpty,
+            onCheckedChange = { invisible -> viewModel.setShowsWhenEmpty(!invisible) },
         )
 
-        PersistentPillSectionTitle(
-            title = stringResource(R.string.persistent_pill_interaction),
-            subtitle = "Choose what a single tap, double tap, or press & hold should do.",
-        )
+        PersistentPillSectionTitle(stringResource(R.string.persistent_pill_interaction))
         val quickActionsContent: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                PersistentPillSectionTitle(
-                    title = stringResource(R.string.persistent_pill_shortcuts),
-                    subtitle = "These shortcut settings are shared by every trigger using Quick Actions.",
-                )
+                PersistentPillSectionTitle(stringResource(R.string.persistent_pill_shortcuts))
                 SettingsToggleCard(
                     shape = persistentPillGroupShape(isFirst = true, isLast = false),
                     title = stringResource(R.string.shows_when_empty_center_labels),
@@ -926,14 +975,13 @@ private fun PillWidgetSlotCard(
 
 
 @Composable
-private fun PersistentPillSectionTitle(title: String, subtitle: String) {
-    Column(
-        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
+private fun PersistentPillSectionTitle(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 0.dp),
+    )
 }
 
 @Composable
