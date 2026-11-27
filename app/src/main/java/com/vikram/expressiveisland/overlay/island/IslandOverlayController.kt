@@ -948,6 +948,10 @@ class IslandOverlayController(private val context: Context) {
                         persistentPillLeftWidget = behaviour.persistentPillLeftWidget,
                         persistentPillRightWidget = behaviour.persistentPillRightWidget,
                         persistentPillSpeedFormat = behaviour.networkSpeedFormat,
+                        persistentPillLeftPosition = behaviour.persistentPillLeftPosition,
+                        persistentPillRightPosition = behaviour.persistentPillRightPosition,
+                        persistentPillBatteryStyle = behaviour.persistentPillBatteryStyle,
+                        persistentPillClockFormat = behaviour.persistentPillClockFormat,
                         emptyOpensCenter = cameraHoleQuickActionsValue ||
                                 behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
                         centerShortcuts = behaviour.centerShortcuts,
