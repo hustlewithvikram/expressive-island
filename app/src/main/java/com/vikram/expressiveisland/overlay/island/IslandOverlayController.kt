@@ -2655,8 +2655,12 @@ class IslandOverlayController(private val context: Context) {
                     ?.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) } ?: return
                 runCatching { context.startActivity(launch) }
             }
-            EmptyClickAction.OPEN_CENTER -> cameraHoleQuickActions.value = true
+            EmptyClickAction.OPEN_CENTER -> cameraHoleQuickActions.value = !cameraHoleQuickActions.value
             EmptyClickAction.CIRCLE_TO_SEARCH -> com.vikram.expressiveisland.overlay.CircleToSearchLauncher.trigger(context)
+            EmptyClickAction.SCREENSHOT -> CenterShortcutExecutor.execute(
+                CenterShortcut.Global(GlobalAction.SCREENSHOT),
+                context,
+            )
         }
     }
 
