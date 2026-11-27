@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.vikram.expressiveisland.data.BehaviourPreferences.Companion.HIDE_IN_LANDSCAPE
@@ -22,8 +23,10 @@ private val Context.behaviourDataStore: DataStore<Preferences> by preferencesDat
 enum class HorizontalCutoutMode { HIDDEN, NORMAL_ONLY, STICK_TO_CAMERA, CENTER }
 
 /** Persistent pill slot content. */
-enum class PillWidgetType { NONE, ICON, ANIMATED_ICON, NETWORK_SPEED, BATTERY, CLOCK }
+enum class PillWidgetType { NONE, ICON, ANIMATED_ICON, NETWORK_SPEED, BATTERY, CLOCK, DATE }
 enum class NetworkSpeedFormat { AUTO, KBPS, MBPS }
+enum class PillBatteryStyle { PERCENTAGE, ICON_WITH_PERCENTAGE, VERTICAL, HORIZONTAL_FILL }
+enum class PillClockFormat { HOUR_12, HOUR_24 }
 
 /** Preferred artwork for notification app icons shown in the island. */
 enum class NotificationIconMode { ORIGINAL, MONOCHROME, AUTOMATIC }
@@ -111,6 +114,10 @@ data class BehaviourSettings(
     val persistentPillLeftWidget: PillWidgetType = PillWidgetType.NONE,
     val persistentPillRightWidget: PillWidgetType = PillWidgetType.NONE,
     val networkSpeedFormat: NetworkSpeedFormat = NetworkSpeedFormat.AUTO,
+    val persistentPillLeftPosition: Float = 0.5f,
+    val persistentPillRightPosition: Float = 0.5f,
+    val persistentPillBatteryStyle: PillBatteryStyle = PillBatteryStyle.PERCENTAGE,
+    val persistentPillClockFormat: PillClockFormat = PillClockFormat.HOUR_24,
     val showsWhenEmptyIcon: IconSource? = null,
     val showsWhenEmptyIconColor: CutoutColor? = null,
     val showsWhenEmptyClickAction: EmptyClickAction = DEFAULT_EMPTY_CLICK_ACTION,
@@ -273,6 +280,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
                 ?.let { runCatching { PillWidgetType.valueOf(it) }.getOrNull() }
                 ?: PillWidgetType.NONE,
             networkSpeedFormat = prefs[PILL_SPEED_FORMAT]?.let { runCatching { NetworkSpeedFormat.valueOf(it) }.getOrNull() } ?: NetworkSpeedFormat.AUTO,
+            persistentPillLeftPosition = (prefs[PILL_LEFT_POSITION] ?: 0.5f).coerceIn(0f, 1f),
+            persistentPillRightPosition = (prefs[PILL_RIGHT_POSITION] ?: 0.5f).coerceIn(0f, 1f),
+            persistentPillBatteryStyle = prefs[PILL_BATTERY_STYLE]?.let { runCatching { PillBatteryStyle.valueOf(it) }.getOrNull() } ?: PillBatteryStyle.PERCENTAGE,
+            persistentPillClockFormat = prefs[PILL_CLOCK_FORMAT]?.let { runCatching { PillClockFormat.valueOf(it) }.getOrNull() } ?: PillClockFormat.HOUR_24,
             showsWhenEmptyIcon = prefs[SHOWS_WHEN_EMPTY_ICON]?.let { IconSource.decode(it) },
             showsWhenEmptyIconColor = CutoutColor.deserialize(prefs[SHOWS_WHEN_EMPTY_ICON_COLOR]),
             showsWhenEmptyClickAction = prefs[SHOWS_WHEN_EMPTY_CLICK_ACTION]
@@ -348,6 +359,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             put("persistentPillLeftWidget", s.persistentPillLeftWidget.name)
             put("persistentPillRightWidget", s.persistentPillRightWidget.name)
             put("networkSpeedFormat", s.networkSpeedFormat.name)
+            put("persistentPillLeftPosition", s.persistentPillLeftPosition)
+            put("persistentPillRightPosition", s.persistentPillRightPosition)
+            put("persistentPillBatteryStyle", s.persistentPillBatteryStyle.name)
+            put("persistentPillClockFormat", s.persistentPillClockFormat.name)
             put("showsWhenEmptyIcon", s.showsWhenEmptyIcon?.encode() ?: JSONObject.NULL)
             put(
                 "showsWhenEmptyIconColor",
@@ -467,6 +482,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
             parseEnum<PillWidgetType>(obj, "persistentPillLeftWidget")?.let { widget -> it[PILL_LEFT_WIDGET] = widget.name }
             parseEnum<PillWidgetType>(obj, "persistentPillRightWidget")?.let { widget -> it[PILL_RIGHT_WIDGET] = widget.name }
             parseEnum<NetworkSpeedFormat>(obj, "networkSpeedFormat")?.let { format -> it[PILL_SPEED_FORMAT] = format.name }
+            if (obj.has("persistentPillLeftPosition")) it[PILL_LEFT_POSITION] = obj.optDouble("persistentPillLeftPosition", 0.5).toFloat().coerceIn(0f, 1f)
+            if (obj.has("persistentPillRightPosition")) it[PILL_RIGHT_POSITION] = obj.optDouble("persistentPillRightPosition", 0.5).toFloat().coerceIn(0f, 1f)
+            parseEnum<PillBatteryStyle>(obj, "persistentPillBatteryStyle")?.let { style -> it[PILL_BATTERY_STYLE] = style.name }
+            parseEnum<PillClockFormat>(obj, "persistentPillClockFormat")?.let { format -> it[PILL_CLOCK_FORMAT] = format.name }
             if (obj.has("showsWhenEmptyIcon")) {
                 val raw =
                     if (obj.isNull("showsWhenEmptyIcon")) null else obj.optString("showsWhenEmptyIcon")
@@ -674,6 +693,9 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
     }
 
     suspend fun setNetworkSpeedFormat(format: NetworkSpeedFormat) = context.behaviourDataStore.edit { it[PILL_SPEED_FORMAT] = format.name }
+    suspend fun setPersistentPillPosition(left: Boolean, position: Float) = context.behaviourDataStore.edit { if (left) it[PILL_LEFT_POSITION] = position.coerceIn(0f, 1f) else it[PILL_RIGHT_POSITION] = position.coerceIn(0f, 1f) }
+    suspend fun setPersistentPillBatteryStyle(style: PillBatteryStyle) = context.behaviourDataStore.edit { it[PILL_BATTERY_STYLE] = style.name }
+    suspend fun setPersistentPillClockFormat(format: PillClockFormat) = context.behaviourDataStore.edit { it[PILL_CLOCK_FORMAT] = format.name }
 
     suspend fun setPersistentPillWidget(left: Boolean, type: PillWidgetType) = context.behaviourDataStore.edit {
         if (left) it[PILL_LEFT_WIDGET] = type.name else it[PILL_RIGHT_WIDGET] = type.name
@@ -815,6 +837,10 @@ class BehaviourPreferences(private val context: Context) : JsonSerializable {
         val PILL_LEFT_WIDGET = stringPreferencesKey("persistent_pill_left_widget")
         val PILL_RIGHT_WIDGET = stringPreferencesKey("persistent_pill_right_widget")
         val PILL_SPEED_FORMAT = stringPreferencesKey("persistent_pill_speed_format")
+        val PILL_LEFT_POSITION = floatPreferencesKey("persistent_pill_left_position")
+        val PILL_RIGHT_POSITION = floatPreferencesKey("persistent_pill_right_position")
+        val PILL_BATTERY_STYLE = stringPreferencesKey("persistent_pill_battery_style")
+        val PILL_CLOCK_FORMAT = stringPreferencesKey("persistent_pill_clock_format")
         val SHOWS_WHEN_EMPTY_ICON = stringPreferencesKey("shows_when_empty_icon")
         val SHOWS_WHEN_EMPTY_ICON_COLOR = stringPreferencesKey("shows_when_empty_icon_color")
         val SHOWS_WHEN_EMPTY_CLICK_ACTION = stringPreferencesKey("shows_when_empty_click_action")
