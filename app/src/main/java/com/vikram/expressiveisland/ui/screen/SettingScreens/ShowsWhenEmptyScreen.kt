@@ -129,10 +129,13 @@ internal fun ShowsWhenEmptyScreen(
     val containerColor = behaviour.showsWhenEmptyIconColor
     val clickAction = behaviour.showsWhenEmptyClickAction
     val clickPackage = behaviour.showsWhenEmptyClickPackage
+    val holdAction = behaviour.persistentPillHoldAction
+    val holdPackage = behaviour.persistentPillHoldPackage
 
     var showIconSheet by remember { mutableStateOf(false) }
     var showMaterialPicker by remember { mutableStateOf(false) }
     var showAppPicker by remember { mutableStateOf(false) }
+    var showHoldAppPicker by remember { mutableStateOf(false) }
     var showAddShortcut by remember { mutableStateOf(false) }
     var showCenterAppPicker by remember { mutableStateOf(false) }
 
@@ -148,10 +151,16 @@ internal fun ShowsWhenEmptyScreen(
         Text(stringResource(R.string.persistent_pill_appearance), style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp, top = 8.dp))
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilledTonalButton(onClick = { selectedSideLeft = true }, modifier = Modifier.weight(1f),
-                enabled = !selectedSideLeft, shape = RoundedCornerShape(18.dp)) { Text("Left side") }
-            FilledTonalButton(onClick = { selectedSideLeft = false }, modifier = Modifier.weight(1f),
-                enabled = selectedSideLeft, shape = RoundedCornerShape(18.dp)) { Text("Right side") }
+            FilledTonalButton(onClick = { selectedSideLeft = true }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(18.dp),
+                colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+                    containerColor = if (selectedSideLeft) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    contentColor = if (selectedSideLeft) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )) { Text("Left side") }
+            FilledTonalButton(onClick = { selectedSideLeft = false }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(18.dp),
+                colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+                    containerColor = if (!selectedSideLeft) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    contentColor = if (!selectedSideLeft) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )) { Text("Right side") }
         }
         PillWidgetSlotCard(title = if (selectedSideLeft) "Left side" else "Right side", selected = selectedWidget,
             shape = RoundedCornerShape(24.dp), onSelect = { viewModel.setPersistentPillWidget(selectedSideLeft, it) })
@@ -226,6 +235,7 @@ internal fun ShowsWhenEmptyScreen(
                         EmptyClickAction.NONE -> stringResource(R.string.shows_when_empty_click_none)
                         EmptyClickAction.OPEN_APP -> stringResource(R.string.shows_when_empty_click_open_app)
                         EmptyClickAction.OPEN_CENTER -> stringResource(R.string.shows_when_empty_click_open_center)
+                        EmptyClickAction.CIRCLE_TO_SEARCH -> stringResource(R.string.shows_when_empty_click_circle_to_search)
                     }
                     Row(
                         modifier = Modifier
@@ -262,6 +272,35 @@ internal fun ShowsWhenEmptyScreen(
             )
         }
 
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = persistentPillGroupShape(isFirst = true, isLast = holdAction != EmptyClickAction.OPEN_APP),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        ) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(R.string.persistent_pill_hold_action_title), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.persistent_pill_hold_action_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                EmptyClickAction.entries.forEach { action ->
+                    val label = when (action) {
+                        EmptyClickAction.NONE -> stringResource(R.string.shows_when_empty_click_none)
+                        EmptyClickAction.OPEN_APP -> stringResource(R.string.shows_when_empty_click_open_app)
+                        EmptyClickAction.OPEN_CENTER -> stringResource(R.string.shows_when_empty_click_open_center)
+                        EmptyClickAction.CIRCLE_TO_SEARCH -> stringResource(R.string.shows_when_empty_click_circle_to_search)
+                    }
+                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                        .selectable(selected = holdAction == action, onClick = { viewModel.setPersistentPillHoldAction(action) }, role = Role.RadioButton)
+                        .padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = holdAction == action, onClick = null)
+                        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
+        }
+        AnimatedVisibility(visible = holdAction == EmptyClickAction.OPEN_APP) {
+            AppChoiceCard(shape = persistentPillGroupShape(isFirst = false, isLast = true), packageName = holdPackage,
+                onChoose = { showHoldAppPicker = true })
+        }
+
         Text(
             text = stringResource(R.string.persistent_pill_shortcuts),
             style = MaterialTheme.typography.titleSmall,
@@ -269,7 +308,7 @@ internal fun ShowsWhenEmptyScreen(
             modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 2.dp),
         )
         // Configure the shortcuts shown in the Persistent Pill's quick-actions center.
-        AnimatedVisibility(visible = clickAction == EmptyClickAction.OPEN_CENTER) {
+        AnimatedVisibility(visible = clickAction == EmptyClickAction.OPEN_CENTER || holdAction == EmptyClickAction.OPEN_CENTER) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 SettingsToggleCard(
                     shape = persistentPillGroupShape(isFirst = true, isLast = false),
@@ -348,6 +387,15 @@ internal fun ShowsWhenEmptyScreen(
                 viewModel.setShowsWhenEmptyClickPackage(packageName)
             },
             onDismiss = { showAppPicker = false },
+        )
+    }
+    if (showHoldAppPicker) {
+        AppPickerSheet(
+            onPick = { packageName ->
+                showHoldAppPicker = false
+                viewModel.setPersistentPillHoldPackage(packageName)
+            },
+            onDismiss = { showHoldAppPicker = false },
         )
     }
 
