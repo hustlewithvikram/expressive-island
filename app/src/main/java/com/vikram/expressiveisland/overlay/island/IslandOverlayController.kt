@@ -973,6 +973,7 @@ class IslandOverlayController(private val context: Context) {
                         },
 
                         onEmptyClick = ::onEmptyClick,
+                        onEmptyDoubleClick = ::onEmptyDoubleClick,
                         onEmptyLongClick = ::onEmptyLongClick,
                         onCenterShortcut = ::onCenterShortcut,
                         collapseRequest = collapseRequestValue,
@@ -2629,6 +2630,11 @@ class IslandOverlayController(private val context: Context) {
     private fun onEmptyClick() {
         val behaviour = behaviourState.value
         runPersistentPillAction(behaviour.showsWhenEmptyClickAction, behaviour.showsWhenEmptyClickPackage)
+    }
+
+    private fun onEmptyDoubleClick() {
+        val behaviour = behaviourState.value
+        runPersistentPillAction(behaviour.persistentPillDoubleTapAction, behaviour.persistentPillDoubleTapPackage)
     }
 
     private fun onEmptyLongClick() {
