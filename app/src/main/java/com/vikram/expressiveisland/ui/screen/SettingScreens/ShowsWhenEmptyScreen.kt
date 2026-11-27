@@ -159,8 +159,7 @@ internal fun ShowsWhenEmptyScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(contentPadding)
-            .padding(horizontal = 16.dp),
+            .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         PersistentPillSectionTitle(stringResource(R.string.persistent_pill_appearance))
