@@ -925,6 +925,9 @@ class IslandOverlayController(private val context: Context) {
                                     EmptyClickAction.OPEN_APP -> onEmptyClick()
                                     EmptyClickAction.OPEN_CENTER -> cameraHoleQuickActions.value = true
                                     EmptyClickAction.CIRCLE_TO_SEARCH -> com.vikram.expressiveisland.overlay.CircleToSearchLauncher.trigger(context)
+                                    EmptyClickAction.SCREENSHOT -> CenterShortcutExecutor.execute(
+                                        CenterShortcut.Global(GlobalAction.SCREENSHOT), context,
+                                    )
                                 }
                             } else {
                                 val action = when {
@@ -2647,7 +2650,7 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun runPersistentPillAction(action: EmptyClickAction, packageName: String?) {
-        cameraHoleQuickActions.value = false
+        if (action != EmptyClickAction.OPEN_CENTER) cameraHoleQuickActions.value = false
         when (action) {
             EmptyClickAction.NONE -> Unit
             EmptyClickAction.OPEN_APP -> {
