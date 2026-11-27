@@ -202,36 +202,38 @@ internal fun MusicTileScreen(
         SectionLabel("Playback Display")
         SettingsGroup {
             SettingsToggleCard(
-                shape = groupShape(if (settings.showProgress) GroupPosition.FIRST else GroupPosition.ONLY),
+                shape = groupShape(GroupPosition.FIRST),
                 title = stringResource(R.string.music_progress_title),
                 description = stringResource(R.string.music_progress_description),
                 checked = settings.showProgress,
                 onCheckedChange = viewModel::setMusicShowProgress,
             )
+            SettingsToggleCard(
+                shape = groupShape(if (settings.showProgress) GroupPosition.MIDDLE else GroupPosition.LAST),
+                title = "Immersive progress",
+                description = "Show playback progress across the collapsed pill",
+                checked = settings.collapsedImmersiveProgress,
+                onCheckedChange = viewModel::setMusicCollapsedImmersiveProgress,
+            )
             AnimatedVisibility(visible = settings.showProgress) {
-                SettingsToggleCard(
-                    shape = groupShape(GroupPosition.FIRST),
-                    title = "Immersive progress",
-                    description = "Use the playback progress as the collapsed pill background",
-                    checked = settings.collapsedImmersiveProgress,
-                    onCheckedChange = viewModel::setMusicCollapsedImmersiveProgress,
-                )
-                ColorPickerCard(
-                    label = "Progress color",
-                    selected = settings.progressColor,
-                    onSelect = viewModel::setMusicProgressColor,
-                    defaultLabel = "Use theme accent",
-                    defaultColor = MaterialTheme.colorScheme.primary,
-                    shape = groupShape(GroupPosition.MIDDLE),
-                )
-                ColorPickerCard(
-                    label = "Track color",
-                    selected = settings.progressTrackColor,
-                    onSelect = viewModel::setMusicProgressTrackColor,
-                    defaultLabel = "Use theme surface",
-                    defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    shape = groupShape(GroupPosition.LAST),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(GROUP_CARD_SPACING)) {
+                    ColorPickerCard(
+                        label = "Progress color",
+                        selected = settings.progressColor,
+                        onSelect = viewModel::setMusicProgressColor,
+                        defaultLabel = "Use theme accent",
+                        defaultColor = MaterialTheme.colorScheme.primary,
+                        shape = groupShape(GroupPosition.FIRST),
+                    )
+                    ColorPickerCard(
+                        label = "Track color",
+                        selected = settings.progressTrackColor,
+                        onSelect = viewModel::setMusicProgressTrackColor,
+                        defaultLabel = "Use theme surface",
+                        defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        shape = groupShape(GroupPosition.LAST),
+                    )
+                }
             }
         }
 
