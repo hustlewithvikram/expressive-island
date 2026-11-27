@@ -200,6 +200,7 @@ internal fun DynamicIsland(
     permissionDotColors: PermissionDotColors = PermissionDotColors(),
     permissionDotsVertical: Boolean = false,
     onEmptyClick: () -> Unit = {},
+    onEmptyLongClick: () -> Unit = {},
     onCenterShortcut: (CenterShortcut) -> Unit = {},
     onExpandedChange: (Boolean) -> Unit,
     onActivate: () -> Unit,
@@ -756,6 +757,11 @@ internal fun DynamicIsland(
                                             haptic.performHapticFeedback(
                                                 HapticFeedbackType.LongPress,
                                             )
+                                        }
+
+                                        if (emptyPill) {
+                                            onEmptyLongClick()
+                                            return@detectTapGestures
                                         }
 
                                         if (shownEvent?.contentIntent != null) {
