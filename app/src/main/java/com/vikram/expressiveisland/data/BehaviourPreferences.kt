@@ -23,7 +23,7 @@ private val Context.behaviourDataStore: DataStore<Preferences> by preferencesDat
 enum class HorizontalCutoutMode { HIDDEN, NORMAL_ONLY, STICK_TO_CAMERA, CENTER }
 
 /** Persistent pill slot content. */
-enum class PillWidgetType { NONE, ICON, ANIMATED_ICON, NETWORK_SPEED, BATTERY, CLOCK, DATE }
+enum class PillWidgetType { NONE, ICON, ANIMATED_ICON, NETWORK_SPEED, BATTERY, CLOCK, DATE, WEEKDAY }
 enum class NetworkSpeedFormat { AUTO, KBPS, MBPS }
 enum class PillBatteryStyle { PERCENTAGE, ICON_WITH_PERCENTAGE, VERTICAL, HORIZONTAL_FILL }
 enum class PillClockFormat { HOUR_12, HOUR_24 }
