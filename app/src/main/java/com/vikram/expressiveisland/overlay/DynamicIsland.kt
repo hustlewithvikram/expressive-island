@@ -200,6 +200,7 @@ internal fun DynamicIsland(
     permissionDotColors: PermissionDotColors = PermissionDotColors(),
     permissionDotsVertical: Boolean = false,
     onEmptyClick: () -> Unit = {},
+    onEmptyDoubleClick: () -> Unit = {},
     onEmptyLongClick: () -> Unit = {},
     onCenterShortcut: (CenterShortcut) -> Unit = {},
     onExpandedChange: (Boolean) -> Unit,
@@ -742,6 +743,15 @@ internal fun DynamicIsland(
                                                     boopScale.animateTo(1f, motion.boop())
                                                 }
                                             }
+                                        }
+                                    },
+
+                                    onDoubleTap = {
+                                        if (emptyPill) {
+                                            if (vibrateOnTap) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                            onEmptyDoubleClick()
                                         }
                                     },
 
