@@ -578,6 +578,9 @@
     <string name="shows_when_empty_click_none">None</string>
     <string name="shows_when_empty_click_open_app">Open app</string>
     <string name="shows_when_empty_click_open_center">Open Quick Actions</string>
+    <string name="shows_when_empty_click_circle_to_search">Circle to Search</string>
+    <string name="persistent_pill_hold_action_title">Persistent Pill touch &amp; hold action</string>
+    <string name="persistent_pill_hold_action_desc">Choose what happens when you press and hold the Persistent Pill.</string>
     <string name="shows_when_empty_choose_app">Choose app</string>
     <string name="shows_when_empty_no_app">No app selected</string>
     <string name="center_shortcuts_title">Shortcuts</string>
