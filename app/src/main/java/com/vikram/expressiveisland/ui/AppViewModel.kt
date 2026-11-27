@@ -27,6 +27,8 @@ import com.vikram.expressiveisland.data.BehaviourPreferences
 import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.PillWidgetType
 import com.vikram.expressiveisland.data.NetworkSpeedFormat
+import com.vikram.expressiveisland.data.PillBatteryStyle
+import com.vikram.expressiveisland.data.PillClockFormat
 import com.vikram.expressiveisland.data.NotificationIconMode
 import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CenterShortcut
@@ -765,6 +767,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setNetworkSpeedFormat(format: NetworkSpeedFormat) = viewModelScope.launch {
         behaviourPreferences.setNetworkSpeedFormat(format)
     }
+
+    fun setPersistentPillPosition(left: Boolean, position: Float) = viewModelScope.launch { behaviourPreferences.setPersistentPillPosition(left, position) }
+    fun setPersistentPillBatteryStyle(style: PillBatteryStyle) = viewModelScope.launch { behaviourPreferences.setPersistentPillBatteryStyle(style) }
+    fun setPersistentPillClockFormat(format: PillClockFormat) = viewModelScope.launch { behaviourPreferences.setPersistentPillClockFormat(format) }
 
     fun setPersistentPillWidget(left: Boolean, type: PillWidgetType) = viewModelScope.launch {
         behaviourPreferences.setPersistentPillWidget(left, type)
