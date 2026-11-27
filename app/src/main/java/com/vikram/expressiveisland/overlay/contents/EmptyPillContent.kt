@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
@@ -135,7 +136,7 @@ private fun PillWidget(
     slotModifier: Modifier,
     position: Float,
 ) {
-    Box(slotModifier.fillMaxSize(), contentAlignment = Alignment(horizontal = (position.coerceIn(0f, 1f) * 2f - 1f), vertical = 0f)) {
+    Box(slotModifier.fillMaxSize(), contentAlignment = BiasAlignment(horizontalBias = (position.coerceIn(0f, 1f) * 2f - 1f), verticalBias = 0f)) {
     when (type) {
         PillWidgetType.NONE -> Unit
         PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON -> {
