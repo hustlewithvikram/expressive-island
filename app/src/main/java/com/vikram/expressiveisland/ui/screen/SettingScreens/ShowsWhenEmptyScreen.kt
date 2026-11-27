@@ -86,6 +86,7 @@ import com.vikram.expressiveisland.overlay.MaterialIconCatalog
 import com.vikram.expressiveisland.overlay.loadImageBitmapOrNull
 import com.vikram.expressiveisland.overlay.resolve
 import com.vikram.expressiveisland.ui.AppViewModel
+import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 import com.vikram.expressiveisland.ui.screen.AppIcon
 import com.vikram.expressiveisland.ui.screen.IconChooserSheet
 import com.vikram.expressiveisland.ui.screen.InstalledApp
@@ -146,170 +147,149 @@ internal fun ShowsWhenEmptyScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(stringResource(R.string.persistent_pill_appearance), style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp, top = 8.dp))
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilledTonalButton(onClick = { selectedSideLeft = true }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(18.dp),
-                colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-                    containerColor = if (selectedSideLeft) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
-                    contentColor = if (selectedSideLeft) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                )) { Text("Left side") }
-            FilledTonalButton(onClick = { selectedSideLeft = false }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(18.dp),
-                colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-                    containerColor = if (!selectedSideLeft) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
-                    contentColor = if (!selectedSideLeft) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                )) { Text("Right side") }
-        }
-        PillWidgetSlotCard(title = if (selectedSideLeft) "Left side" else "Right side", selected = selectedWidget,
-            shape = RoundedCornerShape(24.dp), onSelect = { viewModel.setPersistentPillWidget(selectedSideLeft, it) })
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(contentPadding)
+            .padding(horizontal = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PersistentPillSectionTitle(
+            title = stringResource(R.string.persistent_pill_appearance),
+            subtitle = "Choose what appears on each side of the pill",
+        )
+        ExpressiveSegmentedRow(
+            options = listOf("Left side", "Right side"),
+            selectedIndex = if (selectedSideLeft) 0 else 1,
+            onSelect = { selectedSideLeft = it == 0 },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        PillWidgetSlotCard(
+            title = if (selectedSideLeft) "Left side" else "Right side",
+            selected = selectedWidget,
+            shape = RoundedCornerShape(24.dp),
+            onSelect = { viewModel.setPersistentPillWidget(selectedSideLeft, it) },
+        )
+
         AnimatedVisibility(visible = showIcon) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SettingsToggleCard(shape = RoundedCornerShape(24.dp), title = "Animate icon",
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = "Animate icon",
                     description = "Add a subtle pulse animation to this side's icon",
                     checked = selectedWidget == PillWidgetType.ANIMATED_ICON,
-                    onCheckedChange = { enabled -> viewModel.setPersistentPillWidget(selectedSideLeft,
-                        if (enabled) PillWidgetType.ANIMATED_ICON else PillWidgetType.ICON) })
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        EmptyIconThumbnail(source = source, containerColor = containerColor, size = 76.dp)
-                        FilledTonalButton(onClick = { showIconSheet = true }, shape = RoundedCornerShape(24.dp)) {
+                    onCheckedChange = { enabled ->
+                        viewModel.setPersistentPillWidget(
+                            selectedSideLeft,
+                            if (enabled) PillWidgetType.ANIMATED_ICON else PillWidgetType.ICON,
+                        )
+                    },
+                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        EmptyIconThumbnail(source = source, containerColor = containerColor, size = 64.dp)
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Pill icon", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "Use a custom image or a Material icon",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        FilledTonalButton(onClick = { showIconSheet = true }, shape = RoundedCornerShape(18.dp)) {
                             Icon(Icons.Rounded.Edit, contentDescription = null)
-                            Text(stringResource(R.string.event_change_icon), modifier = Modifier.padding(start = 8.dp))
+                            Text(stringResource(R.string.event_change_icon), modifier = Modifier.padding(start = 6.dp))
                         }
                     }
                 }
-                ColorPickerCard(label = stringResource(R.string.shows_when_empty_container_color), selected = containerColor,
+                ColorPickerCard(
+                    label = stringResource(R.string.shows_when_empty_container_color),
+                    selected = containerColor,
                     onSelect = { viewModel.setShowsWhenEmptyIconColor(it) },
-                    defaultLabel = stringResource(R.string.label_default), defaultColor = Color.White)
+                    defaultLabel = stringResource(R.string.label_default),
+                    defaultColor = Color.White,
+                )
             }
         }
+
         AnimatedVisibility(visible = selectedWidget == PillWidgetType.NETWORK_SPEED) {
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Internet speed format", style = MaterialTheme.typography.titleMedium)
-                    Text("Choose Auto, KB/s, or MB/s in the network speed display setting.",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Choose how the network speed is displayed.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         NetworkSpeedFormat.entries.forEach { format ->
                             FilterChip(
                                 selected = behaviour.networkSpeedFormat == format,
                                 onClick = { viewModel.setNetworkSpeedFormat(format) },
-                                label = { Text(when (format) { NetworkSpeedFormat.AUTO -> "Auto"; NetworkSpeedFormat.KBPS -> "KB/s"; NetworkSpeedFormat.MBPS -> "MB/s" }) },
+                                label = {
+                                    Text(
+                                        when (format) {
+                                            NetworkSpeedFormat.AUTO -> "Auto"
+                                            NetworkSpeedFormat.KBPS -> "KB/s"
+                                            NetworkSpeedFormat.MBPS -> "MB/s"
+                                        },
+                                    )
+                                },
                             )
                         }
                     }
                 }
             }
         }
-        SettingsToggleCard(shape = RoundedCornerShape(24.dp), title = "Show Persistent Pill",
-            description = "When disabled, the visible pill stays hidden but its touch area remains active and runs the selected touch action.",
-            checked = behaviour.showsWhenEmpty, onCheckedChange = viewModel::setShowsWhenEmpty)
 
-        Text(
-            text = stringResource(R.string.persistent_pill_interaction),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 2.dp),
+        SettingsToggleCard(
+            shape = RoundedCornerShape(24.dp),
+            title = "Show Persistent Pill",
+            description = "Hide the pill's appearance while keeping its touch actions available.",
+            checked = behaviour.showsWhenEmpty,
+            onCheckedChange = viewModel::setShowsWhenEmpty,
         )
-        // What tapping the resting pill does: nothing, open an app, or expand the shortcut center.
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = persistentPillGroupShape(isFirst = true, isLast = clickAction != EmptyClickAction.OPEN_APP),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.shows_when_empty_on_click),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                EmptyClickAction.entries.forEach { action ->
-                    val label = when (action) {
-                        EmptyClickAction.NONE -> stringResource(R.string.shows_when_empty_click_none)
-                        EmptyClickAction.OPEN_APP -> stringResource(R.string.shows_when_empty_click_open_app)
-                        EmptyClickAction.OPEN_CENTER -> stringResource(R.string.shows_when_empty_click_open_center)
-                        EmptyClickAction.CIRCLE_TO_SEARCH -> stringResource(R.string.shows_when_empty_click_circle_to_search)
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .selectable(
-                                selected = clickAction == action,
-                                onClick = { viewModel.setShowsWhenEmptyClickAction(action) },
-                                role = Role.RadioButton,
-                            )
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = clickAction == action,
-                            onClick = null,
-                        )
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
-                }
-            }
-        }
 
-        // Once "Open app" is chosen, pick which app the tap launches.
-        AnimatedVisibility(visible = clickAction == EmptyClickAction.OPEN_APP) {
-            AppChoiceCard(
-                shape = persistentPillGroupShape(isFirst = false, isLast = true),
-                packageName = clickPackage,
-                onChoose = { showAppPicker = true },
-            )
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = persistentPillGroupShape(isFirst = true, isLast = holdAction != EmptyClickAction.OPEN_APP),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        ) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(R.string.persistent_pill_hold_action_title), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(R.string.persistent_pill_hold_action_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                EmptyClickAction.entries.forEach { action ->
-                    val label = when (action) {
-                        EmptyClickAction.NONE -> stringResource(R.string.shows_when_empty_click_none)
-                        EmptyClickAction.OPEN_APP -> stringResource(R.string.shows_when_empty_click_open_app)
-                        EmptyClickAction.OPEN_CENTER -> stringResource(R.string.shows_when_empty_click_open_center)
-                        EmptyClickAction.CIRCLE_TO_SEARCH -> stringResource(R.string.shows_when_empty_click_circle_to_search)
-                    }
-                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                        .selectable(selected = holdAction == action, onClick = { viewModel.setPersistentPillHoldAction(action) }, role = Role.RadioButton)
-                        .padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = holdAction == action, onClick = null)
-                        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
-            }
-        }
-        AnimatedVisibility(visible = holdAction == EmptyClickAction.OPEN_APP) {
-            AppChoiceCard(shape = persistentPillGroupShape(isFirst = false, isLast = true), packageName = holdPackage,
-                onChoose = { showHoldAppPicker = true })
-        }
-
-        Text(
-            text = stringResource(R.string.persistent_pill_shortcuts),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 2.dp),
+        PersistentPillSectionTitle(
+            title = stringResource(R.string.persistent_pill_interaction),
+            subtitle = "Set a separate action for a tap and a press & hold",
         )
-        // Configure the shortcuts shown in the Persistent Pill's quick-actions center.
+        PersistentPillActionCard(
+            title = stringResource(R.string.shows_when_empty_on_click),
+            description = "Run this action when you tap the pill.",
+            selected = clickAction,
+            packageName = clickPackage,
+            onActionSelected = viewModel::setShowsWhenEmptyClickAction,
+            onChooseApp = { showAppPicker = true },
+        )
+        PersistentPillActionCard(
+            title = stringResource(R.string.persistent_pill_hold_action_title),
+            description = stringResource(R.string.persistent_pill_hold_action_desc),
+            selected = holdAction,
+            packageName = holdPackage,
+            onActionSelected = viewModel::setPersistentPillHoldAction,
+            onChooseApp = { showHoldAppPicker = true },
+        )
+
         AnimatedVisibility(visible = clickAction == EmptyClickAction.OPEN_CENTER || holdAction == EmptyClickAction.OPEN_CENTER) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                PersistentPillSectionTitle(
+                    title = stringResource(R.string.persistent_pill_shortcuts),
+                    subtitle = "Customise the quick actions shown from the pill",
+                )
                 SettingsToggleCard(
                     shape = persistentPillGroupShape(isFirst = true, isLast = false),
                     title = stringResource(R.string.shows_when_empty_center_labels),
@@ -324,7 +304,6 @@ internal fun ShowsWhenEmptyScreen(
                     checked = behaviour.centerFillContainers,
                     onCheckedChange = viewModel::setCenterFillContainers,
                 )
-                // Only meaningful when the row includes an app — themed icons apply to app shortcuts.
                 if (behaviour.centerShortcuts.any { it is CenterShortcut.LaunchApp }) {
                     SettingsToggleCard(
                         shape = persistentPillGroupShape(isFirst = false, isLast = false),
@@ -915,5 +894,92 @@ private fun PillWidgetSlotCard(
             },
             shape = RoundedCornerShape(24.dp),
         )
+    }
+}
+
+
+@Composable
+private fun PersistentPillSectionTitle(title: String, subtitle: String) {
+    Column(
+        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun PersistentPillActionCard(
+    title: String,
+    description: String,
+    selected: EmptyClickAction,
+    packageName: String?,
+    onActionSelected: (EmptyClickAction) -> Unit,
+    onChooseApp: () -> Unit,
+) {
+    val actions = listOf(
+        Triple(EmptyClickAction.NONE, "Do nothing", "Keep the pill idle"),
+        Triple(EmptyClickAction.OPEN_APP, "Open app", "Launch a selected app"),
+        Triple(EmptyClickAction.OPEN_CENTER, "Quick actions", "Open the shortcut panel"),
+        Triple(EmptyClickAction.CIRCLE_TO_SEARCH, "Circle to Search", "Invoke Google's search overlay"),
+    )
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            actions.chunked(2).forEach { rowActions ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    rowActions.forEach { (action, label, detail) ->
+                        val isSelected = selected == action
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .clickable { onActionSelected(action) },
+                            shape = RoundedCornerShape(20.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = if (isSelected) 1.5.dp else 1.dp,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                            ),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    detail,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            AnimatedVisibility(visible = selected == EmptyClickAction.OPEN_APP) {
+                AppChoiceCard(
+                    shape = RoundedCornerShape(20.dp),
+                    packageName = packageName,
+                    onChoose = onChooseApp,
+                )
+            }
+        }
     }
 }
