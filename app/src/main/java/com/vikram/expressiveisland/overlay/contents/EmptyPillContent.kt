@@ -162,47 +162,98 @@ private fun PillWidget(
         PillWidgetType.NETWORK_SPEED -> Text(speed, color = LocalContentColor.current,
             fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         PillWidgetType.BATTERY -> when (batteryStyle) {
-            PillBatteryStyle.PERCENTAGE -> Text("$battery%", color = LocalContentColor.current, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-            PillBatteryStyle.ICON_WITH_PERCENTAGE -> Box(
-                Modifier.size(width = 30.dp, height = 16.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .border(1.dp, LocalContentColor.current, RoundedCornerShape(4.dp)),
+            PillBatteryStyle.PERCENTAGE -> Text(
+                "$battery%",
+                color = LocalContentColor.current,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+            )
+            PillBatteryStyle.ICON_WITH_PERCENTAGE -> Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
+            ) {
+                Box(
+                    Modifier.size(width = 22.dp, height = 11.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .border(1.dp, LocalContentColor.current, RoundedCornerShape(3.dp))
+                        .padding(2.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Box(
+                        Modifier.fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = battery / 100f
+                                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                            }
+                            .clip(RoundedCornerShape(1.dp))
+                            .background(LocalContentColor.current.copy(alpha = 0.72f)),
+                    )
+                }
+                Text("$battery%", color = LocalContentColor.current, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            }
+            PillBatteryStyle.VERTICAL -> Box(
+                Modifier.size(width = 17.dp, height = 24.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
-                    Modifier.fillMaxSize().padding(2.dp)
-                        .graphicsLayer {
-                            scaleX = battery / 100f
-                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
-                        }
-                        .background(LocalContentColor.current.copy(alpha = 0.42f)),
+                    Modifier.align(Alignment.TopCenter)
+                        .size(width = 7.dp, height = 2.dp)
+                        .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
+                        .background(LocalContentColor.current),
                 )
-                Text("$battery%", color = LocalContentColor.current, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-            }
-            PillBatteryStyle.VERTICAL -> Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(1.dp),
-            ) {
                 Box(
-                    Modifier.size(width = 12.dp, height = 18.dp)
+                    Modifier.align(Alignment.BottomCenter)
+                        .padding(top = 3.dp)
+                        .size(width = 15.dp, height = 20.dp)
                         .clip(RoundedCornerShape(3.dp))
-                        .border(1.dp, LocalContentColor.current, RoundedCornerShape(3.dp)),
+                        .border(1.dp, LocalContentColor.current, RoundedCornerShape(3.dp))
+                        .padding(2.dp),
                     contentAlignment = Alignment.BottomCenter,
                 ) {
                     Box(
-                        Modifier.fillMaxSize().padding(2.dp)
+                        Modifier.fillMaxWidth()
+                            .fillMaxSize()
                             .graphicsLayer {
                                 scaleY = battery / 100f
                                 transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
                             }
-                            .background(LocalContentColor.current.copy(alpha = 0.55f)),
+                            .clip(RoundedCornerShape(1.dp))
+                            .background(LocalContentColor.current.copy(alpha = 0.72f)),
+                    )
+                    Text(
+                        "$battery",
+                        color = if (battery >= 50) androidx.compose.ui.graphics.Color.Black else LocalContentColor.current,
+                        fontSize = 7.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
                     )
                 }
-                Text("$battery%", color = LocalContentColor.current, fontSize = 8.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             }
-            PillBatteryStyle.HORIZONTAL_FILL -> Box(Modifier.size(width = 44.dp, height = 18.dp).clip(CircleShape).background(LocalContentColor.current.copy(alpha = 0.18f)), contentAlignment = Alignment.CenterStart) {
-                Box(Modifier.fillMaxSize().graphicsLayer { scaleX = battery / 100f; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f) }.background(LocalContentColor.current.copy(alpha = 0.38f)))
-                Text("$battery%", modifier = Modifier.align(Alignment.Center), color = LocalContentColor.current, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            PillBatteryStyle.HORIZONTAL_FILL -> Box(
+                Modifier.size(width = 34.dp, height = 15.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .border(1.dp, LocalContentColor.current, RoundedCornerShape(4.dp))
+                    .padding(2.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Box(
+                    Modifier.fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = battery / 100f
+                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                        }
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(LocalContentColor.current.copy(alpha = 0.62f)),
+                )
+                Text(
+                    "$battery%",
+                    modifier = Modifier.align(Alignment.Center),
+                    color = LocalContentColor.current,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
             }
         }
         PillWidgetType.DATE -> Text(SimpleDateFormat("d MMM", Locale.getDefault()).format(Date()), color = LocalContentColor.current, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
