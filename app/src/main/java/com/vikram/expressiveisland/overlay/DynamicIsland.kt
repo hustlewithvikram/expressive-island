@@ -58,6 +58,8 @@ import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.IconSource
 import com.vikram.expressiveisland.data.PillWidgetType
 import com.vikram.expressiveisland.data.NetworkSpeedFormat
+import com.vikram.expressiveisland.data.PillBatteryStyle
+import com.vikram.expressiveisland.data.PillClockFormat
 import com.vikram.expressiveisland.data.IslandDimensions
 import com.vikram.expressiveisland.data.PermissionDotColors
 import com.vikram.expressiveisland.data.PermissionDotPosition
@@ -177,6 +179,10 @@ internal fun DynamicIsland(
     persistentPillLeftWidget: PillWidgetType = PillWidgetType.NONE,
     persistentPillRightWidget: PillWidgetType = PillWidgetType.NONE,
     persistentPillSpeedFormat: NetworkSpeedFormat = NetworkSpeedFormat.AUTO,
+    persistentPillLeftPosition: Float = 0.5f,
+    persistentPillRightPosition: Float = 0.5f,
+    persistentPillBatteryStyle: PillBatteryStyle = PillBatteryStyle.PERCENTAGE,
+    persistentPillClockFormat: PillClockFormat = PillClockFormat.HOUR_24,
     emptyOpensCenter: Boolean = false,
     assistantTapEnabled: Boolean = false,
     onAssistantTap: () -> Unit = {},
@@ -200,6 +206,8 @@ internal fun DynamicIsland(
     permissionDotColors: PermissionDotColors = PermissionDotColors(),
     permissionDotsVertical: Boolean = false,
     onEmptyClick: () -> Unit = {},
+    onEmptyDoubleClick: () -> Unit = {},
+    onEmptyLongClick: () -> Unit = {},
     onCenterShortcut: (CenterShortcut) -> Unit = {},
     onExpandedChange: (Boolean) -> Unit,
     onActivate: () -> Unit,
@@ -230,7 +238,8 @@ internal fun DynamicIsland(
     val displayedChargingState = chargingPreviewState ?: chargingState
     val headphonesState by HeadphonesBus.state.collectAsStateWithLifecycle()
     val mediaActive = shownEvent?.media != null
-    val emptyPill = event == null && (showsWhenEmpty || cameraHoleQuickActions)
+    // The resting pill always retains its touch target; showsWhenEmpty controls only visibility.
+    val emptyPill = event == null
 
     val initialExpandedState =
         if (forcedExpanded == false) false else (shownEvent?.initiallyExpanded ?: false)
@@ -247,7 +256,7 @@ internal fun DynamicIsland(
     }
 
     LaunchedEffect(cameraHoleQuickActions) {
-        if (cameraHoleQuickActions) tapExpanded = true
+        tapExpanded = cameraHoleQuickActions
     }
 
     var centerInteraction by remember { mutableIntStateOf(0) }
@@ -261,7 +270,7 @@ internal fun DynamicIsland(
     val isAssistantNormalOnly =
         shownEvent?.assistant != null && !shownEvent.assistant.displayAnswerInCutout
     val isNormalOnly = isCall || isAssistantNormalOnly || shownEvent?.normalOnly == true
-    val centerExpanded = emptyPill && (emptyOpensCenter || cameraHoleQuickActions) && tapExpanded
+    val centerExpanded = emptyPill && cameraHoleQuickActions && tapExpanded
 
     val isExpanded = when {
         forcedExpanded == false -> false
@@ -281,8 +290,8 @@ internal fun DynamicIsland(
     }
 
     LaunchedEffect(replying) { onReplyActiveChange(replying) }
-    LaunchedEffect(isExpanded, event != null, emptyPill, emptyOpensCenter) {
-        if (event != null || (emptyPill && emptyOpensCenter)) onExpandedChange(isExpanded)
+    LaunchedEffect(isExpanded, event != null, emptyPill, cameraHoleQuickActions) {
+        if (event != null || (emptyPill && cameraHoleQuickActions)) onExpandedChange(isExpanded)
     }
 
     LaunchedEffect(collapseRequest) {
@@ -394,7 +403,7 @@ internal fun DynamicIsland(
         } + if (isExpanded && notificationTextExpanded) notificationTextExtraHeightDp else 0
     }
 
-    val present = event != null || showsWhenEmpty || cameraHoleQuickActions
+    val present = event != null || emptyPill || cameraHoleQuickActions
     // Keep the shell mounted while it travels from its expanded geometry back into the
     // camera-notch footprint. This is separate from reveal: reveal controls visibility,
     // while shellProgress controls the actual size/position/corner morph.
@@ -699,7 +708,8 @@ internal fun DynamicIsland(
                                 // collapse softens the disappearance; revealAlpha then removes
                                 // the retained surface after the shrink animation completes.
                                 val collapseAlpha = 1f - exitProgress.coerceIn(0f, 1f) * 0.95f
-                                alpha = (1f - travel * 0.75f).coerceIn(0.25f, 1f) *
+                                val invisibleRestingPill = emptyPill && !showsWhenEmpty && !isExpanded
+                                alpha = if (invisibleRestingPill) 0f else (1f - travel * 0.75f).coerceIn(0.25f, 1f) *
                                     collapseAlpha * revealAlpha
                             }
                             .pointerInput(
@@ -744,6 +754,15 @@ internal fun DynamicIsland(
                                         }
                                     },
 
+                                    onDoubleTap = if (emptyPill) {
+                                        {
+                                            if (vibrateOnTap) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                            onEmptyDoubleClick()
+                                        }
+                                    } else null,
+
                                     // Long press:
                                     // - If the current event has an app/content intent, open it.
                                     // - Otherwise, use the long press as a fallback to expand the island.
@@ -756,6 +775,11 @@ internal fun DynamicIsland(
                                             haptic.performHapticFeedback(
                                                 HapticFeedbackType.LongPress,
                                             )
+                                        }
+
+                                        if (emptyPill) {
+                                            onEmptyLongClick()
+                                            return@detectTapGestures
                                         }
 
                                         if (shownEvent?.contentIntent != null) {
@@ -782,23 +806,9 @@ internal fun DynamicIsland(
                                         }
 
                                         if (emptyPill) {
-                                            // "Open center" expands the resting pill into the shortcut
-                                            // grid (a second tap toggles it closed); every other "On
-                                            // click" action (e.g. open an app) runs via onEmptyClick.
-                                            if (emptyOpensCenter) {
-                                                if (forcedExpanded == null) {
-                                                    val wasExpanded = tapExpanded
-                                                    tapExpanded = !tapExpanded
-                                                    if (wasExpanded && cameraHoleQuickActions) {
-                                                        onCameraHoleQuickActionsDismiss()
-                                                    }
-                                                    // The empty-pill center uses the same width/height
-                                                    // transition as notification expansion; avoid an
-                                                    // extra scale pop that makes the surface feel detached.
-                                                }
-                                            } else {
-                                                onEmptyClick()
-                                            }
+                                            // Route tap through the same action dispatcher as double-tap
+                                            // and hold. OPEN_CENTER toggles the shared quick-actions state.
+                                            onEmptyClick()
                                             return@detectTapGestures
                                         }
 
@@ -948,6 +958,10 @@ internal fun DynamicIsland(
                                         rightWidget = persistentPillRightWidget,
                                         speedFormat = persistentPillSpeedFormat,
                                         heightDp = collapsed.heightDp,
+                                        leftPosition = persistentPillLeftPosition,
+                                        rightPosition = persistentPillRightPosition,
+                                        batteryStyle = persistentPillBatteryStyle,
+                                        clockFormat = persistentPillClockFormat,
                                     )
                                 }
                             } else {

@@ -209,29 +209,35 @@ internal fun MusicTileScreen(
                 onCheckedChange = viewModel::setMusicShowProgress,
             )
             AnimatedVisibility(visible = settings.showProgress) {
-                SettingsToggleCard(
-                    shape = groupShape(GroupPosition.FIRST),
-                    title = "Immersive progress",
-                    description = "Use the playback progress as the collapsed pill background",
-                    checked = settings.collapsedImmersiveProgress,
-                    onCheckedChange = viewModel::setMusicCollapsedImmersiveProgress,
-                )
-                ColorPickerCard(
-                    label = "Progress color",
-                    selected = settings.progressColor,
-                    onSelect = viewModel::setMusicProgressColor,
-                    defaultLabel = "Use theme accent",
-                    defaultColor = MaterialTheme.colorScheme.primary,
-                    shape = groupShape(GroupPosition.MIDDLE),
-                )
-                ColorPickerCard(
-                    label = "Track color",
-                    selected = settings.progressTrackColor,
-                    onSelect = viewModel::setMusicProgressTrackColor,
-                    defaultLabel = "Use theme surface",
-                    defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    shape = groupShape(GroupPosition.LAST),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(GROUP_CARD_SPACING)) {
+                    SettingsToggleCard(
+                        shape = groupShape(if (settings.collapsedImmersiveProgress) GroupPosition.FIRST else GroupPosition.ONLY),
+                        title = "Immersive progress",
+                        description = "Use the entire collapsed pill as the playback progress indicator",
+                        checked = settings.collapsedImmersiveProgress,
+                        onCheckedChange = viewModel::setMusicCollapsedImmersiveProgress,
+                    )
+                    AnimatedVisibility(visible = settings.collapsedImmersiveProgress) {
+                        Column(verticalArrangement = Arrangement.spacedBy(GROUP_CARD_SPACING)) {
+                            ColorPickerCard(
+                                label = "Progress color",
+                                selected = settings.progressColor,
+                                onSelect = viewModel::setMusicProgressColor,
+                                defaultLabel = "Use theme accent",
+                                defaultColor = MaterialTheme.colorScheme.primary,
+                                shape = groupShape(GroupPosition.FIRST),
+                            )
+                            ColorPickerCard(
+                                label = "Track color",
+                                selected = settings.progressTrackColor,
+                                onSelect = viewModel::setMusicProgressTrackColor,
+                                defaultLabel = "Use theme surface",
+                                defaultColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                shape = groupShape(GroupPosition.LAST),
+                            )
+                        }
+                    }
+                }
             }
         }
 

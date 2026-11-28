@@ -27,6 +27,8 @@ import com.vikram.expressiveisland.data.BehaviourPreferences
 import com.vikram.expressiveisland.data.BehaviourSettings
 import com.vikram.expressiveisland.data.PillWidgetType
 import com.vikram.expressiveisland.data.NetworkSpeedFormat
+import com.vikram.expressiveisland.data.PillBatteryStyle
+import com.vikram.expressiveisland.data.PillClockFormat
 import com.vikram.expressiveisland.data.NotificationIconMode
 import com.vikram.expressiveisland.data.NotificationIconShape
 import com.vikram.expressiveisland.data.CenterShortcut
@@ -766,6 +768,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         behaviourPreferences.setNetworkSpeedFormat(format)
     }
 
+    fun setPersistentPillPosition(left: Boolean, position: Float) = viewModelScope.launch { behaviourPreferences.setPersistentPillPosition(left, position) }
+    fun setPersistentPillBatteryStyle(style: PillBatteryStyle) = viewModelScope.launch { behaviourPreferences.setPersistentPillBatteryStyle(style) }
+    fun setPersistentPillClockFormat(format: PillClockFormat) = viewModelScope.launch { behaviourPreferences.setPersistentPillClockFormat(format) }
+
     fun setPersistentPillWidget(left: Boolean, type: PillWidgetType) = viewModelScope.launch {
         behaviourPreferences.setPersistentPillWidget(left, type)
     }
@@ -797,6 +803,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setShowsWhenEmptyClickPackage(packageName: String?) = viewModelScope.launch {
         behaviourPreferences.setShowsWhenEmptyClickPackage(packageName)
     }
+
+    fun setPersistentPillHoldAction(action: EmptyClickAction) = viewModelScope.launch { behaviourPreferences.setPersistentPillHoldAction(action) }
+    fun setPersistentPillHoldPackage(packageName: String?) = viewModelScope.launch { behaviourPreferences.setPersistentPillHoldPackage(packageName) }
+    fun setPersistentPillDoubleTapAction(action: EmptyClickAction) = viewModelScope.launch { behaviourPreferences.setPersistentPillDoubleTapAction(action) }
+    fun setPersistentPillDoubleTapPackage(packageName: String?) = viewModelScope.launch { behaviourPreferences.setPersistentPillDoubleTapPackage(packageName) }
 
     fun setCenterShortcuts(shortcuts: List<CenterShortcut>) = viewModelScope.launch {
         behaviourPreferences.setCenterShortcuts(shortcuts)

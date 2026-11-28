@@ -79,7 +79,10 @@ fun CollapsedContent(
     val badgeSize = (heightDp * 0.72f).dp
     val showIconProgressRing = satelliteSharing && !ringSettings.enabled &&
         (event.media != null || event.progressData != null) && event.download?.pillShowProgress != false
-    val musicProgress = nowPlaying?.progress?.takeIf { event.media?.showProgress == true && it.durationMs?.let { duration -> duration > 0L } == true }
+    val musicProgress = nowPlaying?.progress?.takeIf {
+        musicSettings.showProgress && event.media?.showProgress == true &&
+            it.durationMs?.let { duration -> duration > 0L } == true
+    }
     var musicProgressFraction by remember(event.id, musicProgress?.durationMs) {
         mutableFloatStateOf(musicProgress?.fractionAt(SystemClock.elapsedRealtime())?.coerceIn(0f, 1f) ?: 0f)
     }
@@ -94,6 +97,11 @@ fun CollapsedContent(
     val downloadImmersive = event.download?.let { it.pillShowProgress && it.pillImmersiveProgress } == true &&
         event.progressData != null
     val musicImmersive = musicSettings.showProgress && musicSettings.collapsedImmersiveProgress && musicProgress != null
+    val musicRing = musicSettings.showProgress && !musicSettings.collapsedImmersiveProgress &&
+        musicProgress != null && !isStickToCamera && !satelliteSharing
+    val animatedMusicFraction by animateFloatAsState(musicProgressFraction, label = "collapsedMusicProgressRing")
+    val musicRingProgressColor = musicSettings.progressColor?.resolve() ?: MaterialTheme.colorScheme.primary
+    val musicRingTrackColor = musicSettings.progressTrackColor?.resolve() ?: MaterialTheme.colorScheme.surfaceContainerHighest
     val pillImmersive = (downloadImmersive || musicImmersive) && !isStickToCamera && !satelliteSharing
     val pillProgress = event.progressData
     val pillFraction = pillProgress?.takeIf { !it.isIndeterminate && it.max > 0 }
@@ -184,6 +192,36 @@ fun CollapsedContent(
                     iconSize = (heightDp * 0.46f).dp,
                     modifier = placement,
                 )
+            }
+        }
+
+        if (musicRing) {
+            Canvas(
+                modifier = placement.size(badgeSize),
+            ) {
+                val strokeWidth = 2.5.dp.toPx()
+                val inset = strokeWidth / 2f
+                val arcSize = Size(size.width - strokeWidth, size.height - strokeWidth)
+                drawArc(
+                    color = musicRingTrackColor.copy(alpha = 0.82f),
+                    startAngle = -90f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    topLeft = Offset(inset, inset),
+                    size = arcSize,
+                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                )
+                if (animatedMusicFraction > 0f) {
+                    drawArc(
+                        color = musicRingProgressColor,
+                        startAngle = -90f,
+                        sweepAngle = 360f * animatedMusicFraction.coerceIn(0f, 1f),
+                        useCenter = false,
+                        topLeft = Offset(inset, inset),
+                        size = arcSize,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                    )
+                }
             }
         }
 

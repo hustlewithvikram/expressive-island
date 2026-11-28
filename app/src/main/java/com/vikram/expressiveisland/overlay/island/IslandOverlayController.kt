@@ -924,6 +924,10 @@ class IslandOverlayController(private val context: Context) {
                                     EmptyClickAction.NONE -> Unit
                                     EmptyClickAction.OPEN_APP -> onEmptyClick()
                                     EmptyClickAction.OPEN_CENTER -> cameraHoleQuickActions.value = true
+                                    EmptyClickAction.CIRCLE_TO_SEARCH -> com.vikram.expressiveisland.overlay.CircleToSearchLauncher.trigger(context)
+                                    EmptyClickAction.SCREENSHOT -> CenterShortcutExecutor.execute(
+                                        CenterShortcut.Global(GlobalAction.SCREENSHOT), context,
+                                    )
                                 }
                             } else {
                                 val action = when {
@@ -947,6 +951,10 @@ class IslandOverlayController(private val context: Context) {
                         persistentPillLeftWidget = behaviour.persistentPillLeftWidget,
                         persistentPillRightWidget = behaviour.persistentPillRightWidget,
                         persistentPillSpeedFormat = behaviour.networkSpeedFormat,
+                        persistentPillLeftPosition = behaviour.persistentPillLeftPosition,
+                        persistentPillRightPosition = behaviour.persistentPillRightPosition,
+                        persistentPillBatteryStyle = behaviour.persistentPillBatteryStyle,
+                        persistentPillClockFormat = behaviour.persistentPillClockFormat,
                         emptyOpensCenter = cameraHoleQuickActionsValue ||
                                 behaviour.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER,
                         centerShortcuts = behaviour.centerShortcuts,
@@ -972,6 +980,8 @@ class IslandOverlayController(private val context: Context) {
                         },
 
                         onEmptyClick = ::onEmptyClick,
+                        onEmptyDoubleClick = ::onEmptyDoubleClick,
+                        onEmptyLongClick = ::onEmptyLongClick,
                         onCenterShortcut = ::onCenterShortcut,
                         collapseRequest = collapseRequestValue,
                         notificationTextExpanded = notificationTextExpandedValue,
@@ -2003,7 +2013,8 @@ class IslandOverlayController(private val context: Context) {
         return when {
             // The empty pill's expanded "center" (no event) claims room for its shortcut row.
             expanded && event == null &&
-                    behaviourState.value.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER ->
+                    (cameraHoleQuickActions.value ||
+                            behaviourState.value.showsWhenEmptyClickAction == EmptyClickAction.OPEN_CENTER) ->
                 CENTER_SHORTCUTS_EXTRA_DP
 
             expanded -> expandedActionsBonusDp()
@@ -2625,14 +2636,36 @@ class IslandOverlayController(private val context: Context) {
      * the press animation the pill already plays.
      */
     private fun onEmptyClick() {
-        cameraHoleQuickActions.value = false
         val behaviour = behaviourState.value
-        if (behaviour.showsWhenEmptyClickAction != EmptyClickAction.OPEN_APP) return
-        val packageName = behaviour.showsWhenEmptyClickPackage ?: return
-        val launch = context.packageManager.getLaunchIntentForPackage(packageName)?.apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        } ?: return
-        runCatching { context.startActivity(launch) }
+        runPersistentPillAction(behaviour.showsWhenEmptyClickAction, behaviour.showsWhenEmptyClickPackage)
+    }
+
+    private fun onEmptyDoubleClick() {
+        val behaviour = behaviourState.value
+        runPersistentPillAction(behaviour.persistentPillDoubleTapAction, behaviour.persistentPillDoubleTapPackage)
+    }
+
+    private fun onEmptyLongClick() {
+        val behaviour = behaviourState.value
+        runPersistentPillAction(behaviour.persistentPillHoldAction, behaviour.persistentPillHoldPackage)
+    }
+
+    private fun runPersistentPillAction(action: EmptyClickAction, packageName: String?) {
+        if (action != EmptyClickAction.OPEN_CENTER) cameraHoleQuickActions.value = false
+        when (action) {
+            EmptyClickAction.NONE -> Unit
+            EmptyClickAction.OPEN_APP -> {
+                val launch = packageName?.let { context.packageManager.getLaunchIntentForPackage(it) }
+                    ?.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) } ?: return
+                runCatching { context.startActivity(launch) }
+            }
+            EmptyClickAction.OPEN_CENTER -> cameraHoleQuickActions.value = !cameraHoleQuickActions.value
+            EmptyClickAction.CIRCLE_TO_SEARCH -> com.vikram.expressiveisland.overlay.CircleToSearchLauncher.trigger(context)
+            EmptyClickAction.SCREENSHOT -> CenterShortcutExecutor.execute(
+                CenterShortcut.Global(GlobalAction.SCREENSHOT),
+                context,
+            )
+        }
     }
 
     /**

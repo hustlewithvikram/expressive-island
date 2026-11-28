@@ -10,12 +10,15 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
@@ -23,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
@@ -38,6 +42,8 @@ import com.vikram.expressiveisland.data.CutoutColor
 import com.vikram.expressiveisland.data.IconSource
 import com.vikram.expressiveisland.data.NetworkSpeedFormat
 import com.vikram.expressiveisland.data.PillWidgetType
+import com.vikram.expressiveisland.data.PillBatteryStyle
+import com.vikram.expressiveisland.data.PillClockFormat
 import com.vikram.expressiveisland.overlay.MaterialIconCatalog
 import com.vikram.expressiveisland.overlay.loadImageBitmapOrNull
 import com.vikram.expressiveisland.overlay.resolve
@@ -57,6 +63,10 @@ fun EmptyPillContent(
     rightWidget: PillWidgetType,
     speedFormat: NetworkSpeedFormat,
     heightDp: Int,
+    leftPosition: Float = 0.5f,
+    rightPosition: Float = 0.5f,
+    batteryStyle: PillBatteryStyle = PillBatteryStyle.PERCENTAGE,
+    clockFormat: PillClockFormat = PillClockFormat.HOUR_24,
 ) {
     val context = LocalContext.current
     val disc = containerColor?.resolve()
@@ -90,9 +100,9 @@ fun EmptyPillContent(
             delay(30_000)
         }
     }
-    val clock by produceState("", context) {
+    val clock by produceState("", context, clockFormat) {
         while (true) {
-            value = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+            value = SimpleDateFormat(if (clockFormat == PillClockFormat.HOUR_12) "hh:mm a" else "HH:mm", Locale.getDefault()).format(Date())
             delay(15_000)
         }
     }
@@ -104,10 +114,10 @@ fun EmptyPillContent(
     Row(Modifier.fillMaxSize().padding(horizontal = (heightDp * 0.30f).dp),
         verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-            PillWidget(leftWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock)
+            PillWidget(leftWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock, batteryStyle, Modifier, leftPosition)
         }
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-            PillWidget(rightWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock)
+            PillWidget(rightWidget, bitmap, materialIcon, disc, glyphColor, heightDp, pulseScale, speed, battery, clock, batteryStyle, Modifier, rightPosition)
         }
     }
 }
@@ -124,7 +134,11 @@ private fun PillWidget(
     speed: String,
     battery: Int,
     clock: String,
+    batteryStyle: PillBatteryStyle,
+    slotModifier: Modifier,
+    position: Float,
 ) {
+    Box(slotModifier.fillMaxSize(), contentAlignment = BiasAlignment(horizontalBias = (position.coerceIn(0f, 1f) * 2f - 1f), verticalBias = 0f)) {
     when (type) {
         PillWidgetType.NONE -> Unit
         PillWidgetType.ICON, PillWidgetType.ANIMATED_ICON -> {
@@ -147,10 +161,105 @@ private fun PillWidget(
         }
         PillWidgetType.NETWORK_SPEED -> Text(speed, color = LocalContentColor.current,
             fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-        PillWidgetType.BATTERY -> Text("$battery%", color = LocalContentColor.current,
-            fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        PillWidgetType.BATTERY -> when (batteryStyle) {
+            PillBatteryStyle.PERCENTAGE -> Text(
+                "$battery%",
+                color = LocalContentColor.current,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+            )
+            PillBatteryStyle.ICON_WITH_PERCENTAGE -> Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
+            ) {
+                Box(
+                    Modifier.size(width = 22.dp, height = 11.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .border(1.dp, LocalContentColor.current, RoundedCornerShape(3.dp))
+                        .padding(2.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Box(
+                        Modifier.fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = battery / 100f
+                                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                            }
+                            .clip(RoundedCornerShape(1.dp))
+                            .background(LocalContentColor.current.copy(alpha = 0.72f)),
+                    )
+                }
+                Text("$battery%", color = LocalContentColor.current, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            }
+            PillBatteryStyle.VERTICAL -> Box(
+                Modifier.size(width = 17.dp, height = 24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    Modifier.align(Alignment.TopCenter)
+                        .size(width = 7.dp, height = 2.dp)
+                        .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
+                        .background(LocalContentColor.current),
+                )
+                Box(
+                    Modifier.align(Alignment.BottomCenter)
+                        .padding(top = 3.dp)
+                        .size(width = 15.dp, height = 20.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .border(1.dp, LocalContentColor.current, RoundedCornerShape(3.dp))
+                        .padding(2.dp),
+                    contentAlignment = Alignment.BottomCenter,
+                ) {
+                    Box(
+                        Modifier.fillMaxSize()
+                            .graphicsLayer {
+                                scaleY = battery / 100f
+                                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
+                            }
+                            .clip(RoundedCornerShape(1.dp))
+                            .background(LocalContentColor.current.copy(alpha = 0.72f)),
+                    )
+                    Text(
+                        "$battery",
+                        color = if (battery >= 50) androidx.compose.ui.graphics.Color.Black else LocalContentColor.current,
+                        fontSize = 7.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                    )
+                }
+            }
+            PillBatteryStyle.HORIZONTAL_FILL -> Box(
+                Modifier.size(width = 34.dp, height = 15.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .border(1.dp, LocalContentColor.current, RoundedCornerShape(4.dp))
+                    .padding(2.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Box(
+                    Modifier.fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = battery / 100f
+                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                        }
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(LocalContentColor.current.copy(alpha = 0.62f)),
+                )
+                Text(
+                    "$battery%",
+                    modifier = Modifier.align(Alignment.Center),
+                    color = LocalContentColor.current,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
+            }
+        }
+        PillWidgetType.DATE -> Text(SimpleDateFormat("d MMM", Locale.getDefault()).format(Date()), color = LocalContentColor.current, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        PillWidgetType.WEEKDAY -> Text(SimpleDateFormat("EEE", Locale.getDefault()).format(Date()), color = LocalContentColor.current, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         PillWidgetType.CLOCK -> Text(clock, color = LocalContentColor.current,
             fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+    }
     }
 }
 
