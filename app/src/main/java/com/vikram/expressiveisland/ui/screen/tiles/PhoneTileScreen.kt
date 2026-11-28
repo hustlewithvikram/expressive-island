@@ -65,6 +65,15 @@ internal fun PhoneTileScreen(
     val phoneStatePermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> phoneStateGranted = granted }
+    var contactsGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) ==
+                PackageManager.PERMISSION_GRANTED,
+        )
+    }
+    val contactsPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> contactsGranted = granted }
 
     val previewDetail = when (selectedTab) {
         PhoneSettingsTab.INCOMING -> "Incoming call"
@@ -106,6 +115,21 @@ internal fun PhoneTileScreen(
                 .padding(horizontal = 4.dp),
         )
 
+        if (settings.showPhoto && !contactsGranted) {
+            Text(
+                text = "The dialer's own caller image is used when available. Allow contact access to load saved contact photos when the dialer does not provide one.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            )
+            Button(
+                onClick = { contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
+                modifier = Modifier.padding(horizontal = 8.dp),
+            ) {
+                Text("Allow contact access")
+            }
+        }
+
         when (selectedTab) {
             PhoneSettingsTab.INCOMING -> {
                 SectionLabel("Incoming call")
@@ -114,7 +138,12 @@ internal fun PhoneTileScreen(
                     title = stringResource(R.string.phone_show_photo_title),
                     description = "Show the caller's contact photo or the fallback avatar.",
                     checked = settings.showPhoto,
-                    onCheckedChange = viewModel::setPhoneShowPhoto,
+                    onCheckedChange = { enabled ->
+                        viewModel.setPhoneShowPhoto(enabled)
+                        if (enabled && !contactsGranted) {
+                            contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                        }
+                    },
                 )
                 SettingsToggleCard(
                     shape = RoundedCornerShape(4.dp),
