@@ -566,7 +566,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
                 startTimeMs = call.startTimeMs,
                 ongoing = call.ongoing,
                 packageName = sbn.packageName,
-                outgoing = callStateMonitor.isOutgoing,
+                outgoing = callStateMonitor.isOutgoing && call.startTimeMs == null,
             ),
         )
 
@@ -604,7 +604,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     private fun onPhoneCallStateChanged(state: Int) {
         if (state == 0) return
         val current = OnCallBus.state.value ?: return
-        val outgoing = callStateMonitor.isOutgoing
+        val outgoing = callStateMonitor.isOutgoing && current.startTimeMs == null
         if (current.outgoing != outgoing) {
             OnCallBus.update(current.copy(outgoing = outgoing))
         }
