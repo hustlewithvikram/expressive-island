@@ -62,6 +62,7 @@ import com.vikram.expressiveisland.overlay.island.IslandAction
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.expandedActionsExtraDp
 import com.vikram.expressiveisland.overlay.resolve
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 /**
@@ -455,7 +456,7 @@ fun MiniCallContent(
         if (start != null && call.showDuration) {
             while (true) {
                 now = System.currentTimeMillis()
-                delay(1_000L.milliseconds)
+                delay(1_000L)
             }
         }
     }
