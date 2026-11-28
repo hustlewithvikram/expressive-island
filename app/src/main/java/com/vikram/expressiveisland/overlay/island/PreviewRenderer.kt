@@ -141,6 +141,10 @@ internal object PreviewRenderer {
                 incomingExpandedLayout = phoneSettings.expandedIncomingLayout,
                 hangUpColor = phoneSettings.hangUpColor,
                 otherButtonColor = phoneSettings.otherButtonColor,
+                showButtonLabels = phoneSettings.showButtonLabels,
+                incomingAnswerColor = phoneSettings.incomingAnswerColor,
+                incomingHangUpColor = phoneSettings.incomingHangUpColor,
+                expandedHangUpColor = phoneSettings.expandedHangUpColor,
             ) else null,
             timer = if (category == IslandPreviewCategory.TIMER_TILE) TimerTileOptions(
                 showActions = timerSettings.showActions,
