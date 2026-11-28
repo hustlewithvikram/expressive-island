@@ -19,9 +19,9 @@ import androidx.compose.material.icons.rounded.CallEnd
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MicOff
 import androidx.compose.material.icons.rounded.OpenInNew
-import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContext
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -311,7 +311,7 @@ fun CallExpandedContent(
                 onClick = { CallAudioBus.toggleMute(context) },
             )
             CallControlButton(
-                icon = Icons.Rounded.VolumeUp,
+                icon = Icons.AutoMirrored.Rounded.VolumeUp,
                 label = "Speaker",
                 active = speakerOn,
                 activeColor = activeFill,
