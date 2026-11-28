@@ -1845,14 +1845,18 @@ class IslandOverlayController(private val context: Context) {
         a.id == b.id || isSameTile(a, b) ||
             (a.notificationKey != null && a.notificationKey == b.notificationKey)
 
-    private fun isPersistentTileActive(event: IslandEvent): Boolean = when {
-        event.media != null -> musicPlaying && tileEnabled[DynamicTile.MUSIC] != false && !shouldHideForPlayerApp()
-        event.call != null -> callActive && tileEnabled[DynamicTile.PHONE] != false &&
-            OnCallBus.state.value?.packageName !in disabledApps && !shouldHideForPhoneApp()
-        event.timer != null -> timerActive && tileEnabled[DynamicTile.TIMER] != false
-        event.download != null -> downloadActive && tileEnabled[DynamicTile.DOWNLOAD] != false
-        event.assistant?.interactivePanel == true -> assistantActive && tileEnabled[DynamicTile.ASSISTANT] != false
-        else -> false
+    private fun isPersistentTileActive(event: IslandEvent): Boolean {
+        // Central gate used by restoration, satellite promotion and interruption fallbacks.
+        if (!behaviourState.value.cutoutEnabled) return false
+        return when {
+            event.media != null -> musicPlaying && tileEnabled[DynamicTile.MUSIC] != false && !shouldHideForPlayerApp()
+            event.call != null -> callActive && tileEnabled[DynamicTile.PHONE] != false &&
+                OnCallBus.state.value?.packageName !in disabledApps && !shouldHideForPhoneApp()
+            event.timer != null -> timerActive && tileEnabled[DynamicTile.TIMER] != false
+            event.download != null -> downloadActive && tileEnabled[DynamicTile.DOWNLOAD] != false
+            event.assistant?.interactivePanel == true -> assistantActive && tileEnabled[DynamicTile.ASSISTANT] != false
+            else -> false
+        }
     }
 
     private fun enqueueWaitingSatellite(event: IslandEvent, deadlineMs: Long?) {
@@ -3114,6 +3118,7 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun musicPillToReturnTo(): IslandEvent? {
+        if (!behaviourState.value.cutoutEnabled) return null
         if (showingLiveTile()) return null
         if (!musicPlaying) return null
         if (tileEnabled[DynamicTile.MUSIC] == false) return null
@@ -3123,6 +3128,7 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun callPillToReturnTo(): IslandEvent? {
+        if (!behaviourState.value.cutoutEnabled) return null
         if (showingLiveTile()) return null
         if (!callActive) return null
         if (tileEnabled[DynamicTile.PHONE] == false) return null
@@ -3133,6 +3139,7 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun timerPillToReturnTo(): IslandEvent? {
+        if (!behaviourState.value.cutoutEnabled) return null
         if (showingLiveTile()) return null
         if (!timerActive) return null
         if (tileEnabled[DynamicTile.TIMER] == false) return null
@@ -3140,6 +3147,7 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun downloadPillToReturnTo(): IslandEvent? {
+        if (!behaviourState.value.cutoutEnabled) return null
         if (showingLiveTile()) return null
         if (!downloadActive || tileEnabled[DynamicTile.DOWNLOAD] == false) return null
         return lastDownloadEvent?.copy(initiallyExpanded = false)
