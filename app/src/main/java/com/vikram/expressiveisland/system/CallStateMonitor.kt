@@ -79,9 +79,9 @@ class CallStateMonitor(private val context: Context) {
         when (state) {
             TelephonyManager.CALL_STATE_RINGING -> isOutgoing = false
             TelephonyManager.CALL_STATE_OFFHOOK ->
-                // A direct IDLE -> OFFHOOK transition is an outgoing call. Incoming calls pass
-                // through RINGING first, so they remain incoming after being answered.
-                isOutgoing = lastState != TelephonyManager.CALL_STATE_RINGING
+                // Only a previously observed IDLE -> OFFHOOK transition proves an outgoing call.
+                // If monitoring starts mid-call, direction is unknown rather than guessed.
+                isOutgoing = lastState == TelephonyManager.CALL_STATE_IDLE
             TelephonyManager.CALL_STATE_IDLE -> {
                 isOutgoing = false
                 onCallEnded()
