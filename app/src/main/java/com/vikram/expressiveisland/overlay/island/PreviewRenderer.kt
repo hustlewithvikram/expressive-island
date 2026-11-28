@@ -4,6 +4,10 @@ import android.app.PendingIntent
 import android.app.RemoteInput
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Animation
 import androidx.compose.material.icons.rounded.Call
@@ -28,6 +32,7 @@ import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.core.IslandPreviewContent
 import com.vikram.expressiveisland.overlay.MaterialIconCatalog
@@ -77,10 +82,16 @@ internal object PreviewRenderer {
                 IslandAction(label = "Archive", intent = previewIntent(1)),
             )
             }
-            IslandPreviewCategory.PHONE_TILE -> listOf(
-                IslandAction(label = "Hang up", intent = previewIntent(2), destructive = true),
-                IslandAction(label = "Answer", intent = previewIntent(3), answer = true),
-            )
+            IslandPreviewCategory.PHONE_TILE -> when {
+                content.detail.contains("Ongoing", ignoreCase = true) ->
+                    listOf(IslandAction(label = "Hang up", intent = previewIntent(2), destructive = true))
+                content.detail.contains("Outgoing", ignoreCase = true) ->
+                    listOf(IslandAction(label = "Cancel call", intent = previewIntent(2), destructive = true))
+                else -> listOf(
+                    IslandAction(label = "Decline", intent = previewIntent(2), destructive = true),
+                    IslandAction(label = "Answer", intent = previewIntent(3), answer = true),
+                )
+            }
             IslandPreviewCategory.TIMER_TILE -> listOf(
                 IslandAction(label = "Reset", intent = previewIntent(4), destructive = true),
                 IslandAction(label = "Add 1 min", intent = previewIntent(5)),
@@ -145,6 +156,9 @@ internal object PreviewRenderer {
                 incomingAnswerColor = phoneSettings.incomingAnswerColor,
                 incomingHangUpColor = phoneSettings.incomingHangUpColor,
                 expandedHangUpColor = phoneSettings.expandedHangUpColor,
+                miniCall = phoneSettings.miniCall,
+                previewOutgoing = content.detail.contains("Outgoing", ignoreCase = true),
+                previewPhoto = if (phoneSettings.showPhoto) createPreviewContactPhoto() else null,
             ) else null,
             timer = if (category == IslandPreviewCategory.TIMER_TILE) TimerTileOptions(
                 showActions = timerSettings.showActions,
@@ -173,9 +187,24 @@ internal object PreviewRenderer {
             progressData = if (category == IslandPreviewCategory.DOWNLOAD_TILE) {
                 ProgressData(max = 100, current = 64, title = "Downloading update.zip")
             } else null,
-            normalOnly = category == IslandPreviewCategory.PHONE_TILE,
+            normalOnly = false,
         )
     }
+
+
+    /** Synthetic portrait used only by the settings preview to verify photo visibility and sizing. */
+    private fun createPreviewContactPhoto() = runCatching {
+        val bitmap = Bitmap.createBitmap(128, 128, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = android.graphics.Color.rgb(22, 92, 65)
+        canvas.drawCircle(64f, 64f, 64f, paint)
+        paint.color = android.graphics.Color.rgb(242, 190, 151)
+        canvas.drawCircle(64f, 47f, 25f, paint)
+        paint.color = android.graphics.Color.rgb(42, 48, 62)
+        canvas.drawOval(RectF(22f, 76f, 106f, 150f), paint)
+        bitmap.asImageBitmap()
+    }.getOrNull()
 
     private fun iconFor(category: IslandPreviewCategory) = when (category) {
         IslandPreviewCategory.NOTIFICATION_CONTENT -> Icons.Rounded.NotificationsActive
