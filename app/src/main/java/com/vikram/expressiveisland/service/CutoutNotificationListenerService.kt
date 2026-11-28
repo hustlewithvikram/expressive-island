@@ -24,6 +24,7 @@ import com.vikram.expressiveisland.core.RunningTimer
 import com.vikram.expressiveisland.core.RunningTimerBus
 import com.vikram.expressiveisland.events.CallNotificationParser
 import com.vikram.expressiveisland.events.TimerNotificationParser
+import com.vikram.expressiveisland.system.CallStateMonitor
 import com.vikram.expressiveisland.overlay.loadImageBitmapOrNull
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
@@ -76,6 +77,9 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     // Key of the call notification currently driving the phone tile, so we pop the island only once
     // per call and can clear the tile when that exact notification is removed. Main-thread only.
     private var currentCallKey: String? = null
+
+    private val callStateMonitor by lazy { CallStateMonitor(this) }
+    private var callWatchdogJob: Job? = null
 
     // Key of the count-down notification currently driving the timer tile, mirroring [currentCallKey].
     private var currentTimerKey: String? = null
@@ -160,6 +164,8 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         observeBehaviour()
         seedMediaArt()
         seedDownloads()
+        // Register once while connected so a stale dialer notification cannot resurrect an ended call.
+        callStateMonitor.start(::onCallStateIdle)
     }
 
     override fun onListenerDisconnected() {
@@ -168,6 +174,8 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         held.clear()
         returning.clear()
         pendingCancel.clear()
+        stopCallWatchdog()
+        callStateMonitor.stop()
         currentCallKey = null
         currentTimerKey = null
         currentMediaArtKey = null
@@ -184,6 +192,8 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         if (instance === this) instance = null
         _bound.value = false
         alerter.stop()
+        stopCallWatchdog()
+        callStateMonitor.stop()
         held.clear()
         returning.clear()
         pendingCancel.clear()
@@ -516,8 +526,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         }
         // Clears call cutout when call ends
         if (sbn?.key != null && sbn.key == currentCallKey) {
-            currentCallKey = null
-            OnCallBus.update(null)
+            clearCurrentCall()
         }
         // Clears time cutout when timer finishes or reset
         if (sbn?.key != null && sbn.key == currentTimerKey) {
@@ -538,6 +547,9 @@ class CutoutNotificationListenerService : NotificationListenerService() {
      * appears — later re-posts refresh the state without re-popping, mirroring the media monitor.
      */
     private fun handleCall(sbn: StatusBarNotification) {
+        // Telephony can identify a leftover default-dialer notification after hang-up. Do not
+        // republish it as a fresh call; VoIP notifications continue through the normal fallback.
+        if (callStateMonitor.isIdle && CallStateMonitor.knowsAbout(this, sbn.packageName)) return
         val call = CallNotificationParser.parse(sbn, this)
         val prevOngoing = OnCallBus.state.value?.ongoing
 
@@ -565,6 +577,48 @@ class CutoutNotificationListenerService : NotificationListenerService() {
                 ),
             )
         }
+        watchForCallEnd()
+    }
+
+    private fun watchForCallEnd() {
+        val telephonyCanTrack = CallStateMonitor.knowsAbout(this, OnCallBus.state.value?.packageName) &&
+            callStateMonitor.start(::onCallStateIdle)
+        if (telephonyCanTrack) {
+            stopCallWatchdog()
+        } else if (callWatchdogJob?.isActive != true) {
+            callWatchdogJob = scope.launch {
+                while (currentCallKey != null) {
+                    kotlinx.coroutines.delay(CALL_WATCHDOG_INTERVAL_MS)
+                    clearCallIfEnded()
+                }
+            }
+        }
+    }
+
+    private fun onCallStateIdle() {
+        val packageName = OnCallBus.state.value?.packageName
+        if (CallStateMonitor.knowsAbout(this, packageName)) clearCurrentCall()
+    }
+
+    private fun clearCallIfEnded() {
+        if (currentCallKey == null || OnCallBus.state.value == null) return
+        val active = runCatching { activeNotifications }.getOrNull() ?: return
+        val liveCalls = active.filter {
+            CallNotificationParser.isCall(it) &&
+                !(callStateMonitor.isIdle && CallStateMonitor.knowsAbout(this, it.packageName))
+        }
+        if (liveCalls.isEmpty()) clearCurrentCall()
+    }
+
+    private fun clearCurrentCall() {
+        currentCallKey = null
+        OnCallBus.update(null)
+        stopCallWatchdog()
+    }
+
+    private fun stopCallWatchdog() {
+        callWatchdogJob?.cancel()
+        callWatchdogJob = null
     }
 
     /**
@@ -753,6 +807,8 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         // Upper bound on [held], [returning] and [pendingCancel] Far above the handful that can be in flight within one
         // in a fight at once; purely a guard against runaway growth.
         private const val MAX_TRACKED_KEYS = 64
+
+        private const val CALL_WATCHDOG_INTERVAL_MS = 3_000L
 
         // The currently connected listener, or null when unbound. Only touched on the main thread
         // (the framework's listener callbacks and the overlay both run there).
