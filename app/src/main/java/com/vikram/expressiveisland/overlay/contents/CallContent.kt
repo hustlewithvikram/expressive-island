@@ -293,11 +293,18 @@ fun CallExpandedContent(
     val photo = onCall?.photo?.takeIf { call.showPhoto }
     val hangUp = event.actions.firstOrNull { it.destructive }
         ?: event.actions.firstOrNull { !it.answer }
-    val muted by CallAudioBus.muted.collectAsStateWithLifecycle()
-    val speakerOn by CallAudioBus.speakerOn.collectAsStateWithLifecycle()
+    val liveMuted by CallAudioBus.muted.collectAsStateWithLifecycle()
+    val liveSpeakerOn by CallAudioBus.speakerOn.collectAsStateWithLifecycle()
+    var previewMuted by remember(event.detail) { mutableStateOf(false) }
+    var previewSpeakerOn by remember(event.detail) { mutableStateOf(false) }
+    val isPreview = event.id == -1L
+    val muted = if (isPreview) previewMuted else liveMuted
+    val speakerOn = if (isPreview) previewSpeakerOn else liveSpeakerOn
     val activeFill = call.otherButtonColor.resolve()
 
-    LaunchedEffect(Unit) { CallAudioBus.refresh(context) }
+    LaunchedEffect(isPreview) {
+        if (!isPreview) CallAudioBus.refresh(context)
+    }
 
     Column(
         modifier = Modifier
@@ -346,7 +353,10 @@ fun CallExpandedContent(
                     active = muted,
                     activeColor = activeFill,
                     modifier = Modifier.weight(1f),
-                    onClick = { CallAudioBus.toggleMute(context) },
+                    onClick = {
+                        if (isPreview) previewMuted = !previewMuted
+                        else CallAudioBus.toggleMute(context)
+                    },
                 )
                 CallControlButton(
                     icon = Icons.AutoMirrored.Rounded.VolumeUp,
@@ -354,7 +364,10 @@ fun CallExpandedContent(
                     active = speakerOn,
                     activeColor = activeFill,
                     modifier = Modifier.weight(1f),
-                    onClick = { CallAudioBus.toggleSpeaker(context) },
+                    onClick = {
+                        if (isPreview) previewSpeakerOn = !previewSpeakerOn
+                        else CallAudioBus.toggleSpeaker(context)
+                    },
                 )
                 CallControlButton(
                     icon = Icons.Rounded.OpenInNew,
