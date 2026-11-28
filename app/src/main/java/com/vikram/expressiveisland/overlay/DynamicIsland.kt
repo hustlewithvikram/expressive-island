@@ -26,6 +26,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -74,6 +75,7 @@ import com.vikram.expressiveisland.data.asCallCutout
 import com.vikram.expressiveisland.overlay.contents.ACTIONS_ROW_SPACING_DP
 import com.vikram.expressiveisland.overlay.contents.CallExpandedContent
 import com.vikram.expressiveisland.overlay.contents.CallNormalContent
+import com.vikram.expressiveisland.overlay.contents.MiniCallContent
 import com.vikram.expressiveisland.overlay.contents.CenterContent
 import com.vikram.expressiveisland.overlay.contents.CollapsedContent
 import com.vikram.expressiveisland.overlay.contents.SatelliteActivityRing
@@ -98,6 +100,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.ui.unit.lerp as lerpDp
 
@@ -331,6 +334,31 @@ internal fun DynamicIsland(
     val callTiny = isCall && shownEvent?.call?.miniCall == true &&
         !callIncoming && displayedCall?.outgoing != true && !isExpanded
 
+    var miniCallNowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(callTiny, displayedCall?.startTimeMs, shownEvent?.call?.showDuration) {
+        val start = displayedCall?.startTimeMs
+        if (callTiny && start != null && shownEvent?.call?.showDuration == true) {
+            while (true) {
+                miniCallNowMs = System.currentTimeMillis()
+                delay(1_000L)
+            }
+        }
+    }
+    val miniDurationLabel = displayedCall?.startTimeMs?.let { start ->
+        if (shownEvent?.call?.showDuration == true) formatMiniDuration((miniCallNowMs - start).coerceAtLeast(0L) / 1_000L)
+        else null
+    }
+    val miniCallWidthPercent = if (callTiny) {
+        val options = shownEvent?.call
+        val photoWidthDp = if (options?.showPhoto == true) (collapsed.heightDp - 8).coerceAtLeast(18) else 0
+        val durationWidthDp = if (options?.showDuration == true && miniDurationLabel != null) {
+            miniDurationLabel.length * 8 + 2
+        } else 0
+        val contentWidthDp = 16 + photoWidthDp + durationWidthDp +
+            if (photoWidthDp > 0 && durationWidthDp > 0) 8 else 0
+        ceil(contentWidthDp / displayWidthDp * 100f).toInt().coerceIn(16, 95)
+    } else collapsed.widthPercent
+
     val boopScale = remember { Animatable(1f) }
     val pressExpand = remember { Animatable(0f) }
     val pressWidens = actionButtonAnimation == ActionButtonAnimation.EXPAND
@@ -414,8 +442,8 @@ internal fun DynamicIsland(
     val dims = when {
         emptyPill && !isExpanded -> collapsed
         callTiny -> collapsed.copy(
-            widthPercent = 36,
-            heightDp = 34,
+            widthPercent = miniCallWidthPercent,
+            heightDp = collapsed.heightDp,
             cornerTopLeftDp = 110,
             cornerTopRightDp = 110,
             cornerBottomLeftDp = 110,
@@ -1037,12 +1065,11 @@ internal fun DynamicIsland(
                             } else {
                                 shownEvent?.let { e ->
                                     if (e.call != null && callTiny) {
-                                        CollapsedContent(
-                                            event = e.copy(icon = IslandIcon.Vector(Icons.Rounded.Call)),
+                                        MiniCallContent(
+                                            event = e,
+                                            call = e.call,
+                                            onCall = displayedCall,
                                             heightDp = dims.heightDp,
-                                            isStickToCamera = isStickToCamera,
-                                            trailingInsetDp = collapsedTrailingInsetDp,
-                                            satelliteSharing = satelliteShown && satelliteSharing,
                                         )
                                     } else if (e.call != null && showExpanded && !callIncoming) {
                                         CallExpandedContent(
@@ -1212,4 +1239,12 @@ internal fun DynamicIsland(
             }
         }
     }
+}
+
+private fun formatMiniDuration(totalSeconds: Long): String {
+    val hours = totalSeconds / 3_600L
+    val minutes = (totalSeconds % 3_600L) / 60L
+    val seconds = totalSeconds % 60L
+    return if (hours > 0L) "%02d:%02d:%02d".format(hours, minutes, seconds)
+    else "%02d:%02d".format(totalSeconds / 60L, seconds)
 }
