@@ -685,10 +685,15 @@ class IslandOverlayController(private val context: Context) {
             }
 
             savedEventBeforeHide != null -> {
-                dismissJob?.cancel()
-                currentEvent.value = savedEventBeforeHide
+                val saved = savedEventBeforeHide
                 savedEventBeforeHide = null
-                scheduleDismiss()
+                if (saved != null &&
+                    (!isPersistentTileEvent(saved) || isPersistentTileActive(saved))
+                ) {
+                    dismissJob?.cancel()
+                    currentEvent.value = saved
+                    scheduleDismiss()
+                }
             }
         }
     }
