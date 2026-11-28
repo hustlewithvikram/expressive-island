@@ -1,5 +1,15 @@
 package com.vikram.expressiveisland.ui.screen.tiles
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.Button
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,6 +47,16 @@ internal fun PhoneTileScreen(
     contentPadding: PaddingValues,
 ) {
     val settings by viewModel.phoneTile.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var phoneStateGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) ==
+                PackageManager.PERMISSION_GRANTED,
+        )
+    }
+    val phoneStatePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> phoneStateGranted = granted }
 
     IslandLivePreviewEffect(
         category = IslandPreviewCategory.PHONE_TILE,
@@ -53,6 +73,33 @@ internal fun PhoneTileScreen(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         IslandPreviewSpacer()
+        Text(
+            text = stringResource(R.string.phone_call_detection_title),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+        )
+        Text(
+            text = stringResource(R.string.phone_call_detection_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 8.dp),
+        )
+        if (!phoneStateGranted) {
+            Button(
+                onClick = { phoneStatePermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE) },
+                modifier = Modifier.padding(horizontal = 8.dp),
+            ) {
+                Text(stringResource(R.string.phone_enable_call_detection))
+            }
+        } else {
+            Text(
+                text = stringResource(R.string.phone_call_detection_enabled),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            )
+        }
         SettingsToggleCard(
             shape = RoundedCornerShape(
                 topStart = 32.dp,
