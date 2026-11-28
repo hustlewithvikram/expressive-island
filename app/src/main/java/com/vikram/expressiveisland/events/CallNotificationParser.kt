@@ -3,11 +3,18 @@ package com.vikram.expressiveisland.events
 import android.app.Notification
 import android.app.Person
 import android.content.Context
+import android.content.ContentUris
+import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.provider.ContactsContract
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
 import android.service.notification.StatusBarNotification
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.content.ContextCompat
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.core.CutoutSignal
 import com.vikram.expressiveisland.overlay.toImageBitmap
@@ -57,8 +64,11 @@ object CallNotificationParser {
             ?: title?.takeIf { it.isNotBlank() }
             ?: context.getString(R.string.phone_caller_unknown)
 
+        // Prefer the dialer's own CallStyle portrait, then its large icon, and finally the
+        // matching Contacts photo when the user has granted contact access.
         val photo = person?.icon?.toImageBitmapOrNull(context)
             ?: notification.getLargeIcon()?.toImageBitmapOrNull(context)
+            ?: lookupContactPhoto(context, person)
 
         // A ticking chronometer anchored to the notification's `when` is the dialer telling us the
         // call is connected and how long it has run; a count-down timer isn't call duration.
@@ -80,6 +90,40 @@ object CallNotificationParser {
         }
 
         return ParsedCall(callerLabel, phoneNumber(person), photo, startTimeMs, ongoing, actions)
+    }
+
+
+    /**
+     * Some dialers omit Person.icon and the notification large icon even when the number belongs
+     * to a saved contact. Resolve that number through ContactsContract as a fallback; this is only
+     * attempted after the user grants READ_CONTACTS.
+     */
+    private fun lookupContactPhoto(context: Context, person: Person?): ImageBitmap? {
+        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_CONTACTS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) return null
+        val number = phoneNumber(person)?.takeIf { it.isNotBlank() } ?: return null
+        return runCatching {
+            val lookupUri = Uri.withAppendedPath(
+                ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+                Uri.encode(number),
+            )
+            val contactId = context.contentResolver.query(
+                lookupUri,
+                arrayOf(ContactsContract.PhoneLookup._ID),
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getLong(0) else null
+            } ?: return null
+            val contactUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, contactId)
+            ContactsContract.Contacts.openContactPhotoInputStream(
+                context.contentResolver,
+                contactUri,
+                true,
+            )?.use(BitmapFactory::decodeStream)?.asImageBitmap()
+        }.getOrNull()
     }
 
     /** The caller's dialable number, pulled from the CallStyle [Person]'s `tel:` URI, or null. */
