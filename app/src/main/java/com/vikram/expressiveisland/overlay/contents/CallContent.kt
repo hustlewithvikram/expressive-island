@@ -182,9 +182,19 @@ fun CallSingleRowContent(
             IconBadge(event = event, badgeSize = CALL_AVATAR_DP.dp, iconSize = 24.dp)
         }
         Column(modifier = Modifier.weight(1f)) {
-            // Connected calls put the ticking duration above the name; an incoming call shows only
-            // the caller label (name or number), so there is nothing to stack above it.
-            if (!incoming) {
+            if (incoming) {
+                onCall?.callerNumber
+                    ?.takeIf { it.isNotBlank() && it != event.label }
+                    ?.let { number ->
+                        Text(
+                            text = number,
+                            color = LocalContentColor.current.copy(alpha = 0.72f),
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+            } else {
                 AnimatedVisibility(visible = call.showDuration) {
                     CallStatus(onCall = onCall)
                 }
