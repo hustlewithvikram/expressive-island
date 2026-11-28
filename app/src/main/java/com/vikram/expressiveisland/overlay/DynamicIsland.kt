@@ -267,9 +267,12 @@ internal fun DynamicIsland(
     var sentReply by remember(shownEvent?.id) { mutableStateOf<Pair<IslandAction, String>?>(null) }
     val confirmingSent = sentReply != null
     val isCall = shownEvent?.call != null
+    val liveCall by OnCallBus.state.collectAsStateWithLifecycle()
+    val callIncoming = isCall && (liveCall?.ongoing == false || shownEvent?.id == -1L)
     val isAssistantNormalOnly =
         shownEvent?.assistant != null && !shownEvent.assistant.displayAnswerInCutout
-    val isNormalOnly = isCall || isAssistantNormalOnly || shownEvent?.normalOnly == true
+    // Ringing calls keep their compact/answer layout. Connected calls can expand into full controls.
+    val isNormalOnly = (isCall && callIncoming) || isAssistantNormalOnly || shownEvent?.normalOnly == true
     val centerExpanded = emptyPill && cameraHoleQuickActions && tapExpanded
 
     val isExpanded = when {
@@ -323,10 +326,8 @@ internal fun DynamicIsland(
     val hasMediaControls = shownEvent?.media?.showControls == true
     val hasCallActions = shownEvent?.call?.showActions == true && shownEvent.actions.isNotEmpty()
     val hasTimerActions = shownEvent?.timer?.showActions == true && shownEvent.actions.isNotEmpty()
-    val liveCall by OnCallBus.state.collectAsStateWithLifecycle()
     // Settings previews use a synthetic call event (id = -1) and do not publish a fake call to
     // OnCallBus. Treat that event as incoming too, so preview and real ringing calls share geometry.
-    val callIncoming = isCall && (liveCall?.ongoing == false || shownEvent?.id == -1L)
     val callTwoRow = isCall &&
         shownEvent?.call?.incomingExpandedLayout == true &&
         callIncoming &&
@@ -390,9 +391,14 @@ internal fun DynamicIsland(
             emptyPill -> 0
 
             isCall && shownEvent?.call?.incomingExpandedLayout == true &&
-                    (liveCall?.ongoing == false || shownEvent.id == -1L) &&
-                    shownEvent.call.showActions && shownEvent.actions.isNotEmpty() ->
+                    callIncoming && shownEvent.call.showActions && shownEvent.actions.isNotEmpty() ->
                 com.vikram.expressiveisland.overlay.contents.callIncomingExtraDp()
+
+            isCall && isExpanded ->
+                com.vikram.expressiveisland.overlay.contents.callExpandedExtraDp(
+                    showHangUp = shownEvent?.call?.showActions == true &&
+                        shownEvent.actions.any { it.destructive || !it.answer },
+                )
 
             isExpanded && shownEvent?.assistant != null && shownEvent.assistant.displayAnswerInCutout -> {
                 val maxCutoutHeightDp =
@@ -972,7 +978,17 @@ internal fun DynamicIsland(
                                 }
                             } else {
                                 shownEvent?.let { e ->
-                                    if (e.call != null) {
+                                    if (e.call != null && showExpanded && !callIncoming) {
+                                        CallExpandedContent(
+                                            event = e,
+                                            onCall = liveCall,
+                                            onAction = onAction,
+                                            onOpen = {
+                                                tapExpanded = false
+                                                onActivate()
+                                            },
+                                        )
+                                    } else if (e.call != null) {
                                         CallNormalContent(event = e, onAction = onAction)
                                     } else if (showExpanded) {
                                         ExpandedContent(
