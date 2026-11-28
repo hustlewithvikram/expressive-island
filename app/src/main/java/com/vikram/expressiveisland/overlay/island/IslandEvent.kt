@@ -229,6 +229,7 @@ data class CallTileOptions(
     val miniCall: Boolean = false,
     /** Preview-only call state; never affects real call routing. */
     val previewOutgoing: Boolean = false,
+    val previewOngoing: Boolean = false,
     /** Preview-only contact portrait used to exercise the photo visibility setting. */
     val previewPhoto: ImageBitmap? = null,
 )
