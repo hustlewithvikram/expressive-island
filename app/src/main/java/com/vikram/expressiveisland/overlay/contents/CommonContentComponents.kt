@@ -667,6 +667,7 @@ fun CallWideButton(
     container: Color,
     content: Color,
     modifier: Modifier = Modifier,
+    showLabel: Boolean = true,
     onClick: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -692,13 +693,15 @@ fun CallWideButton(
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
             )
-            Text(
-                text = label,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (showLabel) {
+                Text(
+                    text = label,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
