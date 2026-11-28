@@ -165,7 +165,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         seedMediaArt()
         seedDownloads()
         // Register once while connected so a stale dialer notification cannot resurrect an ended call.
-        callStateMonitor.start(::onCallStateIdle)
+        callStateMonitor.start(::onCallStateIdle, ::onPhoneCallStateChanged)
     }
 
     override fun onListenerDisconnected() {
@@ -588,7 +588,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
 
     private fun watchForCallEnd() {
         val telephonyCanTrack = CallStateMonitor.knowsAbout(this, OnCallBus.state.value?.packageName) &&
-            callStateMonitor.start(::onCallStateIdle)
+            callStateMonitor.start(::onCallStateIdle, ::onPhoneCallStateChanged)
         if (telephonyCanTrack) {
             stopCallWatchdog()
         } else if (callWatchdogJob?.isActive != true) {
@@ -598,6 +598,14 @@ class CutoutNotificationListenerService : NotificationListenerService() {
                     clearCallIfEnded()
                 }
             }
+        }
+    }
+
+    private fun onPhoneCallStateChanged(state: Int) {
+        val current = OnCallBus.state.value ?: return
+        val outgoing = callStateMonitor.isOutgoing
+        if (current.outgoing != outgoing) {
+            OnCallBus.update(current.copy(outgoing = outgoing))
         }
     }
 
