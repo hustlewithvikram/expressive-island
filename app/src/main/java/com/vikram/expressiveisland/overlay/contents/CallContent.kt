@@ -330,30 +330,41 @@ fun CallExpandedContent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            CallControlButton(
-                icon = if (muted) Icons.Rounded.MicOff else Icons.Rounded.Mic,
-                label = "Mute",
-                active = muted,
-                activeColor = activeFill,
-                modifier = Modifier.weight(1f),
-                onClick = { CallAudioBus.toggleMute(context) },
-            )
-            CallControlButton(
-                icon = Icons.AutoMirrored.Rounded.VolumeUp,
-                label = "Speaker",
-                active = speakerOn,
-                activeColor = activeFill,
-                modifier = Modifier.weight(1f),
-                onClick = { CallAudioBus.toggleSpeaker(context) },
-            )
-            CallControlButton(
-                icon = Icons.Rounded.OpenInNew,
-                label = "Open",
-                active = false,
-                activeColor = activeFill,
-                modifier = Modifier.weight(1f),
-                onClick = onOpen,
-            )
+            if (onCall?.outgoing == true) {
+                CallControlButton(
+                    icon = Icons.Rounded.OpenInNew,
+                    label = "Open phone",
+                    active = false,
+                    activeColor = activeFill,
+                    modifier = Modifier.weight(1f),
+                    onClick = onOpen,
+                )
+            } else {
+                CallControlButton(
+                    icon = if (muted) Icons.Rounded.MicOff else Icons.Rounded.Mic,
+                    label = "Mute",
+                    active = muted,
+                    activeColor = activeFill,
+                    modifier = Modifier.weight(1f),
+                    onClick = { CallAudioBus.toggleMute(context) },
+                )
+                CallControlButton(
+                    icon = Icons.AutoMirrored.Rounded.VolumeUp,
+                    label = "Speaker",
+                    active = speakerOn,
+                    activeColor = activeFill,
+                    modifier = Modifier.weight(1f),
+                    onClick = { CallAudioBus.toggleSpeaker(context) },
+                )
+                CallControlButton(
+                    icon = Icons.Rounded.OpenInNew,
+                    label = "Open",
+                    active = false,
+                    activeColor = activeFill,
+                    modifier = Modifier.weight(1f),
+                    onClick = onOpen,
+                )
+            }
         }
 
         if (call.showActions && hangUp != null) {
