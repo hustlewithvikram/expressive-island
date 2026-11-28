@@ -26,7 +26,7 @@ class CallStateMonitor(private val context: Context) {
 
     val isIdle: Boolean get() = lastState == TelephonyManager.CALL_STATE_IDLE
 
-    fun start(onCallEnded: () -> Unit): Boolean {
+    fun start(onCallEnded: () -> Unit, onCallStateChanged: (Int) -> Unit = {}): Boolean {
         if (listener != null) return true
         if (ContextCompat.checkSelfPermission(
                 context,
@@ -37,13 +37,13 @@ class CallStateMonitor(private val context: Context) {
         val telephony = context.getSystemService<TelephonyManager>() ?: return false
         val registered: Any = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             object : TelephonyCallback(), TelephonyCallback.CallStateListener {
-                override fun onCallStateChanged(state: Int) = onState(state, onCallEnded)
+                override fun onCallStateChanged(state: Int) = onState(state, onCallEnded, onCallStateChanged)
             }
         } else {
             @Suppress("DEPRECATION")
             object : PhoneStateListener() {
                 override fun onCallStateChanged(state: Int, phoneNumber: String?) =
-                    onState(state, onCallEnded)
+                    onState(state, onCallEnded, onCallStateChanged)
             }
         }
 
@@ -75,7 +75,7 @@ class CallStateMonitor(private val context: Context) {
         }.onFailure { Log.w(TAG, "Failed to unregister call-state listener", it) }
     }
 
-    private fun onState(state: Int, onCallEnded: () -> Unit) {
+    private fun onState(state: Int, onCallEnded: () -> Unit, onCallStateChanged: (Int) -> Unit) {
         when (state) {
             TelephonyManager.CALL_STATE_RINGING -> isOutgoing = false
             TelephonyManager.CALL_STATE_OFFHOOK ->
@@ -88,6 +88,7 @@ class CallStateMonitor(private val context: Context) {
             }
         }
         lastState = state
+        onCallStateChanged(state)
     }
 
     companion object {
