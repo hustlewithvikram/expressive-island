@@ -449,6 +449,7 @@ fun MiniCallContent(
     call: CallTileOptions,
     onCall: OnCall?,
     heightDp: Int,
+    notchGapDp: Int,
 ) {
     val photo = onCall?.photo?.takeIf { call.showPhoto }
     val start = onCall?.startTimeMs
@@ -494,8 +495,8 @@ fun MiniCallContent(
             }
         }
         if (call.showPhoto && showDuration) {
-            // Keep the camera notch clear: this is a deliberate centre gap, not content padding.
-            Spacer(modifier = Modifier.width(32.dp))
+            // Reserve twice the physical notch width, with matching breathing room on both sides.
+            Spacer(modifier = Modifier.width(notchGapDp.dp))
         } else if (!call.showPhoto && showDuration) {
             Spacer(modifier = Modifier.weight(1f))
         }
