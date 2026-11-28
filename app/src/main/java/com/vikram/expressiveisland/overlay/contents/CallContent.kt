@@ -427,4 +427,14 @@ internal fun callCutoutWidthPercent(
  */
 internal fun callIncomingExtraDp(): Int = CALL_INCOMING_BUTTON_DP + CALL_INCOMING_BUTTON_GAP_DP
 
+/** Extra space below the configured expanded shell for connected-call controls. */
+internal fun callExpandedExtraDp(showHangUp: Boolean): Int =
+    CALL_EXPANDED_ROW_GAP_DP + CALL_EXPANDED_TOGGLE_DP +
+        if (showHangUp) CALL_EXPANDED_ROW_GAP_DP + CALL_EXPANDED_HANGUP_DP else 0
+
+private const val CALL_EXPANDED_ROW_GAP_DP = 10
+private const val CALL_EXPANDED_TOGGLE_DP = 58
+private const val CALL_EXPANDED_HANGUP_DP = 48
+
+
 
