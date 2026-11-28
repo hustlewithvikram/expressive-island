@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -260,6 +261,35 @@ internal fun PhoneTileScreen(
                     checked = settings.miniCall,
                     onCheckedChange = viewModel::setPhoneMiniCall,
                 )
+
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(4.dp),
+                    title = "Contact photo background",
+                    description = "Use the caller's photo behind the expanded call controls. This never affects the compact or mini pill.",
+                    checked = settings.expandedPhotoBackground,
+                    onCheckedChange = viewModel::setPhoneExpandedPhotoBackground,
+                )
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(4.dp),
+                    title = "Blur background",
+                    description = "Soften the contact photo to keep call controls and text readable.",
+                    checked = settings.expandedPhotoBlur,
+                    onCheckedChange = viewModel::setPhoneExpandedPhotoBlur,
+                )
+                if (settings.expandedPhotoBackground && settings.expandedPhotoBlur) {
+                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        Text(
+                            text = "Blur intensity · ${settings.expandedPhotoBlurRadius.toInt()} dp",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Slider(
+                            value = settings.expandedPhotoBlurRadius,
+                            onValueChange = viewModel::setPhoneExpandedPhotoBlurRadius,
+                            valueRange = 0f..40f,
+                        )
+                    }
+                }
                 SectionLabel("In-call button colours")
                 ColorPickerCard(
                     label = stringResource(R.string.phone_other_color_label),
