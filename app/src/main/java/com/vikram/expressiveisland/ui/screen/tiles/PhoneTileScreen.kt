@@ -83,14 +83,28 @@ internal fun PhoneTileScreen(
             shape = RoundedCornerShape(
                 topStart = 4.dp,
                 topEnd = 4.dp,
-                bottomStart = 32.dp,
-                bottomEnd = 32.dp
+                bottomStart = if (settings.expandedIncomingLayout) 4.dp else 32.dp,
+                bottomEnd = if (settings.expandedIncomingLayout) 4.dp else 32.dp,
             ),
             title = stringResource(R.string.phone_expanded_incoming_title),
             description = stringResource(R.string.phone_expanded_incoming_desc),
             checked = settings.expandedIncomingLayout,
             onCheckedChange = viewModel::setPhoneExpandedIncomingLayout,
         )
+        if (settings.expandedIncomingLayout) {
+            SettingsToggleCard(
+                shape = RoundedCornerShape(
+                    topStart = 4.dp,
+                    topEnd = 4.dp,
+                    bottomStart = 32.dp,
+                    bottomEnd = 32.dp,
+                ),
+                title = stringResource(R.string.phone_button_labels_title),
+                description = stringResource(R.string.phone_button_labels_desc),
+                checked = settings.showButtonLabels,
+                onCheckedChange = viewModel::setPhoneShowButtonLabels,
+            )
+        }
 
         // The icon container is the fallback disc shown on the cutout when there's no contact photo.
         Text(
@@ -119,6 +133,21 @@ internal fun PhoneTileScreen(
                 label = stringResource(R.string.phone_hangup_color_label),
                 selected = settings.hangUpColor,
                 onSelect = { it?.let(viewModel::setPhoneHangUpColor) },
+            )
+            ColorPickerCard(
+                label = stringResource(R.string.phone_incoming_answer_color_label),
+                selected = settings.incomingAnswerColor,
+                onSelect = { it?.let(viewModel::setPhoneIncomingAnswerColor) },
+            )
+            ColorPickerCard(
+                label = stringResource(R.string.phone_incoming_hangup_color_label),
+                selected = settings.incomingHangUpColor,
+                onSelect = { it?.let(viewModel::setPhoneIncomingHangUpColor) },
+            )
+            ColorPickerCard(
+                label = stringResource(R.string.phone_expanded_hangup_color_label),
+                selected = settings.expandedHangUpColor,
+                onSelect = { it?.let(viewModel::setPhoneExpandedHangUpColor) },
             )
         }
 
