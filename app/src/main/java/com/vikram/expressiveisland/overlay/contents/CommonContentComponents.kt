@@ -614,6 +614,8 @@ fun CallStatus(onCall: OnCall?) {
             }
         }
         formatCallDuration(((now - start) / 1_000L).coerceAtLeast(0L))
+    } else if (onCall?.outgoing == true) {
+        "Calling…"
     } else if (onCall != null) {
         stringResource(R.string.phone_ringing)
     } else {
