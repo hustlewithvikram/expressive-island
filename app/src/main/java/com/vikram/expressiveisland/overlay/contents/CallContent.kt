@@ -247,10 +247,16 @@ fun CallSingleRowContent(
 fun CallNormalContent(
     event: IslandEvent,
     onAction: (IslandAction) -> Unit,
+    onCallOverride: OnCall? = null,
 ) {
     val call = event.call ?: return
-    val onCall by OnCallBus.state.collectAsStateWithLifecycle()
-    val incoming = onCall?.ongoing == false || event.id == -1L
+    val liveOnCall by OnCallBus.state.collectAsStateWithLifecycle()
+    val onCall = onCallOverride ?: liveOnCall
+    val incoming = if (event.id == -1L) {
+        !call.previewOutgoing && !call.previewOngoing
+    } else {
+        onCall?.ongoing == false
+    }
 
     if (incoming && call.incomingExpandedLayout && call.showActions && event.actions.isNotEmpty()) {
         IncomingCallExpandedContent(
