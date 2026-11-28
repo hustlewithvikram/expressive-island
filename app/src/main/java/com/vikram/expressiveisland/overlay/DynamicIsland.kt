@@ -293,7 +293,7 @@ internal fun DynamicIsland(
         )
     } else liveCall
     val callTiny = isCall && shownEvent?.call?.miniCall == true &&
-        !callIncoming && !isExpanded
+        !callIncoming && displayedCall?.outgoing != true && !isExpanded
     val dispatchCallAction: (IslandAction) -> Unit = { action ->
         if (shownEvent?.id == -1L) {
             when {
