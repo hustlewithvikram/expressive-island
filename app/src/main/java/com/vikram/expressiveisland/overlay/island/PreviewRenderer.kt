@@ -157,9 +157,12 @@ internal object PreviewRenderer {
                 incomingHangUpColor = phoneSettings.incomingHangUpColor,
                 expandedHangUpColor = phoneSettings.expandedHangUpColor,
                 miniCall = phoneSettings.miniCall,
+                expandedPhotoBackground = phoneSettings.expandedPhotoBackground,
+                expandedPhotoBlur = phoneSettings.expandedPhotoBlur,
+                expandedPhotoBlurRadius = phoneSettings.expandedPhotoBlurRadius,
                 previewOutgoing = content.detail.contains("Outgoing", ignoreCase = true),
                 previewOngoing = content.detail.contains("Ongoing", ignoreCase = true),
-                previewPhoto = if (phoneSettings.showPhoto) createPreviewContactPhoto() else null,
+                previewPhoto = if (phoneSettings.showPhoto || phoneSettings.expandedPhotoBackground) createPreviewContactPhoto() else null,
             ) else null,
             timer = if (category == IslandPreviewCategory.TIMER_TILE) TimerTileOptions(
                 showActions = timerSettings.showActions,
