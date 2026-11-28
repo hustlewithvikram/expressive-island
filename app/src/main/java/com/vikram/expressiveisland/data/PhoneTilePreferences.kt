@@ -15,6 +15,12 @@ import org.json.JSONObject
 private val Context.phoneTileDataStore: DataStore<Preferences> by preferencesDataStore(name = "phone_tile_prefs")
 
 /** The phone tile's own settings, edited on its dedicated settings screen. */
+enum class CallState(val key: Preferences.Key<Boolean>) {
+    INCOMING(booleanPreferencesKey("incoming_enabled")),
+    OUTGOING(booleanPreferencesKey("outgoing_enabled")),
+    ONGOING(booleanPreferencesKey("ongoing_enabled")),
+}
+
 data class PhoneTileSettings(
     /** Show the caller's contact photo on the collapsed pill and expanded card. */
     val showPhoto: Boolean = DEFAULT_SHOW_PHOTO,
@@ -31,6 +37,9 @@ data class PhoneTileSettings(
     val expandedIncomingLayout: Boolean = DEFAULT_EXPANDED_INCOMING,
     /** Shrink connected calls into a compact mini-call pill; tapping it still opens call controls. */
     val miniCall: Boolean = DEFAULT_MINI_CALL,
+    val incomingEnabled: Boolean = DEFAULT_INCOMING_ENABLED,
+    val outgoingEnabled: Boolean = DEFAULT_OUTGOING_ENABLED,
+    val ongoingEnabled: Boolean = DEFAULT_ONGOING_ENABLED,
     /** Use the caller's photo as a background only while the connected-call island is expanded. */
     val expandedPhotoBackground: Boolean = DEFAULT_EXPANDED_PHOTO_BACKGROUND,
     /** Blur the expanded caller-photo background. */
@@ -57,6 +66,9 @@ data class PhoneTileSettings(
         const val DEFAULT_SHOW_BUTTON_LABELS = true
         const val DEFAULT_EXPANDED_INCOMING = true
         const val DEFAULT_MINI_CALL = false
+        const val DEFAULT_INCOMING_ENABLED = true
+        const val DEFAULT_OUTGOING_ENABLED = true
+        const val DEFAULT_ONGOING_ENABLED = true
         const val DEFAULT_EXPANDED_PHOTO_BACKGROUND = false
         const val DEFAULT_EXPANDED_PHOTO_BLUR = true
         const val DEFAULT_EXPANDED_PHOTO_BLUR_RADIUS = 18f
@@ -83,6 +95,9 @@ class PhoneTilePreferences(private val context: Context) : JsonSerializable {
             showButtonLabels = prefs[SHOW_BUTTON_LABELS] ?: PhoneTileSettings.DEFAULT_SHOW_BUTTON_LABELS,
             expandedIncomingLayout = prefs[EXPANDED_INCOMING] ?: PhoneTileSettings.DEFAULT_EXPANDED_INCOMING,
             miniCall = prefs[MINI_CALL] ?: PhoneTileSettings.DEFAULT_MINI_CALL,
+            incomingEnabled = prefs[INCOMING_ENABLED] ?: PhoneTileSettings.DEFAULT_INCOMING_ENABLED,
+            outgoingEnabled = prefs[OUTGOING_ENABLED] ?: PhoneTileSettings.DEFAULT_OUTGOING_ENABLED,
+            ongoingEnabled = prefs[ONGOING_ENABLED] ?: PhoneTileSettings.DEFAULT_ONGOING_ENABLED,
             expandedPhotoBackground = prefs[EXPANDED_PHOTO_BACKGROUND] ?: PhoneTileSettings.DEFAULT_EXPANDED_PHOTO_BACKGROUND,
             expandedPhotoBlur = prefs[EXPANDED_PHOTO_BLUR] ?: PhoneTileSettings.DEFAULT_EXPANDED_PHOTO_BLUR,
             expandedPhotoBlurRadius = prefs[EXPANDED_PHOTO_BLUR_RADIUS]?.toFloatOrNull()
@@ -111,6 +126,9 @@ class PhoneTilePreferences(private val context: Context) : JsonSerializable {
             put("showButtonLabels", s.showButtonLabels)
             put("expandedIncomingLayout", s.expandedIncomingLayout)
             put("miniCall", s.miniCall)
+            put("incomingEnabled", s.incomingEnabled)
+            put("outgoingEnabled", s.outgoingEnabled)
+            put("ongoingEnabled", s.ongoingEnabled)
             put("expandedPhotoBackground", s.expandedPhotoBackground)
             put("expandedPhotoBlur", s.expandedPhotoBlur)
             put("expandedPhotoBlurRadius", s.expandedPhotoBlurRadius.toDouble())
@@ -133,6 +151,9 @@ class PhoneTilePreferences(private val context: Context) : JsonSerializable {
             if (obj.has("showButtonLabels")) it[SHOW_BUTTON_LABELS] = obj.getBoolean("showButtonLabels")
             if (obj.has("expandedIncomingLayout")) it[EXPANDED_INCOMING] = obj.getBoolean("expandedIncomingLayout")
             if (obj.has("miniCall")) it[MINI_CALL] = obj.getBoolean("miniCall")
+            if (obj.has("incomingEnabled")) it[INCOMING_ENABLED] = obj.getBoolean("incomingEnabled")
+            if (obj.has("outgoingEnabled")) it[OUTGOING_ENABLED] = obj.getBoolean("outgoingEnabled")
+            if (obj.has("ongoingEnabled")) it[ONGOING_ENABLED] = obj.getBoolean("ongoingEnabled")
             if (obj.has("expandedPhotoBackground")) it[EXPANDED_PHOTO_BACKGROUND] = obj.getBoolean("expandedPhotoBackground")
             if (obj.has("expandedPhotoBlur")) it[EXPANDED_PHOTO_BLUR] = obj.getBoolean("expandedPhotoBlur")
             if (obj.has("expandedPhotoBlurRadius")) it[EXPANDED_PHOTO_BLUR_RADIUS] = obj.getDouble("expandedPhotoBlurRadius").toString()
@@ -183,6 +204,16 @@ class PhoneTilePreferences(private val context: Context) : JsonSerializable {
         it[MINI_CALL] = enabled
     }
 
+    suspend fun setCallStateEnabled(state: CallState, enabled: Boolean) = context.phoneTileDataStore.edit {
+        it[state.key] = enabled
+    }
+
+    suspend fun setAllCallStatesEnabled(enabled: Boolean) = context.phoneTileDataStore.edit {
+        it[INCOMING_ENABLED] = enabled
+        it[OUTGOING_ENABLED] = enabled
+        it[ONGOING_ENABLED] = enabled
+    }
+
     suspend fun setExpandedPhotoBackground(enabled: Boolean) = context.phoneTileDataStore.edit {
         it[EXPANDED_PHOTO_BACKGROUND] = enabled
     }
@@ -227,6 +258,9 @@ class PhoneTilePreferences(private val context: Context) : JsonSerializable {
         val SHOW_BUTTON_LABELS = booleanPreferencesKey("show_button_labels")
         val EXPANDED_INCOMING = booleanPreferencesKey("expanded_incoming_layout")
         val MINI_CALL = booleanPreferencesKey("mini_call")
+        val INCOMING_ENABLED = booleanPreferencesKey("incoming_enabled")
+        val OUTGOING_ENABLED = booleanPreferencesKey("outgoing_enabled")
+        val ONGOING_ENABLED = booleanPreferencesKey("ongoing_enabled")
         val EXPANDED_PHOTO_BACKGROUND = booleanPreferencesKey("expanded_photo_background")
         val EXPANDED_PHOTO_BLUR = booleanPreferencesKey("expanded_photo_blur")
         val EXPANDED_PHOTO_BLUR_RADIUS = stringPreferencesKey("expanded_photo_blur_radius")
