@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.core.ChargingBus
 import com.vikram.expressiveisland.core.HeadphonesBus
+import com.vikram.expressiveisland.core.IslandPreviewBus
 import com.vikram.expressiveisland.core.OnCall
 import com.vikram.expressiveisland.core.OnCallBus
 import com.vikram.expressiveisland.core.SystemEventType
@@ -300,10 +301,12 @@ internal fun DynamicIsland(
                 action.answer -> {
                     previewCallConnected = true
                     tapExpanded = true
+                    IslandPreviewBus.setContent(shownEvent.label, "Ongoing call")
                 }
                 action.destructive -> {
                     previewCallConnected = false
                     tapExpanded = false
+                    IslandPreviewBus.setContent(shownEvent.label, if (previewOutgoing) "Outgoing call" else "Incoming call")
                 }
             }
         } else {
