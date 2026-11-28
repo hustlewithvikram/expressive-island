@@ -94,10 +94,20 @@ fun IncomingCallExpandedContent(
             } else {
                 IconBadge(event = event, badgeSize = CALL_INCOMING_AVATAR_DP.dp, iconSize = 24.dp)
             }
-            TileTitle(
-                title = event.label,
-                modifier = Modifier.weight(1f),
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                onCall?.callerNumber
+                    ?.takeIf { it.isNotBlank() && it != event.label }
+                    ?.let { number ->
+                        Text(
+                            text = number,
+                            color = LocalContentColor.current.copy(alpha = 0.72f),
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                TileTitle(title = event.label)
+            }
         }
         // A flexible gap pushes the button row down to the bottom edge.
         Spacer(modifier = Modifier.weight(1f))
@@ -108,24 +118,26 @@ fun IncomingCallExpandedContent(
                 horizontalArrangement = Arrangement.spacedBy(CALL_INCOMING_BUTTON_GAP_DP.dp),
             ) {
                 if (answer != null) {
-                    val answerFill = call.otherButtonColor.resolve()
+                    val answerFill = call.incomingAnswerColor.resolve()
                     CallWideButton(
                         icon = Icons.Rounded.Call,
                         label = stringResource(R.string.phone_answer),
                         container = answerFill,
                         content = if (answerFill.luminance() > 0.5f) Color.Black else Color.White,
                         modifier = Modifier.weight(1f),
+                        showLabel = call.showButtonLabels,
                         onClick = { onAction(answer) },
                     )
                 }
                 if (hangUp != null) {
-                    val hangUpFill = call.hangUpColor.resolve()
+                    val hangUpFill = call.incomingHangUpColor.resolve()
                     CallWideButton(
                         icon = Icons.Rounded.CallEnd,
                         label = stringResource(R.string.phone_hang_up),
                         container = hangUpFill,
                         content = if (hangUpFill.luminance() > 0.5f) Color.Black else Color.White,
                         modifier = Modifier.weight(1f),
+                        showLabel = call.showButtonLabels,
                         onClick = { onAction(hangUp) },
                     )
                 }
@@ -185,8 +197,8 @@ fun CallSingleRowContent(
                     CallCircleButton(
                         icon = Icons.Rounded.Call,
                         description = "Answer",
-                        container = MaterialTheme.colorScheme.primary,
-                        content = MaterialTheme.colorScheme.onPrimary,
+                        container = call.incomingAnswerColor.resolve(),
+                        content = if (call.incomingAnswerColor.resolve().luminance() > 0.5f) Color.Black else Color.White,
                         onClick = { onAction(answer) },
                     )
                 }
@@ -194,8 +206,8 @@ fun CallSingleRowContent(
                     CallCircleButton(
                         icon = Icons.Rounded.CallEnd,
                         description = "Decline",
-                        container = MaterialTheme.colorScheme.error,
-                        content = MaterialTheme.colorScheme.onError,
+                        container = call.incomingHangUpColor.resolve(),
+                        content = if (call.incomingHangUpColor.resolve().luminance() > 0.5f) Color.Black else Color.White,
                         onClick = { onAction(hangUp) },
                     )
                 }
@@ -329,7 +341,7 @@ fun CallExpandedContent(
         }
 
         if (call.showActions && hangUp != null) {
-            val fill = call.hangUpColor.resolve()
+            val fill = call.expandedHangUpColor.resolve()
             Surface(
                 onClick = { onAction(hangUp) },
                 color = fill,
