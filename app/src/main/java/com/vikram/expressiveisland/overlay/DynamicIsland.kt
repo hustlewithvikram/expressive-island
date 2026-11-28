@@ -324,8 +324,14 @@ internal fun DynamicIsland(
     val hasCallActions = shownEvent?.call?.showActions == true && shownEvent.actions.isNotEmpty()
     val hasTimerActions = shownEvent?.timer?.showActions == true && shownEvent.actions.isNotEmpty()
     val liveCall by OnCallBus.state.collectAsStateWithLifecycle()
-    val callIncoming = isCall && liveCall?.ongoing == false
-    val callTwoRow = false
+    // Settings previews use a synthetic call event (id = -1) and do not publish a fake call to
+    // OnCallBus. Treat that event as incoming too, so preview and real ringing calls share geometry.
+    val callIncoming = isCall && (liveCall?.ongoing == false || shownEvent?.id == -1L)
+    val callTwoRow = isCall &&
+        shownEvent?.call?.incomingExpandedLayout == true &&
+        callIncoming &&
+        shownEvent.call.showActions &&
+        shownEvent.actions.isNotEmpty()
     val callTrailingButtons = when {
         !isCall || !hasCallActions -> 0
         callTwoRow -> 0
