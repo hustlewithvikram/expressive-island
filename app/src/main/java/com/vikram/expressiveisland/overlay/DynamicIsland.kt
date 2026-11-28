@@ -356,7 +356,7 @@ internal fun DynamicIsland(
         } else 0
         val contentWidthDp = 16 + photoWidthDp + durationWidthDp +
             if (photoWidthDp > 0 && durationWidthDp > 0) 8 else 0
-        ceil(contentWidthDp / displayWidthDp * 100f).toInt().coerceIn(16, 95)
+        ceil(contentWidthDp.toFloat() / displayWidthDp.toFloat() * 100f).toInt().coerceIn(16, 95)
     } else collapsed.widthPercent
 
     val boopScale = remember { Animatable(1f) }
