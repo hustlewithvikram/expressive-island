@@ -526,7 +526,9 @@ class CutoutNotificationListenerService : NotificationListenerService() {
         }
         // Clears call cutout when call ends
         if (sbn?.key != null && sbn.key == currentCallKey) {
-            clearCurrentCall()
+            // A dialer may replace its notification under a new key during a state transition.
+            // Re-scan before clearing so that a still-live call is not dropped prematurely.
+            clearCallIfEnded()
         }
         // Clears time cutout when timer finishes or reset
         if (sbn?.key != null && sbn.key == currentTimerKey) {
