@@ -59,6 +59,9 @@ data class PhoneTileSettings(
     /** Connected-call expanded Hang up button fill. */
     val expandedHangUpColor: CutoutColor = DEFAULT_EXPANDED_HANG_UP_COLOR,
 ) {
+    val anyCallStateEnabled: Boolean
+        get() = incomingEnabled || outgoingEnabled || ongoingEnabled
+
     companion object {
         const val DEFAULT_SHOW_PHOTO = true
         const val DEFAULT_SHOW_DURATION = true
