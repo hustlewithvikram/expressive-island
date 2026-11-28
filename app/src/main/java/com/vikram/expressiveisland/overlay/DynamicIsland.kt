@@ -293,8 +293,6 @@ internal fun DynamicIsland(
             outgoing = previewOutgoing && !previewCallConnected,
         )
     } else liveCall
-    val callTiny = isCall && shownEvent?.call?.miniCall == true &&
-        !callIncoming && displayedCall?.outgoing != true && !isExpanded
     val dispatchCallAction: (IslandAction) -> Unit = { action ->
         if (shownEvent?.id == -1L) {
             when {
@@ -326,6 +324,9 @@ internal fun DynamicIsland(
         shownEvent?.id == -1L && previewCallConnected -> tapExpanded
         else -> forcedExpanded ?: tapExpanded
     }
+
+    val callTiny = isCall && shownEvent?.call?.miniCall == true &&
+        !callIncoming && displayedCall?.outgoing != true && !isExpanded
 
     val boopScale = remember { Animatable(1f) }
     val pressExpand = remember { Animatable(0f) }
