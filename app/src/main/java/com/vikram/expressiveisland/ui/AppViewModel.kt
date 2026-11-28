@@ -485,6 +485,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         phoneTilePreferences.setMiniCall(enabled)
     }
 
+    fun setPhoneExpandedPhotoBackground(enabled: Boolean) = viewModelScope.launch {
+        phoneTilePreferences.setExpandedPhotoBackground(enabled)
+    }
+
+    fun setPhoneExpandedPhotoBlur(enabled: Boolean) = viewModelScope.launch {
+        phoneTilePreferences.setExpandedPhotoBlur(enabled)
+    }
+
+    fun setPhoneExpandedPhotoBlurRadius(radius: Float) = viewModelScope.launch {
+        phoneTilePreferences.setExpandedPhotoBlurRadius(radius)
+    }
+
     fun setPhoneIncomingAnswerColor(color: CutoutColor) = viewModelScope.launch {
         phoneTilePreferences.setIncomingAnswerColor(color)
     }
