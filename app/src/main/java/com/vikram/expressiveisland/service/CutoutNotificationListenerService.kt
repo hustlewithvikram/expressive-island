@@ -566,6 +566,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
                 startTimeMs = call.startTimeMs,
                 ongoing = call.ongoing,
                 packageName = sbn.packageName,
+                outgoing = callStateMonitor.isOutgoing,
             ),
         )
 
