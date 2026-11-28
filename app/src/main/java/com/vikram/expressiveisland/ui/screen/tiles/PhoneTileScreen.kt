@@ -100,8 +100,8 @@ internal fun PhoneTileScreen(
         // below its full visual footprint so the preview never covers controls while scrolling.
         IslandPreviewSpacer(
             extraHeightDp = when {
-                selectedTab == PhoneSettingsTab.INCOMING && settings.expandedIncomingLayout -> 148
-                selectedTab == PhoneSettingsTab.ONGOING && !settings.miniCall -> 104
+                selectedTab == PhoneSettingsTab.INCOMING && settings.expandedIncomingLayout -> 230
+                selectedTab == PhoneSettingsTab.ONGOING && !settings.miniCall -> 270
                 else -> 76
             },
         )
