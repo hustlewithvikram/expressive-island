@@ -280,6 +280,9 @@ class IconResolver(private val context: Context) {
                 incomingHangUpColor = settings.incomingHangUpColor,
                 expandedHangUpColor = settings.expandedHangUpColor,
                 miniCall = settings.miniCall,
+                expandedPhotoBackground = settings.expandedPhotoBackground,
+                expandedPhotoBlur = settings.expandedPhotoBlur,
+                expandedPhotoBlurRadius = settings.expandedPhotoBlurRadius,
             ),
         )
     }
