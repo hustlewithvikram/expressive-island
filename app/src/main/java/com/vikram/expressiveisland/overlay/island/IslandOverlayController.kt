@@ -544,6 +544,10 @@ class IslandOverlayController(private val context: Context) {
         satelliteDismissJob?.cancel()
         dismissJob?.cancel()
         windowResizeJob?.cancel()
+        previewBubbleJob?.cancel()
+        previewBubbleJob = null
+        previewAnimationJob?.cancel()
+        previewAnimationJob = null
         runCatching { context.unregisterReceiver(lockReceiver) }
         removeOverlay()
         lifecycleOwner.onDestroy()
@@ -643,6 +647,14 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun restoreActiveState() {
+        // The preview can outlive a settings toggle. Never resurrect a live tile while the
+        // master switch is off, and validate each cached tile against its current enable state.
+        if (!behaviourState.value.cutoutEnabled) {
+            currentEvent.value = null
+            clearSatellite()
+            syncWindowSize()
+            return
+        }
         when {
             previewPinned -> {
                 dismissJob?.cancel()
@@ -651,23 +663,23 @@ class IslandOverlayController(private val context: Context) {
                 currentEvent.value = previewEventOrNull()
             }
 
-            callActive && lastCallEvent != null -> {
+            callActive && lastCallEvent != null && isPersistentTileActive(lastCallEvent!!) -> {
                 dismissJob?.cancel()
                 expanded = false
                 currentEvent.value = lastCallEvent
             }
 
-            musicPlaying && lastMusicEvent != null && !playerAppHidden -> {
+            musicPlaying && lastMusicEvent != null && isPersistentTileActive(lastMusicEvent!!) && !playerAppHidden -> {
                 dismissJob?.cancel()
                 currentEvent.value = lastMusicEvent
             }
 
-            timerActive && lastTimerEvent != null -> {
+            timerActive && lastTimerEvent != null && isPersistentTileActive(lastTimerEvent!!) -> {
                 dismissJob?.cancel()
                 currentEvent.value = lastTimerEvent
             }
 
-            downloadActive && lastDownloadEvent != null -> {
+            downloadActive && lastDownloadEvent != null && isPersistentTileActive(lastDownloadEvent!!) -> {
                 dismissJob?.cancel()
                 currentEvent.value = lastDownloadEvent
             }
@@ -696,7 +708,8 @@ class IslandOverlayController(private val context: Context) {
         currentDeadlineMs = null
         restoreActiveState()
 
-        if (currentEvent.value == null && previousEvent != null &&
+        if (behaviourState.value.cutoutEnabled && currentEvent.value == null && previousEvent != null &&
+            (!isPersistentTileEvent(previousEvent) || isPersistentTileActive(previousEvent)) &&
             (previousDeadline == null || previousDeadline > System.currentTimeMillis())
         ) {
             currentSystemEventType = previousSystemType
@@ -706,7 +719,8 @@ class IslandOverlayController(private val context: Context) {
             scheduleDismiss(previousDeadline)
         }
 
-        if (satelliteEvent.value == null && previousSatellite != null &&
+        if (behaviourState.value.cutoutEnabled && satelliteEvent.value == null && previousSatellite != null &&
+            (!isPersistentTileEvent(previousSatellite) || isPersistentTileActive(previousSatellite)) &&
             (previousSatelliteDeadline == null || previousSatelliteDeadline > System.currentTimeMillis())
         ) {
             satelliteEvent.value = previousSatellite.copy(initiallyExpanded = false)
@@ -1034,8 +1048,14 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun removeOverlay() {
-        composeView?.let { windowManager.removeViewImmediate(it) }
+        composeView?.let { view ->
+            runCatching { windowManager.removeViewImmediate(view) }
+            // ComposeView owns a composition (and its remembered objects) independently of the
+            // WindowManager attachment. Dispose it explicitly whenever the overlay is detached.
+            runCatching { view.disposeComposition() }
+        }
         composeView = null
+        layoutParams = null
         insetsListener = null
     }
 
@@ -1054,6 +1074,21 @@ class IslandOverlayController(private val context: Context) {
             }
             previousShowsWhenEmpty = it.showsWhenEmpty
             behaviourState.value = it
+            if (!it.cutoutEnabled && !previewPinned) {
+                // Master-off is authoritative for every event source, including already-cached
+                // media/call events and events replayed after a preview releases its surface.
+                dismissJob?.cancel()
+                currentDeadlineMs = null
+                forcedExpanded.value = null
+                expanded = false
+                currentEvent.value = null
+                clearSatellite()
+                waitingSatelliteEvents.clear()
+                deferredExpandedEvents.clear()
+                syncWindowSize()
+            } else if (it.cutoutEnabled && !previewPinned && currentEvent.value == null) {
+                restoreActiveState()
+            }
             refreshPinnedPreview()
             refreshPreviewSatellite()
             replayAnimationPreview()
@@ -1102,9 +1137,26 @@ class IslandOverlayController(private val context: Context) {
     }
 
     private fun observeTilePreferences() = scope.launch {
-        dynamicTilePreferences.enabled.collect {
-            tileEnabled = it
+        dynamicTilePreferences.enabled.collect { enabled ->
+            tileEnabled = enabled
             pruneSatellite()
+
+            // A tile can already be visible when its switch is turned off. Signal filtering alone
+            // is insufficient because the cached event would otherwise survive a settings preview.
+            val current = currentEvent.value
+            if (!previewPinned && current != null && isPersistentTileEvent(current) &&
+                !isPersistentTileActive(current)
+            ) {
+                dismissJob?.cancel()
+                currentDeadlineMs = null
+                forcedExpanded.value = null
+                expanded = false
+                currentEvent.value = null
+                syncWindowSize()
+                if (behaviourState.value.cutoutEnabled) restoreActiveState()
+            } else if (!previewPinned && behaviourState.value.cutoutEnabled && current == null) {
+                restoreActiveState()
+            }
         }
     }
 
@@ -2111,6 +2163,10 @@ class IslandOverlayController(private val context: Context) {
         // before collecting and ignore only system events that predate this collector.
         val startupSystemEventId = IslandEventBus.currentSystemEventId
         IslandEventBus.signals.collect { signal ->
+            if (!behaviourState.value.cutoutEnabled) {
+                Log.d(TAG, "Ignoring signal while the master cutout switch is disabled")
+                return@collect
+            }
             if (signal is CutoutSignal.System && signal.eventId <= startupSystemEventId) {
                 Log.d(TAG, "Ignoring replayed system event ${signal.type} (id=${signal.eventId})")
                 return@collect
