@@ -158,6 +158,7 @@ internal object PreviewRenderer {
                 expandedHangUpColor = phoneSettings.expandedHangUpColor,
                 miniCall = phoneSettings.miniCall,
                 previewOutgoing = content.detail.contains("Outgoing", ignoreCase = true),
+                previewOngoing = content.detail.contains("Ongoing", ignoreCase = true),
                 previewPhoto = if (phoneSettings.showPhoto) createPreviewContactPhoto() else null,
             ) else null,
             timer = if (category == IslandPreviewCategory.TIMER_TILE) TimerTileOptions(
