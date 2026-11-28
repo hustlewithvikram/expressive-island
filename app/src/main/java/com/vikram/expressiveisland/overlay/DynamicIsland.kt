@@ -317,9 +317,10 @@ internal fun DynamicIsland(
     val centerExpanded = emptyPill && cameraHoleQuickActions && tapExpanded
 
     val isExpanded = when {
-        forcedExpanded == false -> false
+        forcedExpanded == false && !(shownEvent?.id == -1L && previewCallConnected) -> false
         emptyPill && !mediaActive -> centerExpanded
         isNormalOnly -> false
+        shownEvent?.id == -1L && previewCallConnected -> tapExpanded
         else -> forcedExpanded ?: tapExpanded
     }
 
