@@ -21,6 +21,8 @@ import androidx.core.content.ContextCompat
 class CallStateMonitor(private val context: Context) {
     private var listener: Any? = null
     private var lastState: Int? = null
+    var isOutgoing: Boolean = false
+        private set
 
     val isIdle: Boolean get() = lastState == TelephonyManager.CALL_STATE_IDLE
 
@@ -61,6 +63,7 @@ class CallStateMonitor(private val context: Context) {
         val registered = listener ?: return
         listener = null
         lastState = null
+        isOutgoing = false
         val telephony = context.getSystemService<TelephonyManager>() ?: return
         runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -73,8 +76,18 @@ class CallStateMonitor(private val context: Context) {
     }
 
     private fun onState(state: Int, onCallEnded: () -> Unit) {
+        when (state) {
+            TelephonyManager.CALL_STATE_RINGING -> isOutgoing = false
+            TelephonyManager.CALL_STATE_OFFHOOK ->
+                // A direct IDLE -> OFFHOOK transition is an outgoing call. Incoming calls pass
+                // through RINGING first, so they remain incoming after being answered.
+                isOutgoing = lastState != TelephonyManager.CALL_STATE_RINGING
+            TelephonyManager.CALL_STATE_IDLE -> {
+                isOutgoing = false
+                onCallEnded()
+            }
+        }
         lastState = state
-        if (state == TelephonyManager.CALL_STATE_IDLE) onCallEnded()
     }
 
     companion object {
