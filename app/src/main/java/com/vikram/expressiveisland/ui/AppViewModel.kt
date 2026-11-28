@@ -63,6 +63,7 @@ import com.vikram.expressiveisland.data.PermissionDotKinds
 import com.vikram.expressiveisland.data.PermissionDotPosition
 import com.vikram.expressiveisland.data.PermissionDotPreferences
 import com.vikram.expressiveisland.data.PhoneTilePreferences
+import com.vikram.expressiveisland.data.CallState
 import com.vikram.expressiveisland.data.PhoneTileSettings
 import com.vikram.expressiveisland.data.RecentColorPreferences
 import com.vikram.expressiveisland.data.StatusBarPreferences
@@ -75,6 +76,7 @@ import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.ui.theme.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -175,7 +177,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         )
 
     val tileEnabled: StateFlow<Map<DynamicTile, Boolean>> =
-        dynamicTilePreferences.enabled.stateIn(
+        combine(dynamicTilePreferences.enabled, phoneTilePreferences.settings) { enabled, phone ->
+            enabled + (DynamicTile.PHONE to (
+                phone.incomingEnabled || phone.outgoingEnabled || phone.ongoingEnabled
+            ))
+        }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyMap(),
@@ -422,7 +428,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setTileEnabled(tile: DynamicTile, enabled: Boolean) = viewModelScope.launch {
-        dynamicTilePreferences.setEnabled(tile, enabled)
+        if (tile == DynamicTile.PHONE) {
+            phoneTilePreferences.setAllCallStatesEnabled(enabled)
+        } else {
+            dynamicTilePreferences.setEnabled(tile, enabled)
+        }
+    }
+
+    fun setPhoneCallStateEnabled(state: CallState, enabled: Boolean) = viewModelScope.launch {
+        phoneTilePreferences.setCallStateEnabled(state, enabled)
+    }
+
+    fun setPhoneAllCallStatesEnabled(enabled: Boolean) = viewModelScope.launch {
+        phoneTilePreferences.setAllCallStatesEnabled(enabled)
     }
 
     fun setAppEnabled(packageName: String, enabled: Boolean) = viewModelScope.launch {
