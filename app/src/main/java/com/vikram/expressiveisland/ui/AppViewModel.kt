@@ -77,6 +77,7 @@ import com.vikram.expressiveisland.ui.theme.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -430,17 +431,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setTileEnabled(tile: DynamicTile, enabled: Boolean) = viewModelScope.launch {
         if (tile == DynamicTile.PHONE) {
             phoneTilePreferences.setAllCallStatesEnabled(enabled)
+            dynamicTilePreferences.setEnabled(tile, enabled)
         } else {
             dynamicTilePreferences.setEnabled(tile, enabled)
         }
     }
 
     fun setPhoneCallStateEnabled(state: CallState, enabled: Boolean) = viewModelScope.launch {
+        val current = phoneTilePreferences.settings.first()
+        val nextEnabled = when (state) {
+            CallState.INCOMING -> enabled || current.outgoingEnabled || current.ongoingEnabled
+            CallState.OUTGOING -> current.incomingEnabled || enabled || current.ongoingEnabled
+            CallState.ONGOING -> current.incomingEnabled || current.outgoingEnabled || enabled
+        }
         phoneTilePreferences.setCallStateEnabled(state, enabled)
+        dynamicTilePreferences.setEnabled(DynamicTile.PHONE, nextEnabled)
     }
 
     fun setPhoneAllCallStatesEnabled(enabled: Boolean) = viewModelScope.launch {
         phoneTilePreferences.setAllCallStatesEnabled(enabled)
+        dynamicTilePreferences.setEnabled(DynamicTile.PHONE, enabled)
     }
 
     fun setAppEnabled(packageName: String, enabled: Boolean) = viewModelScope.launch {
