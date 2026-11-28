@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
 import com.vikram.expressiveisland.core.DynamicTile
 import com.vikram.expressiveisland.core.IslandPreviewCategory
+import com.vikram.expressiveisland.data.CallState
 import com.vikram.expressiveisland.ui.AppViewModel
 import com.vikram.expressiveisland.ui.components.ExpressiveSegmentedRow
 import com.vikram.expressiveisland.ui.screen.ColorPickerCard
@@ -135,6 +136,13 @@ internal fun PhoneTileScreen(
             PhoneSettingsTab.INCOMING -> {
                 SectionLabel("Incoming call")
                 SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = "Enable incoming calls",
+                    description = "Show the island for incoming calls. Turn this off to ignore incoming-call events.",
+                    checked = settings.incomingEnabled,
+                    onCheckedChange = { viewModel.setPhoneCallStateEnabled(CallState.INCOMING, it) },
+                )
+                SettingsToggleCard(
                     shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
                     title = stringResource(R.string.phone_show_photo_title),
                     description = "Show the caller's contact photo or the fallback avatar.",
@@ -192,6 +200,13 @@ internal fun PhoneTileScreen(
             PhoneSettingsTab.OUTGOING -> {
                 SectionLabel("Outgoing call")
                 SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = "Enable outgoing calls",
+                    description = "Show the island while a call is dialing.",
+                    checked = settings.outgoingEnabled,
+                    onCheckedChange = { viewModel.setPhoneCallStateEnabled(CallState.OUTGOING, it) },
+                )
+                SettingsToggleCard(
                     shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
                     title = stringResource(R.string.phone_show_photo_title),
                     description = "Keep the contact portrait visible while the call is dialing.",
@@ -233,6 +248,13 @@ internal fun PhoneTileScreen(
 
             PhoneSettingsTab.ONGOING -> {
                 SectionLabel("Ongoing call")
+                SettingsToggleCard(
+                    shape = RoundedCornerShape(24.dp),
+                    title = "Enable ongoing calls",
+                    description = "Show the island for connected calls and their duration.",
+                    checked = settings.ongoingEnabled,
+                    onCheckedChange = { viewModel.setPhoneCallStateEnabled(CallState.ONGOING, it) },
+                )
                 SettingsToggleCard(
                     shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
                     title = stringResource(R.string.phone_show_photo_title),
