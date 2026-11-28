@@ -477,6 +477,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         phoneTilePreferences.setExpandedIncomingLayout(enabled)
     }
 
+    fun setPhoneShowButtonLabels(enabled: Boolean) = viewModelScope.launch {
+        phoneTilePreferences.setShowButtonLabels(enabled)
+    }
+
+    fun setPhoneIncomingAnswerColor(color: CutoutColor) = viewModelScope.launch {
+        phoneTilePreferences.setIncomingAnswerColor(color)
+    }
+
+    fun setPhoneIncomingHangUpColor(color: CutoutColor) = viewModelScope.launch {
+        phoneTilePreferences.setIncomingHangUpColor(color)
+    }
+
+    fun setPhoneExpandedHangUpColor(color: CutoutColor) = viewModelScope.launch {
+        phoneTilePreferences.setExpandedHangUpColor(color)
+    }
+
     fun setPhoneIconContainerColor(color: CutoutColor?) = viewModelScope.launch {
         phoneTilePreferences.setIconContainerColor(color)
     }
