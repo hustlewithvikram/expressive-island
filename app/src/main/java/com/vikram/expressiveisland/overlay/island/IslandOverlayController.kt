@@ -100,6 +100,7 @@ import com.vikram.expressiveisland.overlay.OverlayLifecycleOwner
 import com.vikram.expressiveisland.overlay.satellite.SatellitePosition
 import com.vikram.expressiveisland.overlay.contents.callCutoutWidthPercent
 import com.vikram.expressiveisland.overlay.contents.callIncomingExtraDp
+import com.vikram.expressiveisland.overlay.contents.callExpandedExtraDp
 import com.vikram.expressiveisland.overlay.expandedActionsExtraDp
 import com.vikram.expressiveisland.system.PermissionUsage
 import com.vikram.expressiveisland.system.PermissionUsageMonitor
@@ -2095,6 +2096,11 @@ class IslandOverlayController(private val context: Context) {
     /** The extra height the expanded island claims for its bottom control row, mirroring the composable. */
     private fun expandedActionsBonusDp(): Int {
         val event = currentEvent.value
+        if (event?.call != null) {
+            val hasHangUp = event.call.showActions &&
+                event.actions.any { it.destructive || !it.answer }
+            return callExpandedExtraDp(hasHangUp)
+        }
         val hasActions =
             behaviourState.value.showActionButtons && event?.actions?.isNotEmpty() == true
         val hasMediaControls = event?.media?.showControls == true
