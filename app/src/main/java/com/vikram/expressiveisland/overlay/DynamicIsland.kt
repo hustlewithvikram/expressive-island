@@ -366,6 +366,7 @@ internal fun DynamicIsland(
     val dims = when {
         emptyPill && !isExpanded -> collapsed
         callTwoRow -> expanded
+        isCall && isExpanded -> expanded
         isCall -> collapsed.asCallCutout(callWidthPercent)
         isExpanded -> expanded
         else -> collapsed
