@@ -9,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -481,7 +482,7 @@ fun MiniCallContent(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size((heightDp - 8).coerceAtLeast(18).dp)
-                    .clip(RoundedCornerShape(50)),
+                    .clip(CircleShape),
             )
         } else if (call.showPhoto) {
             IconBadge(event = event, badgeSize = (heightDp - 8).coerceAtLeast(18).dp, iconSize = 18.dp)
