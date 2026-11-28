@@ -277,6 +277,9 @@ internal fun DynamicIsland(
     var previewCallConnected by remember(shownEvent?.detail) {
         mutableStateOf(shownEvent?.call?.previewOngoing == true)
     }
+    val previewCallStartTime = remember(shownEvent?.detail) {
+        System.currentTimeMillis() - 42_000L
+    }
     val previewOutgoing = shownEvent?.id == -1L && shownEvent.call?.previewOutgoing == true
     val callIncoming = isCall && if (shownEvent?.id == -1L) {
         !previewCallConnected && !previewOutgoing
@@ -288,7 +291,7 @@ internal fun DynamicIsland(
             callerLabel = shownEvent.label,
             callerNumber = if (previewOutgoing) null else "+1 (555) 014-2026",
             photo = shownEvent.call?.previewPhoto,
-            startTimeMs = if (previewCallConnected) System.currentTimeMillis() - 42_000L else null,
+            startTimeMs = if (previewCallConnected) previewCallStartTime else null,
             ongoing = previewCallConnected,
             outgoing = previewOutgoing && !previewCallConnected,
         )
