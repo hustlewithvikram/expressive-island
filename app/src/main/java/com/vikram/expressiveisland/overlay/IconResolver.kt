@@ -505,7 +505,7 @@ class IconResolver(private val context: Context) {
         // notifications localise to the device language, but English covers the common case); the
         // phrases avoid false hits like "send" that a bare "end" would catch.
         val HANG_UP_KEYWORDS =
-            listOf("hang up", "hangup", "hang-up", "end call", "decline", "reject")
+            listOf("hang up", "hangup", "hang-up", "end call", "decline", "reject", "cancel call", "cancel")
 
         // Lower-cased substrings marking an incoming call's answer/accept action, so the tile can
         // render it as the take-call button (mirrors HANG_UP_KEYWORDS; English covers the common case).
