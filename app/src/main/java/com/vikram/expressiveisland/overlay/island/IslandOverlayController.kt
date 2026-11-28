@@ -2089,7 +2089,11 @@ class IslandOverlayController(private val context: Context) {
     private fun isTwoRowCall(): Boolean {
         val event = currentEvent.value ?: return false
         val call = event.call ?: return false
-        val incoming = OnCallBus.state.value?.ongoing == false || (previewPinned && event.id == -1L)
+        val incoming = if (previewPinned && event.id == -1L) {
+            previewContent.detail.contains("Incoming", ignoreCase = true)
+        } else {
+            OnCallBus.state.value?.ongoing == false
+        }
         return incoming && call.incomingExpandedLayout && call.showActions && event.actions.isNotEmpty()
     }
 
