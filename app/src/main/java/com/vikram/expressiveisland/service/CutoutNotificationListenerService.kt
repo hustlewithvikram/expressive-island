@@ -602,6 +602,7 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     }
 
     private fun onPhoneCallStateChanged(state: Int) {
+        if (state == 0) return
         val current = OnCallBus.state.value ?: return
         val outgoing = callStateMonitor.isOutgoing
         if (current.outgoing != outgoing) {
