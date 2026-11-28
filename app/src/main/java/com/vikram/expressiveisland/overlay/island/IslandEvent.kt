@@ -227,6 +227,9 @@ data class CallTileOptions(
     val expandedHangUpColor: CutoutColor = CutoutColor.Solid(0xFFEF4444),
     /** Compact mini-call pill while a call is connected. */
     val miniCall: Boolean = false,
+    val expandedPhotoBackground: Boolean = false,
+    val expandedPhotoBlur: Boolean = true,
+    val expandedPhotoBlurRadius: Float = 18f,
     /** Preview-only call state; never affects real call routing. */
     val previewOutgoing: Boolean = false,
     val previewOngoing: Boolean = false,
