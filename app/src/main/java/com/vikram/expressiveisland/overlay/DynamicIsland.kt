@@ -1,6 +1,8 @@
 package com.vikram.expressiveisland.overlay
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Call
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateDpAsState
@@ -44,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.core.ChargingBus
 import com.vikram.expressiveisland.core.HeadphonesBus
+import com.vikram.expressiveisland.core.OnCall
 import com.vikram.expressiveisland.core.OnCallBus
 import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.data.ActionButtonAlignment
@@ -81,6 +84,7 @@ import com.vikram.expressiveisland.overlay.contents.PressExpandDp
 import com.vikram.expressiveisland.overlay.satellite.SatelliteBubble
 import com.vikram.expressiveisland.overlay.contents.callCutoutWidthPercent
 import com.vikram.expressiveisland.overlay.island.IslandAction
+import com.vikram.expressiveisland.overlay.island.IslandIcon
 import com.vikram.expressiveisland.overlay.island.IslandEvent
 import com.vikram.expressiveisland.overlay.island.AnimationEngine
 import com.vikram.expressiveisland.overlay.island.satelliteMergeAlpha
@@ -269,7 +273,43 @@ internal fun DynamicIsland(
     val confirmingSent = sentReply != null
     val isCall = shownEvent?.call != null
     val liveCall by OnCallBus.state.collectAsStateWithLifecycle()
-    val callIncoming = isCall && (liveCall?.ongoing == false || shownEvent?.id == -1L)
+    var previewCallConnected by remember(shownEvent?.detail) {
+        mutableStateOf(shownEvent?.call?.previewOngoing == true)
+    }
+    val previewOutgoing = shownEvent?.id == -1L && shownEvent.call?.previewOutgoing == true
+    val callIncoming = isCall && if (shownEvent?.id == -1L) {
+        !previewCallConnected && !previewOutgoing
+    } else {
+        liveCall?.ongoing == false
+    }
+    val displayedCall = if (shownEvent?.id == -1L) {
+        OnCall(
+            callerLabel = shownEvent.label,
+            callerNumber = if (previewOutgoing) null else "+1 (555) 014-2026",
+            photo = shownEvent.call?.previewPhoto,
+            startTimeMs = if (previewCallConnected) System.currentTimeMillis() - 42_000L else null,
+            ongoing = previewCallConnected,
+            outgoing = previewOutgoing && !previewCallConnected,
+        )
+    } else liveCall
+    val callTiny = isCall && shownEvent?.call?.miniCall == true &&
+        !callIncoming && !isExpanded
+    val dispatchCallAction: (IslandAction) -> Unit = { action ->
+        if (shownEvent?.id == -1L) {
+            when {
+                action.answer -> {
+                    previewCallConnected = true
+                    tapExpanded = true
+                }
+                action.destructive -> {
+                    previewCallConnected = false
+                    tapExpanded = false
+                }
+            }
+        } else {
+            onAction(action)
+        }
+    }
     val isAssistantNormalOnly =
         shownEvent?.assistant != null && !shownEvent.assistant.displayAnswerInCutout
     // Ringing calls keep their compact/answer layout. Connected calls can expand into full controls.
@@ -365,6 +405,14 @@ internal fun DynamicIsland(
 
     val dims = when {
         emptyPill && !isExpanded -> collapsed
+        callTiny -> collapsed.copy(
+            widthPercent = 36,
+            heightDp = 34,
+            cornerTopLeftDp = 110,
+            cornerTopRightDp = 110,
+            cornerBottomLeftDp = 110,
+            cornerBottomRightDp = 110,
+        )
         callTwoRow -> expanded
         isCall && isExpanded -> expanded
         isCall -> collapsed.asCallCutout(callWidthPercent)
@@ -980,18 +1028,30 @@ internal fun DynamicIsland(
                                 }
                             } else {
                                 shownEvent?.let { e ->
-                                    if (e.call != null && showExpanded && !callIncoming) {
+                                    if (e.call != null && callTiny) {
+                                        CollapsedContent(
+                                            event = e.copy(icon = IslandIcon.Vector(Icons.Rounded.Call)),
+                                            heightDp = dims.heightDp,
+                                            isStickToCamera = isStickToCamera,
+                                            trailingInsetDp = collapsedTrailingInsetDp,
+                                            satelliteSharing = satelliteShown && satelliteSharing,
+                                        )
+                                    } else if (e.call != null && showExpanded && !callIncoming) {
                                         CallExpandedContent(
                                             event = e,
-                                            onCall = liveCall,
-                                            onAction = onAction,
+                                            onCall = displayedCall,
+                                            onAction = dispatchCallAction,
                                             onOpen = {
                                                 tapExpanded = false
                                                 onActivate()
                                             },
                                         )
                                     } else if (e.call != null) {
-                                        CallNormalContent(event = e, onAction = onAction)
+                                        CallNormalContent(
+                                            event = e,
+                                            onAction = dispatchCallAction,
+                                            onCallOverride = displayedCall,
+                                        )
                                     } else if (showExpanded) {
                                         ExpandedContent(
                                             event = e,
