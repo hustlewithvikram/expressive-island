@@ -221,6 +221,10 @@ data class CallTileOptions(
     val hangUpColor: CutoutColor,
     /** Fill shared by every other call button. */
     val otherButtonColor: CutoutColor,
+    val showButtonLabels: Boolean = true,
+    val incomingAnswerColor: CutoutColor = CutoutColor.Dynamic(DynamicRole.PRIMARY),
+    val incomingHangUpColor: CutoutColor = CutoutColor.Solid(0xFFEF4444),
+    val expandedHangUpColor: CutoutColor = CutoutColor.Solid(0xFFEF4444),
 )
 
 /** Which parts of the music tile to render (and how the controls look), per the tile's settings. */
