@@ -39,5 +39,7 @@ data class OnCall(
     val startTimeMs: Long?,
     val ongoing: Boolean,
     val packageName: String? = null,
+    /** True while an outgoing call is dialing but has not connected yet. */
+    val outgoing: Boolean = false,
 )
 
