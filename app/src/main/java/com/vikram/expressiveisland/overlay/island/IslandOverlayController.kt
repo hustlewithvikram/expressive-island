@@ -49,6 +49,7 @@ import com.vikram.expressiveisland.core.IslandPreviewCategory
 import com.vikram.expressiveisland.core.IslandPreviewContent
 import com.vikram.expressiveisland.core.NowPlayingBus
 import com.vikram.expressiveisland.core.OnCallBus
+import com.vikram.expressiveisland.core.OnCall
 import com.vikram.expressiveisland.core.RunningTimerBus
 import com.vikram.expressiveisland.core.SystemEventType
 import com.vikram.expressiveisland.data.AppPreferences
@@ -1144,25 +1145,28 @@ class IslandOverlayController(private val context: Context) {
 
     private fun observeTilePreferences() = scope.launch {
         dynamicTilePreferences.enabled.collect { enabled ->
-            tileEnabled = enabled
+            tileEnabled = enabled + (DynamicTile.PHONE to phoneSettings.anyCallStateEnabled)
             pruneSatellite()
+            handleTileAvailabilityChanged()
+        }
+    }
 
-            // A tile can already be visible when its switch is turned off. Signal filtering alone
-            // is insufficient because the cached event would otherwise survive a settings preview.
-            val current = currentEvent.value
-            if (!previewPinned && current != null && isPersistentTileEvent(current) &&
-                !isPersistentTileActive(current)
-            ) {
-                dismissJob?.cancel()
-                currentDeadlineMs = null
-                forcedExpanded.value = null
-                expanded = false
-                currentEvent.value = null
-                syncWindowSize()
-                if (behaviourState.value.cutoutEnabled) restoreActiveState()
-            } else if (!previewPinned && behaviourState.value.cutoutEnabled && current == null) {
-                restoreActiveState()
-            }
+    private fun handleTileAvailabilityChanged() {
+        // A tile can already be visible when its switch is turned off. Signal filtering alone
+        // is insufficient because the cached event would otherwise survive a settings change.
+        val current = currentEvent.value
+        if (!previewPinned && current != null && isPersistentTileEvent(current) &&
+            !isPersistentTileActive(current)
+        ) {
+            dismissJob?.cancel()
+            currentDeadlineMs = null
+            forcedExpanded.value = null
+            expanded = false
+            currentEvent.value = null
+            syncWindowSize()
+            if (behaviourState.value.cutoutEnabled) restoreActiveState()
+        } else if (!previewPinned && behaviourState.value.cutoutEnabled && current == null) {
+            restoreActiveState()
         }
     }
 
@@ -1183,7 +1187,10 @@ class IslandOverlayController(private val context: Context) {
     private fun observePhoneSettings() = scope.launch {
         phoneTilePreferences.settings.collect {
             phoneSettings = it
+            tileEnabled = tileEnabled + (DynamicTile.PHONE to it.anyCallStateEnabled)
             refreshPinnedPreview()
+            pruneSatellite()
+            handleTileAvailabilityChanged()
         }
     }
 
@@ -1851,12 +1858,20 @@ class IslandOverlayController(private val context: Context) {
         a.id == b.id || isSameTile(a, b) ||
             (a.notificationKey != null && a.notificationKey == b.notificationKey)
 
+    private fun isCallStateEnabled(call: OnCall?): Boolean = when {
+        call == null -> phoneSettings.anyCallStateEnabled
+        call.outgoing -> phoneSettings.outgoingEnabled
+        call.ongoing -> phoneSettings.ongoingEnabled
+        else -> phoneSettings.incomingEnabled
+    }
+
     private fun isPersistentTileActive(event: IslandEvent): Boolean {
         // Central gate used by restoration, satellite promotion and interruption fallbacks.
         if (!behaviourState.value.cutoutEnabled) return false
         return when {
             event.media != null -> musicPlaying && tileEnabled[DynamicTile.MUSIC] != false && !shouldHideForPlayerApp()
             event.call != null -> callActive && tileEnabled[DynamicTile.PHONE] != false &&
+                isCallStateEnabled(OnCallBus.state.value) &&
                 OnCallBus.state.value?.packageName !in disabledApps && !shouldHideForPhoneApp()
             event.timer != null -> timerActive && tileEnabled[DynamicTile.TIMER] != false
             event.download != null -> downloadActive && tileEnabled[DynamicTile.DOWNLOAD] != false
@@ -2216,7 +2231,9 @@ class IslandOverlayController(private val context: Context) {
             // Skip now-playing media when the music tile is turned off.
             if (signal is CutoutSignal.Music && tileEnabled[DynamicTile.MUSIC] == false) return@collect
             // Skip the current call when the phone tile is turned off.
-            if (signal is CutoutSignal.Call && tileEnabled[DynamicTile.PHONE] == false) return@collect
+            if (signal is CutoutSignal.Call &&
+                (tileEnabled[DynamicTile.PHONE] == false || !isCallStateEnabled(OnCallBus.state.value))
+            ) return@collect
             // Skip the running timer when the timer tile is turned off.
             if (signal is CutoutSignal.Timer && tileEnabled[DynamicTile.TIMER] == false) return@collect
             if (signal is CutoutSignal.Download && tileEnabled[DynamicTile.DOWNLOAD] == false) return@collect
