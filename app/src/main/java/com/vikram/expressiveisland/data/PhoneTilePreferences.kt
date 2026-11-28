@@ -31,6 +31,12 @@ data class PhoneTileSettings(
     val expandedIncomingLayout: Boolean = DEFAULT_EXPANDED_INCOMING,
     /** Shrink connected calls into a compact mini-call pill; tapping it still opens call controls. */
     val miniCall: Boolean = DEFAULT_MINI_CALL,
+    /** Use the caller's photo as a background only while the connected-call island is expanded. */
+    val expandedPhotoBackground: Boolean = DEFAULT_EXPANDED_PHOTO_BACKGROUND,
+    /** Blur the expanded caller-photo background. */
+    val expandedPhotoBlur: Boolean = DEFAULT_EXPANDED_PHOTO_BLUR,
+    /** Blur radius in dp, clamped by the settings UI. */
+    val expandedPhotoBlurRadius: Float = DEFAULT_EXPANDED_PHOTO_BLUR_RADIUS,
     /** Colour of the icon container (fallback disc shown when there's no contact photo). Null = default. */
     val iconContainerColor: CutoutColor? = null,
     /** Fill of the hang-up / end-call button. */
@@ -51,6 +57,9 @@ data class PhoneTileSettings(
         const val DEFAULT_SHOW_BUTTON_LABELS = true
         const val DEFAULT_EXPANDED_INCOMING = true
         const val DEFAULT_MINI_CALL = false
+        const val DEFAULT_EXPANDED_PHOTO_BACKGROUND = false
+        const val DEFAULT_EXPANDED_PHOTO_BLUR = true
+        const val DEFAULT_EXPANDED_PHOTO_BLUR_RADIUS = 18f
 
         /** Hang up is red by default (matches the preset red swatch). */
         val DEFAULT_HANG_UP_COLOR: CutoutColor = CutoutColor.Solid(0xFFEF4444)
@@ -74,6 +83,10 @@ class PhoneTilePreferences(private val context: Context) : JsonSerializable {
             showButtonLabels = prefs[SHOW_BUTTON_LABELS] ?: PhoneTileSettings.DEFAULT_SHOW_BUTTON_LABELS,
             expandedIncomingLayout = prefs[EXPANDED_INCOMING] ?: PhoneTileSettings.DEFAULT_EXPANDED_INCOMING,
             miniCall = prefs[MINI_CALL] ?: PhoneTileSettings.DEFAULT_MINI_CALL,
+            expandedPhotoBackground = prefs[EXPANDED_PHOTO_BACKGROUND] ?: PhoneTileSettings.DEFAULT_EXPANDED_PHOTO_BACKGROUND,
+            expandedPhotoBlur = prefs[EXPANDED_PHOTO_BLUR] ?: PhoneTileSettings.DEFAULT_EXPANDED_PHOTO_BLUR,
+            expandedPhotoBlurRadius = prefs[EXPANDED_PHOTO_BLUR_RADIUS]?.toFloatOrNull()
+                ?.coerceIn(0f, 40f) ?: PhoneTileSettings.DEFAULT_EXPANDED_PHOTO_BLUR_RADIUS,
             iconContainerColor = CutoutColor.deserialize(prefs[ICON_CONTAINER_COLOR]),
             hangUpColor = CutoutColor.deserialize(prefs[HANG_UP_COLOR])
                 ?: PhoneTileSettings.DEFAULT_HANG_UP_COLOR,
@@ -98,6 +111,9 @@ class PhoneTilePreferences(private val context: Context) : JsonSerializable {
             put("showButtonLabels", s.showButtonLabels)
             put("expandedIncomingLayout", s.expandedIncomingLayout)
             put("miniCall", s.miniCall)
+            put("expandedPhotoBackground", s.expandedPhotoBackground)
+            put("expandedPhotoBlur", s.expandedPhotoBlur)
+            put("expandedPhotoBlurRadius", s.expandedPhotoBlurRadius.toDouble())
             put("iconContainerColor", s.iconContainerColor?.serialize() ?: JSONObject.NULL)
             put("hangUpColor", s.hangUpColor.serialize())
             put("otherButtonColor", s.otherButtonColor.serialize())
@@ -117,6 +133,9 @@ class PhoneTilePreferences(private val context: Context) : JsonSerializable {
             if (obj.has("showButtonLabels")) it[SHOW_BUTTON_LABELS] = obj.getBoolean("showButtonLabels")
             if (obj.has("expandedIncomingLayout")) it[EXPANDED_INCOMING] = obj.getBoolean("expandedIncomingLayout")
             if (obj.has("miniCall")) it[MINI_CALL] = obj.getBoolean("miniCall")
+            if (obj.has("expandedPhotoBackground")) it[EXPANDED_PHOTO_BACKGROUND] = obj.getBoolean("expandedPhotoBackground")
+            if (obj.has("expandedPhotoBlur")) it[EXPANDED_PHOTO_BLUR] = obj.getBoolean("expandedPhotoBlur")
+            if (obj.has("expandedPhotoBlurRadius")) it[EXPANDED_PHOTO_BLUR_RADIUS] = obj.getDouble("expandedPhotoBlurRadius").toString()
             if (obj.has("iconContainerColor")) {
                 val raw = if (obj.isNull("iconContainerColor")) null else obj.optString("iconContainerColor")
                 val color = CutoutColor.deserialize(raw)
@@ -164,6 +183,18 @@ class PhoneTilePreferences(private val context: Context) : JsonSerializable {
         it[MINI_CALL] = enabled
     }
 
+    suspend fun setExpandedPhotoBackground(enabled: Boolean) = context.phoneTileDataStore.edit {
+        it[EXPANDED_PHOTO_BACKGROUND] = enabled
+    }
+
+    suspend fun setExpandedPhotoBlur(enabled: Boolean) = context.phoneTileDataStore.edit {
+        it[EXPANDED_PHOTO_BLUR] = enabled
+    }
+
+    suspend fun setExpandedPhotoBlurRadius(radius: Float) = context.phoneTileDataStore.edit {
+        it[EXPANDED_PHOTO_BLUR_RADIUS] = radius.coerceIn(0f, 40f).toString()
+    }
+
     /** A null [color] clears the override, restoring the default accent-tinted icon container. */
     suspend fun setIconContainerColor(color: CutoutColor?) = context.phoneTileDataStore.edit {
         if (color == null) it.remove(ICON_CONTAINER_COLOR) else it[ICON_CONTAINER_COLOR] = color.serialize()
@@ -196,6 +227,9 @@ class PhoneTilePreferences(private val context: Context) : JsonSerializable {
         val SHOW_BUTTON_LABELS = booleanPreferencesKey("show_button_labels")
         val EXPANDED_INCOMING = booleanPreferencesKey("expanded_incoming_layout")
         val MINI_CALL = booleanPreferencesKey("mini_call")
+        val EXPANDED_PHOTO_BACKGROUND = booleanPreferencesKey("expanded_photo_background")
+        val EXPANDED_PHOTO_BLUR = booleanPreferencesKey("expanded_photo_blur")
+        val EXPANDED_PHOTO_BLUR_RADIUS = stringPreferencesKey("expanded_photo_blur_radius")
         val ICON_CONTAINER_COLOR = stringPreferencesKey("icon_container_color")
         val HANG_UP_COLOR = stringPreferencesKey("hang_up_color")
         val OTHER_BUTTON_COLOR = stringPreferencesKey("other_button_color")
