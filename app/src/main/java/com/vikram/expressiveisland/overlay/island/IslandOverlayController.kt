@@ -2104,7 +2104,8 @@ class IslandOverlayController(private val context: Context) {
         val hasActions =
             behaviourState.value.showActionButtons && event?.actions?.isNotEmpty() == true
         val hasMediaControls = event?.media?.showControls == true
-        val hasCallActions = event?.call?.showActions == true && event.actions.isNotEmpty()
+        // Call events return through the dedicated expanded-call sizing branch above.
+        val hasCallActions = false
         val hasTimerActions = event?.timer?.showActions == true && event.actions.isNotEmpty()
         val hasAssistantActions = behaviourState.value.showActionButtons && event?.assistant != null
         val actionHeight = if (hasActions || hasMediaControls || hasCallActions || hasTimerActions || hasAssistantActions) {
