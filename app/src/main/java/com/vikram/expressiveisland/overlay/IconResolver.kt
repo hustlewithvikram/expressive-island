@@ -279,6 +279,7 @@ class IconResolver(private val context: Context) {
                 incomingAnswerColor = settings.incomingAnswerColor,
                 incomingHangUpColor = settings.incomingHangUpColor,
                 expandedHangUpColor = settings.expandedHangUpColor,
+                miniCall = settings.miniCall,
             ),
         )
     }
