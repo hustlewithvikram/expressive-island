@@ -68,6 +68,7 @@ import com.vikram.expressiveisland.data.SwipeDismissDirection
 import com.vikram.expressiveisland.data.SwipeDismissTarget
 import com.vikram.expressiveisland.data.asCallCutout
 import com.vikram.expressiveisland.overlay.contents.ACTIONS_ROW_SPACING_DP
+import com.vikram.expressiveisland.overlay.contents.CallExpandedContent
 import com.vikram.expressiveisland.overlay.contents.CallNormalContent
 import com.vikram.expressiveisland.overlay.contents.CenterContent
 import com.vikram.expressiveisland.overlay.contents.CollapsedContent
