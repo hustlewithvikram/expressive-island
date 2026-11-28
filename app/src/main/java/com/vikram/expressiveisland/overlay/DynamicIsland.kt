@@ -1,5 +1,6 @@
 package com.vikram.expressiveisland.overlay
 
+import android.os.Build
 import androidx.compose.animation.Crossfade
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
@@ -41,6 +42,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -101,6 +103,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.ui.unit.lerp as lerpDp
 
@@ -348,14 +351,32 @@ internal fun DynamicIsland(
         if (shownEvent?.call?.showDuration == true) formatMiniDuration((miniCallNowMs - start).coerceAtLeast(0L) / 1_000L)
         else null
     }
+    val localView = LocalView.current
+    val density = LocalDensity.current
+    // Read the physical camera cutout width from WindowInsets instead of guessing a fixed gap.
+    // Some overlay windows do not expose root insets immediately, so retain a conservative fallback.
+    val notchWidthDp = remember(localView, density.density) {
+        val cutoutWidthPx = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            localView.rootWindowInsets?.displayCutout?.boundingRects?.maxOfOrNull { it.width() }
+        } else null
+        cutoutWidthPx?.let { (it / density.density).roundToInt() }?.takeIf { it > 0 } ?: 16
+    }
+    // The centre clearance is twice the measured notch width, plus breathing room on both sides.
+    val miniCallNotchGapDp = notchWidthDp * 2 + 16
     val miniCallWidthPercent = if (callTiny) {
         val options = shownEvent?.call
         val photoWidthDp = if (options?.showPhoto == true) (collapsed.heightDp - 12).coerceAtLeast(18) else 0
         val durationWidthDp = if (options?.showDuration == true && miniDurationLabel != null) {
-            miniDurationLabel.length * 7 + 2
+            val textPx = with(density) { 13.sp.toPx() }
+            val measuredPx = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = textPx
+                typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD)
+            }.measureText(miniDurationLabel)
+            (measuredPx / density.density).roundToInt() + 4
         } else 0
+        // Match MiniCallContent's 6dp outer inset on both sides and its actual centre spacer.
         val contentWidthDp = when {
-            photoWidthDp > 0 && durationWidthDp > 0 -> 12 + photoWidthDp + 32 + durationWidthDp
+            photoWidthDp > 0 && durationWidthDp > 0 -> 12 + photoWidthDp + miniCallNotchGapDp + durationWidthDp
             photoWidthDp > 0 -> 12 + photoWidthDp
             durationWidthDp > 0 -> 12 + durationWidthDp
             else -> 30
@@ -1074,6 +1095,7 @@ internal fun DynamicIsland(
                                             call = e.call,
                                             onCall = displayedCall,
                                             heightDp = dims.heightDp,
+                                            notchGapDp = miniCallNotchGapDp,
                                         )
                                     } else if (e.call != null && showExpanded && !callIncoming) {
                                         CallExpandedContent(
