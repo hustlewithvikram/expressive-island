@@ -469,28 +469,38 @@ fun MiniCallContent(
         else "%02d:%02d".format(minutes, seconds)
     } else null
 
+    val showDuration = call.showDuration && duration != null
+    val avatarSize = (heightDp - 12).coerceAtLeast(18).dp
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp),
+            // Match the avatar's 6dp vertical inset with the same horizontal inset.
+            .padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (photo != null) {
-            Image(
-                bitmap = photo,
-                contentDescription = "Caller photo",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size((heightDp - 8).coerceAtLeast(18).dp)
-                    .clip(CircleShape),
-            )
-        } else if (call.showPhoto) {
-            IconBadge(event = event, badgeSize = (heightDp - 8).coerceAtLeast(18).dp, iconSize = 18.dp)
+        if (call.showPhoto) {
+            if (photo != null) {
+                Image(
+                    bitmap = photo,
+                    contentDescription = "Caller photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(avatarSize)
+                        .clip(CircleShape),
+                )
+            } else {
+                IconBadge(event = event, badgeSize = avatarSize, iconSize = 18.dp)
+            }
         }
-        if (call.showDuration && duration != null) {
+        if (call.showPhoto && showDuration) {
+            // Keep the camera notch clear: this is a deliberate centre gap, not content padding.
+            Spacer(modifier = Modifier.width(32.dp))
+        } else if (!call.showPhoto && showDuration) {
+            Spacer(modifier = Modifier.weight(1f))
+        }
+        if (showDuration) {
             Text(
-                text = duration,
+                text = duration!!,
                 color = LocalContentColor.current,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -498,12 +508,14 @@ fun MiniCallContent(
                 softWrap = false,
             )
         } else if (!call.showPhoto) {
-            Icon(
-                imageVector = Icons.Rounded.Call,
-                contentDescription = "Ongoing call",
-                tint = LocalContentColor.current,
-                modifier = Modifier.size(18.dp),
-            )
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Rounded.Call,
+                    contentDescription = "Ongoing call",
+                    tint = LocalContentColor.current,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
     }
 }
