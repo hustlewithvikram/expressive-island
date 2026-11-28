@@ -481,6 +481,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         phoneTilePreferences.setShowButtonLabels(enabled)
     }
 
+    fun setPhoneMiniCall(enabled: Boolean) = viewModelScope.launch {
+        phoneTilePreferences.setMiniCall(enabled)
+    }
+
     fun setPhoneIncomingAnswerColor(color: CutoutColor) = viewModelScope.launch {
         phoneTilePreferences.setIncomingAnswerColor(color)
     }
