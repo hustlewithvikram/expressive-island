@@ -549,10 +549,13 @@ class CutoutNotificationListenerService : NotificationListenerService() {
      * appears — later re-posts refresh the state without re-popping, mirroring the media monitor.
      */
     private fun handleCall(sbn: StatusBarNotification) {
-        // Telephony can identify a leftover default-dialer notification after hang-up. Do not
-        // republish it as a fresh call; VoIP notifications continue through the normal fallback.
-        if (callStateMonitor.isIdle && CallStateMonitor.knowsAbout(this, sbn.packageName)) return
         val call = CallNotificationParser.parse(sbn, this)
+        // Telephony can identify a leftover connected-call notification after hang-up. Only
+        // suppress notifications parsed as ongoing: an incoming ringing call must never be lost
+        // during the brief gap before the platform reports CALL_STATE_RINGING.
+        if (call.ongoing && callStateMonitor.isIdle &&
+            CallStateMonitor.knowsAbout(this, sbn.packageName)
+        ) return
         val prevOngoing = OnCallBus.state.value?.ongoing
 
         OnCallBus.update(
@@ -605,9 +608,16 @@ class CutoutNotificationListenerService : NotificationListenerService() {
     private fun clearCallIfEnded() {
         if (currentCallKey == null || OnCallBus.state.value == null) return
         val active = runCatching { activeNotifications }.getOrNull() ?: return
-        val liveCalls = active.filter {
-            CallNotificationParser.isCall(it) &&
-                !(callStateMonitor.isIdle && CallStateMonitor.knowsAbout(this, it.packageName))
+        val liveCalls = active.filter { notification ->
+            if (!CallNotificationParser.isCall(notification)) {
+                false
+            } else {
+                val isOngoing = runCatching {
+                    CallNotificationParser.parse(notification, this).ongoing
+                }.getOrDefault(true)
+                !(isOngoing && callStateMonitor.isIdle &&
+                    CallStateMonitor.knowsAbout(this, notification.packageName))
+            }
         }
         if (liveCalls.isEmpty()) clearCurrentCall()
     }
