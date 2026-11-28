@@ -275,6 +275,10 @@ class IconResolver(private val context: Context) {
                 incomingExpandedLayout = settings.expandedIncomingLayout,
                 hangUpColor = settings.hangUpColor,
                 otherButtonColor = settings.otherButtonColor,
+                showButtonLabels = settings.showButtonLabels,
+                incomingAnswerColor = settings.incomingAnswerColor,
+                incomingHangUpColor = settings.incomingHangUpColor,
+                expandedHangUpColor = settings.expandedHangUpColor,
             ),
         )
     }
