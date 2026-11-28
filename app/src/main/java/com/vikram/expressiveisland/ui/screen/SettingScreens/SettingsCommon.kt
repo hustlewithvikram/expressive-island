@@ -79,10 +79,13 @@ internal fun IslandPreviewSpacer(extraHeightDp: Int = 0) {
     // island animates independently above this screen; following its expanded/collapsed state
     // here makes every animation tick relayout the settings page and causes visible vertical jitter.
     val islandReservation = if (active) (islandHeightDp * 1.1f).dp else 0.dp
+    // The measured preview height can be zero on first composition. Use a known minimum for
+    // taller dynamic tiles, but never add it on top of an already measured window height.
+    val minimumReservation = if (active) extraHeightDp.dp else 0.dp
     Spacer(
         modifier = Modifier
             .fillMaxWidth()
-            .height(islandReservation + extraHeightDp.dp),
+            .height(maxOf(islandReservation, minimumReservation)),
     )
 }
 
