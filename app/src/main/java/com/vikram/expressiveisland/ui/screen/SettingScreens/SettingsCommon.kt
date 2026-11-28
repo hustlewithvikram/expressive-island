@@ -71,14 +71,14 @@ import com.vikram.expressiveisland.overlay.island.IslandPreview
  * settings page. It collapses with the same state as the real island (including swipe-up collapse).
  */
 @Composable
-internal fun IslandPreviewSpacer() {
+internal fun IslandPreviewSpacer(extraHeightDp: Int = 0) {
     val expanded = IslandPreviewBus.expandedPreview.collectAsState().value
     val active = IslandPreviewBus.active.collectAsState().value
     val islandHeightDp = IslandPreviewBus.previewHeightDp.collectAsState().value
     // Reserve the expanded footprint whenever the live preview is active. The preview
     // island animates independently above this screen; following its expanded/collapsed state
     // here makes every animation tick relayout the settings page and causes visible vertical jitter.
-    val reservedHeight = if (active) (islandHeightDp * 1.1f).dp else 0.dp
+    val reservedHeight = (if (active) islandHeightDp * 1.1f else 0).dp + extraHeightDp.dp
     Spacer(
         modifier = Modifier
             .fillMaxWidth()
