@@ -3,7 +3,9 @@ package com.vikram.expressiveisland.overlay.contents
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -31,11 +33,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ContentScale
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -98,6 +104,7 @@ fun IncomingCallExpandedContent(
                 IconBadge(event = event, badgeSize = CALL_INCOMING_AVATAR_DP.dp, iconSize = 24.dp)
             }
             Column(modifier = Modifier.weight(1f)) {
+                TileTitle(title = event.label)
                 onCall?.callerNumber
                     ?.takeIf { it.isNotBlank() && it != event.label }
                     ?.let { number ->
@@ -109,7 +116,6 @@ fun IncomingCallExpandedContent(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                TileTitle(title = event.label)
             }
         }
         // A flexible gap pushes the button row down to the bottom edge.
@@ -309,17 +315,37 @@ fun CallExpandedContent(
         if (!isPreview) CallAudioBus.refresh(context)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(
-                start = 16.dp,
-                end = 16.dp,
-                top = CALL_EXPANDED_TOP_PAD_DP.dp,
-                bottom = 14.dp,
-            ),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (call.expandedPhotoBackground && photo != null) {
+            Image(
+                bitmap = photo,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (call.expandedPhotoBlur && call.expandedPhotoBlurRadius > 0f)
+                            Modifier.blur(call.expandedPhotoBlurRadius.dp)
+                        else Modifier
+                    ),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.48f)),
+            )
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = CALL_EXPANDED_TOP_PAD_DP.dp,
+                    bottom = 14.dp,
+                ),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -405,6 +431,68 @@ fun CallExpandedContent(
                     }
                 }
             }
+        }
+        }
+    }
+}
+
+
+/** Compact connected-call pill: caller portrait on the left and a live duration on the right. */
+@Composable
+fun MiniCallContent(
+    event: IslandEvent,
+    call: CallTileOptions,
+    onCall: OnCall?,
+    heightDp: Int,
+) {
+    val photo = onCall?.photo?.takeIf { call.showPhoto }
+    val start = onCall?.startTimeMs
+    var now by remember(start) { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(start, call.showDuration) {
+        if (start != null && call.showDuration) {
+            while (true) {
+                now = System.currentTimeMillis()
+                delay(1_000L.milliseconds)
+            }
+        }
+    }
+    val duration = if (start != null) {
+        val total = ((now - start) / 1_000L).coerceAtLeast(0L)
+        val hours = total / 3600L
+        val minutes = (total % 3600L) / 60L
+        val seconds = total % 60L
+        if (hours > 0) "%02d:%02d:%02d".format(hours, minutes, seconds)
+        else "%02d:%02d".format(minutes, seconds)
+    } else null
+
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (photo != null) {
+            Image(
+                bitmap = photo,
+                contentDescription = "Caller photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size((heightDp - 8).coerceAtLeast(18).dp)
+                    .clip(RoundedCornerShape(50)),
+            )
+        } else if (call.showPhoto) {
+            IconBadge(event = event, badgeSize = (heightDp - 8).coerceAtLeast(18).dp, iconSize = 18.dp)
+        }
+        if (call.showDuration && duration != null) {
+            Text(
+                text = duration,
+                color = LocalContentColor.current,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                softWrap = false,
+            )
         }
     }
 }
