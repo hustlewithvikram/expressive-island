@@ -56,7 +56,7 @@ fun IncomingCallExpandedContent(
     onAction: (IslandAction) -> Unit,
 ) {
     val photo = onCall?.photo?.takeIf { call.showPhoto }
-    val hangUp = event.actions.firstOrNull { it.destructive } ?: event.actions.firstOrNull()
+    val hangUp = event.actions.firstOrNull { it.destructive } ?: event.actions.firstOrNull { !it.answer }
     val answer = event.actions.firstOrNull { it.answer }
 
     Column(
@@ -137,7 +137,7 @@ fun CallSingleRowContent(
 ) {
     val photo = onCall?.photo?.takeIf { call.showPhoto }
     // The decline / hang-up (destructive) action; fall back to the first action if the dialer flags none.
-    val hangUp = event.actions.firstOrNull { it.destructive } ?: event.actions.firstOrNull()
+    val hangUp = event.actions.firstOrNull { it.destructive } ?: event.actions.firstOrNull { !it.answer }
     val answer = event.actions.firstOrNull { it.answer }
 
     Row(
