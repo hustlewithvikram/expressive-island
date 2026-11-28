@@ -497,6 +497,13 @@ fun MiniCallContent(
                 maxLines = 1,
                 softWrap = false,
             )
+        } else if (!call.showPhoto) {
+            Icon(
+                imageVector = Icons.Rounded.Call,
+                contentDescription = "Ongoing call",
+                tint = LocalContentColor.current,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }
