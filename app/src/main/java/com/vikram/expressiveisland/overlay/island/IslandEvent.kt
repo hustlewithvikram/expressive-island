@@ -225,6 +225,12 @@ data class CallTileOptions(
     val incomingAnswerColor: CutoutColor = CutoutColor.Dynamic(DynamicRole.PRIMARY),
     val incomingHangUpColor: CutoutColor = CutoutColor.Solid(0xFFEF4444),
     val expandedHangUpColor: CutoutColor = CutoutColor.Solid(0xFFEF4444),
+    /** Compact mini-call pill while a call is connected. */
+    val miniCall: Boolean = false,
+    /** Preview-only call state; never affects real call routing. */
+    val previewOutgoing: Boolean = false,
+    /** Preview-only contact portrait used to exercise the photo visibility setting. */
+    val previewPhoto: ImageBitmap? = null,
 )
 
 /** Which parts of the music tile to render (and how the controls look), per the tile's settings. */
