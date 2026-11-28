@@ -4,6 +4,9 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,12 +16,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.CallEnd
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.MicOff
+import androidx.compose.material.icons.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContext
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -29,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vikram.expressiveisland.R
+import com.vikram.expressiveisland.core.CallAudioBus
 import com.vikram.expressiveisland.core.OnCall
 import com.vikram.expressiveisland.core.OnCallBus
 import com.vikram.expressiveisland.data.CALL_MAX_WIDTH_PERCENT
@@ -234,6 +247,144 @@ fun CallNormalContent(
         )
     }
 }
+
+
+/**
+ * Connected-call expanded island: caller and duration, live Mute/Speaker toggles, an Open action
+ * that launches the dialer's own in-call screen, and the dialer's real hang-up action.
+ */
+@Composable
+fun CallExpandedContent(
+    event: IslandEvent,
+    onCall: OnCall?,
+    onAction: (IslandAction) -> Unit,
+    onOpen: () -> Unit,
+) {
+    val context = LocalContext.current
+    val call = event.call ?: return
+    val photo = onCall?.photo?.takeIf { call.showPhoto }
+    val hangUp = event.actions.firstOrNull { it.destructive }
+        ?: event.actions.firstOrNull { !it.answer }
+    val muted by CallAudioBus.muted.collectAsStateWithLifecycle()
+    val speakerOn by CallAudioBus.speakerOn.collectAsStateWithLifecycle()
+    val activeFill = call.otherButtonColor.resolve()
+
+    LaunchedEffect(Unit) { CallAudioBus.refresh(context) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                start = 16.dp,
+                end = 16.dp,
+                top = CALL_EXPANDED_TOP_PAD_DP.dp,
+                bottom = 14.dp,
+            ),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (photo != null) {
+                ContactPhoto(bitmap = photo, size = 48.dp)
+            } else {
+                IconBadge(event = event, badgeSize = 48.dp, iconSize = 24.dp)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                TileTitle(title = event.label)
+                if (call.showDuration) CallStatus(onCall = onCall)
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            CallControlButton(
+                icon = if (muted) Icons.Rounded.MicOff else Icons.Rounded.Mic,
+                label = "Mute",
+                active = muted,
+                activeColor = activeFill,
+                modifier = Modifier.weight(1f),
+                onClick = { CallAudioBus.toggleMute(context) },
+            )
+            CallControlButton(
+                icon = Icons.Rounded.VolumeUp,
+                label = "Speaker",
+                active = speakerOn,
+                activeColor = activeFill,
+                modifier = Modifier.weight(1f),
+                onClick = { CallAudioBus.toggleSpeaker(context) },
+            )
+            CallControlButton(
+                icon = Icons.Rounded.OpenInNew,
+                label = "Open",
+                active = false,
+                activeColor = activeFill,
+                modifier = Modifier.weight(1f),
+                onClick = onOpen,
+            )
+        }
+
+        if (call.showActions && hangUp != null) {
+            val fill = call.hangUpColor.resolve()
+            Surface(
+                onClick = { onAction(hangUp) },
+                color = fill,
+                contentColor = if (fill.luminance() > 0.5f) Color.Black else Color.White,
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(Icons.Rounded.CallEnd, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Text(stringResource(R.string.phone_hang_up), fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CallControlButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    active: Boolean,
+    activeColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val fill = if (active) activeColor else MaterialTheme.colorScheme.surfaceVariant
+    val ink = if (active) {
+        if (fill.luminance() > 0.5f) Color.Black else Color.White
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Surface(
+        onClick = onClick,
+        color = fill,
+        contentColor = ink,
+        shape = RoundedCornerShape(18.dp),
+        modifier = modifier.height(58.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Icon(icon, contentDescription = label, modifier = Modifier.size(21.dp))
+            Text(label, fontSize = 11.sp, maxLines = 1)
+        }
+    }
+}
+
+private const val CALL_EXPANDED_TOP_PAD_DP = 38
 
 /**
  * The width (as a screen-width percentage) the call cutout should span for [callerName]:
