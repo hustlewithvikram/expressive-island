@@ -350,13 +350,15 @@ internal fun DynamicIsland(
     }
     val miniCallWidthPercent = if (callTiny) {
         val options = shownEvent?.call
-        val photoWidthDp = if (options?.showPhoto == true) (collapsed.heightDp - 8).coerceAtLeast(18) else 0
+        val photoWidthDp = if (options?.showPhoto == true) (collapsed.heightDp - 12).coerceAtLeast(18) else 0
         val durationWidthDp = if (options?.showDuration == true && miniDurationLabel != null) {
             miniDurationLabel.length * 8 + 2
         } else 0
-        val contentWidthDp = if (photoWidthDp == 0 && durationWidthDp == 0) 34 else {
-            16 + photoWidthDp + durationWidthDp +
-                if (photoWidthDp > 0 && durationWidthDp > 0) 8 else 0
+        val contentWidthDp = when {
+            photoWidthDp > 0 && durationWidthDp > 0 -> 12 + photoWidthDp + 32 + durationWidthDp
+            photoWidthDp > 0 -> 12 + photoWidthDp
+            durationWidthDp > 0 -> 12 + durationWidthDp
+            else -> 30
         }
         ceil(contentWidthDp.toFloat() / displayWidthDp.toFloat() * 100f).toInt().coerceIn(16, 95)
     } else collapsed.widthPercent
