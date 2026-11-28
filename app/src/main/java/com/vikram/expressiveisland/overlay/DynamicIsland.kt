@@ -352,7 +352,7 @@ internal fun DynamicIsland(
         val options = shownEvent?.call
         val photoWidthDp = if (options?.showPhoto == true) (collapsed.heightDp - 12).coerceAtLeast(18) else 0
         val durationWidthDp = if (options?.showDuration == true && miniDurationLabel != null) {
-            miniDurationLabel.length * 8 + 2
+            miniDurationLabel.length * 7 + 2
         } else 0
         val contentWidthDp = when {
             photoWidthDp > 0 && durationWidthDp > 0 -> 12 + photoWidthDp + 32 + durationWidthDp
