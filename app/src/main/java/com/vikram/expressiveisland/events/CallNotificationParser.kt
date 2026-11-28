@@ -122,7 +122,7 @@ object CallNotificationParser {
                 context.contentResolver,
                 contactUri,
                 true,
-            )?.use(BitmapFactory::decodeStream)?.asImageBitmap()
+            )?.use { stream -> BitmapFactory.decodeStream(stream) }?.asImageBitmap()
         }.getOrNull()
     }
 
