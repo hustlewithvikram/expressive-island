@@ -225,7 +225,7 @@ fun CallSingleRowContent(
                 val fill = call.hangUpColor.resolve()
                 CallCircleButton(
                     icon = Icons.Rounded.CallEnd,
-                    description = "Hang up",
+                    description = if (onCall?.outgoing == true) "Cancel call" else "Hang up",
                     container = fill,
                     content = if (fill.luminance() > 0.5f) PillTextColorDark else PillTextColor,
                     onClick = { onAction(hangUp) },
@@ -382,7 +382,10 @@ fun CallExpandedContent(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(Icons.Rounded.CallEnd, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Text(stringResource(R.string.phone_hang_up), fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (onCall?.outgoing == true) "Cancel call" else stringResource(R.string.phone_hang_up),
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     }
                 }
             }
