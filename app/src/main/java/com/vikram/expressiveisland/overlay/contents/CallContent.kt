@@ -192,6 +192,7 @@ fun CallSingleRowContent(
         }
         Column(modifier = Modifier.weight(1f)) {
             if (incoming) {
+                TileTitle(title = event.label)
                 onCall?.callerNumber
                     ?.takeIf { it.isNotBlank() && it != event.label }
                     ?.let { number ->
@@ -208,7 +209,7 @@ fun CallSingleRowContent(
                     CallStatus(onCall = onCall)
                 }
             }
-            TileTitle(title = event.label)
+            if (!incoming) TileTitle(title = event.label)
         }
         if (call.showActions) {
             if (incoming) {
@@ -299,7 +300,8 @@ fun CallExpandedContent(
 ) {
     val context = LocalContext.current
     val call = event.call ?: return
-    val photo = onCall?.photo?.takeIf { call.showPhoto }
+    val contactPhoto = onCall?.photo
+    val photo = contactPhoto?.takeIf { call.showPhoto }
     val hangUp = event.actions.firstOrNull { it.destructive }
         ?: event.actions.firstOrNull { !it.answer }
     val liveMuted by CallAudioBus.muted.collectAsStateWithLifecycle()
@@ -316,9 +318,9 @@ fun CallExpandedContent(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (call.expandedPhotoBackground && photo != null) {
+        if (call.expandedPhotoBackground && contactPhoto != null) {
             Image(
-                bitmap = photo,
+                bitmap = contactPhoto,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
